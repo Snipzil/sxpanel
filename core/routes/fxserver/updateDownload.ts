@@ -26,7 +26,7 @@ export default async function FxArtifactDownload(ctx: AuthedCtx) {
     }
     try {
         const parsed = new URL(url);
-        if (!ALLOWED_DOWNLOAD_DOMAINS.includes(parsed.hostname as typeof ALLOWED_DOWNLOAD_DOMAINS[number])) {
+        if (!ALLOWED_DOWNLOAD_DOMAINS.includes(parsed.hostname as (typeof ALLOWED_DOWNLOAD_DOMAINS)[number])) {
             return ctx.send<ApiToastResp>({
                 type: 'error',
                 msg: `Download URL hostname is not allowed. Permitted: ${ALLOWED_DOWNLOAD_DOMAINS.join(', ')}`,
@@ -49,7 +49,7 @@ export default async function FxArtifactDownload(ctx: AuthedCtx) {
     txCore.fxUpdater.download(url).catch(() => {
         //Error is already stored in status
     });
-    ctx.admin.logCommand(`FXServer artifact download started (build ${version})`);
+    ctx.admin.logCommand(`FXServer artifact download started (build ${version})`, 'artifact.download');
 
     return ctx.send<ApiToastResp>({
         type: 'success',

@@ -70,7 +70,7 @@ describe('panelVars CSS sanitization', () => {
     // -------------------------------------------------------------------------
     describe('NAME_RE rejects invalid property names', () => {
         it('rejects names not starting with --', () => {
-            expect(sanitize({ 'color': 'red' })).toEqual([]);
+            expect(sanitize({ color: 'red' })).toEqual([]);
         });
 
         it('rejects names with spaces', () => {

@@ -1,7 +1,7 @@
 const modulename = 'WebServer:AuthDiscourseCallback';
 import consoleFactory from '@lib/console';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
-import { CfxreSessAuthType } from '@modules/WebServer/authLogic';
+import { CfxreSessAuthType, resolveEffectiveAuthedAdmin } from '@modules/WebServer/authLogic';
 import { discourseCallbackBodySchema as bodySchema } from '@shared/authApiSchemas';
 import { ApiOauthCallbackErrorResp, ApiOauthCallbackResp, ReactAuthDataType } from '@shared/authApiTypes';
 import { decryptPayload, getDiscourseUserInfo } from '@modules/AdminStore/providers/DiscourseUser';
@@ -87,8 +87,10 @@ export default async function AuthDiscourseCallback(ctx: InitializedCtx) {
         } satisfies CfxreSessAuthType;
         ctx.sessTools.set({ auth: sessData });
 
-        const authedAdmin = vaultAdmin.getAuthed(sessData.csrfToken);
-        authedAdmin.logAction(`logged in from ${ctx.ip} via discourse`);
+        const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
+        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via discourse`, 'login', {
+            actionId: 'login.discourse',
+        });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('discourse');
         return ctx.send<ReactAuthDataType>(authedAdmin.getAuthData());

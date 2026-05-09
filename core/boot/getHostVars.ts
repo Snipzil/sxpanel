@@ -1,8 +1,11 @@
 import path from 'node:path';
+import { isIP } from 'node:net';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import fatalError from '@lib/fatalError';
 import consts from '@shared/consts';
+
+const ipv4StringSchema = z.string().refine((value) => isIP(value) === 4, 'Invalid IPv4 address');
 
 /**
  * Schemas for the TXHOST_ env variables
@@ -38,7 +41,7 @@ export const hostEnvVarSchemas = {
         .int()
         .positive()
         .refine((val) => val < 40120 || val > 40150, 'FXS_PORT cannot be between 40120 and 40150'),
-    INTERFACE: z.string().ip({ version: 'v4' }),
+    INTERFACE: ipv4StringSchema,
 
     //Provider
     PROVIDER_NAME: z

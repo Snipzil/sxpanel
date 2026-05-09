@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
-import StreamValues from 'stream-json/streamers/StreamValues';
+import StreamValues from 'stream-json/streamers/stream-values.js';
 import { customAlphabet } from 'nanoid/non-secure';
-import dict49 from 'nanoid-dictionary/nolookalikes';
+import { nolookalikes } from 'nanoid-dictionary';
 import consoleFactory from '@lib/console';
 import { resolveCFGFilePath, validateFixServerConfig } from '@lib/fxserver/fxsConfigHelper';
 import { msToShortishDuration } from '@lib/misc';
@@ -23,7 +23,7 @@ import ConsoleLineEnum from '@modules/Logger/FXServerLogger/ConsoleLineEnum';
 import { txHostConfig } from '@core/globalData';
 import path from 'node:path';
 const console = consoleFactory('FxRunner');
-const genMutex = customAlphabet(dict49, 5);
+const genMutex = customAlphabet(nolookalikes, 5);
 
 const MIN_KILL_DELAY = 250;
 
@@ -245,7 +245,8 @@ export default class FxRunner {
             'data',
             txCore.logger.fxserver.writeFxsOutput.bind(txCore.logger.fxserver, ConsoleLineEnum.StdErr),
         );
-        const jsoninPipe = childProc.stdio[3].pipe(StreamValues.withParser() as any);
+        const jsoninPipe = StreamValues.withParserAsStream();
+        (childProc.stdio[3] as NodeJS.ReadableStream).pipe(jsoninPipe, { end: false });
         jsoninPipe.on('data', handleFd3Messages.bind(null, newServerMutex));
 
         //_Almost_ don't care
@@ -306,7 +307,12 @@ export default class FxRunner {
      * Kills the FXServer child process.
      * NOTE: isRestarting might be true even if not called by this.restartServer().
      */
-    public async killServer(reason: string, author: string | typeof SYM_SYSTEM_AUTHOR, isRestarting = false, skipNoticeDelay = false) {
+    public async killServer(
+        reason: string,
+        author: string | typeof SYM_SYSTEM_AUTHOR,
+        isRestarting = false,
+        skipNoticeDelay = false,
+    ) {
         if (!this.proc) return null; //nothing to kill
 
         //Prepare vars

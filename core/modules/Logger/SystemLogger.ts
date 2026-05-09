@@ -5,8 +5,12 @@ import path from 'node:path';
 import bytes from 'bytes';
 import consoleFactory from '@lib/console';
 import { chalkInversePad, getTimeFilename } from '@lib/misc';
-import type { SystemLogCategory, SystemLogEntry } from '@shared/systemLogTypes';
+import type { SystemLogActionId, SystemLogCategory, SystemLogEntry } from '@shared/systemLogTypes';
 const console = consoleFactory(modulename);
+
+type SystemLogWriteOptions = {
+    actionId?: SystemLogActionId;
+};
 
 //Consts
 const BUFFER_SIZE = 16_000;
@@ -158,31 +162,37 @@ export default class SystemLogger {
     /**
      * Logs a system event (with console output)
      */
-    write(author: string, action: string, category: SystemLogCategory) {
+    write(author: string, action: string, category: SystemLogCategory, options: SystemLogWriteOptions = {}) {
         if (category === 'command') {
             console.log(`${author} executed ` + chalkInversePad(action));
         } else {
             console.log(action);
         }
-        this._writeEntry(author, action, category);
+        this._writeEntry(author, action, category, options);
     }
 
     /**
      * Logs a system event (silent, no console output)
      */
-    writeSystem(author: string, action: string, category: SystemLogCategory) {
-        this._writeEntry(author, action, category);
+    writeSystem(author: string, action: string, category: SystemLogCategory, options: SystemLogWriteOptions = {}) {
+        this._writeEntry(author, action, category, options);
     }
 
     /**
      * Writes a structured entry to the JSONL session file and in-memory buffer
      */
-    private _writeEntry(author: string, action: string, category: SystemLogCategory) {
+    private _writeEntry(
+        author: string,
+        action: string,
+        category: SystemLogCategory,
+        options: SystemLogWriteOptions = {},
+    ) {
         const entry: SystemLogEntry = {
             ts: Date.now(),
             author,
             category,
             action,
+            ...(options.actionId ? { actionId: options.actionId } : {}),
         };
 
         //Push to in-memory buffer
@@ -197,6 +207,10 @@ export default class SystemLogger {
 
         //Send to websocket
         txCore.webServer.webSocket.buffer('systemlog', entry);
+
+        if (typeof txCore.discordBot?.handleSystemLogEntry === 'function') {
+            txCore.discordBot.handleSystemLogEntry(entry).catch(() => {});
+        }
     }
 
     /**

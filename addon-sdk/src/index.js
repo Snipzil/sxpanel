@@ -290,7 +290,10 @@ export function createAddon() {
                             name: admin.name,
                             permissions: admin.permissions,
                             isMaster: !!admin.isMaster,
-                            hasPermission: (perm) => !!admin.isMaster || admin.permissions.includes('all_permissions') || admin.permissions.includes(perm),
+                            hasPermission: (perm) =>
+                                !!admin.isMaster ||
+                                admin.permissions.includes('all_permissions') ||
+                                admin.permissions.includes(perm),
                         },
                     };
 
@@ -476,7 +479,9 @@ export function createAddon() {
 
     return {
         id: addonId,
-        get permissions() { return [...permissions]; },
+        get permissions() {
+            return [...permissions];
+        },
         storage,
         players,
         registerRoute,

@@ -13,7 +13,14 @@ import consoleFactory from '@lib/console';
 import fatalError from '@lib/fatalError';
 import { chalkInversePad } from '@lib/misc';
 import { registeredPermissions as permDefs, permMigrationMap, type PermissionDefinition } from '@shared/permissions';
-import { StoredAdmin, type RawAdminType, type AdminProviders } from './adminClasses';
+import {
+    DISCORD_ROLE_SYNC_DATA_KEY,
+    StoredAdmin,
+    getDiscordRoleSyncData,
+    type RawAdminType,
+    type AdminProviders,
+    type DiscordRoleSyncData,
+} from './adminClasses';
 const console = consoleFactory(modulename);
 
 //NOTE: The way I'm doing versioning right now is horrible but for now it's the best I can do
@@ -33,6 +40,83 @@ const migrateProviderIdentifiers = (providerName: string, providerData: any) => 
     } else if (providerName === 'discord') {
         providerData.identifier = `discord:${providerData.id}`;
     }
+};
+
+const sanitizeStringList = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+
+    return [...new Set(value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0))];
+};
+
+const mergeStringLists = (...lists: string[][]) => {
+    const merged = new Set<string>();
+
+    for (const list of lists) {
+        for (const entry of list) {
+            merged.add(entry);
+        }
+    }
+
+    return [...merged];
+};
+
+const stripDiscordRoleSyncedPermissions = (permissions: string[], syncData: DiscordRoleSyncData | false) => {
+    const normalizedPermissions = sanitizeStringList(permissions);
+    if (!syncData) return normalizedPermissions;
+
+    const syncedPermissions = new Set(syncData.permissions);
+    return normalizedPermissions.filter((permission) => !syncedPermissions.has(permission));
+};
+
+const materializeDiscordRolePermissions = (permissions: string[], syncData: ReturnType<typeof normalizeDiscordRoleSyncData>) => {
+    const basePermissions = sanitizeStringList(permissions);
+    if (!syncData) return basePermissions;
+
+    return mergeStringLists(basePermissions, syncData.permissions);
+};
+
+const normalizeDiscordRoleSyncData = (value: DiscordRoleSyncData | false | undefined) => {
+    if (!value) return false;
+
+    const permissions = sanitizeStringList(value.permissions);
+    if (!permissions.length) {
+        return false;
+    }
+
+    const presetIds = sanitizeStringList(value.presetIds);
+    const roleIds = sanitizeStringList(value.roleIds);
+
+    return {
+        permissions,
+        ...(presetIds.length ? { presetIds } : {}),
+        ...(roleIds.length ? { roleIds } : {}),
+        syncedAt: Date.now(),
+    };
+};
+
+const haveSameStringSet = (left: string[], right: string[]) => {
+    if (left.length !== right.length) return false;
+
+    const rightSet = new Set(right);
+    for (const entry of left) {
+        if (!rightSet.has(entry)) return false;
+    }
+
+    return true;
+};
+
+const haveSameDiscordRoleSyncData = (
+    left: DiscordRoleSyncData | false,
+    right: ReturnType<typeof normalizeDiscordRoleSyncData>,
+) => {
+    if (!left && !right) return true;
+    if (!left || !right) return false;
+
+    return (
+        haveSameStringSet(left.permissions, right.permissions)
+        && haveSameStringSet(left.presetIds ?? [], right.presetIds ?? [])
+        && haveSameStringSet(left.roleIds ?? [], right.roleIds ?? [])
+    );
 };
 
 /**
@@ -109,9 +193,7 @@ export default class AdminStore {
      */
     verifyMasterPin(input: string): boolean {
         if (typeof this.addMasterPin !== 'string' || !this.addMasterPin.length) return false;
-        const normalised = (typeof input === 'string' ? input : '')
-            .toUpperCase()
-            .replace(/[\s-]/g, '');
+        const normalised = (typeof input === 'string' ? input : '').toUpperCase().replace(/[\s-]/g, '');
         const expectedBuf = Buffer.from(this.addMasterPin);
         const inputBuf = Buffer.from(normalised);
         if (inputBuf.length !== expectedBuf.length) {
@@ -443,6 +525,10 @@ export default class AdminStore {
         });
         if (adminIndex === -1) throw new Error('Admin not found');
 
+        const currentDiscordProvider = this.admins[adminIndex].providers.discord;
+        const currentRoleSyncData = getDiscordRoleSyncData(this.admins[adminIndex].providers);
+        let nextRoleSyncData = currentRoleSyncData;
+
         //Editing admin
         if (password !== null) {
             this.admins[adminIndex].password_hash = GetPasswordHash(password);
@@ -462,15 +548,29 @@ export default class AdminStore {
         if (typeof discordData !== 'undefined') {
             if (!discordData) {
                 delete this.admins[adminIndex].providers.discord;
+                nextRoleSyncData = false;
             } else {
+                const isSameDiscordProvider =
+                    currentDiscordProvider?.id.toLowerCase() === discordData.id.toLowerCase();
                 this.admins[adminIndex].providers.discord = {
                     id: discordData.id,
                     identifier: discordData.identifier,
-                    data: {},
+                    data:
+                        isSameDiscordProvider && currentDiscordProvider?.data && typeof currentDiscordProvider.data === 'object'
+                            ? structuredClone(currentDiscordProvider.data)
+                            : {},
                 };
+                nextRoleSyncData = isSameDiscordProvider ? currentRoleSyncData : false;
             }
         }
-        if (typeof permissions !== 'undefined') this.admins[adminIndex].permissions = permissions;
+
+        if (typeof permissions !== 'undefined' || currentRoleSyncData !== nextRoleSyncData) {
+            const nextBasePermissions = stripDiscordRoleSyncedPermissions(
+                typeof permissions !== 'undefined' ? permissions : this.admins[adminIndex].permissions,
+                currentRoleSyncData,
+            );
+            this.admins[adminIndex].permissions = materializeDiscordRolePermissions(nextBasePermissions, nextRoleSyncData);
+        }
 
         //Prevent race condition, will allow the session to be updated before refreshing socket.io
         //sessions which will cause reauth and closing of the temp password modal on first access
@@ -522,6 +622,47 @@ export default class AdminStore {
         }, 250);
         try {
             await this.writeAdminsFile();
+        } catch (error) {
+            throw new Error(`Failed to save admins.json with error: ${emsg(error)}`);
+        }
+    }
+
+    async syncAdminDiscordRolePermissions(discordId: string, syncData: DiscordRoleSyncData | false) {
+        if (!this.admins) throw new Error('Admins not set');
+
+        const normalizedDiscordId = discordId.trim().toLowerCase();
+        if (!normalizedDiscordId.length) return false;
+
+        const adminIndex = this.admins.findIndex((user) => {
+            return user.providers.discord?.id.toLowerCase() === normalizedDiscordId;
+        });
+        if (adminIndex === -1) return false;
+
+        const providerData = this.admins[adminIndex].providers.discord?.data;
+        if (!providerData || typeof providerData !== 'object') return false;
+
+        const nextSyncData = normalizeDiscordRoleSyncData(syncData);
+        const currentSyncData = getDiscordRoleSyncData(this.admins[adminIndex].providers);
+        const basePermissions = stripDiscordRoleSyncedPermissions(this.admins[adminIndex].permissions, currentSyncData);
+        const nextPermissions = materializeDiscordRolePermissions(basePermissions, nextSyncData);
+        const permissionsChanged = !haveSameStringSet(this.admins[adminIndex].permissions, nextPermissions);
+
+        if (haveSameDiscordRoleSyncData(currentSyncData, nextSyncData) && !permissionsChanged) {
+            return false;
+        }
+
+        this.admins[adminIndex].permissions = nextPermissions;
+
+        if (!nextSyncData) {
+            delete providerData[DISCORD_ROLE_SYNC_DATA_KEY];
+        } else {
+            providerData[DISCORD_ROLE_SYNC_DATA_KEY] = nextSyncData;
+        }
+
+        try {
+            await this.writeAdminsFile();
+            this.refreshOnlineAdmins().catch(() => {});
+            return true;
         } catch (error) {
             throw new Error(`Failed to save admins.json with error: ${emsg(error)}`);
         }
@@ -582,7 +723,9 @@ export default class AdminStore {
         if (adminIndex === -1) throw new Error('Admin not found');
         const codes = this.admins[adminIndex].totp_backup_codes;
         if (!codes || codeIndex < 0 || codeIndex >= codes.length) {
-            console.warn(`consumeBackupCode: invalid state for admin "${username}" — codeIndex=${codeIndex}, codes.length=${codes?.length ?? 'N/A (no codes array)'}`);
+            console.warn(
+                `consumeBackupCode: invalid state for admin "${username}" — codeIndex=${codeIndex}, codes.length=${codes?.length ?? 'N/A (no codes array)'}`,
+            );
             return;
         }
         codes.splice(codeIndex, 1);

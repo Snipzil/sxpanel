@@ -1,5 +1,6 @@
 import consoleFactory from '@lib/console';
 import type { ReactAuthDataType } from '@shared/authApiTypes';
+import type { SystemLogActionId } from '@shared/systemLogTypes';
 const console = consoleFactory('AuthedAdmin');
 
 //======================================================================
@@ -16,6 +17,44 @@ export type AdminProviders = {
     discord?: AdminProviderData;
 };
 
+export const DISCORD_ROLE_SYNC_DATA_KEY = 'fxpanelRoleSync';
+
+export type DiscordRoleSyncData = {
+    permissions: string[];
+    presetIds?: string[];
+    roleIds?: string[];
+    syncedAt?: number;
+};
+
+const sanitizeStringList = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+
+    return [...new Set(value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0))];
+};
+
+export const getDiscordRoleSyncData = (providers: AdminProviders | undefined): DiscordRoleSyncData | false => {
+    const rawSyncData = providers?.discord?.data?.[DISCORD_ROLE_SYNC_DATA_KEY];
+    if (!rawSyncData || typeof rawSyncData !== 'object') {
+        return false;
+    }
+
+    const syncData = rawSyncData as Record<string, unknown>;
+    const permissions = sanitizeStringList(syncData.permissions);
+    if (!permissions.length) {
+        return false;
+    }
+
+    const presetIds = sanitizeStringList(syncData.presetIds);
+    const roleIds = sanitizeStringList(syncData.roleIds);
+
+    return {
+        permissions,
+        ...(presetIds.length ? { presetIds } : {}),
+        ...(roleIds.length ? { roleIds } : {}),
+        ...(typeof syncData.syncedAt === 'number' ? { syncedAt: syncData.syncedAt } : {}),
+    };
+};
+
 export type RawAdminType = {
     $schema: number;
     name: string;
@@ -27,6 +66,11 @@ export type RawAdminType = {
     // 2FA fields (optional, added by totp setup)
     totp_secret?: string;
     totp_backup_codes?: string[];
+};
+
+export type AdminPermissionOverrides = {
+    isMaster?: boolean;
+    permissions?: string[];
 };
 
 //======================================================================
@@ -45,7 +89,7 @@ export class StoredAdmin {
     public readonly permissions: string[];
     public readonly totpEnabled: boolean;
 
-    constructor(raw: RawAdminType | StoredAdmin) {
+    constructor(raw: RawAdminType | StoredAdmin, overrides?: AdminPermissionOverrides) {
         if (raw instanceof StoredAdmin) {
             this.name = raw.name;
             this.isMaster = raw.isMaster;
@@ -63,13 +107,20 @@ export class StoredAdmin {
             this.permissions = raw.permissions;
             this.totpEnabled = typeof raw.totp_secret === 'string' && raw.totp_secret.length > 0;
         }
+
+        if (typeof overrides?.isMaster === 'boolean') {
+            this.isMaster = overrides.isMaster;
+        }
+        if (Array.isArray(overrides?.permissions)) {
+            this.permissions = overrides.permissions;
+        }
     }
 
     /**
      * Creates an AuthedAdmin for this stored admin, to be attached to a request context.
      */
-    getAuthed(csrfToken?: string) {
-        return new AuthedAdmin(this, csrfToken);
+    getAuthed(csrfToken?: string, overrides?: AdminPermissionOverrides) {
+        return new AuthedAdmin(this, csrfToken, overrides);
     }
 }
 
@@ -84,8 +135,8 @@ export class AuthedAdmin extends StoredAdmin {
     public readonly csrfToken?: string;
     public readonly profilePicture: string | undefined;
 
-    constructor(storedAdmin: StoredAdmin, csrfToken?: string) {
-        super(storedAdmin);
+    constructor(storedAdmin: StoredAdmin, csrfToken?: string, overrides?: AdminPermissionOverrides) {
+        super(storedAdmin, overrides);
         this.csrfToken = csrfToken;
         const cachedPfp = txCore.cacheStore.get(`admin:picture:${this.name}`);
         this.profilePicture = typeof cachedPfp === 'string' ? cachedPfp : undefined;
@@ -94,15 +145,15 @@ export class AuthedAdmin extends StoredAdmin {
     /**
      * Logs an action to the console and the action logger
      */
-    logAction(action: string) {
-        txCore.logger.system.write(this.name, action, 'action');
+    logAction(action: string, actionId?: SystemLogActionId) {
+        txCore.logger.system.write(this.name, action, 'action', { actionId });
     }
 
     /**
      * Logs a command to the console and the action logger
      */
-    logCommand(data: string) {
-        txCore.logger.system.write(this.name, data, 'command');
+    logCommand(data: string, actionId?: SystemLogActionId) {
+        txCore.logger.system.write(this.name, data, 'command', { actionId });
     }
 
     /**

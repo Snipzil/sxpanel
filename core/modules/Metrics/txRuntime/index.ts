@@ -80,7 +80,7 @@ export default class TxRuntimeMetrics {
      */
     async loadStatsPublicKey() {
         try {
-            this.#publicKey = await jose.importSPKI(statsPublicKeyPem, 'RS256');
+            this.#publicKey = await jose.importSPKI(statsPublicKeyPem, 'RSA-OAEP-256');
         } catch (error) {
             fatalError.StatsTxRuntime(0, 'Failed to load stats public key.', error);
         }

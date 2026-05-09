@@ -1,4 +1,4 @@
-import type { RoomType } from '../webSocket';
+import type { RoomType } from '@modules/WebServer/webSocket';
 
 /**
  * The main room is joined automatically in every txadmin page (except solo ones)

@@ -1,5 +1,5 @@
 const modulename = 'WebServer:ServeStaticMw';
-import path from 'path';
+import path from 'node:path';
 import consoleFactory from '@lib/console';
 import type { Next } from 'koa';
 import type { RawKoaCtx } from '../ctxTypes';
@@ -32,15 +32,29 @@ class LimitedCacheArray extends Array<RuntimeFileCached> {
 }
 const runtimeCache = new LimitedCacheArray(50);
 
+const iconMimeMap: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+};
+
 const getServerIcon = async (fileName: string): Promise<RuntimeFile | undefined> => {
-    const fileRegex = /^icon-(?<hash>[a-f0-9]{16})\.png(?:\?.*|$)/;
-    const iconHash = fileName.match(fileRegex)?.groups?.hash;
-    if (!iconHash) return undefined;
-    const localPath = path.resolve(txEnv.txaPath, '.runtime', `icon-${iconHash}.png`);
+    const fileRegex = /^icon-(?<hash>[a-f0-9]{16})(?<ext>\.(?:png|jpe?g|gif|webp|svg|ico))(?:\?.*|$)/i;
+    const match = fileName.match(fileRegex);
+    const iconHash = match?.groups?.hash;
+    const iconExt = match?.groups?.ext?.toLowerCase();
+    if (!iconHash || !iconExt) return undefined;
+    const mime = iconMimeMap[iconExt];
+    if (!mime) return undefined;
+    const localPath = path.resolve(txEnv.txaPath, '.runtime', `icon-${iconHash}${iconExt}`);
     const fileData = await getCompressedFile(localPath);
     return {
         ...fileData,
-        mime: 'image/png',
+        mime,
     };
 };
 

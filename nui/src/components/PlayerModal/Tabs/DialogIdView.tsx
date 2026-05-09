@@ -3,10 +3,10 @@ import { styled } from '@mui/material/styles';
 import { Box, IconButton, Typography } from '@mui/material';
 import { usePlayerDetailsValue } from '../../../state/playerDetails.state';
 import { FileCopy } from '@mui/icons-material';
-import { copyToClipboard } from '../../../utils/copyToClipboard';
 import { useSnackbar } from 'notistack';
 import { useTranslate } from 'react-polyglot';
 import { DialogLoadError } from './DialogLoadError';
+import { copyToClipboard } from '../../../utils/copyToClipboard';
 
 const PREFIX = 'DialogIdView';
 
@@ -40,18 +40,29 @@ const StyledBox = styled(Box)(({ theme }) => ({
     },
 }));
 
+const sanitiseIdentifier = (value: unknown) => {
+    if (typeof value !== 'string') return '';
+    return value.replace(/[^a-zA-Z0-9:_./+\-=]/g, '').trim();
+};
+
 const DialogIdView: React.FC = () => {
     const playerDetails = usePlayerDetailsValue();
     const { enqueueSnackbar } = useSnackbar();
     const t = useTranslate();
     if ('error' in playerDetails) return <DialogLoadError />;
 
-    const currentIds = playerDetails.player.ids ?? [];
-    const allIds = Array.from(new Set([...(playerDetails.player.oldIds ?? []), ...currentIds]));
+    const currentIds = (playerDetails.player.ids ?? []).map(sanitiseIdentifier).filter(Boolean);
+    const allIds = Array.from(
+        new Set([...(playerDetails.player.oldIds ?? []).map(sanitiseIdentifier), ...currentIds]),
+    ).filter(Boolean);
 
     const handleCopyToClipboard = (value: string) => {
-        copyToClipboard(value, true);
-        enqueueSnackbar(t('nui_menu.common.copied'), { variant: 'info' });
+        const safeValue = sanitiseIdentifier(value);
+        if (!safeValue) return;
+        const wasCopied = copyToClipboard(safeValue, true);
+        enqueueSnackbar(t(wasCopied ? 'nui_menu.common.copied' : 'nui_menu.common.error'), {
+            variant: wasCopied ? 'info' : 'error',
+        });
     };
 
     const getAllIds = () => {
@@ -76,12 +87,15 @@ const DialogIdView: React.FC = () => {
     };
 
     const getAllHwids = () => {
-        if (!Array.isArray(playerDetails.player.oldHwids) || !playerDetails.player.oldHwids.length) {
+        const safeHwids = Array.isArray(playerDetails.player.oldHwids)
+            ? playerDetails.player.oldHwids.map(sanitiseIdentifier).filter(Boolean)
+            : [];
+        if (!safeHwids.length) {
             return <em>No HWIDs saved.</em>;
         } else {
             return (
                 <Box className={classes.codeBlock}>
-                    <span className={classes.codeBlockHwids}>{playerDetails.player.oldHwids.join('\n')}</span>
+                    <span className={classes.codeBlockHwids}>{safeHwids.join('\n')}</span>
                 </Box>
             );
         }

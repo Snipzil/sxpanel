@@ -60,12 +60,13 @@ export default function AdminListCard({
     onToggleSelect,
 }: AdminListCardProps) {
     const [showStats, setShowStats] = useState(false);
+    const displayPermissions = admin.effectivePermissions ?? admin.permissions;
 
     const permLabel = admin.isMaster
         ? 'Master Account'
-        : admin.permissions.includes('all_permissions')
+        : displayPermissions.includes('all_permissions')
           ? 'All Permissions'
-          : `${admin.permissions.length} permission${admin.permissions.length !== 1 ? 's' : ''}`;
+          : `${displayPermissions.length} permission${displayPermissions.length !== 1 ? 's' : ''}`;
 
     const showManageActions = canManage && !admin.isYou && !admin.isMaster;
     const showMenu = !selectMode;
@@ -115,10 +116,7 @@ export default function AdminListCard({
 
                 {/* Avatar tile */}
                 <div className="relative shrink-0">
-                    <Avatar
-                        username={admin.name}
-                        className="h-11 w-11 rounded-lg text-sm font-bold"
-                    />
+                    <Avatar username={admin.name} className="h-11 w-11 rounded-lg text-sm font-bold" />
                     {!selectMode && (
                         <span
                             className={cn(
@@ -144,7 +142,7 @@ export default function AdminListCard({
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                         {admin.isYou && (
-                            <span className="bg-primary/15 text-primary rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+                            <span className="bg-primary/15 text-primary rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wider uppercase">
                                 You
                             </span>
                         )}

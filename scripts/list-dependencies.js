@@ -8,7 +8,20 @@ if (typeof targetPath !== 'string' || !targetPath.length) {
     console.log('Usage: node scripts/list-dependencies.js <package-folder>');
     process.exit(1);
 }
-console.log('Scanning for dependencies in:', chalk.blue(targetPath));
+const targetFolderName = path.basename(targetPath);
+const targetPathResolved = path.resolve(process.cwd(), targetFolderName);
+if (!fs.existsSync(targetPathResolved) || !fs.statSync(targetPathResolved).isDirectory()) {
+    console.log(chalk.red(`[ERROR] Invalid package folder: ${targetPath}`));
+    process.exit(1);
+}
+const cwdRealPath = fs.realpathSync(process.cwd());
+const targetRealPath = fs.realpathSync(targetPathResolved);
+const targetWithinWorkspace = targetRealPath === cwdRealPath || targetRealPath.startsWith(cwdRealPath + path.sep);
+if (!targetWithinWorkspace) {
+    console.log(chalk.red(`[ERROR] Target folder must be within the current workspace.`));
+    process.exit(1);
+}
+console.log('Scanning for dependencies in:', chalk.blue(targetRealPath));
 
 //Get list of all dependencies from both the target and root package.json
 const readDeps = (pkgPath) => {
@@ -19,7 +32,7 @@ const readDeps = (pkgPath) => {
         return [];
     }
 };
-const dependencies = new Set([...readDeps(path.join(targetPath, 'package.json')), ...readDeps('./package.json')]);
+const dependencies = new Set([...readDeps(path.join(targetRealPath, 'package.json')), ...readDeps('./package.json')]);
 
 //NOTE: To generate this list, use `node -pe "require('repl')._builtinLibs"` in both node16 and 22, then merge them.
 const builtInModules = [
@@ -101,8 +114,8 @@ const ignoredPrefixes = [
     '@/',
 ];
 const validExtensions = ['.cjs', '.js', '.ts', '.jsx', '.tsx'];
-const importRegex = /import\s+.+\s+from\s+['"](.*)['"]/gm;
-const requireRegex = /(?:require|import)\s*\(\s*['"](.*)['"]\s*\)/gm;
+const importRegex = /^(?!\s*\/\/)\s*import\s+.+?\s+from\s+['"]([^'"]+)['"]/gm;
+const requireRegex = /^(?!\s*\/\/).*?\b(?:require|import)\s*\(\s*['"]([^'"]+)['"]\s*\)/gm;
 
 //Resolve a relative import specifier to an absolute file path
 const resolveLocalImport = (fromFile, specifier) => {
@@ -183,7 +196,7 @@ const processFolder = (dirPath) => {
         }
     }
 };
-processFolder(targetPath);
+processFolder(targetRealPath);
 
 //Detect circular imports via DFS
 const detectCircularImports = () => {

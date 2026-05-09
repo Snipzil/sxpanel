@@ -379,5 +379,351 @@
                 "submit": "Apply ban"
             }
         }
+    },
+    "discord_bot": {
+        "common": {
+            "could_not_resolve_user": "Could not resolve the Discord user for this command.",
+            "no_fxpanel_access": "**Your account does not have fxPanel access.**\nIf you are already registered in fxPanel, make sure your Discord ID is set to `%{requesterId}`.",
+            "invalid_identifier": "Invalid identifier.",
+            "invalid_server_id": "Invalid server ID.",
+            "subcommand_not_found": "Subcommand %{subcommand} not found.",
+            "subcommand_group_not_found": "Subcommand group %{group} not found.",
+            "command_failed": "%{action} failed: %{message}",
+            "channel_type_not_supported": "Channel type not supported.",
+            "no_reply_payload": "No reply payload returned for %{command}.",
+            "no_handler_command": "No handler available for /%{commandName}.",
+            "no_handler_interaction": "No handler available for this interaction (%{interactionType} > %{identifier})",
+            "error_executing_command": "Error executing /%{commandName}: %{message}"
+        },
+        "interaction": {
+            "addon": {
+                "rate_limited": "This addon %{interactionType} is being rate limited. Try again in %{retryAfterSeconds}s.",
+                "wrong_component_type": "This addon interaction was sent with the wrong component type.",
+                "no_handler": "No addon handler is registered for this interaction.",
+                "execute_failed": "Addon %{interactionType} interaction failed: %{message}"
+            },
+            "player_list": {
+                "invalid_request": "Invalid player list page request.",
+                "no_updated_payload": "No updated player list payload was returned.",
+                "change_failed": "Player list page change failed: %{message}"
+            },
+            "ticket": {
+                "assign_prompt": "Select the linked fxPanel admin that should own this ticket.",
+                "assign_placeholder": "Choose a staff member",
+                "invalid_request": "Invalid ticket interaction request.",
+                "no_updated_payload": "No updated ticket payload was returned.",
+                "action_failed": "Ticket action failed: %{message}",
+                "select_member": "Select a Discord member to assign this ticket.",
+                "updated": "Updated ticket `%{ticketId}`.",
+                "no_assignment_payload": "No assignment response payload was returned.",
+                "assignment_failed": "Ticket assignment failed: %{message}"
+            }
+        },
+        "persistent_embed": {
+            "status": {
+                "display_name": "Status embed",
+                "lower_name": "status embed",
+                "saved": "Status embed saved.",
+                "removed": "Old status embed removed."
+            },
+            "player_list": {
+                "display_name": "Player list embed",
+                "lower_name": "player list embed",
+                "saved": "Player list embed saved.",
+                "removed": "Old player list embed removed."
+            },
+            "failed_remove_no_saved_message": "Failed to remove old %{embedLabel}: no saved message id was found.",
+            "failed_remove_error": "Failed to remove old %{embedLabel}: %{message}",
+            "placeholder_message": "_placeholder message, attempting to edit with embed..._\n**Note:** If you are seeing this message, it probably means that something was wrong with the configured Embed JSONs and Discord's API rejected the request to replace this placeholder.",
+            "no_bridge_payload": "No %{embedLabel} payload returned by the bridge.",
+            "channel_not_found": "Channel %{channelId} not found.",
+            "stored_channel_not_supported": "Stored %{embedLabel} channel is not a text or announcement channel.",
+            "invalid_location": "Invalid %{embedLabel} location.",
+            "generate_failed": "**Failed to generate new %{embedLabel}:**\n%{message}",
+            "unknown_action": "Unknown persistent embed action: %{action}",
+            "pagination_only_player_list": "Pagination is only available for the player list embed.",
+            "player_list_not_configured": "Player list embed is not configured.",
+            "player_list_no_longer_active": "This player list embed is no longer active.",
+            "invalid_page": "Invalid player list page.",
+            "page_change_failed": "**Failed to change player list page:**\n%{message}"
+        },
+        "player_lookup": {
+            "lookup_failed": "Player lookup failed: %{message}",
+            "no_players_found": "Identifier (`%{searchId}`) does not seem to be associated to any player in the fxPanel database.",
+            "too_many_players": "The identifier (`%{searchId}`) is associated with more than 10 players, please use the fxPanel web panel to search for it.",
+            "fields": {
+                "play_time": "Play time",
+                "join_date": "Join date",
+                "last_connection": "Last connection",
+                "whitelisted": "Whitelisted",
+                "log": "Log",
+                "notes": "• Notes:",
+                "identifiers": "• Identifiers:"
+            },
+            "values": {
+                "not_yet": "not yet",
+                "nothing_here": "nothing here"
+            },
+            "action_counts": {
+                "ban": {
+                    "one": "1 ban",
+                    "other": "%{count} bans"
+                },
+                "warn": {
+                    "one": "1 warn",
+                    "other": "%{count} warns"
+                },
+                "kick": {
+                    "one": "1 kick",
+                    "other": "%{count} kicks"
+                }
+            },
+            "log_summary": "%{banText}, %{warnText}, %{kickText}"
+        },
+        "whitelist": {
+            "failed_resolve_member": "Failed to resolve member ID.",
+            "save_approval_failed": "Failed to save whitelist approval: %{message}",
+            "approval_added": "Added whitelist approval for %{playerName}.",
+            "invalid_request_id": "Invalid request ID.",
+            "request_not_found": "Whitelist request ID `%{requestId}` not found.",
+            "save_request_approval_failed": "Failed to save wl approval: %{message}",
+            "remove_request_failed": "Failed to remove wl request: %{message}",
+            "request_approved": "Approved whitelist request `%{requestId}` from %{playerName}.",
+            "subcommand_not_found": "Subcommand %{subcommand} not found."
+        },
+        "tickets": {
+            "status_labels": {
+                "open": "Open",
+                "in_review": "In Review",
+                "resolved": "Resolved",
+                "closed": "Closed"
+            },
+            "priority_labels": {
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High",
+                "critical": "Critical",
+                "none": "None"
+            },
+            "summary": {
+                "no_description": "No description provided.",
+                "none": "None",
+                "not_resolved": "Not resolved",
+                "claimed_by_unassigned": "Unassigned",
+                "fields": {
+                    "status": "Status",
+                    "priority": "Priority",
+                    "claimed_by": "Claimed By",
+                    "reporter": "Reporter",
+                    "messages": "Messages",
+                    "staff_notes": "Staff Notes",
+                    "created": "Created",
+                    "last_activity": "Last Activity",
+                    "resolved": "Resolved",
+                    "targets": "Targets"
+                }
+            },
+            "buttons": {
+                "refresh": "Refresh",
+                "claim_unclaim": "Claim / Unclaim",
+                "assign": "Assign",
+                "resolve": "Resolve",
+                "reopen": "Reopen"
+            },
+            "queue": {
+                "title": "Report Queue Summary",
+                "description": "Use `/reports summary <id>` or run `/reports summary` inside a linked ticket thread for a full ticket snapshot.",
+                "not_available": "n/a",
+                "claimed_by": "claimed by %{name}",
+                "unassigned": "unassigned",
+                "priority_line": "%{priority}: **%{count}**",
+                "no_active_tickets": "No open or in-review tickets right now.",
+                "fields": {
+                    "queue": "Queue",
+                    "priority_mix": "Priority Mix",
+                    "active_tickets": "Active Tickets"
+                },
+                "lines": {
+                    "total": "Total: **%{count}**",
+                    "open": "Open: **%{count}**",
+                    "in_review": "In Review: **%{count}**",
+                    "resolved": "Resolved: **%{count}**",
+                    "closed": "Closed: **%{count}**",
+                    "avg_resolution": "Avg Resolution: **%{value}**"
+                },
+                "command": {
+                    "reports_disabled": "Reports are disabled.",
+                    "ticket_not_found": "Ticket `%{ticketId}` was not found.",
+                    "thread_not_linked": "This Discord thread is not linked to a ticket.",
+                    "provide_ticket_or_thread": "Provide a ticket ID or run this command inside a linked ticket thread.",
+                    "claim_title": "Ticket Claimed · %{ticketId}",
+                    "unclaim_title": "Ticket Unclaimed · %{ticketId}",
+                    "assigned_note": "Assigned to **%{adminName}**.",
+                    "unassigned_note": "This ticket is now unassigned.",
+                    "assign_missing_member": "Choose a Discord member to assign the ticket to.",
+                    "assign_unlinked_member": "That Discord account is not linked to an fxPanel admin, so it cannot own ticket assignments.",
+                    "assignment_title": "Ticket Assignment · %{ticketId}",
+                    "already_assigned_note": "This ticket is already assigned to **%{adminName}**.",
+                    "assign_failed": "Failed to assign ticket `%{ticketId}`.",
+                    "assigned_title": "Ticket Assigned · %{ticketId}",
+                    "already_resolved_title": "Ticket Resolved · %{ticketId}",
+                    "already_resolved_note": "This ticket is already resolved.",
+                    "already_closed_title": "Ticket Closed · %{ticketId}",
+                    "already_closed_note": "This ticket is closed. Reopen it before resolving it again.",
+                    "resolve_failed": "Ticket `%{ticketId}` could not be resolved from its current state.",
+                    "resolved_announcement_title": "Ticket %{ticketId} Resolved",
+                    "resolved_announcement_description": "**%{reporterName}**'s ticket (%{category}) was resolved by **%{adminName}**.",
+                    "resolved_note": "Resolved by **%{adminName}**.",
+                    "already_open_title": "Ticket Open · %{ticketId}",
+                    "already_open_note": "This ticket is already open.",
+                    "reopen_failed": "Ticket `%{ticketId}` could not be reopened from its current state.",
+                    "reopened_title": "Ticket Reopened · %{ticketId}",
+                    "reopened_note": "Reopened by **%{adminName}**.",
+                    "subcommand_not_found": "Subcommand %{subcommand} not found.",
+                    "update_failed": "Failed to update ticket `%{ticketId}`."
+                }
+            }
+        },
+        "moderation": {
+            "access": {
+                "could_not_resolve_user": "Could not resolve the Discord user for this command.",
+                "no_access": "**Your account does not have fxPanel access.**\nIf you are already registered in fxPanel, make sure your Discord ID is set to `%{requesterId}`.",
+                "missing_permission": "Your linked fxPanel account does not have the \"%{permissionLabel}\" permission required for this action.",
+                "missing_permission_mapped": "Your linked fxPanel account and mapped Discord role presets do not have the \"%{permissionLabel}\" permission required for this action.",
+                "discord_role_missing_permission": "Your Discord roles do not grant the \"%{permissionLabel}\" permission required for this action."
+            },
+            "target": {
+                "invalid_identifier": "Invalid identifier.",
+                "invalid_server_id": "Invalid server ID.",
+                "server_id_not_resolved": "Server ID (`%{serverId}`) could not be resolved from the current playerlist. %{message}",
+                "no_player_match": "Identifier (`%{searchId}`) does not seem to be associated with any player in the fxPanel database.",
+                "multiple_players": "Identifier (`%{searchId}`) matches multiple players. Use a more specific identifier, preferably a license.",
+                "multiple_players_more": "...and %{count} more.",
+                "invalid_license": "This player does not have a valid license identifier."
+            },
+            "notes": {
+                "none": "No notes saved for this player.",
+                "last_updated": "Last updated by **%{admin}** on <t:%{timestamp}:f>",
+                "no_metadata": "No note metadata available.",
+                "title": "Notes",
+                "fields": {
+                    "license": "License",
+                    "last_edited": "Last Edited"
+                },
+                "empty": "Note cannot be empty.",
+                "updated": "Updated notes for **%{playerName}**.",
+                "action_not_found": "Notes action %{action} not found."
+            },
+            "history": {
+                "none": "No action history was found for **%{playerName}**.",
+                "title": "History",
+                "description": "Showing the %{count} most recent moderation actions for `%{license}`.",
+                "by": "By **%{author}** on <t:%{timestamp}:f>",
+                "status_label": "Status",
+                "reason_label": "Reason",
+                "duration_left": "Duration left: %{duration}",
+                "status": {
+                    "revoked": "Revoked by **%{author}** on <t:%{timestamp}:f>%{reasonSuffix}",
+                    "permanent": "Permanent",
+                    "expired": "Expired on <t:%{timestamp}:f>",
+                    "expires": "Expires <t:%{timestamp}:f> (%{duration} left)",
+                    "acked": "Acknowledged in game",
+                    "pending_ack": "Pending acknowledgement",
+                    "executed": "Executed"
+                }
+            },
+            "unban": {
+                "none": "No active bans were found for **%{playerName}**.",
+                "multiple": "Multiple active bans match **%{playerName}**. Use the `/unban action` subcommand with one of these IDs:",
+                "multiple_more": "...and %{count} more."
+            },
+            "success": {
+                "warned": "Warned **%{playerName}**.",
+                "kicked": "Kicked **%{playerName}**.",
+                "permanent_duration": "permanent",
+                "banned": "Banned **%{playerName}** for **%{duration}**.",
+                "unbanned": "Revoked ban `%{actionId}`%{targetLabel}.",
+                "unbanned_target": "for **%{playerName}**"
+            },
+            "command_not_found": "Moderation command %{command} not found."
+        },
+        "status_message": {
+            "defaults": {
+                "configurable_embed_description": "You can configure this embed in `fxPanel > Settings > Discord Bot`.",
+                "fields": {
+                    "status": "STATUS",
+                    "players": "PLAYERS",
+                    "connect_command": "F8 CONNECT COMMAND",
+                    "next_restart": "NEXT RESTART",
+                    "uptime": "UPTIME",
+                    "player_list": "PLAYER LIST"
+                },
+                "buttons": {
+                    "connect": "Connect",
+                    "community": "fxPanel Discord",
+                    "server_page": "Server Page"
+                },
+                "values": {
+                    "unknown": "unknown",
+                    "connect_unavailable": "connect unavailable"
+                }
+            },
+            "errors": {
+                "invalid_url_details": "Every URL must start with one of (`http://`, `https://`, `discord://`).\nURLs cannot be empty, if you do not want a URL then remove the URL line.",
+                "invalid_placeholder_details": "Your URL starts with `{{`, try removing it.\nIf you just tried to edit a placeholder like `{{serverBrowserUrl}}` or `{{serverJoinUrl}}`, remember that those placeholders are replaced automatically by fxPanel, meaning you do not need to edit them at all.",
+                "invalid_emoji_details": "All emojis must be one of:\n- UTF-8 emoji ('😄')\n- Valid emoji ID ('1062339910654246964')\n- Discord custom emoji (`<:name:id>` or `<a:name:id>`).\nTo get the full emoji code, insert it into discord, and add `\\` before it then send the message",
+                "invalid_url": "Invalid URL `%{url}`.",
+                "empty_url": "Empty URL.",
+                "invalid_status_color": "Invalid status color `%{value}`. Use a hex value like `#0BA70B`.",
+                "empty_status_color": "Status color cannot be empty.",
+                "footer_object": "Embed footer must be an object.",
+                "footer_text": "Embed footer text must be a non-empty string.",
+                "author_object": "Embed author must be an object.",
+                "author_name": "Embed author name must be a non-empty string.",
+                "media_object": "Embed %{sectionName} must be an object.",
+                "fields_array": "Embed fields must be an array.",
+                "field_object": "Embed fields must be objects.",
+                "field_name": "Embed field name must be a non-empty string.",
+                "field_value": "Embed field value must be a non-empty string.",
+                "field_inline": "Embed field inline must be a boolean.",
+                "embed_object": "Embed JSON must resolve to an object.",
+                "title_string": "Embed title must be a string.",
+                "description_string": "Embed description must be a string.",
+                "too_many_buttons": "Over limit of 5 buttons.",
+                "invalid_button_config": "Invalid button in Discord Status Embed Config.\nAll buttons must have:\n- Label: string, not empty\n- URL: string, not empty, valid URL",
+                "button_label_empty": "Button label must resolve to a non-empty string.",
+                "invalid_button_emoji": "Invalid emoji for button `%{label}`.\n%{details}",
+                "embed_json_error": "Embed JSON Error: %{message}",
+                "embed_config_error": "Embed Config JSON Error: %{message}",
+                "embed_class_error": "**Embed Class Error:** %{message}",
+                "embed_buttons_error": "**Embed Buttons Error:** %{message}"
+            },
+            "footer_updated_every_minute": "Updated every minute",
+            "empty_player_list": "No players online.",
+            "pager": {
+                "prev": "Prev",
+                "next": "Next",
+                "page_label": "Page %{playerListPage}/%{playerListTotalPages}"
+            },
+            "player_list_summary": "%{count} players online",
+            "player_list_page_summary_empty": "Page 1/1",
+            "player_list_page_summary": "Page %{currentPage}/%{totalPages} • Showing %{startNumber}-%{endNumber}",
+            "next_restart": {
+                "not_scheduled": "not scheduled",
+                "skipped": "skipped",
+                "right_now": "right now %{tempFlag}",
+                "in": "in %{relativeTime} %{tempFlag}"
+            },
+            "status": {
+                "online": "🟢 Online",
+                "partial": "🟡 Partial",
+                "offline": "🔴 Offline"
+            }
+        },
+        "bridge": {
+            "ticket": {
+                "screenshot_attached": "Screenshot attached"
+            }
+        }
     }
 }

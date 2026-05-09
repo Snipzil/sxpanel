@@ -22,7 +22,11 @@ function SessionLengthChart({ buckets }: Props) {
     const isDarkMode = useIsDarkMode();
 
     if (!Array.isArray(buckets) || !buckets.length) {
-        return <div className="text-muted-foreground flex items-center justify-center py-12 text-sm">No data available</div>;
+        return (
+            <div className="text-muted-foreground flex items-center justify-center py-12 text-sm">
+                No data available
+            </div>
+        );
     }
 
     const data: BarDatum[] = buckets.map((b) => ({

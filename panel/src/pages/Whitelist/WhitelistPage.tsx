@@ -91,7 +91,9 @@ function WhitelistedPlayersTab() {
     const [page, setPage] = useState(1);
     const debouncedSearch = useDebouncedValue(search, 300);
 
-    useEffect(() => { setPage(1); }, [debouncedSearch]);
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
 
     const listApi = useBackendApi<ApiWhitelistPlayersResp>({
         method: 'GET',
@@ -148,10 +150,10 @@ function WhitelistedPlayersTab() {
                 </div>
             ) : (
                 <>
-                    <div className="overflow-hidden rounded-xl border border-border/60 shadow-sm">
+                    <div className="border-border/60 overflow-hidden rounded-xl border shadow-sm">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="bg-card/95 border-b border-border/40 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                                <tr className="bg-card/95 border-border/40 text-muted-foreground/50 border-b text-[10px] font-semibold tracking-widest uppercase">
                                     <th className="px-4 py-2.5 text-left font-medium">Player</th>
                                     <th className="px-4 py-2.5 text-left font-medium">Identifier</th>
                                     <th className="px-4 py-2.5 text-left font-medium">Approved By</th>
@@ -188,9 +190,14 @@ function WhitelistedPlayerRow({ player, onRemoved }: { player: WhitelistEntry; o
     });
 
     const copyIdentifier = () => {
-        navigator.clipboard.writeText(player.identifier)
-            .then(() => { txToast.success('Identifier copied to clipboard'); })
-            .catch(() => { txToast.error('Failed to copy identifier to clipboard'); });
+        navigator.clipboard
+            .writeText(player.identifier)
+            .then(() => {
+                txToast.success('Identifier copied to clipboard');
+            })
+            .catch(() => {
+                txToast.error('Failed to copy identifier to clipboard');
+            });
     };
 
     const handleRemove = () => {
@@ -209,10 +216,10 @@ function WhitelistedPlayerRow({ player, onRemoved }: { player: WhitelistEntry; o
     };
 
     return (
-        <tr className="hover:bg-secondary/30 border-b border-border/30 last:border-b-0 transition-colors">
+        <tr className="hover:bg-secondary/30 border-border/30 border-b transition-colors last:border-b-0">
             <td className="px-4 py-2.5 font-medium">{player.name}</td>
             <td className="px-4 py-2.5">
-                <code className="bg-secondary/60 rounded px-1.5 py-0.5 text-xs font-mono">{player.identifier}</code>
+                <code className="bg-secondary/60 rounded px-1.5 py-0.5 font-mono text-xs">{player.identifier}</code>
             </td>
             <td className="text-muted-foreground px-4 py-2.5">
                 {player.approvedBy || <span className="italic">unknown</span>}
@@ -248,7 +255,9 @@ function RequestsTab() {
     const debouncedSearch = useDebouncedValue(search, 300);
     const openConfirmDialog = useOpenConfirmDialog();
 
-    useEffect(() => { setPage(1); }, [debouncedSearch]);
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
 
     const listApi = useBackendApi<WhitelistRequestsResp>({
         method: 'GET',
@@ -357,10 +366,10 @@ function RequestsTab() {
                 </div>
             ) : (
                 <>
-                    <div className="overflow-hidden rounded-xl border border-border/60 shadow-sm">
+                    <div className="border-border/60 overflow-hidden rounded-xl border shadow-sm">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="bg-card/95 border-b border-border/40 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                                <tr className="bg-card/95 border-border/40 text-muted-foreground/50 border-b text-[10px] font-semibold tracking-widest uppercase">
                                     <th className="px-4 py-2.5 text-left font-medium">ID</th>
                                     <th className="px-4 py-2.5 text-left font-medium">Player</th>
                                     <th className="px-4 py-2.5 text-left font-medium">Discord</th>
@@ -370,13 +379,18 @@ function RequestsTab() {
                             </thead>
                             <tbody>
                                 {resp.requests.map((req) => (
-                                    <tr key={req.id} className="hover:bg-secondary/30 border-b border-border/30 last:border-b-0 transition-colors">
+                                    <tr
+                                        key={req.id}
+                                        className="hover:bg-secondary/30 border-border/30 border-b transition-colors last:border-b-0"
+                                    >
                                         <td className="px-4 py-2.5">
-                                            <code className="bg-secondary/60 rounded px-1.5 py-0.5 text-xs font-mono">{req.id}</code>
+                                            <code className="bg-secondary/60 rounded px-1.5 py-0.5 font-mono text-xs">
+                                                {req.id}
+                                            </code>
                                         </td>
                                         <td className="px-4 py-2.5 font-medium">{req.playerDisplayName}</td>
                                         <td className="text-muted-foreground px-4 py-2.5">
-                                            {req.discordTag || <span className="italic">â€”</span>}
+                                            {req.discordTag || <span className="italic"> - </span>}
                                         </td>
                                         <td className="text-muted-foreground px-4 py-2.5">
                                             {tsToLocaleDateTimeString(req.tsLastAttempt, 'short', 'short')}
@@ -537,10 +551,10 @@ function ApprovalsTab() {
                     <p>{search ? 'No approvals match your search.' : 'No pending approvals.'}</p>
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-xl border border-border/60 shadow-sm">
+                <div className="border-border/60 overflow-hidden rounded-xl border shadow-sm">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="bg-card/95 border-b border-border/40 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                            <tr className="bg-card/95 border-border/40 text-muted-foreground/50 border-b text-[10px] font-semibold tracking-widest uppercase">
                                 <th className="px-4 py-2.5 text-left font-medium">Player</th>
                                 <th className="px-4 py-2.5 text-left font-medium">Identifier</th>
                                 <th className="px-4 py-2.5 text-left font-medium">Approved By</th>
@@ -549,38 +563,40 @@ function ApprovalsTab() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((a) => (
-                                <tr key={a.identifier} className="hover:bg-secondary/30 border-b border-border/30 last:border-b-0 transition-colors">
-                                    <td className="px-4 py-2.5 font-medium">
-                                        <div className="flex items-center gap-2">
-                                            {a.playerAvatar && (
-                                                <img src={a.playerAvatar} alt="" className="h-6 w-6 rounded-full" />
-                                            )}
-                                            {a.playerName}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                        <code className="bg-secondary/60 rounded px-1.5 py-0.5 text-xs font-mono">{a.identifier}</code>
-                                    </td>
-                                    <td className="text-muted-foreground px-4 py-2.5">{a.approvedBy}</td>
-                                    <td className="text-muted-foreground px-4 py-2.5">
-                                        {tsToLocaleDateTimeString(a.tsApproved, 'short', 'short')}
-                                    </td>
-                                    {canManage && (
-                                        <td className="px-4 py-2.5 text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7"
-                                                onClick={() => removeApproval(a.identifier)}
-                                                title="Remove"
-                                            >
-                                                <Trash2Icon className="h-3.5 w-3.5" />
-                                            </Button>
+                            {filtered.map((a) => {
+                                return (
+                                    <tr
+                                        key={a.identifier}
+                                        className="hover:bg-secondary/30 border-border/30 border-b transition-colors last:border-b-0"
+                                    >
+                                        <td className="px-4 py-2.5 font-medium">
+                                            <div className="flex items-center gap-2">{a.playerName}</div>
                                         </td>
-                                    )}
-                                </tr>
-                            ))}
+                                        <td className="px-4 py-2.5">
+                                            <code className="bg-secondary/60 rounded px-1.5 py-0.5 font-mono text-xs">
+                                                {a.identifier}
+                                            </code>
+                                        </td>
+                                        <td className="text-muted-foreground px-4 py-2.5">{a.approvedBy}</td>
+                                        <td className="text-muted-foreground px-4 py-2.5">
+                                            {tsToLocaleDateTimeString(a.tsApproved, 'short', 'short')}
+                                        </td>
+                                        {canManage && (
+                                            <td className="px-4 py-2.5 text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7"
+                                                    onClick={() => removeApproval(a.identifier)}
+                                                    title="Remove"
+                                                >
+                                                    <Trash2Icon className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </td>
+                                        )}
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -591,10 +607,10 @@ function ApprovalsTab() {
 
 export default function WhitelistPage() {
     return (
-        <div className="mx-auto flex h-contentvh w-full max-w-[1200px] flex-col gap-4">
+        <div className="h-contentvh mx-auto flex w-full max-w-[1200px] flex-col gap-4">
             <PageHeader icon={<ShieldCheckIcon />} title="Whitelist" />
 
-            <Tabs defaultValue="players" className="flex flex-1 flex-col min-h-0">
+            <Tabs defaultValue="players" className="flex min-h-0 flex-1 flex-col">
                 <TabsList>
                     <TabsTrigger value="players" className="gap-1.5">
                         <UsersIcon className="h-3.5 w-3.5" />
@@ -610,9 +626,9 @@ export default function WhitelistPage() {
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="players" className="flex flex-1 flex-col min-h-0">
-                    <Card className="flex flex-1 flex-col min-h-0">
-                        <CardHeader className="pb-3 shrink-0">
+                <TabsContent value="players" className="flex min-h-0 flex-1 flex-col">
+                    <Card className="flex min-h-0 flex-1 flex-col">
+                        <CardHeader className="shrink-0 pb-3">
                             <CardTitle className="text-base font-semibold">Whitelisted Players</CardTitle>
                             <p className="text-muted-foreground/60 text-xs">
                                 All players who have been whitelisted and have joined the server.
@@ -624,9 +640,9 @@ export default function WhitelistPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="requests" className="flex flex-1 flex-col min-h-0">
-                    <Card className="flex flex-1 flex-col min-h-0">
-                        <CardHeader className="pb-3 shrink-0">
+                <TabsContent value="requests" className="flex min-h-0 flex-1 flex-col">
+                    <Card className="flex min-h-0 flex-1 flex-col">
+                        <CardHeader className="shrink-0 pb-3">
                             <CardTitle className="text-base font-semibold">Whitelist Requests</CardTitle>
                             <p className="text-muted-foreground/60 text-xs">
                                 Players who attempted to join but are not yet whitelisted.
@@ -638,12 +654,13 @@ export default function WhitelistPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="approvals" className="flex flex-1 flex-col min-h-0">
-                    <Card className="flex flex-1 flex-col min-h-0">
-                        <CardHeader className="pb-3 shrink-0">
+                <TabsContent value="approvals" className="flex min-h-0 flex-1 flex-col">
+                    <Card className="flex min-h-0 flex-1 flex-col">
+                        <CardHeader className="shrink-0 pb-3">
                             <CardTitle className="text-base font-semibold">Pending Approvals</CardTitle>
                             <p className="text-muted-foreground/60 text-xs">
-                                Pre-approved identifiers that haven't joined yet. Automatically consumed when the player connects.
+                                Pre-approved identifiers that haven't joined yet. Automatically consumed when the player
+                                connects.
                             </p>
                         </CardHeader>
                         <CardContent className="flex-1 overflow-auto">

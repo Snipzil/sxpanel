@@ -1,8 +1,9 @@
 const modulename = 'WebServer:AuthLogic';
 import { z } from 'zod';
 import consoleFactory from '@lib/console';
-import type { SessToolsType } from './middlewares/sessionMws';
+import type { SessToolsType } from '@modules/WebServer/middlewares/sessionMws';
 import { StoredAdmin, AuthedAdmin } from '@modules/AdminStore/adminClasses';
+import { resolveEffectiveAdminPermissions } from '@modules/DiscordBot/rolePermissions';
 export { AuthedAdmin, StoredAdmin };
 export type { AuthedAdminType } from '@modules/AdminStore/adminClasses';
 const console = consoleFactory(modulename);
@@ -29,6 +30,74 @@ const failResp = (reason?: string) =>
         success: false,
         rejectReason: reason,
     }) as const;
+
+const haveSamePermissions = (left: string[], right: string[]) => {
+    if (left.length !== right.length) return false;
+
+    const rightSet = new Set(right);
+    for (const permission of left) {
+        if (!rightSet.has(permission)) return false;
+    }
+
+    return true;
+};
+
+const applyPermissionOverrides = (admin: AuthedAdmin, permissions: string[]) => {
+    if (haveSamePermissions(admin.permissions, permissions)) {
+        return admin;
+    }
+
+    return admin.getAuthed(admin.csrfToken, {
+        isMaster: admin.isMaster,
+        permissions,
+    });
+};
+
+export const resolveEffectiveAuthedAdmin = async (admin: StoredAdmin | AuthedAdmin, csrfToken?: string) => {
+    const baseAuthedAdmin = admin instanceof AuthedAdmin ? admin : admin.getAuthed(csrfToken);
+    const storedEffectiveAdmin = applyPermissionOverrides(
+        baseAuthedAdmin,
+        resolveEffectiveAdminPermissions(baseAuthedAdmin, undefined).permissions,
+    );
+
+    const discordId = storedEffectiveAdmin.providers.discord?.id;
+    if (!discordId || txConfig.discordBot.rolePermissions.length === 0) {
+        return storedEffectiveAdmin;
+    }
+
+    if (txCore.discordBot?.isClientReady !== true) {
+        return storedEffectiveAdmin;
+    }
+
+    try {
+        const { memberRoles } = await txCore.discordBot.resolveMemberRoles(discordId);
+        const { mappedRolePermissions, permissions } = resolveEffectiveAdminPermissions(baseAuthedAdmin, memberRoles);
+
+        if (typeof txCore.adminStore.syncAdminDiscordRolePermissions === 'function') {
+            txCore.adminStore.syncAdminDiscordRolePermissions(
+                discordId,
+                mappedRolePermissions
+                    ? {
+                          permissions: mappedRolePermissions.permissions,
+                          presetIds: mappedRolePermissions.presetIds,
+                          roleIds: Array.isArray(memberRoles)
+                              ? memberRoles.filter((roleId): roleId is string => typeof roleId === 'string' && roleId.length > 0)
+                              : [],
+                      }
+                    : false,
+            ).catch((error: unknown) => {
+                console.verbose.debug(
+                    `Failed to persist Discord-linked permissions for '${storedEffectiveAdmin.name}': ${emsg(error)}`,
+                );
+            });
+        }
+
+        return applyPermissionOverrides(storedEffectiveAdmin, permissions);
+    } catch (error) {
+        console.verbose.debug(`Failed to resolve Discord-linked permissions for '${storedEffectiveAdmin.name}': ${emsg(error)}`);
+        return storedEffectiveAdmin;
+    }
+};
 
 /**
  * ZOD schemas for session auth
@@ -68,7 +137,11 @@ const validPending2faSessSchema = z.object({
 });
 export type Pending2faSessAuthType = z.infer<typeof validPending2faSessSchema>;
 
-const validSessAuthSchema = z.discriminatedUnion('type', [validPassSessAuthSchema, validCfxreSessAuthSchema, validDiscordSessAuthSchema]);
+const validSessAuthSchema = z.discriminatedUnion('type', [
+    validPassSessAuthSchema,
+    validCfxreSessAuthSchema,
+    validDiscordSessAuthSchema,
+]);
 
 /**
  * Autentication logic used in both websocket and webserver, for both web and nui requests.

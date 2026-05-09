@@ -1,5 +1,5 @@
-import { memo, useMemo, useState } from 'react';
-import { cn } from '@/lib/utils';
+import { memo, useMemo, useRef, useState } from 'react';
+import { cn, copyToClipboard } from '@/lib/utils';
 import {
     ZapIcon,
     TerminalIcon,
@@ -74,6 +74,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
     const Icon = cfg.icon;
     const [modalOpen, setModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const surrogateRef = useRef<HTMLDivElement>(null);
 
     const absoluteTime = useMemo(() => new Date(event.ts).toLocaleTimeString(undefined, timeOptions), [event.ts]);
     const fullTime = useMemo(() => new Date(event.ts).toLocaleString(undefined, fullTimeOptions), [event.ts]);
@@ -85,7 +86,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
 
     const handleCopy = () => {
         const text = `[${fullTime}] [${cfg.label}] ${event.author}: ${event.action}`;
-        navigator.clipboard.writeText(text).then(() => {
+        copyToClipboard(text, surrogateRef.current ?? document.body as unknown as HTMLDivElement).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         });
@@ -94,6 +95,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
     return (
         <>
             <div
+                ref={surrogateRef}
                 className={cn(
                     'hover:bg-secondary/30 flex cursor-pointer items-start gap-2 border-l-2 px-3 py-1.5 text-sm transition-colors',
                     cfg.borderColor,

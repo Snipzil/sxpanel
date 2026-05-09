@@ -1,5 +1,5 @@
 import { inspect } from 'node:util';
-import CircularBuffer from 'mnemonist/circular-buffer';
+import { CircularBuffer } from 'mnemonist';
 import * as d3array from 'd3-array';
 
 /**

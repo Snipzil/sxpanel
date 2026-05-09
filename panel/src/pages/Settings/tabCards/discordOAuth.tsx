@@ -73,11 +73,13 @@ export default function ConfigCardDiscordOAuth({ cardCtx, pageCtx }: SettingsCar
                     placeholder="000000000000000000"
                 />
                 <SettingItemDesc>
-                    The Client/Application ID from your Discord application. Required alongside
-                    the Client Secret to enable the &quot;Login with Discord&quot; button on the login page. <br />
+                    The Client/Application ID from your Discord application. Required alongside the Client Secret to
+                    enable the &quot;Login with Discord&quot; button on the login page. <br />
                     Get it from the{' '}
-                    <TxAnchor href="https://discord.com/developers/applications">Discord Developer Portal</TxAnchor>
-                    {' '}under your application&apos;s OAuth2 settings. <br />
+                    <TxAnchor href="https://discord.com/developers/applications">
+                        Discord Developer Portal
+                    </TxAnchor>{' '}
+                    under your application&apos;s OAuth2 settings. <br />
                     <strong>Note:</strong> You can reuse the same application as your bot.
                 </SettingItemDesc>
             </SettingItem>
@@ -95,8 +97,8 @@ export default function ConfigCardDiscordOAuth({ cardCtx, pageCtx }: SettingsCar
                 <SettingItemDesc>
                     The Client Secret from your Discord application&apos;s OAuth2 page. <br />
                     <strong>Important:</strong> You must add{' '}
-                    <InlineCode>{'<your-panel-url>/login/discord/callback'}</InlineCode>{' '}
-                    as a redirect URL in the Discord Developer Portal.
+                    <InlineCode>{'<your-panel-url>/login/discord/callback'}</InlineCode> as a redirect URL in the
+                    Discord Developer Portal.
                 </SettingItemDesc>
             </SettingItem>
         </SettingsCardShell>

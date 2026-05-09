@@ -234,6 +234,16 @@ export default async (dbo) => {
         await dbo.write();
     }
 
+    if (dbo.data.version === 7) {
+        console.warn('Updating your players database from v7 to v8.');
+        console.warn('This process will initialize Discord bot command analytics storage.');
+
+        dbo.data.botCommandEvents = [];
+
+        dbo.data.version = 8;
+        await dbo.write();
+    }
+
     if (dbo.data.version !== DATABASE_VERSION) {
         fatalError.Database(52, [
             'Unexpected migration error: Did not reach the expected database version.',

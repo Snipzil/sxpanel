@@ -14,13 +14,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import {
-    Chat,
-    Close,
-    Image,
-    Send,
-    Star,
-} from '@mui/icons-material';
+import { Chat, Close, Image, Send, Star } from '@mui/icons-material';
 import { useNuiEvent } from '../../hooks/useNuiEvent';
 import { fetchNui } from '../../utils/fetchNui';
 import { useSetListenForExit } from '../../state/keys.state';
@@ -226,7 +220,7 @@ const CreateView: React.FC<{
 
     // Sync category when categories prop changes
     useEffect(() => {
-        setCategory((prev) => (categories.includes(prev) ? prev : categories[0] ?? ''));
+        setCategory((prev) => (categories.includes(prev) ? prev : (categories[0] ?? '')));
     }, [categories]);
 
     // Detect if this category sounds like a player report
@@ -269,10 +263,12 @@ const CreateView: React.FC<{
                         label="Target Player(s)"
                         onChange={(e) => setSelectedTargets(e.target.value as number[])}
                         renderValue={(selected) =>
-                            (selected as number[]).map((id) => {
-                                const p = players.find((player) => player.id === id);
-                                return p ? p.name : `#${id}`;
-                            }).join(', ')
+                            (selected as number[])
+                                .map((id) => {
+                                    const p = players.find((player) => player.id === id);
+                                    return p ? p.name : `#${id}`;
+                                })
+                                .join(', ')
                         }
                         MenuProps={{ PaperProps: { sx: menuPaperSx } }}
                     >
@@ -297,10 +293,18 @@ const CreateView: React.FC<{
                         <MenuItem value="" sx={{ color: theme.muted }}>
                             None
                         </MenuItem>
-                        <MenuItem value="low" sx={{ color: theme.fg }}>Low</MenuItem>
-                        <MenuItem value="medium" sx={{ color: theme.fg }}>Medium</MenuItem>
-                        <MenuItem value="high" sx={{ color: theme.fg }}>High</MenuItem>
-                        <MenuItem value="critical" sx={{ color: theme.destructive }}>Critical</MenuItem>
+                        <MenuItem value="low" sx={{ color: theme.fg }}>
+                            Low
+                        </MenuItem>
+                        <MenuItem value="medium" sx={{ color: theme.fg }}>
+                            Medium
+                        </MenuItem>
+                        <MenuItem value="high" sx={{ color: theme.fg }}>
+                            High
+                        </MenuItem>
+                        <MenuItem value="critical" sx={{ color: theme.destructive }}>
+                            Critical
+                        </MenuItem>
                     </Select>
                 </FormControl>
             )}
@@ -408,32 +412,45 @@ const ImageLightbox: React.FC<{ url: string | null; onClose: () => void }> = ({ 
             <Box
                 onClick={onClose}
                 sx={{
-                    position: 'fixed', inset: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    bgcolor: 'rgba(0,0,0,0.85)', cursor: 'zoom-out',
+                    position: 'fixed',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: 'rgba(0,0,0,0.85)',
+                    cursor: 'zoom-out',
                 }}
             >
-                {url && (hasError ? (
-                    <Box
-                        onClick={(e) => e.stopPropagation()}
-                        sx={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                            p: 4, borderRadius: 2, bgcolor: 'background.paper', cursor: 'default',
-                        }}
-                    >
-                        <Typography color="text.secondary">Image failed to load</Typography>
-                        <Button variant="outlined" size="small" onClick={onClose}>Close</Button>
-                    </Box>
-                ) : (
-                    <img
-                        src={url}
-                        alt="enlarged attachment"
-                        referrerPolicy="no-referrer"
-                        onClick={(e) => e.stopPropagation()}
-                        onError={() => setHasError(true)}
-                        style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, cursor: 'default' }}
-                    />
-                ))}
+                {url &&
+                    (hasError ? (
+                        <Box
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 2,
+                                p: 4,
+                                borderRadius: 2,
+                                bgcolor: 'background.paper',
+                                cursor: 'default',
+                            }}
+                        >
+                            <Typography color="text.secondary">Image failed to load</Typography>
+                            <Button variant="outlined" size="small" onClick={onClose}>
+                                Close
+                            </Button>
+                        </Box>
+                    ) : (
+                        <img
+                            src={url}
+                            alt="enlarged attachment"
+                            referrerPolicy="no-referrer"
+                            onClick={(e) => e.stopPropagation()}
+                            onError={() => setHasError(true)}
+                            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, cursor: 'default' }}
+                        />
+                    ))}
             </Box>
         </Modal>
     );
@@ -499,9 +516,7 @@ const DetailView: React.FC<{
                                 borderRadius: 1,
                                 bgcolor: m.authorType === 'admin' ? 'rgba(43,155,197,0.1)' : 'rgba(255,255,255,0.04)',
                                 borderLeft:
-                                    m.authorType === 'admin'
-                                        ? `3px solid ${theme.info}`
-                                        : '3px solid transparent',
+                                    m.authorType === 'admin' ? `3px solid ${theme.info}` : '3px solid transparent',
                             }}
                         >
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.25}>
@@ -543,7 +558,8 @@ const DetailView: React.FC<{
                                             referrerPolicy="no-referrer"
                                             onClick={() => setLightboxUrl(url)}
                                             style={{
-                                                maxHeight: 80, borderRadius: 4,
+                                                maxHeight: 80,
+                                                borderRadius: 4,
                                                 border: `1px solid ${theme.border}`,
                                                 cursor: 'zoom-in',
                                             }}
@@ -588,7 +604,10 @@ const DetailView: React.FC<{
                             onChange={(e) => setImageUrl(e.target.value.slice(0, URL_MAX))}
                             disabled={sending}
                             inputProps={{ style: { fontSize: '0.75rem' }, maxLength: URL_MAX }}
-                            sx={{ ...inputSx, '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], py: 0.25 } }}
+                            sx={{
+                                ...inputSx,
+                                '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], py: 0.25 },
+                            }}
                         />
                     </Box>
                 </Box>
@@ -616,12 +635,7 @@ const FeedbackView: React.FC<{
             <Typography variant="body1" fontWeight={600} sx={{ color: theme.fg, textAlign: 'center' }}>
                 How was your support experience?
             </Typography>
-            <Rating
-                size="large"
-                value={rating}
-                onChange={(_, val) => setRating(val)}
-                sx={{ color: theme.warning }}
-            />
+            <Rating size="large" value={rating} onChange={(_, val) => setRating(val)} sx={{ color: theme.warning }} />
             <TextField
                 label="Comments (optional)"
                 multiline
@@ -679,17 +693,19 @@ export const ReportPage: React.FC = () => {
     }, [setListenForExit]);
 
     // Listen for open event from Lua
-    useNuiEvent<{ players: PlayerTarget[]; tickets: PlayerTicketSummary[]; categories: string[]; priorityEnabled: boolean }>(
-        'openTicketUI',
-        (data) => {
-            setPlayers(data.players || []);
-            setCategories(data.categories || []);
-            setPriorityEnabled(data.priorityEnabled ?? false);
-            setIsOpen(true);
-            setView('menu');
-            setListenForExit(false);
-        },
-    );
+    useNuiEvent<{
+        players: PlayerTarget[];
+        tickets: PlayerTicketSummary[];
+        categories: string[];
+        priorityEnabled: boolean;
+    }>('openTicketUI', (data) => {
+        setPlayers(data.players || []);
+        setCategories(data.categories || []);
+        setPriorityEnabled(data.priorityEnabled ?? false);
+        setIsOpen(true);
+        setView('menu');
+        setListenForExit(false);
+    });
 
     // Listen for ticket list updates
     useNuiEvent<{ tickets?: PlayerTicketSummary[]; error?: string }>('ticketMyList', (data) => {
@@ -720,6 +736,9 @@ export const ReportPage: React.FC = () => {
         if (data.success) {
             setErrorMessage(null);
             fetchNui('ticketFetchMine').catch(() => {});
+            if (selectedTicket) {
+                fetchNui('ticketFetchMessages', { ticketId: selectedTicket.id }).catch(() => {});
+            }
         } else if (data.error) {
             setErrorMessage(data.error);
         }
@@ -813,11 +832,16 @@ export const ReportPage: React.FC = () => {
 
     const getTitle = (): string => {
         switch (view) {
-            case 'menu': return 'Support Tickets';
-            case 'create': return 'New Ticket';
-            case 'list': return 'My Tickets';
-            case 'detail': return 'Ticket Detail';
-            case 'feedback': return 'Rate Your Experience';
+            case 'menu':
+                return 'Support Tickets';
+            case 'create':
+                return 'New Ticket';
+            case 'list':
+                return 'My Tickets';
+            case 'detail':
+                return 'Ticket Detail';
+            case 'feedback':
+                return 'Rate Your Experience';
         }
     };
 
@@ -846,7 +870,12 @@ export const ReportPage: React.FC = () => {
                                 Back
                             </Button>
                         )}
-                        <Typography id="ticket-dialog-title" variant="subtitle1" fontWeight={600} sx={{ color: theme.fg }}>
+                        <Typography
+                            id="ticket-dialog-title"
+                            variant="subtitle1"
+                            fontWeight={600}
+                            sx={{ color: theme.fg }}
+                        >
                             {getTitle()}
                         </Typography>
                     </Box>
@@ -857,7 +886,10 @@ export const ReportPage: React.FC = () => {
 
                 <Content>
                     {errorMessage && (
-                        <Box role="alert" sx={{ px: 2, py: 1, mb: 1, bgcolor: `${theme.destructive}26`, borderRadius: 1 }}>
+                        <Box
+                            role="alert"
+                            sx={{ px: 2, py: 1, mb: 1, bgcolor: `${theme.destructive}26`, borderRadius: 1 }}
+                        >
                             <Typography variant="body2" sx={{ color: theme.destructive }}>
                                 {errorMessage}
                             </Typography>
@@ -881,12 +913,7 @@ export const ReportPage: React.FC = () => {
                             submitting={submitting}
                         />
                     )}
-                    {view === 'list' && (
-                        <ListView
-                            tickets={tickets}
-                            onSelect={handleSelectTicket}
-                        />
-                    )}
+                    {view === 'list' && <ListView tickets={tickets} onSelect={handleSelectTicket} />}
                     {view === 'detail' && selectedTicket && (
                         <DetailView
                             ticket={selectedTicket}

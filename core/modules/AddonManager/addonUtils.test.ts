@@ -11,34 +11,29 @@ suite('topologicalSort', () => {
 
     it('returns single node as-is', () => {
         const nodes = [node('a')];
-        expect(topologicalSort(nodes).map(n => n.id)).toEqual(['a']);
+        expect(topologicalSort(nodes).map((n) => n.id)).toEqual(['a']);
     });
 
     it('preserves order when no dependencies', () => {
         const nodes = [node('a'), node('b'), node('c')];
-        expect(topologicalSort(nodes).map(n => n.id)).toEqual(['a', 'b', 'c']);
+        expect(topologicalSort(nodes).map((n) => n.id)).toEqual(['a', 'b', 'c']);
     });
 
     it('places dependency before dependent', () => {
         const nodes = [node('b', ['a']), node('a')];
-        const sorted = topologicalSort(nodes).map(n => n.id);
+        const sorted = topologicalSort(nodes).map((n) => n.id);
         expect(sorted.indexOf('a')).toBeLessThan(sorted.indexOf('b'));
     });
 
     it('handles a chain of dependencies (a → b → c)', () => {
         const nodes = [node('c', ['b']), node('b', ['a']), node('a')];
-        const sorted = topologicalSort(nodes).map(n => n.id);
+        const sorted = topologicalSort(nodes).map((n) => n.id);
         expect(sorted).toEqual(['a', 'b', 'c']);
     });
 
     it('handles diamond dependency (d → b,c → a)', () => {
-        const nodes = [
-            node('d', ['b', 'c']),
-            node('c', ['a']),
-            node('b', ['a']),
-            node('a'),
-        ];
-        const sorted = topologicalSort(nodes).map(n => n.id);
+        const nodes = [node('d', ['b', 'c']), node('c', ['a']), node('b', ['a']), node('a')];
+        const sorted = topologicalSort(nodes).map((n) => n.id);
         expect(sorted.indexOf('a')).toBeLessThan(sorted.indexOf('b'));
         expect(sorted.indexOf('a')).toBeLessThan(sorted.indexOf('c'));
         expect(sorted.indexOf('b')).toBeLessThan(sorted.indexOf('d'));
@@ -50,13 +45,13 @@ suite('topologicalSort', () => {
         const sorted = topologicalSort(nodes);
         // Both should appear (appended at end since they can't resolve)
         expect(sorted).toHaveLength(2);
-        expect(sorted.map(n => n.id)).toContain('a');
-        expect(sorted.map(n => n.id)).toContain('b');
+        expect(sorted.map((n) => n.id)).toContain('a');
+        expect(sorted.map((n) => n.id)).toContain('b');
     });
 
     it('ignores dependencies on unknown nodes', () => {
         const nodes = [node('a', ['unknown']), node('b')];
-        const sorted = topologicalSort(nodes).map(n => n.id);
+        const sorted = topologicalSort(nodes).map((n) => n.id);
         expect(sorted).toEqual(['a', 'b']);
     });
 });
@@ -127,9 +122,7 @@ suite('AddonManifestSchema validation', () => {
     it('accepts valid adminPermissions', () => {
         const result = AddonManifestSchema.safeParse({
             ...validManifest,
-            adminPermissions: [
-                { id: 'manage-notes', label: 'Manage Notes', description: 'Can manage notes' },
-            ],
+            adminPermissions: [{ id: 'manage-notes', label: 'Manage Notes', description: 'Can manage notes' }],
         });
         expect(result.success).toBe(true);
         if (result.success) {
@@ -141,9 +134,7 @@ suite('AddonManifestSchema validation', () => {
     it('rejects adminPermissions with invalid ID format', () => {
         const result = AddonManifestSchema.safeParse({
             ...validManifest,
-            adminPermissions: [
-                { id: 'INVALID', label: 'Bad', description: 'bad' },
-            ],
+            adminPermissions: [{ id: 'INVALID', label: 'Bad', description: 'bad' }],
         });
         expect(result.success).toBe(false);
     });
@@ -201,6 +192,81 @@ suite('AddonManifestSchema validation', () => {
         if (result.success) {
             expect(result.data.publicServer?.defaultPort).toBe(8080);
         }
+    });
+
+    it('accepts discordBot commands path', () => {
+        const result = AddonManifestSchema.safeParse({
+            ...validManifest,
+            discordBot: {
+                commands: 'discord-bot/commands',
+            },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.discordBot?.commands).toBe('discord-bot/commands');
+        }
+    });
+
+    it('accepts discordBot rate limits', () => {
+        const result = AddonManifestSchema.safeParse({
+            ...validManifest,
+            discordBot: {
+                commands: 'discord-bot/commands',
+                rateLimit: {
+                    max: 3,
+                    windowMs: 10000,
+                },
+            },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.discordBot?.rateLimit).toEqual({
+                max: 3,
+                windowMs: 10000,
+            });
+        }
+    });
+
+    it('rejects discordBot rate limits with invalid values', () => {
+        const result = AddonManifestSchema.safeParse({
+            ...validManifest,
+            discordBot: {
+                commands: 'discord-bot/commands',
+                rateLimit: {
+                    max: 0,
+                    windowMs: 500,
+                },
+            },
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejects discordBot without commands or events', () => {
+        const result = AddonManifestSchema.safeParse({
+            ...validManifest,
+            discordBot: {},
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejects discordBot paths that escape the addon directory', () => {
+        const result = AddonManifestSchema.safeParse({
+            ...validManifest,
+            discordBot: {
+                commands: '../discord-bot/commands',
+            },
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it('rejects discordBot absolute paths', () => {
+        const result = AddonManifestSchema.safeParse({
+            ...validManifest,
+            discordBot: {
+                events: '/discord-bot/events',
+            },
+        });
+        expect(result.success).toBe(false);
     });
 
     it('rejects publicServer with invalid port', () => {

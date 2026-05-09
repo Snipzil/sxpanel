@@ -2,7 +2,7 @@ import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { navigate } from 'wouter/use-browser-location';
 
 export type EmbedEditorState = {
-    field: 'embedJson' | 'embedConfigJson';
+    field: 'embedJson' | 'embedConfigJson' | 'playerListEmbedJson' | 'playerListEmbedConfigJson';
     fieldLabel: string;
     initialValue: string;
     defaultValue: string;

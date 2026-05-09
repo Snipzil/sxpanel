@@ -13,7 +13,7 @@ const console = consoleFactory(modulename);
 export default async function AuthAddMasterPin(ctx: InitializedCtx) {
     const body = ctx.getBody(bodySchema);
     if (!body) return;
-    const { pin, origin } = body;
+    const { pin } = body;
 
     //Check if there are already admins set up
     if (txCore.adminStore.hasAdmins()) {
@@ -32,7 +32,7 @@ export default async function AuthAddMasterPin(ctx: InitializedCtx) {
     //Generate keypair and nonce
     const { publicKey, privateKey } = generateKeyPair();
     const nonce = randomUUID();
-    const callbackUrl = origin + '/addMaster/callback';
+    const callbackUrl = `${ctx.origin}/addMaster/callback`;
 
     //Store in session for later decryption
     ctx.sessTools.set({

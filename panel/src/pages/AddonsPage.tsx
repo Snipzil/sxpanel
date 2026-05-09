@@ -17,7 +17,21 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { PackageIcon, ShieldCheckIcon, ShieldXIcon, PowerIcon, RefreshCwIcon, AlertTriangleIcon, ShieldAlertIcon, SettingsIcon, ScrollTextIcon, PlayIcon, SquareIcon, LinkIcon, PowerOffIcon } from 'lucide-react';
+import {
+    PackageIcon,
+    ShieldCheckIcon,
+    ShieldXIcon,
+    PowerIcon,
+    RefreshCwIcon,
+    AlertTriangleIcon,
+    ShieldAlertIcon,
+    SettingsIcon,
+    ScrollTextIcon,
+    PlayIcon,
+    SquareIcon,
+    LinkIcon,
+    PowerOffIcon,
+} from 'lucide-react';
 import type { AddonListItem } from '@shared/addonTypes';
 
 interface AddonsListResponse {
@@ -31,7 +45,7 @@ interface AddonsListResponse {
 }
 
 const permissionDescriptions: Record<string, string> = {
-    'storage': 'Read/write to addon\'s own scoped key-value store',
+    storage: "Read/write to addon's own scoped key-value store",
     'players.read': 'Read player data such as custom tags and metadata',
     'players.write': 'Modify player custom tags via the players.addTag / players.removeTag APIs',
     'ws.push': 'Push real-time data to panel clients via WebSocket',
@@ -127,19 +141,27 @@ function AddonCard({
             <CardContent className="space-y-3">
                 <p className="text-muted-foreground text-sm">{addon.description}</p>
 
+                {addon.lastError &&
+                    (addon.state === 'invalid' || addon.state === 'failed' || addon.state === 'crashed') && (
+                        <div className="rounded-md border border-red-500/25 bg-red-500/10 p-2">
+                            <p className="text-xs text-red-700 dark:text-red-400">{addon.lastError}</p>
+                        </div>
+                    )}
+
                 {/* Re-approval warning */}
                 {needsReapproval && (
                     <div className="flex items-start gap-2 rounded-md border border-yellow-500/25 bg-yellow-500/10 p-2">
-                        <ShieldAlertIcon className="h-4 w-4 shrink-0 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                        <ShieldAlertIcon className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600 dark:text-yellow-400" />
                         <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                            This addon has been updated and requires new permissions. Please re-approve to continue using it.
+                            This addon has been updated and requires new permissions. Please re-approve to continue
+                            using it.
                         </p>
                     </div>
                 )}
 
                 {/* Dependencies display */}
                 {addon.dependencies.length > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
                         <LinkIcon className="h-3 w-3 shrink-0" />
                         <span>Depends on: {addon.dependencies.join(', ')}</span>
                     </div>
@@ -185,7 +207,7 @@ function AddonCard({
                                     onClick={() => onReload(addon.id)}
                                     disabled={isReloading}
                                 >
-                                    <RefreshCwIcon className={`mr-1 h-4 w-4${isReloading ? ' animate-spin' : ''}`} />
+                                    <RefreshCwIcon className={`mr-1 h-4 w-4${isReloading ? 'animate-spin' : ''}`} />
                                     {isReloading ? 'Reloading...' : 'Reload'}
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => onStop(addon.id)}>
@@ -222,7 +244,7 @@ function AddonCard({
                                     onClick={() => onReload(addon.id)}
                                     disabled={isReloading}
                                 >
-                                    <RefreshCwIcon className={`mr-1 h-4 w-4${isReloading ? ' animate-spin' : ''}`} />
+                                    <RefreshCwIcon className={`mr-1 h-4 w-4${isReloading ? 'animate-spin' : ''}`} />
                                     {isReloading ? 'Reloading...' : 'Reload'}
                                 </Button>
                                 <Button size="sm" variant="destructive" onClick={() => onRevoke(addon.id)}>
@@ -244,15 +266,7 @@ const logLevelColors: Record<string, string> = {
     error: 'text-red-600 dark:text-red-400',
 };
 
-function AddonLogsDialog({
-    addonId,
-    addonName,
-    onClose,
-}: {
-    addonId: string;
-    addonName: string;
-    onClose: () => void;
-}) {
+function AddonLogsDialog({ addonId, addonName, onClose }: { addonId: string; addonName: string; onClose: () => void }) {
     const fetcher = useAuthedFetcher();
     const { data, isLoading } = useSWR<{ logs: { timestamp: number; level: string; message: string }[] }>(
         `/addons/${addonId}/logs`,
@@ -264,7 +278,7 @@ function AddonLogsDialog({
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-3xl max-h-[70vh] flex flex-col">
+            <DialogContent className="flex max-h-[70vh] max-w-3xl flex-col">
                 <DialogHeader>
                     <DialogTitle>
                         <div className="flex items-center gap-2">
@@ -276,17 +290,15 @@ function AddonLogsDialog({
                         Last {logs.length} log entries. Auto-refreshes every 3 seconds.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="flex-1 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs min-h-[200px]">
+                <div className="bg-muted/30 min-h-[200px] flex-1 overflow-auto rounded-md border p-3 font-mono text-xs">
                     {isLoading && <p className="text-muted-foreground">Loading logs...</p>}
-                    {!isLoading && logs.length === 0 && (
-                        <p className="text-muted-foreground">No log entries.</p>
-                    )}
+                    {!isLoading && logs.length === 0 && <p className="text-muted-foreground">No log entries.</p>}
                     {logs.map((log, i) => (
                         <div key={`${log.timestamp}-${i}`} className="flex gap-2 py-0.5">
                             <span className="text-muted-foreground shrink-0">
                                 {new Date(log.timestamp).toLocaleTimeString()}
                             </span>
-                            <span className={`shrink-0 uppercase w-12 ${logLevelColors[log.level] ?? ''}`}>
+                            <span className={`w-12 shrink-0 uppercase ${logLevelColors[log.level] ?? ''}`}>
                                 [{log.level}]
                             </span>
                             <span className="break-all">{log.message}</span>
@@ -323,7 +335,7 @@ function AddonSettingsDialog({
                     {SettingsComponent ? (
                         <SettingsComponent />
                     ) : (
-                        <p className="text-muted-foreground text-sm text-center py-4">
+                        <p className="text-muted-foreground py-4 text-center text-sm">
                             Settings component not available.
                         </p>
                     )}
@@ -400,8 +412,9 @@ export default function AddonsPage() {
             }
         } catch (err) {
             txToast.error(`Failed to revoke addon: ${(err as Error).message}`);
+        } finally {
+            setRevokeTarget(null);
         }
-        setRevokeTarget(null);
     }, [fetcher, mutate]);
 
     const handleReload = useCallback(async (addonId: string) => {
@@ -453,25 +466,26 @@ export default function AddonsPage() {
         }
     }, [fetcher, mutate]);
 
-    const handleStart = useCallback(async (addonId: string) => {
-        try {
-            const resp = await fetcher(`/addons/${addonId}/start`, { method: 'POST' });
-            if (resp.error) {
-                txToast.error(`Start failed: ${resp.error}`);
-            } else {
-                txToast.success(`Addon "${addonId}" started.`);
-                resetAddonCache();
-                mutate();
+    const handleStart = useCallback(
+        async (addonId: string) => {
+            try {
+                const resp = await fetcher(`/addons/${addonId}/start`, { method: 'POST' });
+                if (resp.error) {
+                    txToast.error(`Start failed: ${resp.error}`);
+                } else {
+                    txToast.success(`Addon "${addonId}" started.`);
+                    resetAddonCache();
+                    mutate();
+                }
+            } catch (err) {
+                txToast.error(`Failed to start addon: ${(err as Error).message}`);
             }
-        } catch (err) {
-            txToast.error(`Failed to start addon: ${(err as Error).message}`);
-        }
-    }, [fetcher, mutate]);
+        },
+        [fetcher, mutate],
+    );
 
     const togglePerm = useCallback((perm: string) => {
-        setSelectedPerms((prev) =>
-            prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]
-        );
+        setSelectedPerms((prev) => (prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]));
     }, []);
 
     const handleScanAddons = useCallback(async () => {
@@ -495,7 +509,7 @@ export default function AddonsPage() {
     if (error) {
         return (
             <div className="flex flex-col items-center justify-center gap-2 p-8">
-                <AlertTriangleIcon className="h-8 w-8 text-destructive" />
+                <AlertTriangleIcon className="text-destructive h-8 w-8" />
                 <p className="text-destructive">Failed to load addons.</p>
             </div>
         );
@@ -518,13 +532,8 @@ export default function AddonsPage() {
                     )}
                 </div>
                 {!isReadOnly && (
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleScanAddons}
-                        disabled={isScanning}
-                    >
-                        <RefreshCwIcon className={`mr-1 h-4 w-4${isScanning ? ' animate-spin' : ''}`} />
+                    <Button size="sm" variant="outline" onClick={handleScanAddons} disabled={isScanning}>
+                        <RefreshCwIcon className={`mr-1 h-4 w-4${isScanning ? 'animate-spin' : ''}`} />
                         {isScanning ? 'Scanning...' : 'Rescan Addons'}
                     </Button>
                 )}
@@ -537,19 +546,19 @@ export default function AddonsPage() {
                             <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-2">
-                                        <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+                                        <div className="bg-muted h-5 w-5 animate-pulse rounded" />
                                         <div className="space-y-1.5">
-                                            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
-                                            <div className="h-3 w-24 rounded bg-muted animate-pulse" />
+                                            <div className="bg-muted h-4 w-32 animate-pulse rounded" />
+                                            <div className="bg-muted h-3 w-24 animate-pulse rounded" />
                                         </div>
                                     </div>
-                                    <div className="h-5 w-16 rounded-full bg-muted animate-pulse" />
+                                    <div className="bg-muted h-5 w-16 animate-pulse rounded-full" />
                                 </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-2">
-                                    <div className="h-4 w-full rounded bg-muted animate-pulse" />
-                                    <div className="h-4 w-2/3 rounded bg-muted animate-pulse" />
+                                    <div className="bg-muted h-4 w-full animate-pulse rounded" />
+                                    <div className="bg-muted h-4 w-2/3 animate-pulse rounded" />
                                 </div>
                             </CardContent>
                         </Card>
@@ -561,9 +570,7 @@ export default function AddonsPage() {
                 <Card>
                     <CardContent className="flex flex-col items-center gap-2 py-12">
                         <PowerOffIcon className="text-muted-foreground h-12 w-12" />
-                        <p className="text-muted-foreground text-sm font-medium">
-                            Addon system is disabled
-                        </p>
+                        <p className="text-muted-foreground text-sm font-medium">Addon system is disabled</p>
                         <p className="text-muted-foreground text-xs">
                             Enable it in the addon configuration to start using addons.
                         </p>
@@ -640,7 +647,9 @@ export default function AddonsPage() {
                                         {perm} <span className="text-destructive">*required</span>
                                     </Label>
                                     {permissionDescriptions[perm] && (
-                                        <p className="text-xs text-muted-foreground mt-0.5">{permissionDescriptions[perm]}</p>
+                                        <p className="text-muted-foreground mt-0.5 text-xs">
+                                            {permissionDescriptions[perm]}
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -658,7 +667,9 @@ export default function AddonsPage() {
                                         {perm}
                                     </Label>
                                     {permissionDescriptions[perm] && (
-                                        <p className="text-xs text-muted-foreground mt-0.5">{permissionDescriptions[perm]}</p>
+                                        <p className="text-muted-foreground mt-0.5 text-xs">
+                                            {permissionDescriptions[perm]}
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -681,7 +692,7 @@ export default function AddonsPage() {
             {settingsAddonId && (
                 <AddonSettingsDialog
                     addonId={settingsAddonId}
-                    addonName={addons.find(a => a.id === settingsAddonId)?.name ?? settingsAddonId}
+                    addonName={addons.find((a) => a.id === settingsAddonId)?.name ?? settingsAddonId}
                     onClose={() => setSettingsAddonId(null)}
                 />
             )}
@@ -690,7 +701,7 @@ export default function AddonsPage() {
             {logsAddonId && (
                 <AddonLogsDialog
                     addonId={logsAddonId}
-                    addonName={addons.find(a => a.id === logsAddonId)?.name ?? logsAddonId}
+                    addonName={addons.find((a) => a.id === logsAddonId)?.name ?? logsAddonId}
                     onClose={() => setLogsAddonId(null)}
                 />
             )}
@@ -701,8 +712,9 @@ export default function AddonsPage() {
                     <DialogHeader>
                         <DialogTitle>Revoke Addon</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to revoke <strong>{addons.find(a => a.id === revokeTarget)?.name ?? revokeTarget}</strong>?
-                            This will stop the addon and remove its approval. You can re-approve it later.
+                            Are you sure you want to revoke{' '}
+                            <strong>{addons.find((a) => a.id === revokeTarget)?.name ?? revokeTarget}</strong>? This
+                            will stop the addon and remove its approval. You can re-approve it later.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

@@ -8,10 +8,13 @@ import { PartialTxConfigs, TxConfigs } from '@modules/ConfigStore/schema';
 import { ConfigChangelogEntry } from '@modules/ConfigStore/changelog';
 import { redactApiKeys, redactStartupSecrets } from '@lib/misc';
 import { txHostConfig } from '@core/globalData';
+import { getAllPermissionPresets } from '@modules/AdminStore/permissionPresets';
+import type { PermissionPreset } from '@shared/permissions';
 const console = consoleFactory(modulename);
 
 export type GetConfigsResp = {
     locales: { code: string; label: string }[];
+    permissionPresets: PermissionPreset[];
     dataPath: string;
     hasCustomDataPath: boolean;
     changelog: ConfigChangelogEntry[];
@@ -42,6 +45,7 @@ export default async function GetSettingsConfigs(ctx: AuthedCtx) {
 
     const outData: GetConfigsResp = {
         locales,
+        permissionPresets: getAllPermissionPresets(),
         dataPath: txHostConfig.dataPath,
         hasCustomDataPath: txHostConfig.hasCustomDataPath,
         changelog: txCore.configStore.getChangelog(),

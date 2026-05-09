@@ -68,7 +68,9 @@ const handleBridgedCommands = (payload: any) => {
 
             //Resolve admin
             const author = payload.author;
-            txCore.logger.system.write(author, `Sending announcement: ${message}`, 'action');
+            txCore.logger.system.write(author, `Sending announcement: ${message}`, 'action', {
+                actionId: 'announcement.send',
+            });
 
             // Dispatch `txAdmin:events:announcement`
             txCore.fxRunner.sendEvent('announcement', { message, author });
@@ -101,7 +103,9 @@ const handleBridgedCommands = (payload: any) => {
             const allIds = player.getAllIdentifiers();
             if (!allIds.length) throw new Error(`no identifiers found for player netid ${payload.targetNetId}`);
             txCore.database.actions.registerKick(allIds, payload.author, reason, player.displayName);
-            txCore.logger.system.write(payload.author, `Kicked "${player.displayName}": ${reason}`, 'action');
+            txCore.logger.system.write(payload.author, `Kicked "${player.displayName}": ${reason}`, 'action', {
+                actionId: 'player.kick',
+            });
 
             const dropMessage = txCore.translator.t('kick_messages.player', { reason });
             txCore.fxRunner.sendEvent('playerKicked', {
@@ -140,7 +144,9 @@ const handleBridgedCommands = (payload: any) => {
                 player.displayName,
                 allHwids,
             );
-            txCore.logger.system.write(payload.author, `Banned "${player.displayName}": ${reason}`, 'action');
+            txCore.logger.system.write(payload.author, `Banned "${player.displayName}": ${reason}`, 'action', {
+                actionId: 'player.ban',
+            });
 
             //Prepare kick message
             let kickMessage;
@@ -187,7 +193,9 @@ const handleBridgedCommands = (payload: any) => {
             if (!allIds.length) throw new Error(`player has no identifiers`);
 
             const actionId = txCore.database.actions.registerWarn(allIds, payload.author, reason, player.displayName);
-            txCore.logger.system.write(payload.author, `Warned "${player.displayName}": ${reason}`, 'action');
+            txCore.logger.system.write(payload.author, `Warned "${player.displayName}": ${reason}`, 'action', {
+                actionId: 'player.warn',
+            });
 
             txCore.fxRunner.sendEvent('playerWarned', {
                 author: payload.author,

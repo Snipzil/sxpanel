@@ -1,18 +1,15 @@
 import path from 'node:path';
+import fs from 'node:fs';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { PluginOption, UserConfig, defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import react from '@vitejs/plugin-react';
 import { getFxsPaths, licenseBanner } from '../scripts/build/utils';
 import { parseTxDevEnv } from '../shared/txDevEnv';
-process.loadEnvFile('../.env');
-
-//Check if TXDEV_FXSERVER_PATH is set
-const txDevEnv = parseTxDevEnv();
-if (!txDevEnv.FXSERVER_PATH) {
-    console.error('Missing TXDEV_FXSERVER_PATH env variable.');
-    process.exit(1);
+if (fs.existsSync(path.resolve(__dirname, '../.env'))) {
+    process.loadEnvFile('../.env');
 }
+
+const txDevEnv = parseTxDevEnv();
 
 const baseConfig = {
     build: {
@@ -36,14 +33,9 @@ const baseConfig = {
     base: '/nui/',
     clearScreen: false,
     resolve: {
-        alias: {
-            '@mui/material': path.resolve(__dirname, 'node_modules/@mui/material'),
-        },
+        tsconfigPaths: true,
     },
     plugins: [
-        tsconfigPaths({
-            projects: ['./', '../shared'],
-        }),
         react(),
         visualizer({
             // template: 'flamegraph',
@@ -62,6 +54,10 @@ export default defineConfig(({ command, mode }) => {
     }
 
     if (mode === 'development') {
+        if (!txDevEnv.FXSERVER_PATH) {
+            console.error('Missing TXDEV_FXSERVER_PATH env variable.');
+            process.exit(1);
+        }
         let devDeplyPath: string;
         try {
             //Extract paths and validate them

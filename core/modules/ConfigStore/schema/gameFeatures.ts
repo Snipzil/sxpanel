@@ -34,8 +34,8 @@ const ticketCategoryDescriptions = typeDefinedConfig({
     default: {
         'Player Report': 'Report a player for rule violations.',
         'Bug Report': 'Report a bug or server issue.',
-        'Question': 'Ask a question to staff.',
-        'Other': 'Anything else.',
+        Question: 'Ask a question to staff.',
+        Other: 'Anything else.',
     } as Record<string, string>,
     validator: z.record(z.string().min(1).max(128)),
     fixer: SYM_FIXER_DEFAULT,

@@ -340,7 +340,7 @@ export default class FxScheduler {
 
         //Restart server
         const logMessage = `Restarting server: ${reasonInternal}`;
-        txCore.logger.system.write('SCHEDULER', logMessage, 'scheduler');
+        txCore.logger.system.write('SCHEDULER', logMessage, 'scheduler', { actionId: 'scheduler.restart.execute' });
         txCore.logger.fxserver.logInformational(logMessage); //just for better visibility
         txCore.fxRunner.restartServer(reasonTranslated, SYM_SYSTEM_AUTHOR);
     }

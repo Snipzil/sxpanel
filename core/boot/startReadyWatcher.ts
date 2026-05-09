@@ -1,6 +1,7 @@
 import boxen, { type Options as BoxenOptions } from 'boxen';
 import chalk from 'chalk';
 import open from 'open';
+import { isIP } from 'node:net';
 import os from 'node:os';
 import { shuffle } from 'd3-array';
 import { z } from 'zod';
@@ -12,6 +13,9 @@ import consoleFactory from '@lib/console';
 import { addLocalIpAddress } from '@lib/host/isIpAddressLocal';
 import { chalkInversePad } from '@lib/misc';
 const console = consoleFactory();
+
+const ipv4StringSchema = z.string().refine((value) => isIP(value) === 4, 'Invalid IPv4 address');
+const ipv6StringSchema = z.string().refine((value) => isIP(value) === 6, 'Invalid IPv6 address');
 
 /**
  * Registers all non-internal network interface IPs as local addresses
@@ -46,24 +50,26 @@ const fetchPublicIp = async (apis: string[][], validator: z.ZodType<string>) => 
     return false;
 };
 
-const getPublicIpv4 = () => fetchPublicIp(
-    [
-        ['https://api.ipify.org?format=json', 'ip'],
-        ['https://api.myip.com', 'ip'],
-        ['https://ipv4.jsonip.com/', 'ip'],
-        ['https://api.my-ip.io/v2/ip.json', 'ip'],
-        ['https://www.l2.io/ip.json', 'ip'],
-    ],
-    z.string().ip({ version: 'v4' }),
-);
+const getPublicIpv4 = () =>
+    fetchPublicIp(
+        [
+            ['https://api.ipify.org?format=json', 'ip'],
+            ['https://api.myip.com', 'ip'],
+            ['https://ipv4.jsonip.com/', 'ip'],
+            ['https://api.my-ip.io/v2/ip.json', 'ip'],
+            ['https://www.l2.io/ip.json', 'ip'],
+        ],
+        ipv4StringSchema,
+    );
 
-const getPublicIpv6 = () => fetchPublicIp(
-    [
-        ['https://api6.ipify.org?format=json', 'ip'],
-        ['https://api6.my-ip.io/v2/ip.json', 'ip'],
-    ],
-    z.string().ip({ version: 'v6' }),
-);
+const getPublicIpv6 = () =>
+    fetchPublicIp(
+        [
+            ['https://api6.ipify.org?format=json', 'ip'],
+            ['https://api6.my-ip.io/v2/ip.json', 'ip'],
+        ],
+        ipv6StringSchema,
+    );
 
 const getOSMessage = async () => {
     const serverMessage = [
@@ -179,9 +185,9 @@ export const startReadyWatcher = async (cb: () => void) => {
     const bannerUrls = txHostConfig.txaUrl
         ? [txHostConfig.txaUrl]
         : detectedUrls.map((addr) => {
-            const host = addr.includes(':') ? `[${addr}]` : addr;
-            return `http://${host}:${txHostConfig.txaPort}/`;
-        });
+              const host = addr.includes(':') ? `[${addr}]` : addr;
+              return `http://${host}:${txHostConfig.txaPort}/`;
+          });
 
     //Admin PIN
     const adminMasterPin = 'value' in adminPinRes && adminPinRes.value ? adminPinRes.value : false;

@@ -45,9 +45,7 @@ export const PageTabs: React.FC = () => {
             >
                 <StyledTab label="Main" wrapped disableFocusRipple />
                 <StyledTab label="Players" wrapped disableFocusRipple />
-                {serverCtx.reportsEnabled && (
-                    <StyledTab label="Reports" wrapped disableFocusRipple />
-                )}
+                {serverCtx.reportsEnabled && <StyledTab label="Reports" wrapped disableFocusRipple />}
             </Tabs>
         </Box>
     );

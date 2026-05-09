@@ -25,18 +25,18 @@ const isPublicIPv4 = (ip: string): boolean => {
     const parts = ip.split('.').map((o) => Number(o));
     if (parts.length !== 4 || parts.some((o) => !Number.isInteger(o) || o < 0 || o > 255)) return false;
     const [a, b, c] = parts;
-    if (a === 0) return false;                                // 0.0.0.0/8
-    if (a === 10) return false;                               // 10/8 private
-    if (a === 127) return false;                              // loopback
-    if (a === 169 && b === 254) return false;                 // link-local + 169.254.169.254 metadata
-    if (a === 172 && b >= 16 && b <= 31) return false;        // 172.16/12 private
-    if (a === 192 && b === 168) return false;                 // 192.168/16 private
-    if (a === 100 && b >= 64 && b <= 127) return false;       // CGNAT 100.64/10
+    if (a === 0) return false; // 0.0.0.0/8
+    if (a === 10) return false; // 10/8 private
+    if (a === 127) return false; // loopback
+    if (a === 169 && b === 254) return false; // link-local + 169.254.169.254 metadata
+    if (a === 172 && b >= 16 && b <= 31) return false; // 172.16/12 private
+    if (a === 192 && b === 168) return false; // 192.168/16 private
+    if (a === 100 && b >= 64 && b <= 127) return false; // CGNAT 100.64/10
     if (a === 192 && b === 0 && (c === 0 || c === 2)) return false; // reserved / TEST-NET-1
-    if (a === 198 && b === 51 && c === 100) return false;     // TEST-NET-2
-    if (a === 203 && b === 0 && c === 113) return false;      // TEST-NET-3
-    if (a === 198 && (b === 18 || b === 19)) return false;    // benchmark
-    if (a >= 224) return false;                               // multicast (224/4) + reserved + broadcast
+    if (a === 198 && b === 51 && c === 100) return false; // TEST-NET-2
+    if (a === 203 && b === 0 && c === 113) return false; // TEST-NET-3
+    if (a === 198 && (b === 18 || b === 19)) return false; // benchmark
+    if (a >= 224) return false; // multicast (224/4) + reserved + broadcast
     return true;
 };
 
@@ -49,11 +49,11 @@ const isPublicIPv6 = (ipRaw: string): boolean => {
     if (ip === '::' || ip === '::1') return false;
     const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip);
     if (mapped) return isPublicIPv4(mapped[1]);
-    if (/^fe[89ab]/.test(ip)) return false;                   // fe80::/10 link-local
-    if (/^f[cd]/.test(ip)) return false;                      // fc00::/7 unique-local
-    if (/^ff/.test(ip)) return false;                         // ff00::/8 multicast
-    if (ip.startsWith('2001:db8:')) return false;             // documentation
-    if (/^2001:(0{1,4}:)/.test(ip)) return false;             // 2001:0::/32 Teredo
+    if (/^fe[89ab]/.test(ip)) return false; // fe80::/10 link-local
+    if (/^f[cd]/.test(ip)) return false; // fc00::/7 unique-local
+    if (/^ff/.test(ip)) return false; // ff00::/8 multicast
+    if (ip.startsWith('2001:db8:')) return false; // documentation
+    if (/^2001:(0{1,4}:)/.test(ip)) return false; // 2001:0::/32 Teredo
     return true;
 };
 
@@ -447,10 +447,7 @@ const taskReplaceString = async (task: RecipeTask, basePath: string, ctx: Deploy
     const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const searchRegex =
         task.mode === undefined || task.mode === 'template' || task.mode === 'literal'
-            ? new RegExp(
-                task.mode === 'literal' ? escapeRegExp(task.search as string) : (task.search as string),
-                'g',
-            )
+            ? new RegExp(task.mode === 'literal' ? escapeRegExp(task.search as string) : (task.search as string), 'g')
             : null;
     const replacedValue =
         task.mode === undefined || task.mode === 'template'

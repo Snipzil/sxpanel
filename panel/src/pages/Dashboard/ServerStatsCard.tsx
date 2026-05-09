@@ -29,10 +29,10 @@ type StatRowProps = {
 function StatRow({ icon: Icon, label, value, valueClass, title }: StatRowProps) {
     return (
         <div className="flex items-center gap-3 py-2.5" title={title}>
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary/50">
-                <Icon className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <div className="bg-secondary/50 flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
+                <Icon className="text-muted-foreground/60 h-3.5 w-3.5" />
             </div>
-            <span className="flex-1 text-xs text-muted-foreground/70">{label}</span>
+            <span className="text-muted-foreground/70 flex-1 text-xs">{label}</span>
             <span className={cn('font-mono text-sm font-semibold', valueClass ?? 'text-foreground')}>{value}</span>
         </div>
     );
@@ -60,11 +60,17 @@ const HostStatsData = memo(({ uptimePct, medianPlayerCount, fxsMemory, nodeMemor
     }
 
     return (
-        <div className="flex flex-col divide-y divide-border/30">
+        <div className="divide-border/30 flex flex-col divide-y">
             <StatRow icon={TimerIcon} label="Uptime 24h" value={uptimePart} />
             <StatRow icon={TrendingUpIcon} label="Median Players 24h" value={medianPlayerPart} />
             <StatRow icon={MemoryStickIcon} label="FXServer Memory" value={fxsPart} />
-            <StatRow icon={MemoryStickIcon} label="Node.js Memory" value={nodePart} valueClass={nodeCustomClass} title={nodeTitle} />
+            <StatRow
+                icon={MemoryStickIcon}
+                label="Node.js Memory"
+                value={nodePart}
+                valueClass={nodeCustomClass}
+                title={nodeTitle}
+            />
         </div>
     );
 });
@@ -130,12 +136,12 @@ export default function ServerStatsCard() {
     }
 
     return (
-        <div className="bg-card flex h-80 max-h-80 flex-col rounded-xl border border-border/60 px-4 py-3 shadow-sm">
+        <div className="bg-card border-border/60 flex h-80 max-h-80 flex-col rounded-xl border px-4 py-3 shadow-sm">
             <div className="flex flex-row items-center justify-between pb-1">
-                <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                <h3 className="text-muted-foreground/50 text-[10px] font-semibold tracking-widest uppercase">
                     Server Stats {titleNode}
                 </h3>
-                <GaugeIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
+                <GaugeIcon className="text-muted-foreground/30 h-3.5 w-3.5" />
             </div>
             {contentNode}
         </div>

@@ -4,7 +4,7 @@ import { Readable, Writable } from 'node:stream';
 import { txEnv, txHostConfig } from '@core/globalData';
 import { redactStartupSecrets } from '@lib/misc';
 import { getTagDefinitions } from '@lib/player/playerTags';
-import path from 'path';
+import path from 'node:path';
 
 /**
  * Blackhole event logger

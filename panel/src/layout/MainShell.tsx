@@ -22,12 +22,13 @@ import BreakpointDebugger from '@/components/BreakpointDebugger';
 import ActionModal from './ActionModal/ActionModal';
 import { useEffect } from 'react';
 import { actionModalUrlParam, useOpenActionModal } from '@/hooks/actionModal';
-import { useShellBreakpoints } from '@/hooks/useShellBreakpoints';
 import LeftSidebar from './LeftSidebar';
 import { useAtomValue } from 'jotai';
 import { pageHeaderAtom } from '@/hooks/pages';
 import { useDynamicScale } from '@/hooks/useDynamicScale';
 import OnboardingOverlay from './OnboardingOverlay';
+import { cn } from '@/lib/utils';
+import { useShellViewportStyles } from '@/hooks/useShellViewportStyles';
 
 export default function MainShell() {
     const expireSession = useExpireAuthData();
@@ -35,7 +36,9 @@ export default function MainShell() {
     const openPlayerModal = useOpenPlayerModal();
     const openActionModal = useOpenActionModal();
     const toggleTheme = useToggleTheme();
-    const { hasScaledViewportMismatch } = useShellBreakpoints();
+    const { scaledViewportMode } = useShellViewportStyles();
+    const isCompactScaledViewport = scaledViewportMode === 'compact';
+    const isExpandedScaledViewport = scaledViewportMode === 'expanded';
 
     // Expose modal openers so addons can call them directly
     (window as any).txAddonApi = (window as any).txAddonApi || {};
@@ -84,19 +87,22 @@ export default function MainShell() {
     }, []);
 
     useEffect(() => {
-        const densityMode = hasScaledViewportMismatch ? 'compact' : 'default';
+        const densityMode = isCompactScaledViewport ? 'compact' : 'default';
         document.documentElement.dataset.txShellDensity = densityMode;
 
         return () => {
             delete document.documentElement.dataset.txShellDensity;
         };
-    }, [hasScaledViewportMismatch]);
+    }, [isCompactScaledViewport]);
 
     //Listens to hotkeys (doesn't work if the focus is on an iframe)
     useEventListener('keydown', hotkeyEventListener);
 
     const pageHeader = useAtomValue(pageHeaderAtom);
-    const { containerRef, contentRef } = useDynamicScale<HTMLDivElement, HTMLDivElement>({ maxScale: 0.94 });
+    const { containerRef, contentRef } = useDynamicScale<HTMLDivElement, HTMLDivElement>({
+        maxScale: 0.94,
+        enabled: isCompactScaledViewport,
+    });
 
     return (
         <>
@@ -115,7 +121,10 @@ export default function MainShell() {
                         <div ref={containerRef} className="flex flex-1 overflow-auto">
                             <div
                                 ref={contentRef}
-                                className="flex min-h-full w-full max-w-[160rem] flex-col px-3 pt-(--page-pt) pb-(--page-pb) md:px-5 2xl:px-8"
+                                className={cn(
+                                    'flex min-h-full w-full flex-col px-3 pt-(--page-pt) pb-(--page-pb) md:px-5 2xl:px-8',
+                                    isExpandedScaledViewport ? 'max-w-none' : 'max-w-[160rem]',
+                                )}
                             >
                                 {pageHeader}
                                 <div className="flex w-full flex-1 flex-row gap-4">

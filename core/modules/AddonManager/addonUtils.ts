@@ -64,7 +64,7 @@ export interface DependencyNode {
  * Nodes with circular or unresolvable dependencies are placed at the end.
  */
 export function topologicalSort<T extends DependencyNode>(nodes: T[]): T[] {
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
     const sorted: T[] = [];
     const visited = new Set<string>();
     const visiting = new Set<string>();
@@ -97,5 +97,5 @@ export function topologicalSort<T extends DependencyNode>(nodes: T[]): T[] {
  * Returns dependency IDs that are not in the running set.
  */
 export function getMissingDependencies(dependencies: string[], runningIds: Set<string>): string[] {
-    return dependencies.filter(depId => !runningIds.has(depId));
+    return dependencies.filter((depId) => !runningIds.has(depId));
 }

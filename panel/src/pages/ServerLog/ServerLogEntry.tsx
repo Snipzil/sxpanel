@@ -1,5 +1,5 @@
-import { memo, useMemo, useState } from 'react';
-import { cn } from '@/lib/utils';
+import { memo, useMemo, useRef, useState } from 'react';
+import { cn, copyToClipboard } from '@/lib/utils';
 import {
     LogInIcon,
     LogOutIcon,
@@ -114,6 +114,7 @@ const ServerLogEntry = memo(function ServerLogEntry({ event, onPlayerClick }: Se
     const Icon = cfg.icon;
     const [modalOpen, setModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const surrogateRef = useRef<HTMLDivElement>(null);
 
     const openPlayerModal = useOpenPlayerModal();
 
@@ -136,12 +137,9 @@ const ServerLogEntry = memo(function ServerLogEntry({ event, onPlayerClick }: Se
 
     const handleCopy = () => {
         const text = `[${fullTime}] [${cfg.label}] ${event.src.name}: ${event.msg}`;
-        navigator.clipboard.writeText(text).then(() => {
+        copyToClipboard(text, surrogateRef.current ?? document.body as unknown as HTMLDivElement).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        }).catch((err) => {
-            setCopied(false);
-            console.error('Failed to copy to clipboard:', err);
         });
     };
 
@@ -161,6 +159,7 @@ const ServerLogEntry = memo(function ServerLogEntry({ event, onPlayerClick }: Se
     return (
         <>
             <div
+                ref={surrogateRef}
                 className={cn(
                     'hover:bg-secondary/30 flex cursor-pointer items-start gap-2 border-l-2 px-3 py-1.5 text-sm transition-colors',
                     cfg.borderColor,
@@ -310,7 +309,7 @@ export const GroupedJoinLeave = memo(function GroupedJoinLeave({ events, type }:
         names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} and ${names.length - 3} more`;
 
     const absoluteTime = useMemo(
-        () => events.length ? new Date(events[0].ts).toLocaleTimeString(undefined, timeOptions) : '',
+        () => (events.length ? new Date(events[0].ts).toLocaleTimeString(undefined, timeOptions) : ''),
         [events.length, events[0]?.ts],
     );
 

@@ -1,4 +1,4 @@
-import type { RoomType } from '../webSocket';
+import type { RoomType } from '@modules/WebServer/webSocket';
 
 /**
  * The systemlog room is responsible for the action log page

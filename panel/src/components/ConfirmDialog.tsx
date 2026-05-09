@@ -15,7 +15,7 @@ import { buttonVariants } from './ui/button';
 import { useOnClickOutside } from 'usehooks-ts';
 
 export default function ConfirmDialog() {
-    const modalRef = useRef(null);
+    const modalRef = useRef<HTMLDivElement>(null);
     const dialogState = useConfirmDialogState();
     const closeDialog = useCloseConfirmDialog();
 
@@ -48,7 +48,7 @@ export default function ConfirmDialog() {
         }
     };
 
-    useOnClickOutside(modalRef, handleCancel);
+    useOnClickOutside(modalRef as unknown as React.RefObject<HTMLElement>, handleCancel);
 
     return (
         <AlertDialog open={dialogState.isOpen} onOpenChange={handleOpenClose}>

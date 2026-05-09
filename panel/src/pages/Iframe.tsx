@@ -5,13 +5,16 @@ type Props = {
     legacyUrl: string;
 };
 
+const sanitiseLegacyPath = (value: string) => {
+    const cleaned = value.replace(/[^a-zA-Z0-9/_-]/g, '').replace(/\/+/g, '/');
+    return cleaned.replace(/\.\./g, '').replace(/^\/+/, '');
+};
+
 export default function Iframe({ legacyUrl }: Props) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    //NOTE: if you open adminManager with autofill, the autofill will continue in the searchParams
-    //This is an annoying issue to fix, so #wontfix
-    const searchParams = location.search ?? '';
-    const hashParams = location.hash ?? '';
+    const safeLegacyPath = sanitiseLegacyPath(legacyUrl);
+    const iframeSrc = `./legacy/${safeLegacyPath}`;
 
     //Listens to hotkeys in the iframe
     useEffect(() => {
@@ -23,7 +26,7 @@ export default function Iframe({ legacyUrl }: Props) {
         <iframe
             ref={iframeRef}
             id="legacyPageIframe" //required for the theme switcher
-            src={`./legacy/${legacyUrl}${searchParams}${hashParams}`}
+            src={iframeSrc}
             className="w-full"
         ></iframe>
     );

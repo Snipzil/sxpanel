@@ -400,7 +400,10 @@ export default function ConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardPro
                         ref={dataPathRef}
                         defaultValue={cfg.dataPath.initialValue}
                         placeholder={serverDataPlaceholder}
-                        onInput={() => { dataPathEdited.current = true; updatePageState(); }}
+                        onInput={() => {
+                            dataPathEdited.current = true;
+                            updatePageState();
+                        }}
                         disabled={pageCtx.isReadOnly}
                         required
                     />
@@ -448,7 +451,10 @@ export default function ConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardPro
                         min={0}
                         className="w-32"
                         value={states.restarterIntervalHours ?? 0}
-                        onChange={(e) => { const parsed = parseInt(e.target.value, 10); cfg.restarterIntervalHours.state.set(isNaN(parsed) ? 0 : Math.max(0, parsed)); }}
+                        onChange={(e) => {
+                            const parsed = parseInt(e.target.value, 10);
+                            cfg.restarterIntervalHours.state.set(isNaN(parsed) ? 0 : Math.max(0, parsed));
+                        }}
                         disabled={pageCtx.isReadOnly}
                     />
                     <span className="text-muted-foreground text-sm">hours (0 = disabled)</span>
@@ -489,7 +495,10 @@ export default function ConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardPro
                     ref={cfgPathRef}
                     defaultValue={cfg.cfgPath.initialValue}
                     placeholder="server.cfg"
-                    onInput={() => { cfgPathEdited.current = true; updatePageState(); }}
+                    onInput={() => {
+                        cfgPathEdited.current = true;
+                        updatePageState();
+                    }}
                     disabled={pageCtx.isReadOnly}
                     required
                 />
@@ -504,7 +513,10 @@ export default function ConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardPro
                     ref={startupArgsRef}
                     defaultValue={inputArrayUtil.toUi(cfg.startupArgs.initialValue)}
                     placeholder="--trace-warning"
-                    onInput={() => { startupArgsEdited.current = true; updatePageState(); }}
+                    onInput={() => {
+                        startupArgsEdited.current = true;
+                        updatePageState();
+                    }}
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>
@@ -514,11 +526,7 @@ export default function ConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardPro
                 </SettingItemDesc>
             </SettingItem>
             <SettingItem label="OneSync" htmlFor={cfg.onesync.eid} showIf={showAdvanced}>
-                <Select
-                    value={states.onesync}
-                    onValueChange={handleOneSyncChange}
-                    disabled={pageCtx.isReadOnly}
-                >
+                <Select value={states.onesync} onValueChange={handleOneSyncChange} disabled={pageCtx.isReadOnly}>
                     <SelectTrigger id={cfg.onesync.eid}>
                         <SelectValue placeholder="Select OneSync option" />
                     </SelectTrigger>

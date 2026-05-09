@@ -1,4 +1,4 @@
-import type { RoomType } from '../webSocket';
+import type { RoomType } from '@modules/WebServer/webSocket';
 import { FullPlayerlistEventType } from '@shared/socketioTypes';
 import { getTagDefinitions } from '@lib/player/playerTags';
 

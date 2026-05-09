@@ -31,7 +31,14 @@ function HeaderMenuLink(props: HeaderMenuLinkProps) {
             {props.disabled ? (
                 <Tooltip>
                     <TooltipTrigger className="cursor-help">
-                        <a className={cn(navLinkBase, navLinkDefault, 'pointer-events-none opacity-40', props.className)}>
+                        <a
+                            className={cn(
+                                navLinkBase,
+                                navLinkDefault,
+                                'pointer-events-none opacity-40',
+                                props.className,
+                            )}
+                        >
                             {props.children}
                         </a>
                     </TooltipTrigger>
@@ -89,7 +96,11 @@ export default function DesktopNavbar() {
                     <NavigationMenuList>
                         <NavigationMenuItem>
                             <NavigationMenuTrigger
-                                className={cn(navLinkBase, navLinkDefault, 'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40')}
+                                className={cn(
+                                    navLinkBase,
+                                    navLinkDefault,
+                                    'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40',
+                                )}
                                 onClick={handleTriggerClick}
                             >
                                 Reports
@@ -111,7 +122,11 @@ export default function DesktopNavbar() {
                 <NavigationMenuList>
                     <NavigationMenuItem>
                         <NavigationMenuTrigger
-                            className={cn(navLinkBase, navLinkDefault, 'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40')}
+                            className={cn(
+                                navLinkBase,
+                                navLinkDefault,
+                                'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40',
+                            )}
                             onClick={handleTriggerClick}
                         >
                             Insights
@@ -144,7 +159,11 @@ export default function DesktopNavbar() {
                 <NavigationMenuList>
                     <NavigationMenuItem>
                         <NavigationMenuTrigger
-                            className={cn(navLinkBase, navLinkDefault, 'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40')}
+                            className={cn(
+                                navLinkBase,
+                                navLinkDefault,
+                                'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40',
+                            )}
                             onClick={handleTriggerClick}
                         >
                             System
@@ -195,7 +214,11 @@ export default function DesktopNavbar() {
                         ) : (
                             <NavigationMenuItem>
                                 <NavigationMenuTrigger
-                                    className={cn(navLinkBase, navLinkDefault, 'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40')}
+                                    className={cn(
+                                        navLinkBase,
+                                        navLinkDefault,
+                                        'data-[state=open]:text-foreground data-[state=open]:bg-secondary/40',
+                                    )}
                                     onClick={handleTriggerClick}
                                 >
                                     Addons

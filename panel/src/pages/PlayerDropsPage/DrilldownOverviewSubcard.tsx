@@ -76,7 +76,7 @@ export default function DrilldownOverviewSubcard({ dropTypes, avgSessionSeconds 
                 ))}
             </div>
             {avgSessionSeconds !== null && (
-                <div className="flex items-center justify-center gap-2 border-t border-border/40 pt-3 text-sm">
+                <div className="border-border/40 flex items-center justify-center gap-2 border-t pt-3 text-sm">
                     <ClockIcon className="size-4 opacity-75" />
                     <span>
                         Average session time at disconnect:{' '}

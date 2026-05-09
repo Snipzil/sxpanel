@@ -150,7 +150,7 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
                     The language to use on Chat/Discord messages. <br />
                     You can customize the phrases/words by using the <InlineCode>Custom</InlineCode> option. <br />
                     For more information, please read the{' '}
-                    <TxAnchor href="https://github.com/tabarra/txAdmin/blob/master/docs/translation.md">
+                    <TxAnchor href="https://fxpanel.org/docs/v0.2.2-Beta/translation">
                         documentation
                     </TxAnchor>
                     .
@@ -167,8 +167,8 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
                         uncheckedLabel="Disabled"
                     />
                     <SettingItemDesc>
-                        When enabled, all admins can change their own identifiers (FiveM &amp; Discord) from the
-                        Account dialog. <br />
+                        When enabled, all admins can change their own identifiers (FiveM &amp; Discord) from the Account
+                        dialog. <br />
                         When disabled, only admins with the <strong>Manage Admins</strong> permission can edit
                         identifiers.
                     </SettingItemDesc>

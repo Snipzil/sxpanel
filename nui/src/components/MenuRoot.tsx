@@ -4,7 +4,6 @@ import { PlayersPage } from './PlayersPage/PlayersPage';
 import { ReportsTab } from './ReportsTab/ReportsTab';
 import { txAdminMenuPage, usePageValue } from '../state/page.state';
 import { useHudListenersService } from '../hooks/useHudListenersService';
-import { HelpTooltip } from './misc/HelpTooltip';
 import { useServerCtxValue } from '../state/server.state';
 import { MenuRootContent } from '@nui/src/components/MenuRootContent';
 
@@ -25,14 +24,10 @@ const MenuRoot: React.FC = () => {
                     alignSelf: serverCtx.alignRight ? 'flex-end' : 'auto',
                 }}
             >
-                <HelpTooltip>
-                    <MenuRootContent />
-                </HelpTooltip>
+                <MenuRootContent />
             </Box>
             <PlayersPage visible={curPage === txAdminMenuPage.Players} />
-            {serverCtx.reportsEnabled && (
-                <ReportsTab visible={curPage === txAdminMenuPage.Reports} />
-            )}
+            {serverCtx.reportsEnabled && <ReportsTab visible={curPage === txAdminMenuPage.Reports} />}
         </>
     );
 };

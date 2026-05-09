@@ -233,8 +233,7 @@ export const fetchDynamicJson = async (
 ): Promise<FetchDynamicJsonError | FetchDynamicJsonSuccess> => {
     let resp: GotResponse<string> | undefined;
     try {
-        resp = await got.get({
-            url: `http://${netEndpoint}/dynamic.json`,
+        resp = await got.get(`http://${netEndpoint}/dynamic.json`, {
             maxRedirects: 0,
             timeout: { request: timeout },
             retry: { limit: 0 },

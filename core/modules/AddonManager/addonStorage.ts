@@ -68,7 +68,7 @@ export class AddonStorageScope {
     list(prefix?: string): string[] {
         const keys = Object.keys(this.data);
         if (prefix) {
-            return keys.filter(k => k.startsWith(prefix));
+            return keys.filter((k) => k.startsWith(prefix));
         }
         return keys;
     }

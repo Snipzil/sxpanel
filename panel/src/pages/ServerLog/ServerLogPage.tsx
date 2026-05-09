@@ -115,7 +115,7 @@ export default function ServerLogPage() {
             <PageHeader title="Server Log" icon={<ScrollTextIcon />} />
 
             <TooltipProvider delayDuration={300}>
-                <div className="bg-card flex w-full flex-1 flex-col overflow-hidden border border-border/60 shadow-sm md:rounded-xl">
+                <div className="bg-card border-border/60 flex w-full flex-1 flex-col overflow-hidden border shadow-sm md:rounded-xl">
                     <ServerLogToolbar
                         isLive={log.isLive}
                         isConnected={log.isConnected}

@@ -84,7 +84,9 @@ export default class AddonFileWatcher {
                 try {
                     this.rootWatcher?.close();
                     this.rootWatcher = null;
-                } catch { /* already closed */ }
+                } catch {
+                    /* already closed */
+                }
             });
         } catch (err) {
             console.warn(`Failed to watch addons root directory: ${(err as Error).message}`);
@@ -99,7 +101,9 @@ export default class AddonFileWatcher {
                     if (fs.statSync(fullPath).isDirectory()) {
                         this.watchAddonDir(entry);
                     }
-                } catch { /* skip entries removed concurrently or otherwise unstattable */ }
+                } catch {
+                    /* skip entries removed concurrently or otherwise unstattable */
+                }
             }
         } catch (err) {
             console.warn(`Failed to enumerate addon directories: ${(err as Error).message}`);
@@ -124,9 +128,12 @@ export default class AddonFileWatcher {
             const watcher = fs.watch(watchTarget, { recursive: true }, (_eventType, filename) => {
                 if (this.closed) return;
                 // Track whether the change is in a static-only directory (nui/ or panel/)
-                const isStatic = typeof filename === 'string'
-                    && (filename.startsWith('nui' + path.sep) || filename.startsWith('nui/')
-                        || filename.startsWith('panel' + path.sep) || filename.startsWith('panel/'));
+                const isStatic =
+                    typeof filename === 'string' &&
+                    (filename.startsWith('nui' + path.sep) ||
+                        filename.startsWith('nui/') ||
+                        filename.startsWith('panel' + path.sep) ||
+                        filename.startsWith('panel/'));
                 if (!isStatic) {
                     this.staticOnlyFlags.set(addonId, false);
                 } else if (!this.staticOnlyFlags.has(addonId)) {
@@ -138,7 +145,11 @@ export default class AddonFileWatcher {
             watcher.on('error', (err) => {
                 console.warn(`Watcher error for addon ${addonId}: ${err.message}`);
                 // Gracefully close — do not let EPERM bubble to uncaughtException
-                try { this.unwatchAddonDir(addonId); } catch { /* already closed */ }
+                try {
+                    this.unwatchAddonDir(addonId);
+                } catch {
+                    /* already closed */
+                }
             });
 
             this.watchers.set(addonId, watcher);
@@ -170,7 +181,9 @@ export default class AddonFileWatcher {
             const nuiOnly = this.staticOnlyFlags.get(addonId) ?? false;
             this.staticOnlyFlags.delete(addonId);
             if (this.closed) return;
-            console.log(`File change detected in addon "${addonId}"${nuiOnly ? ' (static only)' : ''}, triggering reload...`);
+            console.log(
+                `File change detected in addon "${addonId}"${nuiOnly ? ' (static only)' : ''}, triggering reload...`,
+            );
             this.onReload(addonId, nuiOnly);
         }, DEBOUNCE_MS);
 

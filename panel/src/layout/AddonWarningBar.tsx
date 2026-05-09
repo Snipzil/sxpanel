@@ -56,21 +56,20 @@ export default function AddonWarningBar() {
 function AddonWarningBarInner() {
     const fetcher = useAuthedFetcher();
     const [dismissed, setDismissed] = useState(false);
-    const { data } = useSWR<AddonsListResponse>(
-        '/addons/list',
-        (url: string) => fetcher(url),
-        { refreshInterval: 30_000, revalidateOnFocus: true },
-    );
+    const { data } = useSWR<AddonsListResponse>('/addons/list', (url: string) => fetcher(url), {
+        refreshInterval: 30_000,
+        revalidateOnFocus: true,
+    });
 
-    const pendingAddons = data?.addons?.filter(a => a.state === 'discovered') ?? [];
+    const pendingAddons = data?.addons?.filter((a) => a.state === 'discovered') ?? [];
     if (pendingAddons.length === 0) return null;
 
-    const pendingIds = pendingAddons.map(a => a.id);
+    const pendingIds = pendingAddons.map((a) => a.id);
 
     // Check localStorage-based dismissal (or component-level dismiss)
     if (dismissed || isDismissed(pendingIds)) return null;
 
-    const reapprovalCount = pendingAddons.filter(a => a.needsReapproval).length;
+    const reapprovalCount = pendingAddons.filter((a) => a.needsReapproval).length;
     const newCount = pendingAddons.length - reapprovalCount;
 
     let message: string;

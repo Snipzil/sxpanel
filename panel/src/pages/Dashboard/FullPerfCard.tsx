@@ -21,6 +21,7 @@ import { useSetAtom } from 'jotai';
 import { cn } from '@/lib/utils';
 import { emsg } from '@shared/emsg';
 import { createMockPerfChartApiData } from './devMockData';
+import { isDevMockStatusOptInEnabled } from '@/lib/devFlags';
 
 type FullPerfChartProps = {
     threadName: SvRtPerfThreadNamesType;
@@ -231,7 +232,8 @@ export default function FullPerfCard() {
         async () => {
             setApiFailReason('');
 
-            if (import.meta.env.DEV) {
+            const isDevMockMode = import.meta.env.DEV && isDevMockStatusOptInEnabled();
+            if (isDevMockMode) {
                 setApiDataAge(Date.now());
                 return createMockPerfChartApiData(selectedThread);
             }
@@ -282,9 +284,11 @@ export default function FullPerfCard() {
     }
 
     return (
-        <div className="bg-card fill-primary flex min-h-112 w-full flex-1 flex-col rounded-xl border border-border/60 pt-2 shadow-sm">
+        <div className="bg-card fill-primary border-border/60 flex min-h-112 w-full flex-1 flex-col rounded-xl border pt-2 shadow-sm">
             <div className="flex flex-row items-center justify-between space-y-0 px-4 pb-2">
-                <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">Server Performance</h3>
+                <h3 className="text-muted-foreground/50 text-[10px] font-semibold tracking-widest uppercase">
+                    Server Performance
+                </h3>
                 <div className="flex items-center gap-2">
                     <Button
                         variant="ghost"
@@ -344,7 +348,7 @@ export default function FullPerfCard() {
                             </SelectItem>
                         </SelectContent>
                     </Select>
-                    <LineChartIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
+                    <LineChartIcon className="text-muted-foreground/30 h-3.5 w-3.5" />
                 </div>
             </div>
             <DebouncedResizeContainer onDebouncedResize={setChartSize}>{contentNode}</DebouncedResizeContainer>

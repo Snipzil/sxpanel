@@ -12,9 +12,112 @@ import type {
     PlayerFeedback,
     TicketPriority,
     IntercomTicketCreateReq,
-    ApiGetAnalyticsResp,
+    TicketActivityEntry,
+    TicketAnalyticsSummary,
 } from '@shared/ticketApiTypes';
-type AnalyticsData = Exclude<ApiGetAnalyticsResp, { error: string }>;
+type AnalyticsData = TicketAnalyticsSummary;
+
+const average = (values: number[]) => {
+    if (!values.length) return 0;
+    return Math.round(values.reduce((total, value) => total + value, 0) / values.length);
+};
+
+const getFirstActivityTs = (ticket: DatabaseTicketType, actions: string[]) => {
+    const tsMatches = (ticket.activityLog ?? [])
+        .filter((entry) => actions.includes(entry.action))
+        .map((entry) => entry.ts)
+        .filter((ts): ts is number => typeof ts === 'number' && ts >= ticket.tsCreated)
+        .sort((left, right) => left - right);
+
+    return tsMatches[0];
+};
+
+const getFirstStaffResponseTs = (ticket: DatabaseTicketType) => {
+    const tsMatches = ticket.messages
+        .filter((message) => message.authorType === 'admin' || message.authorType === 'discord')
+        .map((message) => message.ts)
+        .filter((ts): ts is number => typeof ts === 'number' && ts >= ticket.tsCreated)
+        .sort((left, right) => left - right);
+
+    return tsMatches[0];
+};
+
+const getFirstResolutionTs = (ticket: DatabaseTicketType) => {
+    const activityResolutionTs = getFirstActivityTs(ticket, ['resolved', 'closed']);
+    if (typeof ticket.tsResolved !== 'number') return activityResolutionTs;
+    if (typeof activityResolutionTs !== 'number') return ticket.tsResolved;
+    return Math.min(ticket.tsResolved, activityResolutionTs);
+};
+
+const hasBeenReopened = (ticket: DatabaseTicketType) => {
+    return (ticket.activityLog ?? []).some((entry) => entry.action === 'reopened');
+};
+
+const buildStaffMetrics = (tickets: DatabaseTicketType[]) => {
+    const claimDurations: number[] = [];
+    const responseDurations: number[] = [];
+    const resolutionDurations: number[] = [];
+    let claimedTickets = 0;
+    let respondedTickets = 0;
+    let resolvedTickets = 0;
+    let reopenedTickets = 0;
+    let ticketsWithResolutionHistory = 0;
+
+    for (const ticket of tickets) {
+        const claimTs = getFirstActivityTs(ticket, ['claimed', 'assigned']);
+        if (typeof claimTs === 'number') {
+            claimedTickets += 1;
+            claimDurations.push((claimTs - ticket.tsCreated) * 1000);
+        }
+
+        const firstStaffResponseTs = getFirstStaffResponseTs(ticket);
+        if (typeof firstStaffResponseTs === 'number') {
+            respondedTickets += 1;
+            responseDurations.push((firstStaffResponseTs - ticket.tsCreated) * 1000);
+        }
+
+        const resolutionTs = getFirstResolutionTs(ticket);
+        if (typeof resolutionTs === 'number') {
+            resolvedTickets += 1;
+            ticketsWithResolutionHistory += 1;
+            resolutionDurations.push((resolutionTs - ticket.tsCreated) * 1000);
+        } else if ((ticket.activityLog ?? []).some((entry) => entry.action === 'resolved' || entry.action === 'closed')) {
+            ticketsWithResolutionHistory += 1;
+        }
+
+        if (hasBeenReopened(ticket)) {
+            reopenedTickets += 1;
+        }
+    }
+
+    return {
+        ticketsCreated: tickets.length,
+        claimedTickets,
+        respondedTickets,
+        resolvedTickets,
+        reopenedTickets,
+        avgTimeToClaimMs: average(claimDurations),
+        avgFirstStaffResponseMs: average(responseDurations),
+        avgResolutionMs: average(resolutionDurations),
+        reopenRate: ticketsWithResolutionHistory > 0 ? Math.round((reopenedTickets / ticketsWithResolutionHistory) * 100) : 0,
+    };
+};
+
+const buildRollup = (tickets: DatabaseTicketType[]) => {
+    const staffMetrics = buildStaffMetrics(tickets);
+    return {
+        ticketsCreated: staffMetrics.ticketsCreated,
+        ticketsResolved: staffMetrics.resolvedTickets,
+        resolutionRate:
+            staffMetrics.ticketsCreated > 0
+                ? Math.round((staffMetrics.resolvedTickets / staffMetrics.ticketsCreated) * 100)
+                : 0,
+        avgTimeToClaimMs: staffMetrics.avgTimeToClaimMs,
+        avgFirstStaffResponseMs: staffMetrics.avgFirstStaffResponseMs,
+        avgResolutionMs: staffMetrics.avgResolutionMs,
+        reopenRate: staffMetrics.reopenRate,
+    };
+};
 
 /**
  * Data access object for the database "tickets" collection.
@@ -95,6 +198,7 @@ export default class TicketsDao {
             screenshotUrl: undefined, // will be set after screenshot upload (if any)
             messages: [],
             staffNotes: [],
+            activityLog: [],
             logContext,
             tsCreated: tsNow,
             tsLastActivity: tsNow,
@@ -152,6 +256,46 @@ export default class TicketsDao {
     }
 
     /**
+     * Deletes a ticket permanently.
+     */
+    delete(ticketId: string): boolean {
+        const removed = this.chain
+            .get('tickets')
+            .remove((ticket: DatabaseTicketType) => ticket.id === ticketId)
+            .value();
+        if (removed.length === 0) return false;
+
+        this.db.writeFlag(SavePriority.HIGH);
+        return true;
+    }
+
+    /**
+     * Toggles whether a ticket should be excluded from retention pruning.
+     */
+    setExcludeFromAutoDeletion(ticketId: string, excludeFromAutoDeletion: boolean): boolean {
+        const ticket = this.chain.get('tickets').find({ id: ticketId }).value();
+        if (!ticket) return false;
+
+        ticket.excludeFromAutoDeletion = excludeFromAutoDeletion || undefined;
+        ticket.tsLastActivity = now();
+        this.db.writeFlag(SavePriority.LOW);
+        return true;
+    }
+
+    /**
+     * Adds an activity log entry to a ticket (audit trail)
+     */
+    addActivityEntry(ticketId: string, entry: TicketActivityEntry): boolean {
+        const ticket = this.chain.get('tickets').find({ id: ticketId }).value();
+        if (!ticket) return false;
+
+        if (!ticket.activityLog) ticket.activityLog = [];
+        ticket.activityLog.push(entry);
+        this.db.writeFlag(SavePriority.LOW);
+        return true;
+    }
+
+    /**
      * Sets the status of a ticket
      */
     setStatus(ticketId: string, status: TicketStatus, adminName?: string): boolean {
@@ -160,10 +304,10 @@ export default class TicketsDao {
 
         // Validate the transition: only allow moves along sensible paths.
         const allowedTransitions: Record<TicketStatus, TicketStatus[]> = {
-            open:     ['inReview', 'resolved', 'closed'],
+            open: ['inReview', 'resolved', 'closed'],
             inReview: ['open', 'resolved', 'closed'],
             resolved: ['open', 'closed'],
-            closed:   ['open'],
+            closed: ['open'],
         };
         if (!allowedTransitions[ticket.status]?.includes(status)) return false;
 
@@ -258,6 +402,7 @@ export default class TicketsDao {
             .filter((t) => t.tsCreated >= windowStart || (t.tsResolved != null && t.tsResolved >= windowStart))
             .cloneDeep()
             .value();
+        const createdWindowTickets = windowTickets.filter((ticket) => ticket.tsCreated >= windowStart);
 
         const catMap = new Map<string, number>();
         const priMap = new Map<TicketPriority, number>();
@@ -275,7 +420,7 @@ export default class TicketsDao {
         let totalResolutionMs = 0;
         let resolvedCount = 0;
 
-        for (const t of windowTickets) {
+        for (const t of createdWindowTickets) {
             // Category
             catMap.set(t.category, (catMap.get(t.category) ?? 0) + 1);
 
@@ -288,14 +433,18 @@ export default class TicketsDao {
             const createdKey = new Date(t.tsCreated * 1000).toISOString().slice(0, 10);
             const createdEntry = timelineMap.get(createdKey);
             if (createdEntry) createdEntry.created++;
+        }
+
+        for (const t of windowTickets) {
+            const resolutionTs = getFirstResolutionTs(t);
 
             // Timeline (resolved) + leaderboard
-            if ((t.status === 'resolved' || t.status === 'closed') && t.tsResolved) {
-                const resolvedKey = new Date(t.tsResolved * 1000).toISOString().slice(0, 10);
+            if (typeof resolutionTs === 'number') {
+                const resolvedKey = new Date(resolutionTs * 1000).toISOString().slice(0, 10);
                 const resolvedEntry = timelineMap.get(resolvedKey);
                 if (resolvedEntry) resolvedEntry.resolved++;
 
-                const resMs = (t.tsResolved - t.tsCreated) * 1000;
+                const resMs = (resolutionTs - t.tsCreated) * 1000;
                 if (resMs >= 0) {
                     totalResolutionMs += resMs;
                     resolvedCount++;
@@ -324,8 +473,25 @@ export default class TicketsDao {
             }))
             .sort((a, b) => b.resolved - a.resolved);
 
-        const result: AnalyticsData = { overview, byCategory, byPriority, timelineDays, leaderboard };
-        this.analyticsCache.set(windowDays, { data: result, expiresAt: Date.now() + TicketsDao.ANALYTICS_CACHE_TTL_MS });
+        const staffMetrics = buildStaffMetrics(createdWindowTickets);
+        const allCreatedTickets = allTicketsRaw.filter((ticket) => ticket.tsCreated >= tsNow - 30 * 86400);
+
+        const result: AnalyticsData = {
+            overview,
+            byCategory,
+            byPriority,
+            timelineDays,
+            leaderboard,
+            staffMetrics,
+            rollups: {
+                '7d': buildRollup(allTicketsRaw.filter((ticket) => ticket.tsCreated >= tsNow - 7 * 86400)),
+                '30d': buildRollup(allCreatedTickets),
+            },
+        };
+        this.analyticsCache.set(windowDays, {
+            data: result,
+            expiresAt: Date.now() + TicketsDao.ANALYTICS_CACHE_TTL_MS,
+        });
         return result;
     }
 
@@ -359,6 +525,7 @@ export default class TicketsDao {
             .remove(
                 (t: DatabaseTicketType) =>
                     (t.status === 'resolved' || t.status === 'closed') &&
+                    !t.excludeFromAutoDeletion &&
                     t.tsResolved !== undefined &&
                     t.tsResolved < cutoff,
             )
@@ -384,4 +551,3 @@ export default class TicketsDao {
 
 // ── Backwards compat alias ──
 export { TicketsDao as ReportsDao };
-

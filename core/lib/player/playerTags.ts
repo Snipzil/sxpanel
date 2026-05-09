@@ -8,7 +8,13 @@ import type { ServerPlayer, BasePlayer } from './playerClasses';
 export const getTagDefinitions = (): TagDefinition[] => {
     const customMap = new Map<string, TagDefinition>();
     for (const t of txConfig.gameFeatures.customTags ?? []) {
-        customMap.set(t.id, { id: t.id, label: t.label, color: t.color, priority: t.priority, enabled: t.enabled ?? true });
+        customMap.set(t.id, {
+            id: t.id,
+            label: t.label,
+            color: t.color,
+            priority: t.priority,
+            enabled: t.enabled ?? true,
+        });
     }
     const merged: TagDefinition[] = [];
     for (const auto of AUTO_TAG_DEFINITIONS) {

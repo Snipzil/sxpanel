@@ -2,7 +2,6 @@ const modulename = 'WebCtxUtils';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
 import ejs from 'ejs';
-import xssInstancer from '@lib/xss.js';
 import { txDevEnv, txEnv, txHostConfig } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import getReactIndex, { tmpCustomThemes } from '../getReactIndex';
@@ -29,18 +28,19 @@ export type CtxTxUtils = {
 };
 
 //Helper functions
-const xss = xssInstancer();
-const getRenderErrorText = (view: string, error: Error, data: any) => {
+const escapeHtml = (value: string) =>
+    value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+const getRenderErrorText = (view: string) => {
     console.error(`Error rendering ${view}.`);
-    console.verbose.dir(error);
-    if (data?.discord?.token) data.discord.token = '[redacted]';
     return [
         '<pre style="color: red">',
         `Error rendering '${view}'.`,
-        `Message: ${xss(error.message)}`,
-        'The data provided was:',
-        '================',
-        xss(JSON.stringify(data, null, 2)),
+        'A template rendering error occurred. Check server logs for details.',
         '</pre>',
     ].join('\n');
 };
@@ -52,6 +52,11 @@ const getJavascriptConsts = (allConsts: NonNullable<object> = {}) => {
     return Object.entries(allConsts)
         .map(([name, val]) => `const ${name} = ${JSON.stringify(val)};`)
         .join(' ');
+};
+const setValidationError = (ctx: CtxWithVars, fallbackMessage: string, errorMessage?: string | false) => {
+    if (errorMessage === false) return;
+    ctx.status = 400;
+    ctx.body = { error: fallbackMessage };
 };
 function getEjsOptions(filePath: string) {
     const webTemplateRoot = path.resolve(txEnv.txaPath, 'web');
@@ -149,7 +154,8 @@ async function renderView(
     try {
         return await loadWebTemplate(view).then((template) => template(data));
     } catch (error) {
-        return getRenderErrorText(view, error as Error, data);
+        console.verbose.dir(error);
+        return getRenderErrorText(view);
     }
 }
 
@@ -200,19 +206,21 @@ export default async function ctxUtilsMw(ctx: CtxWithVars, next: Next) {
         ctx.type = 'text/html';
     };
 
-    const errorUtil = (httpStatus = 500, message = 'unknown error') => {
+    const errorUtil = (httpStatus = 500, _message = 'unknown error') => {
         ctx.status = httpStatus;
         ctx.body = {
             status: 'error',
             code: httpStatus,
-            message,
+            message: 'unknown error',
         };
     };
 
     //Legacy page util to navigate parent (react) to some page
     //NOTE: in use by deployer/stepper.js and setup/get.js
     const legacyNavigateToPage = (href: string) => {
-        ctx.body = legacyNavigateHtml(ctx.state.cspNonce).replace(/{{href}}/g, href);
+        const safeHref = escapeHtml(String(href));
+        const html = legacyNavigateHtml();
+        ctx.body = html.split('{{href}}').join(safeHref);
         ctx.type = 'text/html';
     };
 
@@ -234,9 +242,7 @@ export default async function ctxUtilsMw(ctx: CtxWithVars, next: Next) {
     ctx.getBody = <T>(schema: ZodType<T>, errorMessage?: string | false) => {
         const result = schema.safeParse(ctx.request.body);
         if (!result.success) {
-            if (errorMessage !== false) {
-                ctx.body = { error: errorMessage ?? `Invalid request body: ${result.error.message}` };
-            }
+            setValidationError(ctx, 'Invalid request body.', errorMessage);
             return undefined;
         }
         return result.data;
@@ -244,9 +250,7 @@ export default async function ctxUtilsMw(ctx: CtxWithVars, next: Next) {
     ctx.getParams = <T>(schema: ZodType<T>, errorMessage?: string | false) => {
         const result = schema.safeParse(ctx.params);
         if (!result.success) {
-            if (errorMessage !== false) {
-                ctx.body = { error: errorMessage ?? `Invalid request params: ${result.error.message}` };
-            }
+            setValidationError(ctx, 'Invalid request params.', errorMessage);
             return undefined;
         }
         return result.data;
@@ -254,9 +258,7 @@ export default async function ctxUtilsMw(ctx: CtxWithVars, next: Next) {
     ctx.getQuery = <T>(schema: ZodType<T>, errorMessage?: string | false) => {
         const result = schema.safeParse(ctx.request.query);
         if (!result.success) {
-            if (errorMessage !== false) {
-                ctx.body = { error: errorMessage ?? `Invalid request query: ${result.error.message}` };
-            }
+            setValidationError(ctx, 'Invalid request query.', errorMessage);
             return undefined;
         }
         return result.data;

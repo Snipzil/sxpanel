@@ -1,5 +1,5 @@
 import { getHostData } from '@lib/diagnostics';
-import { isProxy } from 'util/types';
+import { isProxy } from 'node:util/types';
 import { startReadyWatcher } from './boot/startReadyWatcher';
 import { Deployer } from './deployer';
 import { txEnv } from '@core/globalData';

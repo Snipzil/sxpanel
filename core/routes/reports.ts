@@ -9,10 +9,12 @@ import { now } from '@lib/misc';
 import type {
     ApiGetTicketListResp,
     ApiGetTicketDetailResp,
+    ApiTicketDeleteResp,
     ApiTicketMessageResp,
     ApiTicketStatusResp,
     ApiTicketNoteResp,
     ApiTicketClaimResp,
+    ApiTicketRetentionExclusionResp,
     ApiGetAnalyticsResp,
     ApiGetTicketConfigResp,
     ApiCreateTicketResp,
@@ -25,6 +27,7 @@ import type {
     IntercomFeedbackReq,
     PlayerTicketSummary,
 } from '@shared/ticketApiTypes';
+import type { TicketActivityEntry } from '@shared/ticketApiTypes';
 const console = consoleFactory(modulename);
 
 //Consts
@@ -72,14 +75,14 @@ const sanitizeMessageImageUrls = (input: unknown): string[] | undefined => {
     return sanitized.length ? sanitized : undefined;
 };
 
-// â”€â”€ Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Helper - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 /**
  * Pulls server log entries from the recent buffer within the time window
  */
 const pullLogContext = (reporterNetid: number, targetNetids: number[], tsReport: number) => {
     const windowStart = tsReport - LOG_CONTEXT_WINDOW;
-    const allLogs: any[] = txCore.logger.server.getRecentBuffer();
+    const allLogs: any[] = txCore.logger.server.getRecentBuffer(500);
 
     const reporterLogs: TicketLogEntry[] = [];
     const targetLogs: TicketLogEntry[] = [];
@@ -153,10 +156,10 @@ const notifyPlayerNewMessage = (ticketId: string, message: Omit<TicketMessage, '
     });
 };
 
-// â”€â”€ Web Panel endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Web Panel endpoints - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 /**
- * GET /reports/list â€” Returns all tickets (for web panel)
+ * GET /reports/list - Returns all tickets (for web panel)
  */
 export const ticketsList = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -191,7 +194,7 @@ export const ticketsList = async (ctx: AuthedCtx) => {
 };
 
 /**
- * GET /reports/detail?id=xxx â€” Returns full ticket detail (staffNotes included for admins)
+ * GET /reports/detail?id=xxx - Returns full ticket detail (staffNotes included for admins)
  */
 export const ticketsDetail = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -219,7 +222,7 @@ export const ticketsDetail = async (ctx: AuthedCtx) => {
 };
 
 /**
- * POST /reports/message â€” Admin adds a message to a ticket
+ * POST /reports/message - Admin adds a message to a ticket
  */
 export const ticketsMessage = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -237,34 +240,7 @@ export const ticketsMessage = async (ctx: AuthedCtx) => {
     }
 
     try {
-        const ticket = txCore.database.tickets.findOne(id);
-        if (!ticket) {
-            return ctx.send<ApiTicketMessageResp>({ error: 'Ticket not found.' });
-        }
-
-        const msgTs = now();
-        const sanitizedImageUrls = sanitizeMessageImageUrls(imageUrls);
-        const success = txCore.database.tickets.addMessage(id, {
-            author: ctx.admin.name,
-            authorType: 'admin',
-            content: content.trim(),
-            imageUrls: sanitizedImageUrls,
-            ts: msgTs,
-        });
-
-        if (!success) {
-            return ctx.send<ApiTicketMessageResp>({ error: 'Failed to add message.' });
-        }
-
-        if (ticket.status === 'open') {
-            txCore.database.tickets.setStatus(id, 'inReview', undefined);
-        }
-
-        const msgPayload = { author: ctx.admin.name, authorType: 'admin' as const, content: content.trim(), imageUrls: sanitizedImageUrls, ts: msgTs };
-        txCore.discordBot.postTicketThreadMessage(id, ctx.admin.name, content.trim(), sanitizedImageUrls).catch(() => {});
-        notifyPlayerNewMessage(id, msgPayload);
-
-        return ctx.send<ApiTicketMessageResp>({ success: true });
+        return ctx.send<ApiTicketMessageResp>(addTicketMessage(id, ctx.admin.name, content, imageUrls));
     } catch (error) {
         console.error(`Failed to add ticket message: ${emsg(error)}`);
         return ctx.send<ApiTicketMessageResp>({ error: 'Failed to add message.' });
@@ -272,7 +248,7 @@ export const ticketsMessage = async (ctx: AuthedCtx) => {
 };
 
 /**
- * POST /reports/status â€” Admin changes ticket status
+ * POST /reports/status - Admin changes ticket status
  */
 export const ticketsStatus = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -289,27 +265,7 @@ export const ticketsStatus = async (ctx: AuthedCtx) => {
     }
 
     try {
-        const success = txCore.database.tickets.setStatus(
-            id,
-            status as TicketStatus,
-            (status === 'resolved' || status === 'closed') ? ctx.admin.name : undefined,
-        );
-        if (!success) {
-            return ctx.send<ApiTicketStatusResp>({ error: 'Ticket not found.' });
-        }
-
-        if (status === 'resolved' || status === 'closed') {
-            const ticket = txCore.database.tickets.findOne(id);
-            if (ticket) {
-                txCore.discordBot.sendAnnouncement({
-                    type: 'success',
-                    title: `Ticket ${id} ${status === 'resolved' ? 'Resolved' : 'Closed'}`,
-                    description: `**${escapeDiscordMd(ticket.reporter.name)}**'s ticket (${escapeDiscordMd(ticket.category)}) was ${status} by **${escapeDiscordMd(ctx.admin.name)}**.`,
-                });
-            }
-        }
-
-        return ctx.send<ApiTicketStatusResp>({ success: true });
+        return ctx.send<ApiTicketStatusResp>(setTicketStatus(id, status as TicketStatus, ctx.admin.name));
     } catch (error) {
         console.error(`Failed to update ticket status: ${emsg(error)}`);
         return ctx.send<ApiTicketStatusResp>({ error: 'Failed to update status.' });
@@ -317,7 +273,7 @@ export const ticketsStatus = async (ctx: AuthedCtx) => {
 };
 
 /**
- * POST /reports/claim â€” Claim or unclaim a ticket
+ * POST /reports/claim - Claim or unclaim a ticket
  */
 export const ticketsClaim = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -333,19 +289,7 @@ export const ticketsClaim = async (ctx: AuthedCtx) => {
     }
 
     try {
-        const ticket = txCore.database.tickets.findOne(id);
-        if (!ticket) {
-            return ctx.send<ApiTicketClaimResp>({ error: 'Ticket not found.' });
-        }
-
-        // Toggle: if already claimed by this admin, unclaim; otherwise claim
-        const newClaimer = ticket.claimedBy === ctx.admin.name ? null : ctx.admin.name;
-        const success = txCore.database.tickets.setClaimed(id, newClaimer);
-        if (!success) {
-            return ctx.send<ApiTicketClaimResp>({ error: 'Failed to update claim.' });
-        }
-
-        return ctx.send<ApiTicketClaimResp>({ success: true, claimedBy: newClaimer ?? undefined });
+        return ctx.send<ApiTicketClaimResp>(toggleClaim(id, ctx.admin.name));
     } catch (error) {
         console.error(`Failed to claim ticket: ${emsg(error)}`);
         return ctx.send<ApiTicketClaimResp>({ error: 'Failed to claim ticket.' });
@@ -353,7 +297,7 @@ export const ticketsClaim = async (ctx: AuthedCtx) => {
 };
 
 /**
- * POST /reports/note â€” Add a staff note to a ticket
+ * POST /reports/note - Add a staff note to a ticket
  */
 export const ticketsNote = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -369,16 +313,7 @@ export const ticketsNote = async (ctx: AuthedCtx) => {
     }
 
     try {
-        const success = txCore.database.tickets.addStaffNote(id, {
-            authorAdminId: ctx.admin.name,
-            authorName: ctx.admin.name,
-            content: content.trim(),
-            ts: now(),
-        });
-        if (!success) {
-            return ctx.send<ApiTicketNoteResp>({ error: 'Ticket not found.' });
-        }
-        return ctx.send<ApiTicketNoteResp>({ success: true });
+        return ctx.send<ApiTicketNoteResp>(addStaffNote(id, ctx.admin.name, content));
     } catch (error) {
         console.error(`Failed to add staff note: ${emsg(error)}`);
         return ctx.send<ApiTicketNoteResp>({ error: 'Failed to add note.' });
@@ -386,7 +321,7 @@ export const ticketsNote = async (ctx: AuthedCtx) => {
 };
 
 /**
- * DELETE /reports/note â€” Delete a staff note from a ticket
+ * DELETE /reports/note - Delete a staff note from a ticket
  */
 export const ticketsNoteDelete = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -406,6 +341,14 @@ export const ticketsNoteDelete = async (ctx: AuthedCtx) => {
         if (!success) {
             return ctx.send<ApiTicketNoteResp>({ error: 'Note not found.' });
         }
+        txCore.database.tickets.addActivityEntry(id, {
+            ts: now(),
+            adminName: ctx.admin.name,
+            action: 'note_deleted',
+        } satisfies TicketActivityEntry);
+        txCore.logger.system.write(ctx.admin.name, `Deleted note ${noteId} from ticket ${id}.`, 'action', {
+            actionId: 'ticket.note.delete',
+        });
         return ctx.send<ApiTicketNoteResp>({ success: true });
     } catch (error) {
         console.error(`Failed to delete staff note: ${emsg(error)}`);
@@ -414,7 +357,76 @@ export const ticketsNoteDelete = async (ctx: AuthedCtx) => {
 };
 
 /**
- * GET /reports/analytics â€” Returns analytics data
+ * DELETE /reports/delete - Delete a ticket permanently
+ */
+export const ticketsDelete = async (ctx: AuthedCtx) => {
+    if (!txConfig.gameFeatures.reportsEnabled) {
+        return ctx.send<ApiTicketDeleteResp>({ error: 'Reports are disabled.' });
+    }
+    if (!ctx.admin.testPermission('manage_tickets', modulename)) {
+        return ctx.send<ApiTicketDeleteResp>({ error: 'Unauthorized' });
+    }
+
+    const { id } = ctx.request.body ?? {};
+    if (typeof id !== 'string' || !id.length) {
+        return ctx.send<ApiTicketDeleteResp>({ error: 'Invalid request.' });
+    }
+
+    try {
+        const success = txCore.database.tickets.delete(id);
+        if (!success) {
+            return ctx.send<ApiTicketDeleteResp>({ error: 'Ticket not found.' });
+        }
+
+        ctx.admin.logAction(`Deleted ticket ${id}.`, 'ticket.delete');
+        return ctx.send<ApiTicketDeleteResp>({ success: true });
+    } catch (error) {
+        console.error(`Failed to delete ticket: ${emsg(error)}`);
+        return ctx.send<ApiTicketDeleteResp>({ error: 'Failed to delete ticket.' });
+    }
+};
+
+/**
+ * POST /reports/retention-exclusion - Exclude or include a ticket in retention pruning
+ */
+export const ticketsRetentionExclusion = async (ctx: AuthedCtx) => {
+    if (!txConfig.gameFeatures.reportsEnabled) {
+        return ctx.send<ApiTicketRetentionExclusionResp>({ error: 'Reports are disabled.' });
+    }
+    if (!ctx.admin.testPermission('manage_tickets', modulename)) {
+        return ctx.send<ApiTicketRetentionExclusionResp>({ error: 'Unauthorized' });
+    }
+
+    const { id, excludeFromAutoDeletion } = ctx.request.body ?? {};
+    if (typeof id !== 'string' || typeof excludeFromAutoDeletion !== 'boolean') {
+        return ctx.send<ApiTicketRetentionExclusionResp>({ error: 'Invalid request.' });
+    }
+
+    try {
+        const success = txCore.database.tickets.setExcludeFromAutoDeletion(id, excludeFromAutoDeletion);
+        if (!success) {
+            return ctx.send<ApiTicketRetentionExclusionResp>({ error: 'Ticket not found.' });
+        }
+
+        txCore.database.tickets.addActivityEntry(id, {
+            ts: now(),
+            adminName: ctx.admin.name,
+            action: excludeFromAutoDeletion ? 'auto_delete_excluded' : 'auto_delete_reenabled',
+        } satisfies TicketActivityEntry);
+        ctx.admin.logAction(
+            `${excludeFromAutoDeletion ? 'Excluded' : 'Re-enabled'} ticket ${id} ${excludeFromAutoDeletion ? 'from' : 'for'} auto deletion.`,
+            excludeFromAutoDeletion ? 'ticket.retention.exclude' : 'ticket.retention.reenable',
+        );
+
+        return ctx.send<ApiTicketRetentionExclusionResp>({ success: true, excludeFromAutoDeletion });
+    } catch (error) {
+        console.error(`Failed to update ticket retention exclusion: ${emsg(error)}`);
+        return ctx.send<ApiTicketRetentionExclusionResp>({ error: 'Failed to update ticket retention setting.' });
+    }
+};
+
+/**
+ * GET /reports/analytics - Returns analytics data
  */
 export const ticketsAnalytics = async (ctx: AuthedCtx) => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -425,8 +437,7 @@ export const ticketsAnalytics = async (ctx: AuthedCtx) => {
     }
 
     try {
-        const data = txCore.database.tickets.getAnalytics(30);
-        return ctx.send<ApiGetAnalyticsResp>(data);
+        return ctx.send<ApiGetAnalyticsResp>(txCore.database.tickets.getAnalytics(30));
     } catch (error) {
         console.error(`Failed to get analytics: ${emsg(error)}`);
         return ctx.send<ApiGetAnalyticsResp>({ error: 'Failed to get analytics.' });
@@ -434,23 +445,27 @@ export const ticketsAnalytics = async (ctx: AuthedCtx) => {
 };
 
 /**
- * GET /reports/config â€” Returns ticket categories and config for UI
+ * GET /reports/config - Returns ticket categories and config for UI
  */
 export const ticketsConfig = async (ctx: AuthedCtx) => {
     if (!ctx.admin.testPermission('players.reports', modulename)) {
         return ctx.send<ApiGetTicketConfigResp>({ error: 'Unauthorized' });
     }
 
+    const categoryDescriptions = Object.fromEntries(
+        Object.entries(txConfig.gameFeatures.ticketCategoryDescriptions).map(([key, value]) => [key, String(value)]),
+    ) as Record<string, string>;
+
     return ctx.send<ApiGetTicketConfigResp>({
-        categories: txConfig.gameFeatures.ticketCategories,
-        categoryDescriptions: txConfig.gameFeatures.ticketCategoryDescriptions,
+        categories: [...txConfig.gameFeatures.ticketCategories],
+        categoryDescriptions,
         priorityEnabled: txConfig.gameFeatures.ticketPriorityEnabled,
         feedbackEnabled: txConfig.gameFeatures.ticketFeedbackEnabled,
     });
 };
 
 /**
- * GET /reports/screenshot/:id â€” Serves a stored ticket screenshot
+ * GET /reports/screenshot/:id - Serves a stored ticket screenshot
  */
 export const ticketsScreenshot = async (ctx: InitializedCtx) => {
     const id = (ctx.params as Record<string, string>).id;
@@ -461,9 +476,8 @@ export const ticketsScreenshot = async (ctx: InitializedCtx) => {
     // New format: id includes extension (e.g., uuid.jpg)
     // Old format: id is just a UUID, file is saved as uuid.png
     const ext = path.extname(id).toLowerCase();
-    const filePath = ext && EXT_TO_MIME[ext]
-        ? path.join(SCREENSHOT_DIR(), id)
-        : path.join(SCREENSHOT_DIR(), `${id}.png`);
+    const filePath =
+        ext && EXT_TO_MIME[ext] ? path.join(SCREENSHOT_DIR(), id) : path.join(SCREENSHOT_DIR(), `${id}.png`);
     const contentType = (ext && EXT_TO_MIME[ext]) || 'image/png';
     try {
         const data = await fsp.readFile(filePath);
@@ -475,10 +489,10 @@ export const ticketsScreenshot = async (ctx: InitializedCtx) => {
     }
 };
 
-// â”€â”€ Intercom handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Intercom handlers - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 /**
- * ticketCreate intercom â€” Player files a new ticket
+ * ticketCreate intercom - Player files a new ticket
  */
 export const ticketCreate = async (data: IntercomTicketCreateReq): Promise<ApiCreateTicketResp> => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -500,10 +514,7 @@ export const ticketCreate = async (data: IntercomTicketCreateReq): Promise<ApiCr
         const targetNetids = (data.targets ?? []).map((t) => t.netid ?? 0).filter((n) => n > 0);
         const logContext = pullLogContext(data.reporter.netid, targetNetids, tsNow);
 
-        const ticketId = txCore.database.tickets.create(
-            { ...data, description: data.description.trim() },
-            logContext,
-        );
+        const ticketId = txCore.database.tickets.create({ ...data, description: data.description.trim() }, logContext);
 
         // Handle screenshot data
         if (data.screenshotData) {
@@ -519,11 +530,15 @@ export const ticketCreate = async (data: IntercomTicketCreateReq): Promise<ApiCr
                     // Approximate decoded size from base64 length to reject oversized payloads early
                     const approxBytes = Math.floor((base64Data.length * 3) / 4);
                     if (approxBytes > MAX_SCREENSHOT_BYTES) {
-                        console.verbose.warn(`Rejected oversized screenshot for ${ticketId}: ~${approxBytes} bytes (max ${MAX_SCREENSHOT_BYTES})`);
+                        console.verbose.warn(
+                            `Rejected oversized screenshot for ${ticketId}: ~${approxBytes} bytes (max ${MAX_SCREENSHOT_BYTES})`,
+                        );
                     } else {
                         const buffer = Buffer.from(base64Data, 'base64');
                         if (buffer.length > MAX_SCREENSHOT_BYTES) {
-                            console.verbose.warn(`Rejected oversized screenshot for ${ticketId}: ${buffer.length} bytes (max ${MAX_SCREENSHOT_BYTES})`);
+                            console.verbose.warn(
+                                `Rejected oversized screenshot for ${ticketId}: ${buffer.length} bytes (max ${MAX_SCREENSHOT_BYTES})`,
+                            );
                         } else {
                             const screenshotId = `${randomUUID()}${ext}`;
                             await fsp.writeFile(path.join(screenshotDir, screenshotId), buffer);
@@ -557,6 +572,10 @@ export const ticketCreate = async (data: IntercomTicketCreateReq): Promise<ApiCr
             description: data.description.trim(),
         });
 
+        txCore.logger.system.write(data.reporter.name, `Created ticket ${ticketId}.`, 'action', {
+            actionId: 'ticket.create',
+        });
+
         // Discord thread
         sendDiscordThreadCreate(ticketId).catch(() => {});
 
@@ -568,7 +587,7 @@ export const ticketCreate = async (data: IntercomTicketCreateReq): Promise<ApiCr
 };
 
 /**
- * ticketPlayerList intercom â€” Returns player's own tickets
+ * ticketPlayerList intercom - Returns player's own tickets
  */
 export const ticketPlayerList = (playerLicense: string): ApiGetPlayerTicketsResp => {
     if (!txConfig.gameFeatures.reportsEnabled) {
@@ -604,7 +623,10 @@ export const ticketPlayerList = (playerLicense: string): ApiGetPlayerTicketsResp
 /**
  * ticketPlayerMessages intercom — Returns full messages for a player's own ticket
  */
-export const ticketPlayerMessages = (ticketId: string, playerLicense: string): { messages: TicketMessage[] } | { error: string } => {
+export const ticketPlayerMessages = (
+    ticketId: string,
+    playerLicense: string,
+): { messages: TicketMessage[] } | { error: string } => {
     if (!txConfig.gameFeatures.reportsEnabled) return { error: 'Reports are disabled.' };
     if (typeof ticketId !== 'string' || !ticketId.length) return { error: 'Invalid ticket ID.' };
     if (typeof playerLicense !== 'string' || !playerLicense.length) return { error: 'Invalid license.' };
@@ -659,7 +681,9 @@ export const ticketPlayerMessage = (
             return { error: 'Failed to add message.' };
         }
 
-        txCore.discordBot.postTicketThreadMessage(ticketId, ticket.reporter.name, content.trim(), sanitizedImageUrls).catch(() => {});
+        txCore.discordBot
+            .postTicketThreadMessage(ticketId, ticket.reporter.name, content.trim(), sanitizedImageUrls)
+            .catch(() => {});
 
         return { success: true };
     } catch (error) {
@@ -669,7 +693,7 @@ export const ticketPlayerMessage = (
 };
 
 /**
- * ticketFeedbackSubmit intercom â€” Player submits feedback for a resolved ticket
+ * ticketFeedbackSubmit intercom - Player submits feedback for a resolved ticket
  */
 export const ticketFeedbackSubmit = (data: IntercomFeedbackReq): { success: true } | { error: string } => {
     if (!txConfig.gameFeatures.ticketFeedbackEnabled) {
@@ -719,9 +743,7 @@ function validateTicketId(ticketId: unknown): { error: string } | null {
 
 /** Looks up a ticket by id, returning either the ticket or an error response. */
 type Ticket = NonNullable<ReturnType<typeof txCore.database.tickets.findOne>>;
-function fetchTicketOrError(ticketId: string):
-    | { kind: 'ok'; ticket: Ticket }
-    | { kind: 'error'; message: string } {
+function fetchTicketOrError(ticketId: string): { kind: 'ok'; ticket: Ticket } | { kind: 'error'; message: string } {
     const ticket = txCore.database.tickets.findOne(ticketId);
     if (!ticket) return { kind: 'error', message: 'Ticket not found.' };
     return { kind: 'ok', ticket };
@@ -757,7 +779,14 @@ function addTicketMessage(
 
     if (ticket.status === 'open') {
         txCore.database.tickets.setStatus(ticketId, 'inReview', undefined);
+        txCore.logger.system.write(adminName, `Marked ticket ${ticketId} in review.`, 'action', {
+            actionId: 'ticket.in_review',
+        });
     }
+
+    txCore.logger.system.write(adminName, `Replied to ticket ${ticketId}.`, 'action', {
+        actionId: 'ticket.reply',
+    });
 
     const adminMsgPayload = {
         author: adminName,
@@ -781,12 +810,42 @@ function setTicketStatus(
     status: TicketStatus,
     adminName: string,
 ): { success: true } | { error: string } {
+    const ticketBeforeUpdate = txCore.database.tickets.findOne(ticketId);
+    if (!ticketBeforeUpdate) return { error: 'Ticket not found.' };
+
     const success = txCore.database.tickets.setStatus(
         ticketId,
         status,
-        (status === 'resolved' || status === 'closed') ? adminName : undefined,
+        status === 'resolved' || status === 'closed' ? adminName : undefined,
     );
     if (!success) return { error: 'Ticket not found.' };
+
+    if (status === 'resolved' || status === 'closed') {
+        txCore.database.tickets.addActivityEntry(ticketId, {
+            ts: now(),
+            adminName,
+            action: status,
+        });
+        txCore.logger.system.write(
+            adminName,
+            `${status === 'resolved' ? 'Resolved' : 'Closed'} ticket ${ticketId}.`,
+            'action',
+            { actionId: status === 'resolved' ? 'ticket.resolve' : 'ticket.close' },
+        );
+    } else if (status === 'open' && (ticketBeforeUpdate.status === 'resolved' || ticketBeforeUpdate.status === 'closed')) {
+        txCore.database.tickets.addActivityEntry(ticketId, {
+            ts: now(),
+            adminName,
+            action: 'reopened',
+        });
+        txCore.logger.system.write(adminName, `Reopened ticket ${ticketId}.`, 'action', {
+            actionId: 'ticket.reopen',
+        });
+    } else if (status === 'inReview') {
+        txCore.logger.system.write(adminName, `Marked ticket ${ticketId} in review.`, 'action', {
+            actionId: 'ticket.in_review',
+        });
+    }
 
     if (status === 'resolved' || status === 'closed') {
         const ticket = txCore.database.tickets.findOne(ticketId);
@@ -802,11 +861,7 @@ function setTicketStatus(
 }
 
 /** Appends a staff note to a ticket. */
-function addStaffNote(
-    ticketId: string,
-    adminName: string,
-    content: string,
-): { success: true } | { error: string } {
+function addStaffNote(ticketId: string, adminName: string, content: string): { success: true } | { error: string } {
     const success = txCore.database.tickets.addStaffNote(ticketId, {
         authorAdminId: adminName,
         authorName: adminName,
@@ -814,6 +869,14 @@ function addStaffNote(
         ts: now(),
     });
     if (!success) return { error: 'Ticket not found.' };
+    txCore.database.tickets.addActivityEntry(ticketId, {
+        ts: now(),
+        adminName,
+        action: 'note_added',
+    });
+    txCore.logger.system.write(adminName, `Added note to ticket ${ticketId}.`, 'action', {
+        actionId: 'ticket.note.add',
+    });
     return { success: true };
 }
 
@@ -821,10 +884,7 @@ function addStaffNote(
  * Toggles a ticket's claim by `adminName`: clears it if already claimed by
  * this admin, otherwise assigns it.
  */
-function toggleClaim(
-    ticketId: string,
-    adminName: string,
-): { success: true; claimedBy?: string } | { error: string } {
+function toggleClaim(ticketId: string, adminName: string): { success: true; claimedBy: string | null } | { error: string } {
     const lookup = fetchTicketOrError(ticketId);
     if (lookup.kind === 'error') return { error: lookup.message };
     const ticket = lookup.ticket;
@@ -832,7 +892,22 @@ function toggleClaim(
     const newClaimer = ticket.claimedBy === adminName ? null : adminName;
     const success = txCore.database.tickets.setClaimed(ticketId, newClaimer);
     if (!success) return { error: 'Failed to update claim.' };
-    return { success: true, claimedBy: newClaimer ?? undefined };
+
+    txCore.database.tickets.addActivityEntry(ticketId, {
+        ts: now(),
+        adminName,
+        action: newClaimer ? 'claimed' : 'unclaimed',
+        details: newClaimer ?? undefined,
+    });
+
+    txCore.logger.system.write(
+        adminName,
+        newClaimer ? `Claimed ticket ${ticketId}.` : `Unclaimed ticket ${ticketId}.`,
+        'action',
+        { actionId: newClaimer ? 'ticket.claim' : 'ticket.unclaim' },
+    );
+
+    return { success: true, claimedBy: newClaimer };
 }
 
 export const ticketAdminList = (): ApiGetTicketListResp => {
@@ -895,11 +970,7 @@ export const ticketAdminMessage = (
     }
 };
 
-export const ticketAdminStatus = (
-    ticketId: string,
-    status: string,
-    adminName: string,
-): ApiTicketStatusResp => {
+export const ticketAdminStatus = (ticketId: string, status: string, adminName: string): ApiTicketStatusResp => {
     const disabled = ensureReportsEnabled();
     if (disabled) return disabled;
     const validStatuses: TicketStatus[] = ['open', 'inReview', 'resolved', 'closed'];
@@ -914,11 +985,7 @@ export const ticketAdminStatus = (
     }
 };
 
-export const ticketAdminNote = (
-    ticketId: string,
-    adminName: string,
-    content: string,
-): ApiTicketNoteResp => {
+export const ticketAdminNote = (ticketId: string, adminName: string, content: string): ApiTicketNoteResp => {
     const disabled = ensureReportsEnabled();
     if (disabled) return disabled;
     if (typeof ticketId !== 'string' || typeof content !== 'string' || !content.trim().length) {
@@ -932,10 +999,7 @@ export const ticketAdminNote = (
     }
 };
 
-export const ticketAdminClaim = (
-    ticketId: string,
-    adminName: string,
-): ApiTicketClaimResp => {
+export const ticketAdminClaim = (ticketId: string, adminName: string): ApiTicketClaimResp => {
     const disabled = ensureReportsEnabled();
     if (disabled) return disabled;
     if (typeof ticketId !== 'string') return { error: 'Invalid request.' };
@@ -948,7 +1012,7 @@ export const ticketAdminClaim = (
 };
 
 /**
- * ticketScreenshotUpload intercom â€” Receives base64 PNG from Lua resource
+ * ticketScreenshotUpload intercom - Receives base64 PNG from Lua resource
  */
 export const ticketScreenshotUpload = async (
     ticketId: string,
@@ -988,17 +1052,20 @@ export const ticketScreenshotUpload = async (
     }
 };
 
-// â”€â”€ Backward-compat exports (for any existing code still using old names) â”€â”€
+// - -  Backward-compat exports (for any existing code still using old names) - - 
 export const reportsList = ticketsList;
 export const reportsDetail = ticketsDetail;
 export const reportsMessage = ticketsMessage;
 export const reportsStatus = ticketsStatus;
 export const reportsCreate = async (data: any): Promise<any> => {
     const validCategories = txConfig.gameFeatures.ticketCategories;
-    const mappedCategory = data.type === 'playerReport' ? 'Player Report' : data.type === 'bugReport' ? 'Bug Report' : 'Question';
+    const mappedCategory =
+        data.type === 'playerReport' ? 'Player Report' : data.type === 'bugReport' ? 'Bug Report' : 'Question';
     const category = validCategories.includes(mappedCategory) ? mappedCategory : (validCategories[0] ?? mappedCategory);
     if (category !== mappedCategory) {
-        console.warn(`[reportsCreate] Legacy type '${data.type}' mapped to '${mappedCategory}' which is not in ticketCategories, falling back to '${category}'`);
+        console.warn(
+            `[reportsCreate] Legacy type '${data.type}' mapped to '${mappedCategory}' which is not in ticketCategories, falling back to '${category}'`,
+        );
     }
     return ticketCreate({
         ...data,
@@ -1015,4 +1082,3 @@ export const reportsAdminMessage = (id: string, adminName: string, content: stri
     ticketAdminMessage(id, adminName, content);
 export const reportsAdminStatus = (id: string, status: string, adminName: string) =>
     ticketAdminStatus(id, status, adminName);
-

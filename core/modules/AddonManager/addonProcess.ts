@@ -6,15 +6,11 @@ import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
 import consoleFactory from '@lib/console';
+import { txEnv } from '@core/globalData';
 import { AddonStorageScope } from './addonStorage';
 import { isPathInside } from './addonUtils';
 import { ServerPlayer } from '@lib/player/playerClasses';
-import type {
-    AddonState,
-    AddonRouteDescriptor,
-    CoreToAddonMessage,
-    AddonToCoreMessage,
-} from '@shared/addonTypes';
+import type { AddonState, AddonRouteDescriptor, CoreToAddonMessage, AddonToCoreMessage } from '@shared/addonTypes';
 const console = consoleFactory(modulename);
 
 const IPC_TIMEOUT_MS = 30_000;
@@ -690,7 +686,6 @@ export default class AddonProcess {
                 });
             }
 
-            // Send init message
             this.send({
                 type: 'init',
                 payload: {
@@ -699,7 +694,6 @@ export default class AddonProcess {
                 },
             });
 
-            // Wait for ready signal
             const readyResult = await this.waitForReady(timeoutMs);
             if (!readyResult.success) {
                 await this.kill();
@@ -857,7 +851,7 @@ export default class AddonProcess {
         path: string;
         headers: Record<string, string>;
         body: unknown;
-        admin: { name: string; permissions: string[] };
+        admin: { name: string; permissions: string[]; isMaster?: boolean };
     }): Promise<{ status: number; headers?: Record<string, string>; body: unknown }> {
         if (this.state !== 'running') {
             return { status: 503, body: { error: 'Addon is not running' } };
@@ -1088,11 +1082,14 @@ export default class AddonProcess {
                 break;
             }
             case 'storage-request': {
-                this.handleStorageRequest(msg.id, msg.payload as {
-                    op: 'get' | 'set' | 'delete' | 'list';
-                    key?: string;
-                    value?: unknown;
-                });
+                this.handleStorageRequest(
+                    msg.id,
+                    msg.payload as {
+                        op: 'get' | 'set' | 'delete' | 'list';
+                        key?: string;
+                        value?: unknown;
+                    },
+                );
                 break;
             }
             case 'ws-push': {
@@ -1113,10 +1110,7 @@ export default class AddonProcess {
                 break;
             }
             case 'api-call': {
-                this.handleApiCall(
-                    msg.id,
-                    msg.payload as { method: string; args: unknown[] },
-                );
+                this.handleApiCall(msg.id, msg.payload as { method: string; args: unknown[] });
                 break;
             }
             case 'error': {
@@ -1200,14 +1194,22 @@ export default class AddonProcess {
             switch (payload.op) {
                 case 'get':
                     if (!payload.key) {
-                        this.send({ type: 'storage-response', id, payload: { data: null, error: 'Missing key for get operation' } });
+                        this.send({
+                            type: 'storage-response',
+                            id,
+                            payload: { data: null, error: 'Missing key for get operation' },
+                        });
                         return;
                     }
                     result = this.storage.get(payload.key);
                     break;
                 case 'set': {
                     if (!payload.key) {
-                        this.send({ type: 'storage-response', id, payload: { data: null, error: 'Missing key for set operation' } });
+                        this.send({
+                            type: 'storage-response',
+                            id,
+                            payload: { data: null, error: 'Missing key for set operation' },
+                        });
                         return;
                     }
                     const setResult = this.storage.set(payload.key, payload.value);
@@ -1220,7 +1222,11 @@ export default class AddonProcess {
                 }
                 case 'delete':
                     if (!payload.key) {
-                        this.send({ type: 'storage-response', id, payload: { data: null, error: 'Missing key for delete operation' } });
+                        this.send({
+                            type: 'storage-response',
+                            id,
+                            payload: { data: null, error: 'Missing key for delete operation' },
+                        });
                         return;
                     }
                     this.storage.delete(payload.key);

@@ -1,6 +1,6 @@
 import { useAtom } from 'jotai';
 import { atomWithStorage, createJSONStorage } from 'jotai/utils';
-import type { LiveConsoleOptions } from './LiveConsolePage';
+import type { LiveConsoleOptions } from '@/pages/LiveConsole/LiveConsolePage';
 
 /**
  * Custom storage adapter for LiveConsoleOptions

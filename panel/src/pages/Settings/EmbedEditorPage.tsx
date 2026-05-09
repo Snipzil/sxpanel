@@ -37,13 +37,43 @@ const placeholderDescriptions: Record<string, string> = {
     serverJoinUrl: 'The direct join URL of your server. Example: `https://cfx.re/join/xxxxxx`.',
     serverBrowserUrl:
         'The FiveM Server browser URL of your server. Example: `https://servers.fivem.net/servers/detail/xxxxxx`.',
+    serverEndpoint: 'The live FXServer connect endpoint in `ip:port` form detected from the running server config.',
+    serverIp: 'The host portion of the detected FXServer endpoint.',
+    serverPort: 'The port portion of the detected FXServer endpoint.',
+    serverConnectCommand: 'A ready-to-paste F8 command using the detected endpoint. Example: `connect 127.0.0.1:30120`.',
+    serverAvailableSlots: 'How many open player slots are left based on the current online count and max clients.',
     serverClients: 'The number of players online in your server.',
     serverMaxClients: 'The `sv_maxclients` of your server, detected at runtime.',
+    serverOccupancyPercent: 'The current player occupancy percentage, including the `%` suffix.',
     serverName: 'This is the fxPanel-given name for this server. Can be changed in `fxPanel > Settings > Global`.',
     statusColor: 'A hex-encoded color, from the Config JSON.',
     statusString: 'A text to be displayed with the server status, from the Config JSON.',
     uptime: 'For how long is the server online. Example: `1 hr, 50 mins`.',
     nextScheduledRestart: 'String with when is the next scheduled restart. Example: `in 2 hrs, 48 mins`.',
+    recentJoinCount: 'How many player joins were recorded in the recent rolling window tracked by fxPanel.',
+    recentLeaveCount: 'How many player leaves were recorded in the recent rolling window tracked by fxPanel.',
+    playerList: 'A multiline rendered player list for the current page using the player line template from the Config JSON.',
+    playerListColumns:
+        'Expands a single embed field into compact inline roster columns for the current player-list page.',
+    playerListInline: 'A compact rendered player list for the current page using the inline player template from the Config JSON.',
+    playerListSummary: 'A short summary of how many players are online right now.',
+    playerListPage: 'The current 1-based player-list page number.',
+    playerListTotalPages: 'The total amount of available player-list pages.',
+    playerListPageSummary: 'A short summary of the current player-list page range. Example: `Page 2/3 • Showing 31-60`.',
+};
+
+const playerTemplatePlaceholderDescriptions: Record<string, string> = {
+    index: '1-based player position in the rendered list.',
+    netid: 'The player network id.',
+    displayName: 'The current display name shown in the fxPanel player list.',
+    pureName: 'The raw player name before tag decorations.',
+    license: 'The player license identifier.',
+    playTimeMinutes: 'The player playtime stored by fxPanel, in minutes.',
+    playTime: 'A human-readable version of the player playtime stored by fxPanel. Example: `48 mins`.',
+    sessionTimeSeconds: 'How many seconds the player has been connected in the current server session.',
+    sessionTimeMinutes: 'How many minutes the player has been connected in the current server session.',
+    sessionTime: 'A human-readable session duration for the player. Example: `1 hr, 16 mins`.',
+    tags: 'The player tags computed by fxPanel, joined by commas.',
 };
 
 export default function EmbedEditorPage() {
@@ -87,6 +117,13 @@ export default function EmbedEditorPage() {
     }, [config]);
 
     if (!editorState) return null;
+
+    const embedLabel = editorState.fieldLabel.toLowerCase().includes('player list')
+        ? 'player list embed'
+        : 'status embed';
+    const showsPlayerTemplatePlaceholders =
+        editorState.field === 'embedConfigJson' || editorState.field === 'playerListEmbedConfigJson';
+    const showsPlayerListConfigHints = editorState.field === 'playerListEmbedConfigJson';
 
     const handleSave = async () => {
         if (error || isSaving) return;
@@ -142,13 +179,10 @@ export default function EmbedEditorPage() {
                 <div className="mb-4 flex-none space-y-2">
                     <div className="flex items-start justify-between">
                         <p className="text-muted-foreground">
-                            The server status embed is customizable by editing the JSON below. <br />
-                            You can use the placeholders to include dynamic server information in the embed. <br />
-                            For information refer to{' '}
-                            <TxAnchor href="https://fxpanel.org/docs">
-                                our docs
-                            </TxAnchor>
-                            .
+                            The {embedLabel} is customizable by editing the JSON below. <br />
+                            You can use the placeholders to include dynamic server information in the embed, button
+                            URLs, and player line templates. <br />
+                            For information refer to <TxAnchor href="https://fxpanel.org/docs">our docs</TxAnchor>.
                         </p>
                         <Button
                             variant="outline"
@@ -164,6 +198,16 @@ export default function EmbedEditorPage() {
                             )}
                         </Button>
                     </div>
+                    {showsPlayerListConfigHints && (
+                        <Alert>
+                            <AlertDescription>
+                                Player-list paging and compact columns are configured in the Config JSON with
+                                <InlineCode>playerColumnCount</InlineCode>, <InlineCode>playersPerColumn</InlineCode>,
+                                <InlineCode>playerColumnTemplate</InlineCode>, <InlineCode>showPagerButtons</InlineCode>,
+                                and <InlineCode>pagerPageLabelTemplate</InlineCode>.
+                            </AlertDescription>
+                        </Alert>
+                    )}
                 </div>
 
                 {/* Editor + Placeholders side by side */}
@@ -201,6 +245,26 @@ export default function EmbedEditorPage() {
                                             </li>
                                         ))}
                                     </ul>
+
+                                    {showsPlayerTemplatePlaceholders && (
+                                        <>
+                                            <h3 className="pt-3 text-lg font-semibold">Player Line Placeholders</h3>
+                                            <ul className="space-y-4">
+                                                {Object.entries(playerTemplatePlaceholderDescriptions).map(
+                                                    ([pString, pDesc]) => (
+                                                        <li key={pString}>
+                                                            <InlineCode className="text-secondary-foreground bg-secondary/50 mb-1 block rounded-md border py-1">
+                                                                {`{{${pString}}}`}
+                                                            </InlineCode>
+                                                            <span className="text-muted-foreground text-sm">
+                                                                {pDesc}
+                                                            </span>
+                                                        </li>
+                                                    ),
+                                                )}
+                                            </ul>
+                                        </>
+                                    )}
                                 </div>
                             </ScrollArea>
                         </div>

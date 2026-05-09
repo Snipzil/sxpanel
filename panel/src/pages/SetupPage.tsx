@@ -17,7 +17,7 @@ import useSWR from 'swr';
 import { navigate as setLocation } from 'wouter/use-browser-location';
 import { ApiTimeout } from '@/hooks/fetch';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Types - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 type SetupDataResp = {
     redirect?: string;
     error?: string;
@@ -56,7 +56,7 @@ type SaveResp = {
     message?: string;
 };
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Helpers - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 function buildDeployName(templateName: string) {
     const sanitized = templateName
         .replace(/[^a-zA-Z0-9]/g, '')
@@ -73,7 +73,7 @@ function tagColor(tag: string) {
     return 'bg-muted text-muted-foreground';
 }
 
-// â”€â”€ Step Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Step Components - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 /** Step 1: Server Name */
 function StepServerName({
@@ -593,9 +593,9 @@ function StepServerCFG({
     );
 }
 
-// â”€â”€ Main Setup Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Main Setup Page - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 export default function SetupPage() {
-    // â”€â”€ Data fetch â”€â”€
+    // - -  Data fetch - - 
     const dataApi = useBackendApi<SetupDataResp>({
         method: 'GET',
         path: '/setup/data',
@@ -611,7 +611,7 @@ export default function SetupPage() {
     };
     const { data, isLoading } = useSWR('/setup/data', swrFetcher, { revalidateOnFocus: false });
 
-    // â”€â”€ Wizard state â”€â”€
+    // - -  Wizard state - - 
     const [step, setStep] = useState(0); // 0-based, auto-advanced if skipServerName
     const [serverName, setServerName] = useState('');
     const [deployType, setDeployType] = useState<DeploymentType | null>(null);
@@ -673,7 +673,7 @@ export default function SetupPage() {
         return `${sanitized}_${deploymentTs}`;
     }, [recipeName, selectedRecipe?.name, deploymentTs]);
 
-    // â”€â”€ Save handler â”€â”€
+    // - -  Save handler - - 
     const performSave = useCallback(() => {
         if (!deployType) return;
         setSaving(true);
@@ -738,7 +738,7 @@ export default function SetupPage() {
         });
     }, [deployType, serverName, selectedRecipe, recipeURL, deployPath, deploymentID, dataFolder, cfgFile, saveApi]);
 
-    // â”€â”€ Loading state â”€â”€
+    // - -  Loading state - - 
     if (isLoading || !data) {
         return (
             <div className="flex h-full items-center justify-center">
@@ -747,7 +747,7 @@ export default function SetupPage() {
         );
     }
 
-    // â”€â”€ Error state â”€â”€
+    // - -  Error state - - 
     if (errorMessage) {
         return (
             <div className="flex h-full flex-col items-center justify-center gap-3">
@@ -757,14 +757,14 @@ export default function SetupPage() {
         );
     }
 
-    // â”€â”€ Step progress indicator â”€â”€
+    // - -  Step progress indicator - - 
     const totalSteps = deployType === 'local' ? 4 : 4; // name, type, template/path, target/cfg â†’ save
     const stepLabels =
         deployType === 'local'
             ? ['Server Name', 'Type', 'Data Folder', 'CFG File']
             : ['Server Name', 'Type', 'Template', 'Deploy Target'];
 
-    // â”€â”€ Render current step â”€â”€
+    // - -  Render current step - - 
     const renderStep = () => {
         // Step 0: Server Name
         if (step === 0) {

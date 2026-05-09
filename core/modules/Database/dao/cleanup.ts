@@ -142,8 +142,8 @@ export default class CleanupDao {
         //Removing resolved reports older than the retention period
         let reportsRemoved;
         try {
-            const retentionDays = txConfig.general?.reportRetentionDays ?? 14;
-            reportsRemoved = txCore.database.reports.removeExpiredResolved(retentionDays);
+            const retentionDays = txConfig.gameFeatures?.ticketRetentionDays ?? 30;
+            reportsRemoved = txCore.database.tickets.removeExpiredResolved(retentionDays);
         } catch (error) {
             const msg = `Failed to optimize reports database with error: ${emsg(error)}`;
             console.error(msg);

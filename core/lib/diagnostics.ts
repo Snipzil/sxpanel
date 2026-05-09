@@ -175,8 +175,8 @@ export const getFXServerData = async () => {
     }
 
     //Preparing request
+    const url = `http://${childState.netEndpoint}/info.json`;
     const requestOptions = {
-        url: `http://${childState.netEndpoint}/info.json`,
         maxRedirects: 0,
         timeout: { request: 1500 },
         retry: { limit: 0 },
@@ -185,7 +185,7 @@ export const getFXServerData = async () => {
     //Making HTTP Request
     let infoData: Record<string, any>;
     try {
-        infoData = await got.get(requestOptions).json();
+        infoData = await got.get(url, requestOptions).json();
     } catch (error) {
         console.warn('Failed to get FXServer information.');
         console.verbose.dir(error);

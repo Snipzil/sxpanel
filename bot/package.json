@@ -1,0 +1,14 @@
+{
+    "name": "fxpanel-discord-bot",
+    "version": "0.0.0",
+    "private": true,
+    "type": "commonjs",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "discord.js": "^14.26.3",
+        "ws": "^8.18.3"
+    }
+}

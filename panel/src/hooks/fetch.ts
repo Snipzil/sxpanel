@@ -242,7 +242,7 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
                 validToastTypes.includes(data?.type) &&
                 typeof txToast[data.type as keyof typeof txToast] === 'function'
             ) {
-                txToast[data.type as keyof typeof txToast](data, { id: currentToastId.current });
+                txToast(data, { id: currentToastId.current });
             }
 
             //Custom success handler

@@ -99,7 +99,21 @@ export function AuthContextSwitch() {
     return isAuthenticated ? <MainShell /> : <AuthShell />;
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+type AppRootWindow = Window & {
+    txReactRoot?: ReturnType<typeof ReactDOM.createRoot>;
+};
+
+const rootContainer = document.getElementById('root');
+
+if (!rootContainer) {
+    throw new Error('Root container #root not found');
+}
+
+const rootWindow = window as AppRootWindow;
+const root = rootWindow.txReactRoot ?? ReactDOM.createRoot(rootContainer);
+rootWindow.txReactRoot = root;
+
+root.render(
     <StrictMode>
         <ErrorBoundary FallbackComponent={AppErrorFallback}>
             <ThemeProvider>

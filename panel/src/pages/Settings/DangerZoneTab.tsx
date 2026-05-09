@@ -86,7 +86,9 @@ export default function DangerZoneTab() {
             title: 'Are you sure you want to:',
             message: (
                 <ul className="mt-2 list-inside list-disc space-y-1">
-                    {changes.map((c, i) => <li key={i}>{c}</li>)}
+                    {changes.map((c, i) => (
+                        <li key={i}>{c}</li>
+                    ))}
                 </ul>
             ),
             actionLabel: 'Clean Database',
@@ -134,7 +136,9 @@ export default function DangerZoneTab() {
                         if (d.error) {
                             txToast.error(d.error);
                         } else {
-                            txToast.success(`Whitelists revoked: ${d.cntRemoved ?? 0}\nFinished in ${d.msElapsed ?? 0}ms.`);
+                            txToast.success(
+                                `Whitelists revoked: ${d.cntRemoved ?? 0}\nFinished in ${d.msElapsed ?? 0}ms.`,
+                            );
                         }
                     },
                     error(msg) {
@@ -155,14 +159,14 @@ export default function DangerZoneTab() {
             )}
             {!isWebInterface && (
                 <div className="border-warning/30 bg-warning-hint rounded-lg border p-4 text-center text-sm">
-                    <strong>Warning:</strong> These functions are disabled for the in-game menu â€” please use the web
+                    <strong>Warning:</strong> These functions are disabled for the in-game menu - please use the web
                     version.
                 </div>
             )}
 
             {/* Backup Database */}
-            <div className="rounded-xl border border-border/60 bg-card">
-                <div className="border-b border-border/40 px-5 py-3">
+            <div className="border-border/60 bg-card rounded-xl border">
+                <div className="border-border/40 border-b px-5 py-3">
                     <h3 className="font-semibold">Backup Database</h3>
                     <p className="text-muted-foreground text-sm">
                         Download a copy of <code>playersDB.json</code> containing all players and actions.
@@ -173,7 +177,9 @@ export default function DangerZoneTab() {
                         variant="secondary"
                         size="sm"
                         disabled={disableActions}
-                        onClick={() => { window.open('/masterActions/backupDatabase', '_blank', 'noopener'); }}
+                        onClick={() => {
+                            window.open('/masterActions/backupDatabase', '_blank', 'noopener');
+                        }}
                     >
                         Backup Database
                     </Button>
@@ -181,19 +187,26 @@ export default function DangerZoneTab() {
             </div>
 
             {/* Revoke Whitelists */}
-            <div className="rounded-xl border border-destructive/30 bg-card">
-                <div className="border-b border-border/40 px-5 py-3">
+            <div className="border-destructive/30 bg-card rounded-xl border">
+                <div className="border-border/40 border-b px-5 py-3">
                     <h3 className="font-semibold">Revoke Whitelists</h3>
                     <p className="text-muted-foreground text-sm">
-                        Revoke whitelist from players that haven't joined recently. Only applies to license whitelist â€”
-                        not Discord member or role whitelist.
+                        Revoke whitelist from players that haven't joined recently. Only applies to license whitelist
+                        - not Discord member or role whitelist.
                     </p>
                 </div>
                 <div className="space-y-4 p-5">
                     <div className="grid gap-2 sm:grid-cols-[130px_1fr]">
-                        <label htmlFor="wl-filter-select" className="pt-2 text-sm font-medium">Filter</label>
+                        <label htmlFor="wl-filter-select" className="pt-2 text-sm font-medium">
+                            Filter
+                        </label>
                         <div>
-                            <select id="wl-filter-select" className={SELECT_CLASS} value={wlFilter} onChange={(e) => setWlFilter(e.target.value)}>
+                            <select
+                                id="wl-filter-select"
+                                className={SELECT_CLASS}
+                                value={wlFilter}
+                                onChange={(e) => setWlFilter(e.target.value)}
+                            >
                                 <option value="30d">players that haven't joined in the last 30 days</option>
                                 <option value="15d">players that haven't joined in the last 15 days</option>
                                 <option value="7d">players that haven't joined in the last 7 days</option>
@@ -202,7 +215,12 @@ export default function DangerZoneTab() {
                         </div>
                     </div>
                     <div className="flex justify-end">
-                        <Button variant="destructive" size="sm" disabled={disableActions || isRevokingWl} onClick={handleRevokeWl}>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={disableActions || isRevokingWl}
+                            onClick={handleRevokeWl}
+                        >
                             {isRevokingWl && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
                             Revoke Whitelists
                         </Button>
@@ -211,12 +229,12 @@ export default function DangerZoneTab() {
             </div>
 
             {/* Clean Database */}
-            <div className="rounded-xl border border-destructive/30 bg-card">
-                <div className="border-b border-border/40 px-5 py-3">
+            <div className="border-destructive/30 bg-card rounded-xl border">
+                <div className="border-border/40 border-b px-5 py-3">
                     <h3 className="font-semibold">Clean Database</h3>
                     <p className="text-muted-foreground text-sm">
                         Permanently remove players and actions from the database. This action is{' '}
-                        <strong>irreversible</strong> â€” save a backup first.
+                        <strong>irreversible</strong> - save a backup first.
                     </p>
                 </div>
                 <div className="space-y-4 p-5">
@@ -225,24 +243,39 @@ export default function DangerZoneTab() {
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-[130px_1fr]">
-                        <label htmlFor="clean-db-players-select" className="pt-2 text-sm font-medium">Players</label>
+                        <label htmlFor="clean-db-players-select" className="pt-2 text-sm font-medium">
+                            Players
+                        </label>
                         <div>
-                            <select id="clean-db-players-select" className={SELECT_CLASS} value={players} onChange={(e) => setPlayers(e.target.value)}>
+                            <select
+                                id="clean-db-players-select"
+                                className={SELECT_CLASS}
+                                value={players}
+                                onChange={(e) => setPlayers(e.target.value)}
+                            >
                                 <option value="none">none</option>
                                 <option value="60d">inactive over 60 days</option>
                                 <option value="30d">inactive over 30 days</option>
                                 <option value="15d">inactive over 15 days</option>
                             </select>
                             <p className="text-muted-foreground mt-1 text-xs">
-                                Remove players based on time since last connection. Does not affect players with notes, bans, warns, or whitelist logs.
+                                Remove players based on time since last connection. Does not affect players with notes,
+                                bans, warns, or whitelist logs.
                             </p>
                         </div>
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-[130px_1fr]">
-                        <label htmlFor="clean-db-bans-select" className="pt-2 text-sm font-medium">Bans</label>
+                        <label htmlFor="clean-db-bans-select" className="pt-2 text-sm font-medium">
+                            Bans
+                        </label>
                         <div>
-                            <select id="clean-db-bans-select" className={SELECT_CLASS} value={bans} onChange={(e) => setBans(e.target.value)}>
+                            <select
+                                id="clean-db-bans-select"
+                                className={SELECT_CLASS}
+                                value={bans}
+                                onChange={(e) => setBans(e.target.value)}
+                            >
                                 <option value="none">none</option>
                                 <option value="revoked">revoked</option>
                                 <option value="revokedExpired">revoked or expired</option>
@@ -253,9 +286,16 @@ export default function DangerZoneTab() {
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-[130px_1fr]">
-                        <label htmlFor="clean-db-warns-select" className="pt-2 text-sm font-medium">Warns</label>
+                        <label htmlFor="clean-db-warns-select" className="pt-2 text-sm font-medium">
+                            Warns
+                        </label>
                         <div>
-                            <select id="clean-db-warns-select" className={SELECT_CLASS} value={warns} onChange={(e) => setWarns(e.target.value)}>
+                            <select
+                                id="clean-db-warns-select"
+                                className={SELECT_CLASS}
+                                value={warns}
+                                onChange={(e) => setWarns(e.target.value)}
+                            >
                                 <option value="none">none</option>
                                 <option value="revoked">revoked</option>
                                 <option value="30d">older than 30 days</option>
@@ -268,22 +308,35 @@ export default function DangerZoneTab() {
                     </div>
 
                     <div className="grid gap-2 sm:grid-cols-[130px_1fr]">
-                        <label htmlFor="clean-db-hwids-select" className="pt-2 text-sm font-medium">HWIDs</label>
+                        <label htmlFor="clean-db-hwids-select" className="pt-2 text-sm font-medium">
+                            HWIDs
+                        </label>
                         <div>
-                            <select id="clean-db-hwids-select" className={SELECT_CLASS} value={hwids} onChange={(e) => setHwids(e.target.value)}>
+                            <select
+                                id="clean-db-hwids-select"
+                                className={SELECT_CLASS}
+                                value={hwids}
+                                onChange={(e) => setHwids(e.target.value)}
+                            >
                                 <option value="none">none</option>
                                 <option value="players">from players</option>
                                 <option value="bans">from bans</option>
                                 <option value="all">REMOVE ALL HWIDS</option>
                             </select>
                             <p className="text-muted-foreground mt-1 text-xs">
-                                HWID tokens are tied to your <code>sv_licenseKey</code> owner. Wipe if transferring to a different license key owner.
+                                HWID tokens are tied to your <code>sv_licenseKey</code> owner. Wipe if transferring to a
+                                different license key owner.
                             </p>
                         </div>
                     </div>
 
                     <div className="flex justify-end">
-                        <Button variant="destructive" size="sm" disabled={disableActions || isCleaningDb} onClick={handleCleanDb}>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={disableActions || isCleaningDb}
+                            onClick={handleCleanDb}
+                        >
                             {isCleaningDb && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
                             Clean Database
                         </Button>

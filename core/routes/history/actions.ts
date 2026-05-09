@@ -85,7 +85,7 @@ async function handleBandIds(ctx: AuthedCtx): Promise<GenericApiOkResp> {
     } catch (error) {
         return { error: `Failed to ban identifiers: ${emsg(error)}` };
     }
-    ctx.admin.logAction(`Banned <${identifiers.join(';')}>: ${reason}`);
+    ctx.admin.logAction(`Banned <${identifiers.join(';')}>: ${reason}`, 'history.ban_legacy');
 
     // Dispatch `txAdmin:events:playerBanned`
     try {
@@ -128,7 +128,7 @@ async function handleBandIds(ctx: AuthedCtx): Promise<GenericApiOkResp> {
  * Handle revoke database action.
  * This is called from the player modal or the players page.
  */
-async function handleRevokeAction(ctx: AuthedCtx): Promise<GenericApiOkResp> {
+export async function handleRevokeAction(ctx: AuthedCtx): Promise<GenericApiOkResp> {
     //Checking request
     const schemaRes = revokeActionBodySchema.safeParse(ctx.request.body);
     if (!schemaRes.success) {
@@ -149,7 +149,10 @@ async function handleRevokeAction(ctx: AuthedCtx): Promise<GenericApiOkResp> {
             perms,
             reason || undefined,
         ) as DatabaseActionType;
-        ctx.admin.logAction(`Revoked ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}`);
+        ctx.admin.logAction(
+            `Revoked ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}`,
+            'history.revoke',
+        );
     } catch (error) {
         return { error: `Failed to revoke action: ${emsg(error)}` };
     }
@@ -203,6 +206,7 @@ async function handleChangeBanDuration(ctx: AuthedCtx): Promise<GenericApiOkResp
         const action = txCore.database.actions.changeBanExpiration(actionId, newExpiration);
         ctx.admin.logAction(
             `Changed ban duration for ${action.id} (${action.playerName || 'identifiers'}) to ${durationInput}`,
+            'history.ban_duration.change',
         );
     } catch (error) {
         return { error: `Failed to change ban duration: ${emsg(error)}` };
@@ -229,7 +233,10 @@ async function handleDeleteAction(ctx: AuthedCtx): Promise<GenericApiOkResp> {
 
     try {
         const action = txCore.database.actions.deleteAction(actionId);
-        ctx.admin.logAction(`Deleted ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}`);
+        ctx.admin.logAction(
+            `Deleted ${action.type} id ${actionId} from ${action.playerName ?? 'identifiers'}`,
+            'history.delete',
+        );
     } catch (error) {
         return { error: `Failed to delete action: ${emsg(error)}` };
     }

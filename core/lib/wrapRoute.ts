@@ -21,15 +21,9 @@ export function wrapRoute(routeName: string, handler: RouteHandler): RouteHandle
         try {
             await handler(ctx);
         } catch (error) {
-            if (error instanceof AppError) {
-                ctx.status = error.httpStatus;
-                ctx.body = { error: error.message };
-            } else {
-                console.error(`Unhandled error: ${emsg(error)}`);
-                console.verbose.dir(error);
-                ctx.status = 500;
-                ctx.body = { error: 'Internal server error.' };
-            }
+            console.error(`Unhandled error: ${emsg(error)}`);
+            console.verbose.dir(error);
+            throw error;
         }
     };
 }

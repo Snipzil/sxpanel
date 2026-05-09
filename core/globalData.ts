@@ -20,10 +20,14 @@ const console = consoleFactory();
  */
 //Get OSType
 const osTypeVar = os.type();
+const isVitestRuntime = typeof process.env.VITEST === 'string';
 let isWindows;
 if (osTypeVar === 'Windows_NT') {
     isWindows = true;
 } else if (osTypeVar === 'Linux') {
+    isWindows = false;
+} else if (isVitestRuntime) {
+    // Allow tests to import globalData on non-production platforms (e.g. macOS dev machines).
     isWindows = false;
 } else {
     fatalError.GlobalData(0, `OS type not supported: ${osTypeVar}`);

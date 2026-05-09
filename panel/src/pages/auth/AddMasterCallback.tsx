@@ -146,124 +146,124 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
 
     return (
         <>
-        <form onSubmit={handleSubmit} className="w-full text-left">
-            <CardContent className="flex flex-col gap-4 pt-6">
-                <div>
-                    Cfx.re account
-                    <div className="mt-2 flex flex-row items-center justify-start rounded-md border bg-zinc-900 p-2">
-                        <Avatar className="h-16 w-16 text-3xl" username={fivemName} profilePicture={profilePicture} />
-                        <div className="ml-4 overflow-hidden text-left text-ellipsis">
-                            <span className="text-2xl">{fivemName}</span> <br />
-                            <code className="text-muted-foreground">{fivemId}</code>
+            <form onSubmit={handleSubmit} className="w-full text-left">
+                <CardContent className="flex flex-col gap-4 pt-6">
+                    <div>
+                        Cfx.re account
+                        <div className="mt-2 flex flex-row items-center justify-start rounded-md border bg-zinc-900 p-2">
+                            <Avatar
+                                className="h-16 w-16 text-3xl"
+                                username={fivemName}
+                                profilePicture={profilePicture}
+                            />
+                            <div className="ml-4 overflow-hidden text-left text-ellipsis">
+                                <span className="text-2xl">{fivemName}</span> <br />
+                                <code className="text-muted-foreground">{fivemId}</code>
+                            </div>
                         </div>
                     </div>
-                </div>
-                {/* This is so password managers save the username */}
-                <input type="text" name="frm-username" className="hidden" value={fivemName} readOnly />
-                <div className="grid gap-2">
-                    <div className="flex flex-row items-center justify-between">
-                        <Label htmlFor="frm-discord">Discord ID</Label>
-                        <span className="text-muted-foreground text-xs">(optional)</span>
+                    {/* This is so password managers save the username */}
+                    <input type="text" name="frm-username" className="hidden" value={fivemName} readOnly />
+                    <div className="grid gap-2">
+                        <div className="flex flex-row items-center justify-between">
+                            <Label htmlFor="frm-discord">Discord ID</Label>
+                            <span className="text-muted-foreground text-xs">(optional)</span>
+                        </div>
+                        <Input
+                            className="placeholder:text-zinc-800"
+                            id="frm-discord"
+                            type="text"
+                            ref={discordRef}
+                            placeholder="000000000000000000"
+                            disabled={isSaving}
+                        />
                     </div>
-                    <Input
-                        className="placeholder:text-zinc-800"
-                        id="frm-discord"
-                        type="text"
-                        ref={discordRef}
-                        placeholder="000000000000000000"
-                        disabled={isSaving}
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <div className="flex flex-row items-center justify-between">
-                        <Label htmlFor="frm-password">Backup Password</Label>
-                        <span className="text-muted-foreground text-xs">
-                            ({consts.adminPasswordMinLength}~{consts.adminPasswordMaxLength} digits)
-                        </span>
+                    <div className="grid gap-2">
+                        <div className="flex flex-row items-center justify-between">
+                            <Label htmlFor="frm-password">Backup Password</Label>
+                            <span className="text-muted-foreground text-xs">
+                                ({consts.adminPasswordMinLength}~{consts.adminPasswordMaxLength} digits)
+                            </span>
+                        </div>
+                        <Input
+                            className="placeholder:text-zinc-800"
+                            id="frm-password"
+                            type="password"
+                            ref={passwordRef}
+                            placeholder="password"
+                            disabled={isSaving}
+                            required
+                        />
                     </div>
-                    <Input
-                        className="placeholder:text-zinc-800"
-                        id="frm-password"
-                        type="password"
-                        ref={passwordRef}
-                        placeholder="password"
-                        disabled={isSaving}
-                        required
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="frm-password2">Confirm Password</Label>
-                    <Input
-                        className="placeholder:text-zinc-800"
-                        id="frm-password2"
-                        type="password"
-                        ref={password2Ref}
-                        placeholder="password"
-                        disabled={isSaving}
-                        required
-                    />
-                </div>
-                <div className="mt-2 flex items-center space-x-2">
-                    {/* @ts-ignore */}
-                    <Checkbox id="terms" ref={termsRef} required />
-                    <label
-                        htmlFor="terms"
-                        className="text-sm leading-4 font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                        I have read and agree to the{' '}
-                        <a
-                            href="https://fivem.net/terms"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-accent hover:underline"
+                    <div className="grid gap-2">
+                        <Label htmlFor="frm-password2">Confirm Password</Label>
+                        <Input
+                            className="placeholder:text-zinc-800"
+                            id="frm-password2"
+                            type="password"
+                            ref={password2Ref}
+                            placeholder="password"
+                            disabled={isSaving}
+                            required
+                        />
+                    </div>
+                    <div className="mt-2 flex items-center space-x-2">
+                        {/* @ts-ignore */}
+                        <Checkbox id="terms" ref={termsRef} required />
+                        <label
+                            htmlFor="terms"
+                            className="text-sm leading-4 font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                            Creator PLA
-                        </a>{' '}
-                        as well as the{' '}
-                        <a
-                            href="https://github.com/someaussiegaymer/fxPanel/blob/master/LICENSE"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-accent hover:underline"
-                        >
-                            fxPanel License
-                        </a>
-                        .
-                    </label>
-                </div>
-            </CardContent>
-            <CardFooter className="flex-col gap-2">
-                <span className="text-destructive text-center whitespace-pre-wrap">{errorMessage}</span>
-                <Button className="w-full" disabled={isSaving || !!pendingAuth}>
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Register
-                </Button>
-            </CardFooter>
-        </form>
+                            I have read and agree to the{' '}
+                            <a
+                                href="https://fivem.net/terms"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-accent hover:underline"
+                            >
+                                Creator PLA
+                            </a>{' '}
+                            as well as the{' '}
+                            <a
+                                href="https://github.com/someaussiegaymer/fxPanel/blob/master/LICENSE"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-accent hover:underline"
+                            >
+                                fxPanel License
+                            </a>
+                            .
+                        </label>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex-col gap-2">
+                    <span className="text-destructive text-center whitespace-pre-wrap">{errorMessage}</span>
+                    <Button className="w-full" disabled={isSaving || !!pendingAuth}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Register
+                    </Button>
+                </CardFooter>
+            </form>
 
-        {/* Transition panel — slides over the whole screen after registration
+            {/* Transition panel — slides over the whole screen after registration
             succeeds. Once settled, we switch to MainShell / the setup flow. */}
-        {pendingAuth && (
-            <div className="fixed inset-0 z-[200] bg-background" />
-        )}
-        {pendingAuth && (
-            <div
-                className="fixed inset-0 z-[201] flex min-h-screen w-full flex-col overflow-hidden bg-card"
-                style={{
-                    transform: panelIn ? 'translateX(0%)' : 'translateX(100%)',
-                    transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '-32px 0 80px rgba(0,0,0,0.45)',
-                }}
-                onTransitionEnd={handlePanelTransitionEnd}
-            >
-                <div className="flex shrink-0 items-center gap-3 border-b border-border/40 px-6 py-4">
-                    <LogoFullSquareGreen className="h-8 w-auto opacity-90" />
-                    <span className="text-muted-foreground text-xs uppercase tracking-wide">
-                        First-time setup
-                    </span>
+            {pendingAuth && <div className="bg-background fixed inset-0 z-[200]" />}
+            {pendingAuth && (
+                <div
+                    className="bg-card fixed inset-0 z-[201] flex min-h-screen w-full flex-col overflow-hidden"
+                    style={{
+                        transform: panelIn ? 'translateX(0%)' : 'translateX(100%)',
+                        transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '-32px 0 80px rgba(0,0,0,0.45)',
+                    }}
+                    onTransitionEnd={handlePanelTransitionEnd}
+                >
+                    <div className="border-border/40 flex shrink-0 items-center gap-3 border-b px-6 py-4">
+                        <LogoFullSquareGreen className="h-8 w-auto opacity-90" />
+                        <span className="text-muted-foreground text-xs tracking-wide uppercase">First-time setup</span>
+                    </div>
                 </div>
-            </div>
-        )}
+            )}
         </>
     );
 }

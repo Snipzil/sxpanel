@@ -79,7 +79,10 @@ const buildMockPlayer = (netid: number): PlayerlistPlayerType => {
         netid,
         displayName,
         pureName: makePureName(displayName),
-        ids: [`license:${netid.toString(16).padStart(10, '0')}`, `discord:${(BigInt('900000000000000000') + BigInt(netid)).toString()}`],
+        ids: [
+            `license:${netid.toString(16).padStart(10, '0')}`,
+            `discord:${(BigInt('900000000000000000') + BigInt(netid)).toString()}`,
+        ],
         license: `license:${netid.toString(16).padStart(10, '0')}`,
         tags,
     };
@@ -151,7 +154,10 @@ export const createMockGlobalStatus = (now = Date.now(), baseStatus?: GlobalStat
             isChildAlive: true,
         },
         server: {
-            name: baseStatus?.server.name || (typeof window !== 'undefined' ? window?.txConsts?.server?.name : undefined) || 'fxPanel Showcase',
+            name:
+                baseStatus?.server.name ||
+                (typeof window !== 'undefined' ? window?.txConsts?.server?.name : undefined) ||
+                'fxPanel Showcase',
             uptime: Math.round(uptimeBaseMs + (now % (18 * 60 * 1000))),
             health: FxMonitorHealth.ONLINE,
             healthReason: 'All monitored resources are running and accepting connections.',

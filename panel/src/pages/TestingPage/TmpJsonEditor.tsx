@@ -205,10 +205,7 @@ export default function TmpJsonEditor() {
                             The server status embed is customizable by editing the JSON below. <br />
                             You can use the placeholders to include dynamic server information in the embed. <br />
                             For information refer to{' '}
-                            <TxAnchor href="https://fxpanel.org/docs/v0.2.1-Beta/discord">
-                                our docs
-                            </TxAnchor>
-                            .
+                            <TxAnchor href="https://fxpanel.org/docs/v0.2.2-Beta/discord">our docs</TxAnchor>.
                         </>
                     }
                 />

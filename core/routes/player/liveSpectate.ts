@@ -64,7 +64,7 @@ export async function LiveSpectateStart(ctx: AuthedCtx) {
         sessionId,
     });
 
-    ctx.admin.logAction(`Started live spectate of "${player.displayName}" from web panel.`);
+    ctx.admin.logAction(`Started live spectate of "${player.displayName}" from web panel.`, 'player.live_spectate.start');
     console.verbose.log(
         `Admin "${ctx.admin.name}" started live spectate, player #${player.netid}, session ${sessionId}`,
     );

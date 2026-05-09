@@ -4,7 +4,7 @@
  * Also accepts backup codes as fallback.
  */
 const modulename = 'WebServer:TotpVerify';
-import { PassSessAuthType } from '@modules/WebServer/authLogic';
+import { PassSessAuthType, resolveEffectiveAuthedAdmin } from '@modules/WebServer/authLogic';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { verifyTotpCode, verifyBackupCode } from '@lib/totp';
@@ -75,11 +75,13 @@ export default async function TotpVerify(ctx: InitializedCtx) {
         } satisfies PassSessAuthType;
         ctx.sessTools.regenerate({ auth: sessData });
 
-        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via password+2FA`, 'login');
+        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via password+2FA`, 'login', {
+            actionId: 'login.password_2fa',
+        });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('password');
 
-        const authedAdmin = vaultAdmin.getAuthed(sessData.csrfToken);
+        const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
         return sendTypedResp(authedAdmin.getAuthData());
     } catch (error) {
         console.warn(`Failed TOTP verify: ${emsg(error)}`);

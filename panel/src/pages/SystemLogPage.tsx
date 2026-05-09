@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useEventListener } from 'usehooks-ts';
 import { useContentRefresh } from '@/hooks/pages';
 import { debounce, throttle } from 'throttle-debounce';
-import { ChevronsDownIcon, Loader2Icon } from 'lucide-react';
+import { ChevronsDownIcon, Loader2Icon, ScrollTextIcon } from 'lucide-react';
 
 import './LiveConsole/xtermOverrides.css';
 import '@xterm/xterm/css/xterm.css';
@@ -17,6 +17,7 @@ import terminalOptions from './LiveConsole/xtermOptions';
 import ScrollDownAddon from './LiveConsole/ScrollDownAddon';
 import LiveConsoleSearchBar from './LiveConsole/LiveConsoleSearchBar';
 import { useBackendApi } from '@/hooks/fetch';
+import { PageHeader } from '@/components/page-header';
 
 //Helpers
 const keyDebounceTime = 150; //ms
@@ -204,70 +205,63 @@ export default function SystemLogPage({ pageName }: SystemLogPageProps) {
 
     //Rendering stuff
     const pageTitle = 'Console Log';
-    const pageSubtitle = "Output of fxPanel to it's parent terminal, including usually hidden debug messages.";
+    const pageSubtitle = 'Raw fxPanel process output, including startup and debug messages.';
 
     return (
-        <div className="dark text-primary bg-card flex h-full w-full flex-col overflow-clip border md:rounded-xl">
-            <div className="flex shrink flex-col space-y-4 border-b px-1 py-2 sm:px-4">
-                <div className="flex items-center space-x-2">
-                    <svg
-                        className="h-4 w-4 text-green-500"
-                        fill="none"
-                        height="24"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                        width="24"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <polyline points="4 17 10 11 4 5" />
-                        <line x1="12" x2="20" y1="19" y2="19" />
-                    </svg>
-                    <p className="font-mono text-sm">
-                        {pageTitle} - <span className="text-muted-foreground">{pageSubtitle}</span>
-                    </p>
+        <div className="h-contentvh mx-auto flex w-full max-w-(--breakpoint-xl) flex-col gap-4 px-2 md:px-0">
+            <PageHeader title={pageTitle} description={pageSubtitle} icon={<ScrollTextIcon />} />
+
+            <div className="dark text-primary bg-card border-border/60 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+                <div className="bg-secondary/20 border-border/60 flex shrink-0 items-center gap-3 border-b px-4 py-3">
+                    <div className="bg-secondary/50 text-accent/80 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10">
+                        <ScrollTextIcon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-semibold">Captured terminal stream</p>
+                        <p className="text-muted-foreground truncate text-xs">{pageSubtitle}</p>
+                    </div>
                 </div>
-            </div>
 
-            <div className="relative flex grow flex-col overflow-hidden">
-                {/* Loading overlay */}
-                {isLoading && !loadError ? (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
-                        <div className="text-muted-foreground flex flex-col items-center justify-center gap-6 select-none">
-                            <Loader2Icon className="h-16 w-16 animate-spin" />
-                            <h2 className="animate-pulse text-3xl font-light tracking-wider">
-                                &nbsp;&nbsp;&nbsp;Loading...
-                            </h2>
+                <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+                    {/* Loading overlay */}
+                    {isLoading && !loadError ? (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60">
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-6 select-none">
+                                <Loader2Icon className="h-16 w-16 animate-spin" />
+                                <h2 className="animate-pulse text-3xl font-light tracking-wider">
+                                    &nbsp;&nbsp;&nbsp;Loading...
+                                </h2>
+                            </div>
                         </div>
-                    </div>
-                ) : null}
-                {loadError && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-black/60">
-                        <h2 className="text-muted-foreground text-2xl font-light tracking-wider select-none">
-                            Error fetching {pageTitle}:
-                        </h2>
-                        <p className="text-destructive-inline mx-8 max-w-(--breakpoint-md) font-mono">{loadError}</p>
-                    </div>
-                )}
+                    ) : null}
+                    {loadError && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-black/60">
+                            <h2 className="text-muted-foreground text-2xl font-light tracking-wider select-none">
+                                Error fetching {pageTitle}:
+                            </h2>
+                            <p className="text-destructive-inline mx-8 max-w-(--breakpoint-md) font-mono">
+                                {loadError}
+                            </p>
+                        </div>
+                    )}
 
-                {/* Terminal container */}
-                <div ref={containerRef} className="absolute top-1 right-0 bottom-0 left-2" />
+                    {/* Terminal container */}
+                    <div ref={containerRef} className="absolute top-1 right-0 bottom-0 left-2" />
 
-                {/* Search bar */}
-                <LiveConsoleSearchBar show={showSearchBar} setShow={setShowSearchBar} searchAddon={searchAddon} />
+                    {/* Search bar */}
+                    <LiveConsoleSearchBar show={showSearchBar} setShow={setShowSearchBar} searchAddon={searchAddon} />
 
-                {/* Scroll to bottom */}
-                <button
-                    ref={jumpBottomBtnRef}
-                    className="absolute right-2 bottom-0 z-10 hidden opacity-75"
-                    onClick={() => {
-                        term.scrollToBottom();
-                    }}
-                >
-                    <ChevronsDownIcon className="h-20 w-20 animate-pulse hover:scale-110 hover:animate-none" />
-                </button>
+                    {/* Scroll to bottom */}
+                    <button
+                        ref={jumpBottomBtnRef}
+                        className="absolute right-2 bottom-0 z-10 hidden opacity-75"
+                        onClick={() => {
+                            term.scrollToBottom();
+                        }}
+                    >
+                        <ChevronsDownIcon className="h-20 w-20 animate-pulse hover:scale-110 hover:animate-none" />
+                    </button>
+                </div>
             </div>
         </div>
     );

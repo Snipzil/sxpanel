@@ -54,7 +54,7 @@ export default function PageCalloutRow({ callouts }: PageCalloutRowProps) {
 
     if (visibleCallouts.length === 0) {
         return (
-            <div className="mb-4 rounded-xl border border-dashed border-border/60 bg-card/50 px-4 py-3 text-center text-xs text-muted-foreground md:mb-5">
+            <div className="border-border/60 bg-card/50 text-muted-foreground mb-4 rounded-xl border border-dashed px-4 py-3 text-center text-xs md:mb-5">
                 No callouts available.
             </div>
         );
@@ -63,19 +63,22 @@ export default function PageCalloutRow({ callouts }: PageCalloutRowProps) {
     return (
         <div className="xs:gap-3 mb-4 grid grid-cols-2 gap-2 md:mb-5 md:px-0 lg:grid-cols-4">
             {visibleCallouts.map((callout, i) => (
-                <div key={`${callout.label}-${i}`} className="rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+                <div
+                    key={`${callout.label}-${i}`}
+                    className="border-border/60 bg-card rounded-xl border px-4 py-3 shadow-sm"
+                >
                     <div className="mb-2 flex items-center justify-between">
-                        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        <span className="text-muted-foreground/60 text-[11px] font-medium tracking-wider uppercase">
                             {callout.label}
                         </span>
-                        <span className="text-muted-foreground/30 [&>svg]:size-4 hidden xs:block xs:[&>svg]:block">
+                        <span className="text-muted-foreground/30 xs:block xs:[&>svg]:block hidden [&>svg]:size-4">
                             {callout.icon}
                         </span>
                     </div>
                     {callout.value === false ? (
                         <NumberLoading />
                     ) : (
-                        <div className="text-xl font-semibold tabular-nums text-foreground xs:text-2xl">
+                        <div className="text-foreground xs:text-2xl text-xl font-semibold tabular-nums">
                             {callout.prefix}
                             <CountUpAnimation countTo={callout.value} />
                         </div>

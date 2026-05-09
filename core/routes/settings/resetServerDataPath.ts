@@ -23,7 +23,7 @@ export default async function ResetServerDataPath(ctx: AuthedCtx) {
 
     //Kill the server async
     if (!txCore.fxRunner.isIdle) {
-        ctx.admin.logCommand('STOP SERVER');
+        ctx.admin.logCommand('STOP SERVER', 'server.stop');
         txCore.fxRunner.killServer('new server set up', ctx.admin.name, false).catch((e) => {});
     }
 
@@ -56,7 +56,7 @@ export default async function ResetServerDataPath(ctx: AuthedCtx) {
     txCore.webServer.webSocket.pushRefresh('status');
 
     //Sending output
-    ctx.admin.logAction('Resetting server data settings.');
+    ctx.admin.logAction('Resetting server data settings.', 'settings.server_data_path.reset');
     return sendTypedResp({
         type: 'success',
         msg: 'Server data path reset.',

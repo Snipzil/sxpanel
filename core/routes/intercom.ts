@@ -2,7 +2,27 @@ const modulename = 'WebServer:Intercom';
 import { txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
-import { reportsCreate, reportsPlayerList, reportsPlayerMessage, reportsAdminList, reportsAdminDetail, reportsAdminMessage, reportsAdminStatus, ticketCreate, ticketPlayerList, ticketPlayerMessages, ticketPlayerMessage, ticketFeedbackSubmit, ticketAdminList, ticketAdminDetail, ticketAdminMessage, ticketAdminStatus, ticketAdminNote, ticketAdminClaim, ticketScreenshotUpload } from './reports';
+import {
+    reportsCreate,
+    reportsPlayerList,
+    reportsPlayerMessage,
+    reportsAdminList,
+    reportsAdminDetail,
+    reportsAdminMessage,
+    reportsAdminStatus,
+    ticketCreate,
+    ticketPlayerList,
+    ticketPlayerMessages,
+    ticketPlayerMessage,
+    ticketFeedbackSubmit,
+    ticketAdminList,
+    ticketAdminDetail,
+    ticketAdminMessage,
+    ticketAdminStatus,
+    ticketAdminNote,
+    ticketAdminClaim,
+    ticketScreenshotUpload,
+} from './reports';
 import { resolveScreenshot } from './player/screenshot';
 import { handleSpectateFrame } from './player/liveSpectate';
 import { z } from 'zod';
@@ -114,7 +134,7 @@ const screenshotResultSchema = z
     .object({
         ...baseIntercomSchema,
         requestId: z.string(),
-        imageData: z.string().optional(),
+        fileName: z.string().optional(),
         error: z.string().optional(),
     })
     .strict();
@@ -459,7 +479,17 @@ export default async function Intercom(ctx: InitializedCtx) {
             const v = validateBody('ticketCreate');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
             const { reporter, targets, category, priority, description, imageUrls, screenshotData } = v.data;
-            return ctx.send(await ticketCreate({ reporter, targets: targets ?? [], category, priority, description, imageUrls, screenshotData }));
+            return ctx.send(
+                await ticketCreate({
+                    reporter,
+                    targets: targets ?? [],
+                    category,
+                    priority,
+                    description,
+                    imageUrls,
+                    screenshotData,
+                }),
+            );
         }
         case 'ticketPlayerList': {
             const v = validateBody('ticketPlayerList');
@@ -474,7 +504,9 @@ export default async function Intercom(ctx: InitializedCtx) {
         case 'ticketPlayerMessage': {
             const v = validateBody('ticketPlayerMessage');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            return ctx.send(ticketPlayerMessage(v.data.ticketId, v.data.playerLicense, v.data.content, v.data.imageUrls));
+            return ctx.send(
+                ticketPlayerMessage(v.data.ticketId, v.data.playerLicense, v.data.content, v.data.imageUrls),
+            );
         }
         case 'ticketFeedbackSubmit': {
             const v = validateBody('ticketFeedbackSubmit');
@@ -519,13 +551,15 @@ export default async function Intercom(ctx: InitializedCtx) {
         case 'screenshotResult': {
             const v = validateBody('screenshotResult');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            resolveScreenshot(v.data.requestId, v.data.imageData, v.data.error);
+            resolveScreenshot(v.data.requestId, v.data.fileName, v.data.error);
             return ctx.send({ success: true });
         }
         case 'spectateFrame': {
             const v = validateBody('spectateFrame');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            console.verbose.log(`[spectate] Intercom frame received: session=${v.data.sessionId}, len=${v.data.frameData.length}`);
+            console.verbose.log(
+                `[spectate] Intercom frame received: session=${v.data.sessionId}, len=${v.data.frameData.length}`,
+            );
             handleSpectateFrame(v.data.sessionId, v.data.frameData);
             return ctx.send({ success: true });
         }
@@ -535,4 +569,4 @@ export default async function Intercom(ctx: InitializedCtx) {
             throw new Error(`Unhandled intercom scope: ${_exhaustive}`);
         }
     }
-} 
+}

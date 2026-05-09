@@ -93,23 +93,13 @@ export function InnerWarningBar({
                             </Button>
                         )}
 
-                        <Button
-                            size="xs"
-                            variant="outline"
-                            asChild
-                            className="border-current hover:bg-white/10"
-                        >
+                        <Button size="xs" variant="outline" asChild className="border-current hover:bg-white/10">
                             <a href="https://github.com/SomeAussieGaymer/fxPanel/releases" target="_blank">
                                 <FaGithub size="14" className="mr-1" /> Download
                             </a>
                         </Button>
 
-                        <Button
-                            size="xs"
-                            variant="outline"
-                            asChild
-                            className="border-current hover:bg-white/10"
-                        >
+                        <Button size="xs" variant="outline" asChild className="border-current hover:bg-white/10">
                             <a href="https://discord.gg/6FcqBYwxH5" target="_blank">
                                 <FaDiscord size="14" className="mr-1" /> Support
                             </a>

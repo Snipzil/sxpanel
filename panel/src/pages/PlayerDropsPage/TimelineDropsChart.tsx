@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import drawDropsTimeline, { TimelineDropsDatum } from './drawDropsTimeline';
 import { playerDropCategories } from '@/lib/playerDropCategories';
 import { PlayerDropsMessage } from './PlayerDropsGenericSubcards';
-import { DrilldownRangeSelectionType } from './PlayerDropsPage';
+import { DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
 import { emsg } from '@shared/emsg';
 
 export type TimelineDropsChartData = {

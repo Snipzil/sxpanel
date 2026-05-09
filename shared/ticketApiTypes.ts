@@ -74,21 +74,31 @@ export type TicketLogContext = {
     world: TicketLogEntry[];
 };
 
+// ── Activity entry (ticket audit trail) ──
+export type TicketActivityEntry = {
+    ts: number;
+    adminName: string;
+    action: string;
+    details?: string;
+};
+
 // ── Core DB record ──
 export type DatabaseTicketType = {
-    id: string;                          // format: TKT-XXXXX
+    id: string; // format: TKT-XXXXX
     status: TicketStatus;
-    category: string;                    // free-form, from config's ticketCategories
-    priority?: TicketPriority;           // undefined when priority is disabled in config
+    category: string; // free-form, from config's ticketCategories
+    priority?: TicketPriority; // undefined when priority is disabled in config
     reporter: TicketPlayerRef;
     targets: TicketPlayerRef[];
-    description: string;                 // replaces 'reason'
+    description: string; // replaces 'reason'
     screenshotUrl?: string;
     messages: TicketMessage[];
     staffNotes: StaffNote[];
+    activityLog: TicketActivityEntry[];
     feedback?: PlayerFeedback;
     logContext: TicketLogContext;
     claimedBy?: string;
+    excludeFromAutoDeletion?: boolean;
     resolvedBy?: string;
     discordThreadId?: string;
     tsCreated: number;
@@ -119,12 +129,14 @@ export type ApiGetTicketListResp = { tickets: TicketListItem[] } | { error: stri
 export type ApiGetTicketDetailResp = { ticket: DatabaseTicketType } | { error: string };
 
 // GET /reports/config
-export type ApiGetTicketConfigResp = {
-    categories: string[];
-    categoryDescriptions: Record<string, string>;
-    priorityEnabled: boolean;
-    feedbackEnabled: boolean;
-} | { error: string };
+export type ApiGetTicketConfigResp =
+    | {
+          categories: string[];
+          categoryDescriptions: Record<string, string>;
+          priorityEnabled: boolean;
+          feedbackEnabled: boolean;
+      }
+    | { error: string };
 
 // POST /reports/message
 export type ApiTicketMessageReq = {
@@ -139,6 +151,16 @@ export type ApiTicketNoteReq = { id: string; content: string };
 export type ApiTicketNoteDeleteReq = { id: string; noteId: string };
 export type ApiTicketNoteResp = { success: true } | { error: string };
 
+// DELETE /reports/delete
+export type ApiTicketDeleteReq = { id: string };
+export type ApiTicketDeleteResp = { success: true } | { error: string };
+
+// POST /reports/retention-exclusion
+export type ApiTicketRetentionExclusionReq = { id: string; excludeFromAutoDeletion: boolean };
+export type ApiTicketRetentionExclusionResp =
+    | { success: true; excludeFromAutoDeletion: boolean }
+    | { error: string };
+
 // POST /reports/status
 export type ApiTicketStatusReq = { id: string; status: TicketStatus };
 export type ApiTicketStatusResp = { success: true } | { error: string };
@@ -146,12 +168,12 @@ export type ApiTicketStatusResp = { success: true } | { error: string };
 // POST /reports/claim
 export type ApiTicketClaimReq = { id: string };
 export type ApiTicketClaimResp =
-    | { success: true; claimedBy: string }   // claim succeeded
-    | { success: true; claimedBy: null }     // unclaim succeeded
+    | { success: true; claimedBy: string } // claim succeeded
+    | { success: true; claimedBy: null } // unclaim succeeded
     | { error: string };
 
 // GET /reports/analytics
-export type ApiGetAnalyticsResp = {
+export type TicketAnalyticsSummary = {
     overview: {
         total: number;
         open: number;
@@ -164,7 +186,40 @@ export type ApiGetAnalyticsResp = {
     byPriority: { priority: TicketPriority; count: number }[];
     timelineDays: { date: string; created: number; resolved: number }[];
     leaderboard: { adminName: string; resolved: number; avgResolutionMs: number }[];
-} | { error: string };
+    staffMetrics: {
+        ticketsCreated: number;
+        claimedTickets: number;
+        respondedTickets: number;
+        resolvedTickets: number;
+        reopenedTickets: number;
+        avgTimeToClaimMs: number;
+        avgFirstStaffResponseMs: number;
+        avgResolutionMs: number;
+        reopenRate: number;
+    };
+    rollups: {
+        '7d': {
+            ticketsCreated: number;
+            ticketsResolved: number;
+            resolutionRate: number;
+            avgTimeToClaimMs: number;
+            avgFirstStaffResponseMs: number;
+            avgResolutionMs: number;
+            reopenRate: number;
+        };
+        '30d': {
+            ticketsCreated: number;
+            ticketsResolved: number;
+            resolutionRate: number;
+            avgTimeToClaimMs: number;
+            avgFirstStaffResponseMs: number;
+            avgResolutionMs: number;
+            reopenRate: number;
+        };
+    };
+};
+
+export type ApiGetAnalyticsResp = TicketAnalyticsSummary | { error: string };
 
 // ── NUI-facing intercom types (player) ──
 

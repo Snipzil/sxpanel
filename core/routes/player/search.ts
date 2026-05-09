@@ -211,7 +211,8 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
         if (!disabledAutoTags.has('staff') && isAdmin) tags.push('staff');
         const threshold = txConfig.gameFeatures.newplayerThreshold;
         if (!disabledAutoTags.has('newplayer') && threshold > 0 && p.playTime < threshold) tags.push('newplayer');
-        if (!disabledAutoTags.has('problematic') && (actionInfo.banCount > 0 || actionInfo.warnCount > 0)) tags.push('problematic');
+        if (!disabledAutoTags.has('problematic') && (actionInfo.banCount > 0 || actionInfo.warnCount > 0))
+            tags.push('problematic');
         if (p.customTags?.length) {
             const validIds = getValidCustomTagIds();
             for (const ct of p.customTags) {

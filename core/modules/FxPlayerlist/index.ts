@@ -3,6 +3,7 @@ import { ServerPlayer } from '@lib/player/playerClasses.js';
 import { buildPlayerSessionId } from '@lib/player/playerSessionId.js';
 import { DatabaseActionWarnType, DatabasePlayerType } from '@modules/Database/databaseTypes';
 import consoleFactory from '@lib/console';
+import { now } from '@lib/misc';
 import { PlayerDroppedEventType, PlayerJoiningEventType } from '@shared/socketioTypes';
 import { computePlayerTags } from '@lib/player/playerTags';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
@@ -115,6 +116,7 @@ export default class FxPlayerlist {
      * The data is cloned to prevent pollution.
      */
     getPlayerList() {
+        const currentTs = now();
         return this.#playerlist
             .filter((p) => p?.isConnected)
             .map((p) => {
@@ -124,6 +126,8 @@ export default class FxPlayerlist {
                     pureName: p!.pureName,
                     ids: [...p!.ids],
                     license: p!.license,
+                    playTimeMinutes: p!.dbData && typeof p!.dbData.playTime === 'number' ? p!.dbData.playTime : 0,
+                    sessionTimeSeconds: Math.max(currentTs - p!.tsConnected, 0),
                     tags: computePlayerTags(p!),
                 };
             });
@@ -231,7 +235,7 @@ export default class FxPlayerlist {
                 if (typeof payload.id !== 'number') throw new Error(`invalid player id`);
                 if (!(this.#playerlist[payload.id] instanceof ServerPlayer)) throw new Error(`player id not found`);
                 const player = this.#playerlist[payload.id]!;
-                const sessionTimeSeconds = currTs - player.tsConnected;
+                const sessionTimeSeconds = Math.max(now() - player.tsConnected, 0);
                 player.disconnect();
                 this.joinLeaveLog.push([currTs, false]);
                 const reasonCategory = txCore.metrics.playerDrop.handlePlayerDrop({

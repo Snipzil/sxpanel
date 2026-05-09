@@ -64,7 +64,7 @@ async function handleConfirmRecipe(ctx: AuthedCtx) {
     const userEditedRecipe = ctx.request.body.recipe as string;
 
     try {
-        ctx.admin.logAction('Setting recipe.');
+        ctx.admin.logAction('Setting recipe.', 'deployer.recipe.set');
         await txManager.deployer!.confirmRecipe(userEditedRecipe);
     } catch (error) {
         return ctx.send({ type: 'danger', message: emsg(error) });
@@ -181,7 +181,7 @@ async function handleSetVariables(ctx: AuthedCtx) {
 
     //Start deployer
     try {
-        ctx.admin.logAction('Running recipe.');
+        ctx.admin.logAction('Running recipe.', 'deployer.recipe.run');
         txManager.deployer!.start(userVars);
     } catch (error) {
         return ctx.send({ type: 'danger', message: emsg(error) });
@@ -251,11 +251,11 @@ async function handleSaveConfig(ctx: AuthedCtx) {
         });
     }
 
-    ctx.admin.logAction('Completed and committed server deploy.');
+    ctx.admin.logAction('Completed and committed server deploy.', 'deployer.commit');
 
     //If running (for some reason), kill it first
     if (!txCore.fxRunner.isIdle) {
-        ctx.admin.logCommand('STOP SERVER');
+        ctx.admin.logCommand('STOP SERVER', 'server.stop');
         await txCore.fxRunner.killServer('new server deployed', ctx.admin.name, true);
     }
 

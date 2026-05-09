@@ -1,4 +1,4 @@
-import type { SettingTabsDatum } from './SettingsPage';
+import type { SettingTabsDatum } from '@/pages/Settings/SettingsPage';
 import type { SettingsPageContext } from './utils';
 
 type SettingsTabProps = {

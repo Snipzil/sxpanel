@@ -20,6 +20,11 @@ RegisterNetEvent('txsv:req:tpToPlayer', function(tgtId)
         return
     end
 
+    -- Skip if targeting yourself; server-side ped coords may resolve to 0,0,0
+    if tgtId == src then
+        return
+    end
+
     local allow = PlayerHasTxPermission(src, 'players.teleport')
     local data = { x = nil, y = nil, z = nil, target = tgtId }
 

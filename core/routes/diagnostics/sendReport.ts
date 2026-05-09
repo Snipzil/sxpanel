@@ -1,4 +1,5 @@
 const modulename = 'WebServer:SendDiagnosticsReport';
+import os from 'node:os';
 import { gzipSync } from 'node:zlib';
 import got from '@lib/got';
 import { txEnv, txHostConfig } from '@core/globalData';
@@ -22,6 +23,50 @@ const reportIdCache = new MemCache<string>(60);
 const maskedKeywords = ['key', 'license', 'pass', 'private', 'secret', 'token', 'webhook'];
 const maskString = (input: string) => input.replace(/\w/gi, 'x');
 const maskIps = (input: string) => input.replace(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/gi, 'x.x.x.x');
+const getDiagnosticsSectionError = (sectionName: string, error: unknown) => ({
+    error: `Failed to collect ${sectionName}: ${emsg(error)}`,
+});
+const getReportFailureReason = (error: unknown) => {
+    const responseBody = (error as any)?.response?.body;
+    if (responseBody && typeof responseBody === 'object') {
+        if (typeof responseBody.message === 'string' && responseBody.message.trim()) {
+            return responseBody.message.trim();
+        }
+        if (typeof responseBody.error === 'string' && responseBody.error.trim()) {
+            return responseBody.error.trim();
+        }
+    }
+
+    let rawBody: string | undefined;
+    if (typeof responseBody === 'string') {
+        rawBody = responseBody.trim();
+    } else if (Buffer.isBuffer(responseBody)) {
+        rawBody = responseBody.toString('utf8').trim();
+    }
+    if (rawBody) {
+        try {
+            const parsedBody = JSON.parse(rawBody);
+            if (typeof parsedBody?.message === 'string' && parsedBody.message.trim()) {
+                return parsedBody.message.trim();
+            }
+            if (typeof parsedBody?.error === 'string' && parsedBody.error.trim()) {
+                return parsedBody.error.trim();
+            }
+        } catch {
+            return rawBody.slice(0, 500);
+        }
+    }
+
+    const statusCode = (error as any)?.response?.statusCode;
+    const statusMessage = (error as any)?.response?.statusMessage;
+    const fallbackReason = emsg(error);
+    const statusLabel =
+        typeof statusCode === 'number'
+            ? `HTTP ${statusCode}${typeof statusMessage === 'string' && statusMessage ? ` ${statusMessage}` : ''}`
+            : undefined;
+
+    return [statusLabel, fallbackReason].filter((value, index, array) => value && array.indexOf(value) === index).join(' - ');
+};
 type ServerLogType = {
     ts: number;
     type: string;
@@ -50,24 +95,42 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     }
 
     //Diagnostics
-    let diagnostics;
+    const [hostResult, txadminResult, fxserverResult, processesResult] = await Promise.allSettled([
+        diagnosticsFuncs.getHostData(),
+        diagnosticsFuncs.getTxAdminData(),
+        diagnosticsFuncs.getFXServerData(),
+        diagnosticsFuncs.getProcessesData(),
+    ]);
+
+    const diagnostics: Record<string, unknown> = {
+        host: hostResult.status === 'fulfilled' ? hostResult.value : getDiagnosticsSectionError('host diagnostics', hostResult.reason),
+        txadmin:
+            txadminResult.status === 'fulfilled'
+                ? txadminResult.value
+                : getDiagnosticsSectionError('fxPanel diagnostics', txadminResult.reason),
+        fxserver:
+            fxserverResult.status === 'fulfilled'
+                ? fxserverResult.value
+                : getDiagnosticsSectionError('FXServer diagnostics', fxserverResult.reason),
+        processes:
+            processesResult.status === 'fulfilled'
+                ? processesResult.value
+                : getDiagnosticsSectionError('process diagnostics', processesResult.reason),
+    };
     try {
-        const [host, txadmin, fxserver, processes] = await Promise.all([
-            diagnosticsFuncs.getHostData(),
-            diagnosticsFuncs.getTxAdminData(),
-            diagnosticsFuncs.getFXServerData(),
-            diagnosticsFuncs.getProcessesData(),
-        ]);
-        diagnostics = { host, txadmin, fxserver, processes };
+        diagnostics.discordBot = txCore.discordBot.getDiagnostics();
     } catch (error) {
-        /* report continues with partial diagnostics */
+        diagnostics.discordBot = getDiagnosticsSectionError('Discord bot diagnostics', error);
+    }
+    try {
+        diagnostics.botCommandAnalytics = txCore.database.botAnalytics.getCommandAnalytics(30);
+    } catch (error) {
+        diagnostics.botCommandAnalytics = getDiagnosticsSectionError('bot command analytics', error);
     }
     const adminList = (txCore.adminStore.getRawAdminsList() as any[]).map((a) => ({
         ...a,
         password_hash: '[REDACTED]',
     }));
-
-    //Settings
     const storedConfigs = txCore.configStore.getStoredConfig() as any;
     if (storedConfigs?.discordBot?.token) {
         storedConfigs.discordBot.token = '[REDACTED]';
@@ -135,11 +198,45 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     } catch (error) {
         /* monitor files unavailable */
     }
+
+    const reportMeta = {
+        generatedAt: new Date().toISOString(),
+        payload: {
+            contentEncoding: 'gzip',
+            schemaVersion: 2,
+            jsonBytes: 0,
+            gzipBytes: 0,
+        },
+        process: {
+            pid: process.pid,
+            ppid: process.ppid,
+            platform: process.platform,
+            arch: process.arch,
+            uptimeSeconds: Math.round(process.uptime()),
+            execArgv: redactStartupSecrets(process.execArgv).map((arg) => maskIps(arg)),
+            versions: Object.fromEntries(Object.entries(process.versions).sort(([left], [right]) => left.localeCompare(right))),
+            resourceUsage: process.resourceUsage(),
+        },
+        host: {
+            type: os.type(),
+            release: os.release(),
+            arch: os.arch(),
+            endianness: os.endianness(),
+            uptimeSeconds: Math.round(os.uptime()),
+            totalMemory: os.totalmem(),
+            freeMemory: os.freemem(),
+            loadAverage: os.loadavg(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            locale: Intl.DateTimeFormat().resolvedOptions().locale,
+        },
+    };
+
     const reportData = {
         $schemaVersion: 2,
         $txVersion: txEnv.txaVersion,
         $fxVersion: String(txEnv.fxsVersion),
         $provider: txHostConfig.providerName ?? undefined,
+        reportMeta,
         diagnostics,
         txSystemLog,
         txActionLog,
@@ -156,10 +253,20 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     };
 
     // //Preparing request
-    const jsonBody = JSON.stringify(reportData);
-    const gzippedBody = gzipSync(jsonBody);
+    let jsonBody = JSON.stringify(reportData);
+    let gzippedBody = gzipSync(jsonBody);
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const nextJsonBytes = Buffer.byteLength(jsonBody);
+        const nextGzipBytes = gzippedBody.byteLength;
+        if (reportMeta.payload.jsonBytes === nextJsonBytes && reportMeta.payload.gzipBytes === nextGzipBytes) {
+            break;
+        }
+        reportMeta.payload.jsonBytes = nextJsonBytes;
+        reportMeta.payload.gzipBytes = nextGzipBytes;
+        jsonBody = JSON.stringify(reportData);
+        gzippedBody = gzipSync(jsonBody);
+    }
     const requestOptions = {
-        url: `https://fxapi.fxpanel.org/api/diagnostics`,
         retry: { limit: 1 },
         body: gzippedBody,
         headers: {
@@ -171,7 +278,7 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     //Making HTTP Request
     try {
         type ResponseType = { reportId: string } | { error: string; message?: string };
-        const apiResp = (await got.post(requestOptions).json()) as ResponseType;
+        const apiResp = (await got.post('https://fxapi.fxpanel.org/api/diagnostics', requestOptions).json()) as ResponseType;
         if ('reportId' in apiResp) {
             reportIdCache.set(apiResp.reportId);
             console.warn(`Diagnostics data report ID ${apiResp.reportId} sent by ${ctx.admin.name}`);
@@ -181,12 +288,6 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
             return sendTypedResp({ error: `Report failed: ${apiResp.message ?? apiResp.error}` });
         }
     } catch (error) {
-        try {
-            const apiErrorResp = JSON.parse((error as any)?.response?.body);
-            const reason = apiErrorResp.message ?? apiErrorResp.error ?? emsg(error);
-            return sendTypedResp({ error: `Report failed: ${reason}` });
-        } catch (error2) {
-            return sendTypedResp({ error: `Report failed: ${emsg(error2)}` });
-        }
+        return sendTypedResp({ error: `Report failed: ${getReportFailureReason(error)}` });
     }
 }

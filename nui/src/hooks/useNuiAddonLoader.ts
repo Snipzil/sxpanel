@@ -27,6 +27,26 @@ function toResourceUrl(relativePath: string): string {
     return `${WEBPIPE_PATH}/${relativePath}`;
 }
 
+const getSafeAddonApiPath = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('/addons/')) return null;
+    if (trimmed.includes('..')) return null;
+    if (!/^[a-zA-Z0-9_./?=&%-]+$/.test(trimmed)) return null;
+    return trimmed;
+};
+
+const getSafeAddonResourcePath = (addonId: string, value: string | null | undefined) => {
+    if (!value || typeof value !== 'string') return null;
+    const trimmed = value.trim().replace(/^\/+/, '');
+    if (!trimmed) return null;
+    if (/^[a-z]+:/i.test(trimmed)) return null;
+    if (trimmed.includes('..')) return null;
+    if (!/^[a-zA-Z0-9_./-]+$/.test(trimmed)) return null;
+    const allowedPrefix = `addons/${addonId}/`;
+    if (!trimmed.startsWith(allowedPrefix)) return null;
+    return trimmed;
+};
+
 async function loadNuiAddons(): Promise<void> {
     try {
         const resp = await fetchWebPipe<{ addons: AddonNuiDescriptor[] }>('/addons/nui-manifest');
@@ -35,11 +55,14 @@ async function loadNuiAddons(): Promise<void> {
         // Expose a minimal API for NUI addon scripts
         (window as any).txNuiAddonApi = {
             /** Get a URL to an addon's static asset (e.g. images, SVGs) */
-            getStaticUrl: (addonId: string, filePath: string) =>
-                toResourceUrl(`addons/${addonId}/static/${filePath}`),
+            getStaticUrl: (addonId: string, filePath: string) => toResourceUrl(`addons/${addonId}/static/${filePath}`),
             /** Make an authenticated request to an addon API route via WebPipe */
             fetch: async (path: string, opts?: { method?: string; data?: unknown }) => {
-                return fetchWebPipe(path as any, {
+                const safePath = getSafeAddonApiPath(path);
+                if (!safePath) {
+                    throw new Error('Invalid addon API path');
+                }
+                return fetchWebPipe(safePath as any, {
                     method: opts?.method as any,
                     data: opts?.data,
                 });
@@ -49,23 +72,30 @@ async function loadNuiAddons(): Promise<void> {
         for (const addon of resp.addons) {
             try {
                 const appendScript = () => {
-                    if (!addon.entryUrl) return;
+                    const safeEntryPath = getSafeAddonResourcePath(addon.id, addon.entryUrl);
+                    if (!safeEntryPath) return;
                     const script = document.createElement('script');
-                    script.src = toResourceUrl(addon.entryUrl.replace(/^\//, ''));
+                    script.src = toResourceUrl(safeEntryPath);
                     script.async = false;
                     script.dataset.addonId = addon.id;
-                    script.onerror = () => console.error(`[NuiAddonLoader] Failed to load script for addon ${addon.id}: ${addon.entryUrl}`);
+                    script.onerror = () =>
+                        console.error(
+                            `[NuiAddonLoader] Failed to load script for addon ${addon.id}: ${addon.entryUrl}`,
+                        );
                     document.head.appendChild(script);
                 };
 
-                if (addon.stylesUrl) {
+                const safeStylesPath = getSafeAddonResourcePath(addon.id, addon.stylesUrl);
+                if (safeStylesPath) {
                     const link = document.createElement('link');
                     link.rel = 'stylesheet';
-                    link.href = toResourceUrl(addon.stylesUrl.replace(/^\//, ''));
+                    link.href = toResourceUrl(safeStylesPath);
                     link.dataset.addonId = addon.id;
                     link.onload = appendScript;
                     link.onerror = () => {
-                        console.error(`[NuiAddonLoader] Failed to load stylesheet for addon ${addon.id}: ${addon.stylesUrl}`);
+                        console.error(
+                            `[NuiAddonLoader] Failed to load stylesheet for addon ${addon.id}: ${addon.stylesUrl}`,
+                        );
                         appendScript();
                     };
                     document.head.appendChild(link);

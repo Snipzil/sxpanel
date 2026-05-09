@@ -39,8 +39,10 @@ export default function AdminEditDialog({ target, allPresets, onClose, onSaved, 
     const isNew = target === 'new';
 
     const [name, setName] = useState(isNew ? (initialData?.name ?? '') : target.name);
-    const [citizenfxId, setCitizenfxId] = useState(isNew ? (initialData?.citizenfxId ?? '') : '');
-    const [discordId, setDiscordId] = useState(isNew ? (initialData?.discordId ?? '') : '');
+    const [citizenfxId, setCitizenfxId] = useState(
+        isNew ? (initialData?.citizenfxId ?? '') : (target.citizenfxId ?? ''),
+    );
+    const [discordId, setDiscordId] = useState(isNew ? (initialData?.discordId ?? '') : (target.discordId ?? ''));
     const [permissions, setPermissions] = useState<string[]>(isNew ? [] : target.permissions);
     const [isSaving, setIsSaving] = useState(false);
     const [tempPassword, setTempPassword] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export default function AdminEditDialog({ target, allPresets, onClose, onSaved, 
             return;
         }
 
-        //Check for dangerous permissions being added â€” require confirmation
+        //Check for dangerous permissions being added - require confirmation
         if (newDangerous.length > 0 && !showConfirm) {
             setShowConfirm(true);
             return;
@@ -153,11 +155,19 @@ export default function AdminEditDialog({ target, allPresets, onClose, onSaved, 
     // Show temp password screen after adding
     if (tempPassword) {
         return (
-            <Dialog open onOpenChange={() => { onSaved(); onClose(); }}>
+            <Dialog
+                open
+                onOpenChange={() => {
+                    onSaved();
+                    onClose();
+                }}
+            >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Admin Created</DialogTitle>
-                        <DialogDescription>A temporary password has been generated; copy it now â€” it will not be shown again.</DialogDescription>
+                        <DialogDescription>
+                            A temporary password has been generated; copy it now - it will not be shown again.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3">
                         <p className="text-muted-foreground text-sm">
@@ -192,7 +202,7 @@ export default function AdminEditDialog({ target, allPresets, onClose, onSaved, 
 
                 <div className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
                     <div className="space-y-4 pb-2">
-                        {/* â”€â”€ Identity fields â”€â”€ */}
+                        {/* - -  Identity fields - -  */}
                         <div className="grid gap-3 sm:grid-cols-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="admin-name">Username</Label>
@@ -225,7 +235,7 @@ export default function AdminEditDialog({ target, allPresets, onClose, onSaved, 
 
                         <Separator />
 
-                        {/* â”€â”€ Preset selector â”€â”€ */}
+                        {/* - -  Preset selector - -  */}
                         <div className="flex items-center gap-3">
                             <Label className="text-sm font-medium whitespace-nowrap">Apply Preset:</Label>
                             <Select onValueChange={applyPreset}>
@@ -244,10 +254,10 @@ export default function AdminEditDialog({ target, allPresets, onClose, onSaved, 
 
                         <Separator />
 
-                        {/* â”€â”€ Permissions editor â”€â”€ */}
+                        {/* - -  Permissions editor - -  */}
                         <PermissionsEditor selected={permissions} onChange={setPermissions} />
 
-                        {/* â”€â”€ Permission diff summary â”€â”€ */}
+                        {/* - -  Permission diff summary - -  */}
                         {!isNew && hasDiff && (
                             <div className="space-y-1.5 rounded-md border p-3">
                                 <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">

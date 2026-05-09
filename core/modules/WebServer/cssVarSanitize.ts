@@ -17,4 +17,5 @@ export const PANEL_VAR_VALUE_RE = /^[a-zA-Z0-9 #().,%/_+\-*]+$/;
  * Patterns that indicate an attempt to break out of a value or
  * exfiltrate/load external resources.
  */
-export const PANEL_VAR_FORBIDDEN_RE = /url\s*\(|@import|@charset|@\w+|expression\s*\(|-moz-binding|behavior\s*:|javascript:|data:|\\[0-9a-fA-F]/i;
+export const PANEL_VAR_FORBIDDEN_RE =
+    /url\s*\(|@import|@charset|@\w+|expression\s*\(|-moz-binding|behavior\s*:|javascript:|data:|\\[0-9a-fA-F]/i;

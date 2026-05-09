@@ -85,7 +85,7 @@ export default function ServerMenu() {
     const txConfigState = useAtomValue(txConfigStateAtom);
     const { hasPerm } = useAdminPerms();
     const { pages: addonPages } = useAddonLoader();
-    const sidebarAddonPages = addonPages.filter(p => p.sidebar === true);
+    const sidebarAddonPages = addonPages.filter((p) => p.sidebar === true);
 
     const isConfigPending = txConfigState !== TxConfigState.Ready;
     return (
@@ -124,7 +124,7 @@ export default function ServerMenu() {
                     )}
                     {sidebarAddonPages.length > 0 && (
                         <>
-                            <hr className="my-1.5 border-border" />
+                            <hr className="border-border my-1.5" />
                             {sidebarAddonPages.map((page) => (
                                 <MenuNavLink
                                     key={page.path}

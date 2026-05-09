@@ -14,7 +14,7 @@ suite('filterTermLine', () => {
         empty: '',
         info: '[             fxPanel] ================================================================ ',
         resGroup: '[resources:[builders]] Warning: [builders]x does not have a resource manifest (fxmanifest.lua)',
-        input: '[             tabarra] dd ',
+        input: '[             SomeAussieGamer] dd ',
         normal: '[           resources] Scanning resources.',
         normal2: '[                 cmd] No such command dd.',
         normal3: '[ citizen-server-main] Warning: The players.json endpoint has been modified',

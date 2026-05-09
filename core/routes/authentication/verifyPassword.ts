@@ -1,5 +1,5 @@
 const modulename = 'WebServer:AuthVerifyPassword';
-import { PassSessAuthType, Pending2faSessAuthType } from '@modules/WebServer/authLogic';
+import { PassSessAuthType, Pending2faSessAuthType, resolveEffectiveAuthedAdmin } from '@modules/WebServer/authLogic';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import { txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
@@ -67,11 +67,13 @@ export default async function AuthVerifyPassword(ctx: InitializedCtx) {
         } satisfies PassSessAuthType;
         ctx.sessTools.regenerate({ auth: sessData });
 
-        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via password`, 'login');
+        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via password`, 'login', {
+            actionId: 'login.password',
+        });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('password');
 
-        const authedAdmin = vaultAdmin.getAuthed(sessData.csrfToken);
+        const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
         return ctx.send<ReactAuthDataType>(authedAdmin.getAuthData());
     } catch (error) {
         console.warn(`Failed to authenticate ${postBody.username} with error: ${emsg(error)}`);

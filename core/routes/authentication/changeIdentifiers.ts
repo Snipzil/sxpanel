@@ -84,7 +84,7 @@ export default async function AuthChangeIdentifiers(ctx: AuthedCtx) {
     try {
         await txCore.adminStore.editAdmin(ctx.admin.name, null, citizenfxData, discordData);
 
-        ctx.admin.logAction('Changing own identifiers.');
+        ctx.admin.logAction('Changing own identifiers.', 'auth.identifiers.change');
         return ctx.send<GenericApiResp>({ success: true });
     } catch (error) {
         return ctx.send<GenericApiResp>({ error: emsg(error) });

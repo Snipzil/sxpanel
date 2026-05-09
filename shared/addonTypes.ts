@@ -21,14 +21,9 @@ import { z } from 'zod';
  * Approval of an addon still implies full trust: an approved addon is equivalent to code
  * running inside the txAdmin host process for purposes that are not on an IPC boundary.
  */
-export const ADDON_PERMISSIONS = [
-    'storage',
-    'players.read',
-    'players.write',
-    'ws.push',
-] as const;
+export const ADDON_PERMISSIONS = ['storage', 'players.read', 'players.write', 'ws.push'] as const;
 
-export type AddonPermission = typeof ADDON_PERMISSIONS[number];
+export type AddonPermission = (typeof ADDON_PERMISSIONS)[number];
 const AddonPermissionSchema = z.enum(ADDON_PERMISSIONS);
 
 //============================================
@@ -48,10 +43,14 @@ export const AddonPageSchema = z.object({
 });
 
 export const AddonWidgetSchema = z.object({
-    slot: z.string()
+    slot: z
+        .string()
         .min(1)
         .max(128)
-        .regex(/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/, 'Slot must be dot-separated lowercase segments (e.g. "dashboard.main", "settings.tab.discord")'),
+        .regex(
+            /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/,
+            'Slot must be dot-separated lowercase segments (e.g. "dashboard.main", "settings.tab.discord")',
+        ),
     component: z.string().min(1),
     title: z.string().min(1).max(64),
     defaultSize: z.enum(['full', 'half', 'quarter']).default('half'),
@@ -66,12 +65,47 @@ export const AddonNuiPageSchema = z.object({
     permission: z.string().optional(),
 });
 
+const isSafeAddonRelativePath = (value: string) => {
+    if (/^[a-zA-Z]:[\\/]/.test(value)) return false;
+    if (value.startsWith('/') || value.startsWith('\\')) return false;
+
+    return !value.split(/[\\/]+/).some((segment) => segment === '..');
+};
+
+const addonRelativePathSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => isSafeAddonRelativePath(value), {
+        message: 'Path must be addon-relative and must not escape the addon directory',
+    });
+
+export const AddonDiscordRateLimitSchema = z.object({
+    max: z.number().int().min(1).max(1000),
+    windowMs: z.number().int().min(1_000).max(3_600_000),
+});
+
+export const AddonDiscordBotSchema = z
+    .object({
+        commands: addonRelativePathSchema.optional(),
+        events: addonRelativePathSchema.optional(),
+        rateLimit: AddonDiscordRateLimitSchema.optional(),
+    })
+    .refine((value) => value.commands || value.events, {
+        message: 'discordBot must declare at least one of commands or events',
+    });
+
 export const AddonManifestSchema = z.object({
     // Identity
     id: z.string().regex(addonIdRegex, 'Addon ID must be 3-64 chars, lowercase alphanumeric + hyphens'),
     name: z.string().min(1).max(64),
     description: z.string().max(256),
-    version: z.string().regex(/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?(?:\+[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*)?$/, 'Version must be semver'),
+    version: z
+        .string()
+        .regex(
+            /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?(?:\+[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*)?$/,
+            'Version must be semver',
+        ),
     author: z.string().min(1).max(64),
     homepage: z.string().url().optional(),
     license: z.string().optional(),
@@ -92,41 +126,64 @@ export const AddonManifestSchema = z.object({
     }),
 
     // Custom admin permissions this addon registers
-    adminPermissions: z.array(z.object({
-        id: z.string().min(1).max(64).regex(/^[a-z][a-z0-9._-]*$/, 'Permission ID must be lowercase alphanumeric with dots, hyphens, or underscores'),
-        label: z.string().min(1).max(64),
-        description: z.string().max(256),
-    })).default([]),
+    adminPermissions: z
+        .array(
+            z.object({
+                id: z
+                    .string()
+                    .min(1)
+                    .max(64)
+                    .regex(
+                        /^[a-z][a-z0-9._-]*$/,
+                        'Permission ID must be lowercase alphanumeric with dots, hyphens, or underscores',
+                    ),
+                label: z.string().min(1).max(64),
+                description: z.string().max(256),
+            }),
+        )
+        .default([]),
 
     // Entry points
-    server: z.object({
-        entry: z.string(),
-    }).optional(),
+    server: z
+        .object({
+            entry: z.string(),
+        })
+        .optional(),
 
-    panel: z.object({
-        entry: z.string(),
-        styles: z.string().optional(),
-        pages: z.array(AddonPageSchema).default([]),
-        widgets: z.array(AddonWidgetSchema).default([]),
-        settingsComponent: z.string().optional(),
-    }).optional(),
+    panel: z
+        .object({
+            entry: z.string(),
+            styles: z.string().optional(),
+            pages: z.array(AddonPageSchema).default([]),
+            widgets: z.array(AddonWidgetSchema).default([]),
+            settingsComponent: z.string().optional(),
+        })
+        .optional(),
 
-    nui: z.object({
-        entry: z.string(),
-        styles: z.string().optional(),
-        pages: z.array(AddonNuiPageSchema).default([]),
-    }).optional(),
+    nui: z
+        .object({
+            entry: z.string(),
+            styles: z.string().optional(),
+            pages: z.array(AddonNuiPageSchema).default([]),
+        })
+        .optional(),
 
-    resource: z.object({
-        server_scripts: z.array(z.string()).default([]),
-        client_scripts: z.array(z.string()).default([]),
-    }).optional(),
+    discordBot: AddonDiscordBotSchema.optional(),
+
+    resource: z
+        .object({
+            server_scripts: z.array(z.string()).default([]),
+            client_scripts: z.array(z.string()).default([]),
+        })
+        .optional(),
 
     // Public route support (unauthenticated HTTP)
     publicRoutes: z.boolean().default(false),
-    publicServer: z.object({
-        defaultPort: z.number().int().min(1).max(65535),
-    }).optional(),
+    publicServer: z
+        .object({
+            defaultPort: z.number().int().min(1).max(65535),
+        })
+        .optional(),
 });
 
 export type AddonManifest = z.infer<typeof AddonManifestSchema>;
@@ -148,7 +205,7 @@ export const ADDON_STATES = [
     'crashed',
 ] as const;
 
-export type AddonState = typeof ADDON_STATES[number];
+export type AddonState = (typeof ADDON_STATES)[number];
 
 //============================================
 // Addon Config (addon-config.json)
@@ -193,8 +250,22 @@ export interface AddonRouteDescriptor {
 export type CoreToAddonMessage =
     | { type: 'init'; payload: { addonId: string; permissions: string[] } }
     | { type: 'shutdown'; payload: Record<string, never> }
-    | { type: 'http-request'; id: string; payload: { method: string; path: string; headers: Record<string, string>; body: unknown; admin: { name: string; permissions: string[] } } }
-    | { type: 'public-request'; id: string; payload: { method: string; path: string; headers: Record<string, string>; body: unknown } }
+    | {
+          type: 'http-request';
+          id: string;
+          payload: {
+              method: string;
+              path: string;
+              headers: Record<string, string>;
+              body: unknown;
+              admin: { name: string; permissions: string[] };
+          };
+      }
+    | {
+          type: 'public-request';
+          id: string;
+          payload: { method: string; path: string; headers: Record<string, string>; body: unknown };
+      }
     | { type: 'event'; payload: { event: string; data: unknown } }
     | { type: 'storage-response'; id: string; payload: { data: unknown; error?: string } }
     | { type: 'api-call-response'; id: string; payload: { data: unknown; error?: string } }
@@ -204,8 +275,16 @@ export type CoreToAddonMessage =
 // Addon → Core messages
 export type AddonToCoreMessage =
     | { type: 'ready'; payload: { routes: AddonRouteDescriptor[]; publicRoutes?: AddonRouteDescriptor[] } }
-    | { type: 'http-response'; id: string; payload: { status: number; headers?: Record<string, string>; body: unknown } }
-    | { type: 'storage-request'; id: string; payload: { op: 'get' | 'set' | 'delete' | 'list'; key?: string; value?: unknown } }
+    | {
+          type: 'http-response';
+          id: string;
+          payload: { status: number; headers?: Record<string, string>; body: unknown };
+      }
+    | {
+          type: 'storage-request';
+          id: string;
+          payload: { op: 'get' | 'set' | 'delete' | 'list'; key?: string; value?: unknown };
+      }
     | { type: 'api-call'; id: string; payload: { method: string; args: unknown[] } }
     | { type: 'ws-push'; payload: { event: string; data: unknown } }
     | { type: 'log'; payload: { level: 'info' | 'warn' | 'error'; message: string } }
@@ -236,6 +315,14 @@ export interface AddonNuiDescriptor {
     pages: z.infer<typeof AddonNuiPageSchema>[];
 }
 
+export interface AddonDiscordBotDescriptor {
+    id: string;
+    name: string;
+    commandsPath: string | null;
+    eventsPath: string | null;
+    rateLimit: z.infer<typeof AddonDiscordRateLimitSchema> | null;
+}
+
 export interface AddonListItem {
     id: string;
     name: string;
@@ -243,6 +330,8 @@ export interface AddonListItem {
     version: string;
     author: string;
     state: AddonState;
+    /** Optional human-readable reason for invalid/failed/crashed states. */
+    lastError?: string;
     /** True when the addon was previously approved but now requires new permissions. */
     needsReapproval: boolean;
     /** True when the addon exports a settings component. */

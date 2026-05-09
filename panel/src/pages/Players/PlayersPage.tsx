@@ -93,7 +93,6 @@ export default function PlayersPage() {
     const { stats: calloutData } = usePlayersStats();
     const [searchBoxReturn, setSearchBoxReturn] = useState<PlayersSearchBoxReturnStateType | undefined>(undefined);
 
-
     //PlayerSearchBox handlers
     const doSearch = useCallback(
         (search: PlayersTableSearchType, filters: PlayersTableFiltersType, rememberSearchType: boolean) => {
@@ -139,10 +138,7 @@ export default function PlayersPage() {
 
     return (
         <div className="h-contentvh flex w-full min-w-96 flex-col">
-            <PageHeader
-                title="Players"
-                icon={<UsersIcon className="size-5" />}
-            />
+            <PageHeader title="Players" icon={<UsersIcon className="size-5" />} />
 
             <PageCalloutRowMemo callouts={calloutRowData} />
 

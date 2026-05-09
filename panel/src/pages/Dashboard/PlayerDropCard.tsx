@@ -206,10 +206,12 @@ export default function PlayerDropCard() {
     }
 
     return (
-        <div className="bg-card flex h-80 max-h-80 flex-col rounded-xl border border-border/60 py-2 shadow-sm">
+        <div className="bg-card border-border/60 flex h-80 max-h-80 flex-col rounded-xl border py-2 shadow-sm">
             <div className="flex flex-row items-center justify-between space-y-0 px-4 pb-2">
-                <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">Player Drops (last 6h)</h3>
-                <DoorOpenIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
+                <h3 className="text-muted-foreground/50 text-[10px] font-semibold tracking-widest uppercase">
+                    Player Drops (last 6h)
+                </h3>
+                <DoorOpenIcon className="text-muted-foreground/30 h-3.5 w-3.5" />
             </div>
             {/* <div className='font-mono'>
                 {Object.entries(playerDropCategories).map(([reason, { label, color }]) => {

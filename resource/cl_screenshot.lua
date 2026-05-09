@@ -16,6 +16,7 @@ RegisterNetEvent('txcl:screenshot:request', function(requestId)
     if type(requestId) ~= 'string' then
         return
     end
+
     SendNUIMessage({
         action = 'takeScreenshot',
         data = {

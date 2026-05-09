@@ -190,6 +190,84 @@ local function getLogPlayerName(src)
     end
 end
 
+local function getLogPlayerLocation(src)
+    if type(src) ~= 'number' then
+        return false
+    end
+
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then
+        return false
+    end
+
+    local coords = GetEntityCoords(ped)
+    if not coords then
+        return false
+    end
+
+    return {
+        x = coords.x + 0.0,
+        y = coords.y + 0.0,
+        z = coords.z + 0.0,
+    }
+end
+
+local function getMenuCommandMeta(action, data)
+    if action == 'playerModeChanged' then
+        if data == 'godmode' then
+            return 'players.godmode', 'players.godmode'
+        elseif data == 'noclip' then
+            return 'players.noclip', 'players.noclip'
+        elseif data == 'superjump' then
+            return 'players.superjump', 'players.superjump'
+        elseif data == 'none' then
+            return 'players.standard_mode', 'players.noclip'
+        end
+    elseif action == 'teleportWaypoint' then
+        return 'players.teleport.waypoint', 'players.teleport'
+    elseif action == 'teleportCoords' then
+        return 'players.teleport.coords', 'players.teleport'
+    elseif action == 'spawnVehicle' then
+        return 'menu.vehicle.spawn', 'menu.vehicle.spawn'
+    elseif action == 'deleteVehicle' then
+        return 'menu.vehicle.delete', 'menu.vehicle.delete'
+    elseif action == 'vehicleRepair' then
+        return 'menu.vehicle.fix', 'menu.vehicle.fix'
+    elseif action == 'vehicleBoost' then
+        return 'menu.vehicle.boost', 'menu.vehicle.boost'
+    elseif action == 'healSelf' then
+        return 'players.heal.self', 'players.heal'
+    elseif action == 'healAll' then
+        return 'players.heal.all', 'players.heal'
+    elseif action == 'healRadius' then
+        return 'players.heal.radius', 'players.heal'
+    elseif action == 'announcement' then
+        return 'announcement', 'announcement'
+    elseif action == 'clearArea' then
+        return 'menu.clear_area', 'menu.clear_area'
+    elseif action == 'spectatePlayer' then
+        return 'players.spectate', 'players.spectate'
+    elseif action == 'freezePlayer' then
+        return 'players.freeze', 'players.freeze'
+    elseif action == 'teleportPlayer' then
+        return 'players.teleport.player', 'players.teleport'
+    elseif action == 'healPlayer' then
+        return 'players.heal.player', 'players.heal'
+    elseif action == 'summonPlayer' then
+        return 'players.summon', 'players.teleport'
+    elseif action == 'drunkEffect' then
+        return 'players.troll.drunk', 'players.troll'
+    elseif action == 'setOnFire' then
+        return 'players.troll.fire', 'players.troll'
+    elseif action == 'wildAttack' then
+        return 'players.troll.wild_attack', 'players.troll'
+    elseif action == 'showPlayerIDs' then
+        return 'menu.viewids', 'menu.viewids'
+    end
+
+    return action, false
+end
+
 AddEventHandler('txsv:logger:menuEvent', function(source, action, allowed, data)
     if not allowed then
         return
@@ -292,8 +370,13 @@ AddEventHandler('txsv:logger:menuEvent', function(source, action, allowed, data)
         return
     end
 
+    local commandId, permissionId = getMenuCommandMeta(action, data)
+
     logger(source, 'MenuEvent', {
         action = action,
+        commandId = commandId,
+        permissionId = permissionId,
+        location = getLogPlayerLocation(source),
         message = message,
     })
 end)

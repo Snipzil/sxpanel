@@ -8,7 +8,7 @@ import liveconsoleRoom from './wsRooms/liveconsole';
 import serverlogRoom from './wsRooms/serverlog';
 import systemlogRoom from './wsRooms/systemlog';
 import resourcesRoom from './wsRooms/resources';
-import { AuthedAdminType, checkRequestAuth } from './authLogic';
+import { AuthedAdminType, checkRequestAuth, resolveEffectiveAuthedAdmin } from './authLogic';
 import { SocketWithSession } from './ctxTypes';
 import { isIpAddressLocal } from '@lib/host/isIpAddressLocal';
 import { txEnv } from '@core/globalData';
@@ -130,7 +130,7 @@ export default class WebSocket {
             }
 
             //Sending auth data update - even if nothing changed
-            const { admin: authedAdmin } = authResult;
+            const authedAdmin = await resolveEffectiveAuthedAdmin(authResult.admin);
             socket.emit('updateAuthData', authedAdmin.getAuthData());
 
             //Checking permission of all joined rooms
@@ -147,7 +147,7 @@ export default class WebSocket {
     /**
      * Handles incoming connection requests,
      */
-    handleConnection(socket: SocketWithSession) {
+    async handleConnection(socket: SocketWithSession) {
         //Check the UI version
         if (socket.handshake.query.uiVersion && socket.handshake.query.uiVersion !== txEnv.txaVersion) {
             return forceUiReload(socket);
@@ -165,7 +165,7 @@ export default class WebSocket {
             if (!authResult.success) {
                 return terminateSession(socket, 'invalid session', false);
             }
-            const { admin: authedAdmin } = authResult;
+            const authedAdmin = await resolveEffectiveAuthedAdmin(authResult.admin);
 
             //Check if joining any room
             if (typeof socket.handshake.query.rooms !== 'string') {

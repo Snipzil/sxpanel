@@ -216,6 +216,10 @@ export default class ServerLogger extends LoggerBase {
 
                 //Write to JSONL session file
                 this.sessionStream.write(JSON.stringify(eventObject) + '\n');
+
+                if (eventObject.type === 'MenuEvent' && typeof txCore.discordBot?.handleServerLogEvent === 'function') {
+                    txCore.discordBot.handleServerLogEvent(data[i], eventObject).catch(() => {});
+                }
             } catch (error) {
                 console.verbose.error('Error processing FD3 txAdminLogData:');
                 console.verbose.dir(error);

@@ -1,7 +1,7 @@
 const modulename = 'WebServer:AuthDiscordCallback';
 import consoleFactory from '@lib/console';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
-import { DiscordSessAuthType } from '@modules/WebServer/authLogic';
+import { DiscordSessAuthType, resolveEffectiveAuthedAdmin } from '@modules/WebServer/authLogic';
 import { discordCallbackBodySchema as bodySchema } from '@shared/authApiSchemas';
 import { ApiOauthCallbackErrorResp, ApiOauthCallbackResp, ReactAuthDataType } from '@shared/authApiTypes';
 const console = consoleFactory(modulename);
@@ -72,7 +72,7 @@ export default async function AuthDiscordCallback(ctx: InitializedCtx) {
                 errorMessage: `Status ${tokenRes.status}`,
             });
         }
-        const tokenData = await tokenRes.json() as { access_token?: unknown };
+        const tokenData = (await tokenRes.json()) as { access_token?: unknown };
         if (!tokenData.access_token || typeof tokenData.access_token !== 'string') {
             const safeKeys = Object.keys(tokenData).join(', ');
             console.verbose.warn(`Discord token exchange returned invalid access_token. Response fields: ${safeKeys}`);
@@ -103,7 +103,7 @@ export default async function AuthDiscordCallback(ctx: InitializedCtx) {
                 errorMessage: `Status ${userRes.status}`,
             });
         }
-        const userData = await userRes.json() as { id: string; username: string; global_name?: string };
+        const userData = (await userRes.json()) as { id: string; username: string; global_name?: string };
         discordId = userData.id;
         discordUsername = userData.global_name || userData.username;
     } catch (error) {
@@ -140,8 +140,10 @@ export default async function AuthDiscordCallback(ctx: InitializedCtx) {
         } satisfies DiscordSessAuthType;
         ctx.sessTools.regenerate({ auth: sessData });
 
-        const authedAdmin = vaultAdmin.getAuthed(sessData.csrfToken);
-        authedAdmin.logAction(`logged in from ${ctx.ip} via discord`);
+        const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
+        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via discord`, 'login', {
+            actionId: 'login.discord',
+        });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('discord');
         return ctx.send<ReactAuthDataType>(authedAdmin.getAuthData());

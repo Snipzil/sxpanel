@@ -7,6 +7,7 @@ import ActionsDao from './dao/actions';
 import WhitelistDao from './dao/whitelist';
 import StatsDao from './dao/stats';
 import CleanupDao from './dao/cleanup';
+import BotAnalyticsDao from './dao/botAnalytics';
 import TicketsDao from './dao/tickets';
 import { TxConfigState } from '@shared/enums';
 const console = consoleFactory(modulename);
@@ -23,6 +24,7 @@ export default class Database {
     readonly whitelist: WhitelistDao;
     readonly stats: StatsDao;
     readonly cleanup: CleanupDao;
+    readonly botAnalytics: BotAnalyticsDao;
     readonly tickets: TicketsDao;
     /** @deprecated Use tickets */
     readonly reports: TicketsDao;
@@ -34,15 +36,19 @@ export default class Database {
         this.whitelist = new WhitelistDao(this.#db);
         this.stats = new StatsDao(this.#db);
         this.cleanup = new CleanupDao(this.#db);
+        this.botAnalytics = new BotAnalyticsDao(this.#db);
         this.tickets = new TicketsDao(this.#db);
         this.reports = this.tickets; // backwards compat alias
 
         // Wait for database to be ready, then build indexes
-        this.#db.whenReady().then(() => {
-            this.actions.buildIndexes();
-        }).catch((error) => {
-            console.error('Failed to build database indexes:', error.message ?? error);
-        });
+        this.#db
+            .whenReady()
+            .then(() => {
+                this.actions.buildIndexes();
+            })
+            .catch((error) => {
+                console.error('Failed to build database indexes:', error.message ?? error);
+            });
 
         //Database optimization cron function
         const optimizerTask = () => {

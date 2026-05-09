@@ -82,13 +82,17 @@ export default function ActionLogPage() {
     };
 
     return (
-        <div className="h-contentvh flex w-full flex-col">
-            <PageHeader title="Action Log" icon={<ScrollTextIcon />}>
+        <div className="h-contentvh mx-auto flex w-full max-w-(--breakpoint-xl) flex-col gap-4 px-2 md:px-0">
+            <PageHeader
+                title="Action Log"
+                description="Review administrative activity and configuration changes."
+                icon={<ScrollTextIcon />}
+            >
                 <PageHeaderChangelog changelogData={configChangelog} />
             </PageHeader>
 
             <TooltipProvider delayDuration={300}>
-                <div className="bg-card flex w-full flex-1 flex-col overflow-hidden border border-border/60 shadow-sm md:rounded-xl">
+                <div className="bg-card border-border/60 relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
                     <ActionLogToolbar
                         isLive={log.isLive}
                         isConnected={log.isConnected}

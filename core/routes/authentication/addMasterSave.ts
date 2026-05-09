@@ -1,5 +1,5 @@
 const modulename = 'WebServer:AuthAddMasterSave';
-import { CfxreSessAuthType } from '@modules/WebServer/authLogic';
+import { CfxreSessAuthType, resolveEffectiveAuthedAdmin } from '@modules/WebServer/authLogic';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { ApiAddMasterSaveResp } from '@shared/authApiTypes';
@@ -58,8 +58,8 @@ export default async function AuthAddMasterSave(ctx: InitializedCtx) {
         } satisfies CfxreSessAuthType;
         ctx.sessTools.set({ auth: sessData });
 
-        const authedAdmin = vaultAdmin.getAuthed(sessData.csrfToken);
-        authedAdmin.logAction(`created admins file`);
+        const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
+        authedAdmin.logAction(`created admins file`, 'auth.admins_file.create');
         return ctx.send<ApiAddMasterSaveResp>(authedAdmin.getAuthData());
     } catch (error) {
         ctx.sessTools.destroy();

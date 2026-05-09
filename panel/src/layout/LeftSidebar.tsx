@@ -3,6 +3,7 @@ import { createContext, useContext, useState } from 'react';
 import { useRoute } from 'wouter';
 import MainPageLink from '@/components/MainPageLink';
 import { useAdminPerms, useAuth } from '@/hooks/auth';
+import { useShellBreakpoints } from '@/hooks/useShellBreakpoints';
 import { serverNameAtom, fxRunnerStateAtom, txConfigStateAtom, useGlobalStatus } from '@/hooks/status';
 import { playerCountAtom } from '@/hooks/playerlist';
 import { useAtomValue } from 'jotai';
@@ -80,17 +81,20 @@ function SidebarNavItem({ href, icon: Icon, label, disabled }: SidebarNavItemPro
         return (
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div className={cn(
-                        'flex w-full cursor-not-allowed items-center rounded-md text-sm opacity-35 select-none text-muted-foreground',
-                        collapsed ? 'justify-center py-2' : 'gap-3 px-3 py-2',
-                    )}>
+                    <div
+                        className={cn(
+                            'text-muted-foreground flex w-full cursor-not-allowed items-center rounded-md text-sm opacity-35 select-none',
+                            collapsed ? 'justify-center py-2' : 'gap-3 px-3 py-2',
+                        )}
+                    >
                         <Icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span>{label}</span>}
                     </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="text-destructive-inline text-center">
                     {collapsed && <p className="mb-1 font-semibold">{label}</p>}
-                    You do not have permission <br />to access this page.
+                    You do not have permission <br />
+                    to access this page.
                 </TooltipContent>
             </Tooltip>
         );
@@ -131,7 +135,7 @@ function SidebarNavItem({ href, icon: Icon, label, disabled }: SidebarNavItemPro
         >
             <Icon className="h-4 w-4 shrink-0" />
             <span className="flex-1 leading-none">{label}</span>
-            {isActive && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
+            {isActive && <span className="bg-accent h-1.5 w-1.5 shrink-0 rounded-full" />}
         </MainPageLink>
     );
 }
@@ -142,9 +146,9 @@ function SidebarSection({ label, children }: { label: string; children: React.Re
     return (
         <div className="flex flex-col gap-0.5">
             {collapsed ? (
-                <div className="mx-auto mt-3 h-px w-6 bg-border/40" />
+                <div className="bg-border/40 mx-auto mt-3 h-px w-6" />
             ) : (
-                <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/40 select-none">
+                <p className="text-muted-foreground/40 px-3 pt-3 pb-1 text-[10px] font-semibold tracking-[0.1em] uppercase select-none">
                     {label}
                 </p>
             )}
@@ -211,7 +215,7 @@ function SidebarServerControls() {
 
     if (txConfigState !== TxConfigState.Ready) {
         if (collapsed) return null;
-        return <p className="text-center text-xs text-muted-foreground/50">Server not configured</p>;
+        return <p className="text-muted-foreground/50 text-center text-xs">Server not configured</p>;
     }
 
     const isRunning = !fxRunnerState.isIdle;
@@ -226,13 +230,17 @@ function SidebarServerControls() {
                             onClick={() => handleControl(isRunning ? 'stop' : 'start')}
                             disabled={!hasControlPerm}
                             className={cn(
-                                'flex h-8 w-8 items-center justify-center rounded-md border text-xs transition-colors disabled:opacity-40 disabled:pointer-events-none',
+                                'flex h-8 w-8 items-center justify-center rounded-md border text-xs transition-colors disabled:pointer-events-none disabled:opacity-40',
                                 isRunning
                                     ? 'border-destructive/40 bg-destructive/10 text-destructive-inline hover:bg-destructive/20'
                                     : 'border-success/40 bg-success/10 text-success-inline hover:bg-success/20',
                             )}
                         >
-                            {isRunning ? <PowerOffIcon className="h-3.5 w-3.5" /> : <PowerIcon className="h-3.5 w-3.5" />}
+                            {isRunning ? (
+                                <PowerOffIcon className="h-3.5 w-3.5" />
+                            ) : (
+                                <PowerIcon className="h-3.5 w-3.5" />
+                            )}
                         </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">{isRunning ? 'Stop server' : 'Start server'}</TooltipContent>
@@ -242,7 +250,7 @@ function SidebarServerControls() {
                         <button
                             onClick={() => handleControl('restart')}
                             disabled={!hasControlPerm || !isAlive}
-                            className="flex h-8 w-8 items-center justify-center rounded-md border border-info/40 bg-info/10 text-info-inline transition-colors hover:bg-info/20 disabled:pointer-events-none disabled:opacity-40"
+                            className="border-info/40 bg-info/10 text-info-inline hover:bg-info/20 flex h-8 w-8 items-center justify-center rounded-md border transition-colors disabled:pointer-events-none disabled:opacity-40"
                         >
                             <RotateCcwIcon className="h-3.5 w-3.5" />
                         </button>
@@ -259,7 +267,7 @@ function SidebarServerControls() {
                 onClick={() => handleControl(isRunning ? 'stop' : 'start')}
                 disabled={!hasControlPerm}
                 className={cn(
-                    'flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none',
+                    'flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40',
                     isRunning
                         ? 'border-destructive/40 bg-destructive/10 text-destructive-inline hover:bg-destructive/20'
                         : 'border-success/40 bg-success/10 text-success-inline hover:bg-success/20',
@@ -273,7 +281,7 @@ function SidebarServerControls() {
             <button
                 onClick={() => handleControl('restart')}
                 disabled={!hasControlPerm || !isAlive}
-                className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-info/40 bg-info/10 text-xs font-medium text-info-inline transition-colors hover:bg-info/20 disabled:pointer-events-none disabled:opacity-40"
+                className="border-info/40 bg-info/10 text-info-inline hover:bg-info/20 flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
                 title="Restart server"
             >
                 <RotateCcwIcon className="h-3.5 w-3.5" />
@@ -500,14 +508,18 @@ function ServerStatusCard() {
             <div className="flex flex-col items-center gap-2">
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <span className={cn(
-                            'h-2 w-2 rounded-full',
-                            isOnline ? 'bg-success animate-pulse' : 'bg-muted-foreground/40',
-                        )} />
+                        <span
+                            className={cn(
+                                'h-2 w-2 rounded-full',
+                                isOnline ? 'bg-success animate-pulse' : 'bg-muted-foreground/40',
+                            )}
+                        />
                     </TooltipTrigger>
                     <TooltipContent side="right">
                         <p className="font-semibold">{serverName}</p>
-                        <p className="text-xs text-muted-foreground">{playerCount} {playerCount === 1 ? 'player' : 'players'} online</p>
+                        <p className="text-muted-foreground text-xs">
+                            {playerCount} {playerCount === 1 ? 'player' : 'players'} online
+                        </p>
                     </TooltipContent>
                 </Tooltip>
                 <SidebarServerControls />
@@ -516,16 +528,18 @@ function ServerStatusCard() {
     }
 
     return (
-        <div className="rounded-xl border border-border/50 bg-card/60 p-3">
+        <div className="border-border/50 bg-card/60 rounded-xl border p-3">
             {/* Server name + indicator */}
             <div className="mb-2.5 flex items-start gap-2">
-                <span className={cn(
-                    'mt-1 h-2 w-2 shrink-0 rounded-full',
-                    isOnline ? 'bg-success animate-pulse' : 'bg-muted-foreground/40',
-                )} />
+                <span
+                    className={cn(
+                        'mt-1 h-2 w-2 shrink-0 rounded-full',
+                        isOnline ? 'bg-success animate-pulse' : 'bg-muted-foreground/40',
+                    )}
+                />
                 <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold leading-tight text-foreground">{serverName}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="text-foreground truncate text-sm leading-tight font-semibold">{serverName}</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
                         {playerCount} {playerCount === 1 ? 'player' : 'players'} online
                     </p>
                 </div>
@@ -559,17 +573,19 @@ function SidebarUserButton() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className={cn(
-                    'flex w-full items-center rounded-md text-sm transition-colors hover:bg-secondary/40 focus:outline-none',
-                    collapsed ? 'justify-center px-0 py-1.5' : 'gap-2.5 px-2 py-2',
-                )}>
+                <button
+                    className={cn(
+                        'hover:bg-secondary/40 flex w-full items-center rounded-md text-sm transition-colors focus:outline-none',
+                        collapsed ? 'justify-center px-0 py-1.5' : 'gap-2.5 px-2 py-2',
+                    )}
+                >
                     <Avatar
                         className="h-7 w-7 shrink-0 rounded-md text-xs"
                         username={authData.name}
                         profilePicture={authData.profilePicture}
                     />
                     {!collapsed && (
-                        <span className="flex-1 truncate text-left text-sm font-medium text-foreground leading-none">
+                        <span className="text-foreground flex-1 truncate text-left text-sm leading-none font-medium">
                             {authData.name}
                         </span>
                     )}
@@ -603,43 +619,58 @@ function SidebarUserButton() {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export default function LeftSidebar() {
+    const { isLg } = useShellBreakpoints();
     const [collapsed, setCollapsed] = useState(() => {
-        try { return localStorage.getItem('sidebar-collapsed') === 'true'; } catch { return false; }
+        try {
+            return localStorage.getItem('sidebar-collapsed') === 'true';
+        } catch {
+            return false;
+        }
     });
 
     const toggle = () => {
         const next = !collapsed;
         setCollapsed(next);
-        try { localStorage.setItem('sidebar-collapsed', String(next)); } catch {}
+        try {
+            localStorage.setItem('sidebar-collapsed', String(next));
+        } catch {}
     };
 
     return (
         <SidebarCollapsedCtx.Provider value={collapsed}>
-            <aside className={cn(
-                'hidden h-screen shrink-0 flex-col border-r border-border/40 bg-[#0c0e16] transition-[width] duration-200 overflow-hidden lg:flex',
-                collapsed ? 'w-14' : 'w-60',
-            )}>
+            <aside
+                className={cn(
+                    'border-border/40 h-screen shrink-0 flex-col overflow-hidden border-r bg-[#0c0e16] transition-[width] duration-200',
+                    isLg ? 'flex' : 'hidden',
+                    collapsed ? 'w-14' : 'w-60',
+                )}
+            >
                 {/* Logo + collapse toggle */}
-                <div className={cn(
-                    'flex h-14 shrink-0 items-center border-b border-border/40',
-                    collapsed ? 'justify-center' : 'justify-between px-4',
-                )}>
+                <div
+                    className={cn(
+                        'border-border/40 flex h-14 shrink-0 items-center border-b',
+                        collapsed ? 'justify-center' : 'justify-between px-4',
+                    )}
+                >
                     {collapsed ? (
                         <button
                             onClick={toggle}
-                            className="flex h-8 w-8 items-center justify-center rounded-md opacity-90 hover:opacity-100 transition-opacity"
+                            className="flex h-8 w-8 items-center justify-center rounded-md opacity-90 transition-opacity hover:opacity-100"
                             title="Expand sidebar"
                         >
                             <img src="/logo2.svg" alt="fxPanel" className="h-8 w-8 rounded-lg" />
                         </button>
                     ) : (
                         <>
-                            <NavLink href="/" className="flex flex-1 items-center justify-center opacity-90 hover:opacity-100 transition-opacity">
+                            <NavLink
+                                href="/"
+                                className="flex flex-1 items-center justify-center opacity-90 transition-opacity hover:opacity-100"
+                            >
                                 <LogoFullSquareGreen className="h-8" />
                             </NavLink>
                             <button
                                 onClick={toggle}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-secondary/40 hover:text-foreground"
+                                className="text-muted-foreground/50 hover:bg-secondary/40 hover:text-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
                                 title="Collapse sidebar"
                             >
                                 <ChevronLeftIcon className="h-4 w-4" />
@@ -652,10 +683,12 @@ export default function LeftSidebar() {
                 <SidebarNavContent />
 
                 {/* Bottom: server status + user */}
-                <div className={cn(
-                    'shrink-0 border-t border-border/40 flex flex-col gap-2',
-                    collapsed ? 'items-center p-2' : 'p-3',
-                )}>
+                <div
+                    className={cn(
+                        'border-border/40 flex shrink-0 flex-col gap-2 border-t',
+                        collapsed ? 'items-center p-2' : 'p-3',
+                    )}
+                >
                     <ServerStatusCard />
                     <SidebarUserButton />
                 </div>
@@ -671,10 +704,12 @@ export function SidebarNavContent() {
     const collapsed = useCollapsed();
 
     return (
-        <nav className={cn(
-            'flex flex-1 flex-col overflow-y-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-            collapsed ? 'px-1' : 'px-2',
-        )}>
+        <nav
+            className={cn(
+                'flex flex-1 flex-col overflow-y-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                collapsed ? 'px-1' : 'px-2',
+            )}
+        >
             <SidebarSection label="Overview">
                 <SidebarNavItem href="/" icon={LayoutDashboardIcon} label="Dashboard" />
             </SidebarSection>
@@ -711,12 +746,7 @@ export function SidebarNavContent() {
                     label="Server Log"
                     disabled={!hasPerm('server.log.view')}
                 />
-                <SidebarNavItem
-                    href="/admins"
-                    icon={ShieldIcon}
-                    label="Admins"
-                    disabled={!hasPerm('manage.admins')}
-                />
+                <SidebarNavItem href="/admins" icon={ShieldIcon} label="Admins" disabled={!hasPerm('manage.admins')} />
             </SidebarSection>
 
             <SidebarSection label="Analytics">
@@ -783,7 +813,6 @@ export function SidebarNavContent() {
                     />
                 )}
             </SidebarSection>
-
         </nav>
     );
 }

@@ -20,6 +20,7 @@ import { useAtomValue } from 'jotai';
 import { tagDefinitionsAtom } from '@/hooks/playerlist';
 import { PlayerTag, TagDefinition, AUTO_TAG_DEFINITIONS } from '@shared/socketioTypes';
 import { searchMockPlayers } from './devMockPlayers';
+import { isDevMockStatusOptInEnabled } from '@/lib/devFlags';
 
 const FALLBACK_TAG_LOOKUP: Record<string, { label: string; color: string; priority: number }> = {
     staff: { label: 'Staff', color: '#EF4444', priority: 1 },
@@ -216,7 +217,7 @@ function SortableTableHeader({ label, sortKey, sortingState, setSorting, classNa
         <th
             onClick={onClick}
             className={cn(
-                'cursor-pointer px-4 py-2.5 text-left font-medium hover:bg-secondary/40 select-none transition-colors',
+                'hover:bg-secondary/40 cursor-pointer px-4 py-2.5 text-left font-medium transition-colors select-none',
                 isSorted && 'bg-secondary/30 text-foreground',
                 className,
             )}
@@ -285,7 +286,8 @@ export default function PlayersTable({ search, filters }: PlayersTableProps) {
                 queryParams.offsetParam = players[players.length - 1][sorting.key];
                 queryParams.offsetLicense = players[players.length - 1].license;
             }
-            const resp = import.meta.env.DEV
+            const isDevMockMode = import.meta.env.DEV && isDevMockStatusOptInEnabled();
+            const resp = isDevMockMode
                 ? await searchMockPlayers(queryParams)
                 : await playerListingApi({ queryParams });
 
@@ -372,16 +374,14 @@ export default function PlayersTable({ search, filters }: PlayersTableProps) {
 
     return (
         <div
-            className="flex-1 min-h-0 w-full overflow-auto border border-border/60 shadow-sm md:rounded-xl"
+            className="border-border/60 min-h-0 w-full flex-1 overflow-auto border shadow-sm md:rounded-xl"
             style={{ overflowAnchor: 'none' }}
         >
             <ScrollArea className="h-full" ref={scrollRef}>
                 <table className="w-full caption-bottom text-sm select-none">
                     <TableHeader>
-                        <tr className="bg-card/95 text-muted-foreground/60 sticky top-0 z-10 border-b border-border/40 text-[11px] uppercase tracking-wider shadow-sm backdrop-blur-sm transition-colors">
-                            <th className="px-4 py-2.5 text-left font-medium">
-                                Display Name
-                            </th>
+                        <tr className="bg-card/95 text-muted-foreground/60 border-border/40 sticky top-0 z-10 border-b text-[11px] tracking-wider uppercase shadow-sm backdrop-blur-sm transition-colors">
+                            <th className="px-4 py-2.5 text-left font-medium">Display Name</th>
                             <SortableTableHeader
                                 label="Play Time"
                                 sortKey="playTime"

@@ -26,8 +26,7 @@ type MarkdownProseProps = {
 };
 export default function MarkdownProse({ md, isSmall, isTitle, isToast }: MarkdownProseProps) {
     return (
-        <Markdown
-            components={customComponents}
+        <div
             className={cn(
                 'prose prose-invert prose-zinc',
                 isSmall && 'prose-sm',
@@ -35,7 +34,7 @@ export default function MarkdownProse({ md, isSmall, isTitle, isToast }: Markdow
                 isToast && 'prose-toast',
             )}
         >
-            {stripIndent(md.replace(/\n/g, '  \n'))}
-        </Markdown>
+            <Markdown components={customComponents}>{stripIndent(md.replace(/\n/g, '  \n'))}</Markdown>
+        </div>
     );
 }

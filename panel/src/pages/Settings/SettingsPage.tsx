@@ -117,7 +117,9 @@ export default function SettingsPage() {
     const openConfirmDialog = useOpenConfirmDialog();
     const { hasPerm } = useAdminPerms();
     const hasPermRef = useRef(hasPerm);
-    useEffect(() => { hasPermRef.current = hasPerm; }, [hasPerm]);
+    useEffect(() => {
+        hasPermRef.current = hasPerm;
+    }, [hasPerm]);
 
     // Addon widgets: full custom tabs (e.g. "settings.tab") and per-tab injections (e.g. "settings.tab.discord")
     const addonSettingsTabs = useAddonWidgets('settings.tab');
@@ -272,7 +274,11 @@ export default function SettingsPage() {
                             </TabsTrigger>
                         ))}
                         {addonSettingsTabs.map((w) => (
-                            <TabsTrigger key={`addon-${w.addonId}-${w.title}`} value={`addon-${w.addonId}-${w.title}`} className="hover:text-primary">
+                            <TabsTrigger
+                                key={`addon-${w.addonId}-${w.title}`}
+                                value={`addon-${w.addonId}-${w.title}`}
+                                className="hover:text-primary"
+                            >
                                 {w.title}
                             </TabsTrigger>
                         ))}
@@ -286,7 +292,7 @@ export default function SettingsPage() {
                     {settingsTabs.map((tab) => {
                         // Find any addon widgets injected into this specific tab
                         const tabInjectWidgets = addonTabInject.filter(
-                            (w) => w.slot === `settings.tab.${tab.ctx.tabId}`
+                            (w) => w.slot === `settings.tab.${tab.ctx.tabId}`,
                         );
                         return (
                             <TabsContent value={tab.ctx.tabId} key={tab.ctx.tabId} className="mt-6">
@@ -294,7 +300,8 @@ export default function SettingsPage() {
                                     tab={tab}
                                     pageCtx={{
                                         apiData: swr.data,
-                                        isReadOnly: swr.isLoading || isSaving || !swr.data || !hasPerm('settings.write'),
+                                        isReadOnly:
+                                            swr.isLoading || isSaving || !swr.data || !hasPerm('settings.write'),
                                         isLoading: swr.isLoading,
                                         isSaving,
                                         swrError: swr.error ? swr.error.message : undefined,
@@ -306,7 +313,14 @@ export default function SettingsPage() {
                                 {tabInjectWidgets.length > 0 && (
                                     <div className="mt-6 flex flex-col gap-4">
                                         {tabInjectWidgets.map((w) => (
-                                            <ErrorBoundary key={`${w.addonId}-${w.title}`} fallback={<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">Addon error: {w.title}</div>}>
+                                            <ErrorBoundary
+                                                key={`${w.addonId}-${w.title}`}
+                                                fallback={
+                                                    <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-xl border p-4 text-sm">
+                                                        Addon error: {w.title}
+                                                    </div>
+                                                }
+                                            >
                                                 <w.Component />
                                             </ErrorBoundary>
                                         ))}
@@ -316,8 +330,18 @@ export default function SettingsPage() {
                         );
                     })}
                     {addonSettingsTabs.map((w) => (
-                        <TabsContent key={`addon-${w.addonId}-${w.title}`} value={`addon-${w.addonId}-${w.title}`} className="mt-6">
-                            <ErrorBoundary fallback={<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">Addon tab error: {w.title}</div>}>
+                        <TabsContent
+                            key={`addon-${w.addonId}-${w.title}`}
+                            value={`addon-${w.addonId}-${w.title}`}
+                            className="mt-6"
+                        >
+                            <ErrorBoundary
+                                fallback={
+                                    <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-xl border p-4 text-sm">
+                                        Addon tab error: {w.title}
+                                    </div>
+                                }
+                            >
                                 <w.Component />
                             </ErrorBoundary>
                         </TabsContent>

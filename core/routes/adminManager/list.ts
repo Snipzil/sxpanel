@@ -12,6 +12,8 @@ export default async function AdminManagerList(ctx: AuthedCtx) {
         return ctx.send({ error: "You don't have permission to view the admin list." });
     }
 
+    const currentAdminName = ctx.admin.name.toLowerCase();
+
     //Build set of online admin identifiers from playerlist
     const onlineIdentifiers = new Set<string>();
     try {
@@ -37,13 +39,18 @@ export default async function AdminManagerList(ctx: AuthedCtx) {
             }
         }
 
+        const isYou = currentAdminName === admin.name.toLowerCase();
+
         return {
             name: admin.name,
             isMaster: admin.master,
             hasCitizenFx: !!admin.providers.citizenfx,
+            citizenfxId: admin.providers.citizenfx?.identifier ?? '',
             hasDiscord: !!admin.providers.discord,
+            discordId: admin.providers.discord?.id ?? '',
             permissions: admin.permissions,
-            isYou: ctx.admin.name.toLowerCase() === admin.name.toLowerCase(),
+            ...(isYou ? { effectivePermissions: ctx.admin.permissions } : {}),
+            isYou,
             isOnline,
         };
     });

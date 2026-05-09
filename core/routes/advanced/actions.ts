@@ -160,7 +160,7 @@ export default async function AdvancedActions(ctx: AuthedCtx) {
             return ctx.send({ type: 'danger', message: 'GC is not exposed' });
         }
     } else if (action == 'profile_monitor') {
-        ctx.admin.logAction('Profiling txAdmin instance.');
+        ctx.admin.logAction('Profiling txAdmin instance.', 'advanced.profile_monitor');
 
         const profileDuration = 5;
         const savePath = txEnv.profileSubPath('data', 'txProfile.bin');

@@ -7,7 +7,7 @@ import type { PlayerDropsSummaryHour } from '@shared/otherTypes';
 import { PlayerDropsLoadingSpinner } from './PlayerDropsGenericSubcards';
 import TimelineDropsChart, { TimelineDropsChartData } from './TimelineDropsChart';
 import { processDropsSummary } from './chartingUtils';
-import { DisplayLodType, DrilldownRangeSelectionType } from './PlayerDropsPage';
+import { DisplayLodType, DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
 
 type PlayerDropsTimelineChartsProps = {
     isError?: boolean;
@@ -68,14 +68,18 @@ const TimelineCard = memo(
 
         return (
             <Card className="overflow-hidden">
-                <div className="flex flex-col gap-2 border-b border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
+                <div className="border-border/40 flex flex-col gap-2 border-b px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
                     <div className="flex min-w-0 items-center gap-3">
                         <div className="bg-secondary/40 border-border/50 text-accent/80 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border [&>svg]:size-4">
                             <DoorOpenIcon />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <h3 className="text-sm font-semibold leading-tight tracking-tight">Expected Player Drops</h3>
-                            <p className="text-muted-foreground/70 mt-0.5 truncate text-xs">Voluntary disconnects & kicks</p>
+                            <h3 className="text-sm leading-tight font-semibold tracking-tight">
+                                Expected Player Drops
+                            </h3>
+                            <p className="text-muted-foreground/70 mt-0.5 truncate text-xs">
+                                Voluntary disconnects & kicks
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 pl-12 sm:ml-auto sm:pl-0">
@@ -111,13 +115,15 @@ const TimelineCard = memo(
                     </DebouncedResizeContainer>
                 </div>
 
-                <div className="flex items-center gap-3 border-t border-b border-border/40 px-3 py-3 sm:px-4">
+                <div className="border-border/40 flex items-center gap-3 border-t border-b px-3 py-3 sm:px-4">
                     <div className="bg-secondary/40 border-border/50 text-accent/80 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border [&>svg]:size-4">
                         <DoorOpenIcon />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-semibold leading-tight tracking-tight">Unexpected Player Drops</h3>
-                        <p className="text-muted-foreground/70 mt-0.5 truncate text-xs">Crashes, timeouts & unknown disconnects</p>
+                        <h3 className="text-sm leading-tight font-semibold tracking-tight">Unexpected Player Drops</h3>
+                        <p className="text-muted-foreground/70 mt-0.5 truncate text-xs">
+                            Crashes, timeouts & unknown disconnects
+                        </p>
                     </div>
                 </div>
                 <div className="h-52 max-h-52">

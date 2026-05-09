@@ -7,8 +7,8 @@ import { useAdminPerms } from '@/hooks/auth';
 import { useLiveConsoleHistory } from '@/pages/LiveConsole/liveConsoleHooks';
 import { useAtomValue } from 'jotai';
 import { fxRunnerStateAtom } from '@/hooks/status';
-import LiveConsoleOptionsDropdown from './LiveConsoleOptionsDropdown';
-import type { LiveConsoleOptions } from './LiveConsolePage';
+import LiveConsoleOptionsDropdown from '@/pages/LiveConsole/LiveConsoleOptionsDropdown';
+import type { LiveConsoleOptions } from '@/pages/LiveConsole/LiveConsolePage';
 
 type ConsoleFooterButtonProps = {
     icon: React.ElementType;

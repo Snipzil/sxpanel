@@ -1,7 +1,7 @@
 const modulename = 'WebServer:AuthMws';
 import { timingSafeEqual } from 'node:crypto';
 import consoleFactory from '@lib/console';
-import { checkRequestAuth, normalAuthLogic, nuiAuthLogic } from '../authLogic';
+import { checkRequestAuth, normalAuthLogic, nuiAuthLogic, resolveEffectiveAuthedAdmin } from '../authLogic';
 import { ApiAuthErrorResp, ApiToastResp, GenericApiErrorResp } from '@shared/genericApiTypes';
 import { InitializedCtx } from '../ctxTypes';
 import { txHostConfig } from '@core/globalData';
@@ -142,7 +142,7 @@ export const webAuthMw = async (ctx: InitializedCtx, next: Function) => {
     }
 
     //Adding the admin to the context
-    ctx.admin = authResult.admin;
+    ctx.admin = await resolveEffectiveAuthedAdmin(authResult.admin);
     await next();
 };
 
@@ -187,7 +187,7 @@ export const apiAuthMw = async (ctx: InitializedCtx, next: Function) => {
     }
 
     //Adding the admin to the context
-    ctx.admin = authResult.admin;
+    ctx.admin = await resolveEffectiveAuthedAdmin(authResult.admin);
     await next();
 };
 
@@ -205,7 +205,7 @@ export const assetAuthMw = async (ctx: InitializedCtx, next: Function) => {
     // Prefer regular web session auth for panel/browser asset requests.
     const webAuthResult = normalAuthLogic(ctx.sessTools);
     if (webAuthResult.success) {
-        ctx.admin = webAuthResult.admin;
+        ctx.admin = await resolveEffectiveAuthedAdmin(webAuthResult.admin);
         await next();
         return;
     }
@@ -218,7 +218,7 @@ export const assetAuthMw = async (ctx: InitializedCtx, next: Function) => {
     if (typeof tokenHeader === 'string' && tokenHeader.length > 0) {
         const nuiAuthResult = nuiAuthLogic(ctx.ip, ctx.txVars.isLocalRequest, ctx.request.headers);
         if (nuiAuthResult.success) {
-            ctx.admin = nuiAuthResult.admin;
+            ctx.admin = await resolveEffectiveAuthedAdmin(nuiAuthResult.admin);
             await next();
             return;
         }

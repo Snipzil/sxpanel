@@ -90,6 +90,7 @@ export default function LiveConsolePage() {
      */
     const jumpBottomBtnRef = useRef<HTMLButtonElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const xtermMountCycleRef = useRef(0);
     const term = useMemo(() => new Terminal(terminalOptions), []);
     const fitAddon = useMemo(() => new FitAddon(), []);
     const searchAddon = useMemo(() => new SearchAddon(), []);
@@ -115,16 +116,45 @@ export default function LiveConsolePage() {
             return;
         }
 
-        const proposed = fitAddon.proposeDimensions();
-        if (proposed) {
-            term.resize(proposed.cols, proposed.rows);
-        } else {
-            console.log('refitTerminal: no proposed dimensions');
-        }
+        fitAddon.fit();
     };
     useEventListener('resize', debounce(100, refitTerminal));
 
     useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        let frameId = 0;
+        const scheduleRefit = () => {
+            cancelAnimationFrame(frameId);
+            frameId = requestAnimationFrame(() => {
+                refitTerminal();
+            });
+        };
+
+        const resizeObserver = new ResizeObserver(() => {
+            scheduleRefit();
+        });
+        resizeObserver.observe(container);
+        if (container.parentElement) {
+            resizeObserver.observe(container.parentElement);
+        }
+
+        const viewport = window.visualViewport;
+        viewport?.addEventListener('resize', scheduleRefit);
+        viewport?.addEventListener('scroll', scheduleRefit);
+
+        return () => {
+            cancelAnimationFrame(frameId);
+            resizeObserver.disconnect();
+            viewport?.removeEventListener('resize', scheduleRefit);
+            viewport?.removeEventListener('scroll', scheduleRefit);
+        };
+    }, [term, fitAddon]);
+
+    useEffect(() => {
+        xtermMountCycleRef.current += 1;
+
         if (containerRef.current && jumpBottomBtnRef.current && !term.element) {
             console.log('live console xterm init');
             containerRef.current.innerHTML = ''; //due to HMR, the terminal element might still be there
@@ -212,6 +242,15 @@ export default function LiveConsolePage() {
                 return true;
             });
         }
+
+        return () => {
+            if (import.meta.env.DEV && xtermMountCycleRef.current === 1) {
+                return;
+            }
+
+            term.dispose();
+            xtermMountCycleRef.current = 0;
+        };
     }, [term]);
 
     // Re-apply xterm theme when light/dark mode changes
@@ -275,7 +314,7 @@ export default function LiveConsolePage() {
                     isNewTs = true;
                     line = content;
                     termPrefixRef.current.ts = ts;
-                    termPrefixRef.current.prefix = formatTermTimestamp(ts, consoleOptions);
+                    termPrefixRef.current.prefix = formatTermTimestamp(ts, consoleOptionsRef.current);
                 }
             } catch (error) {
                 termPrefixRef.current.prefix = defaultTermPrefix;
@@ -524,7 +563,7 @@ export default function LiveConsolePage() {
     };
 
     return (
-        <div className="dark text-primary h-contentvh bg-card flex w-full flex-col overflow-clip border border-border/60 shadow-sm md:rounded-xl">
+        <div className="dark text-primary h-contentvh bg-card border-border/60 flex w-full flex-col overflow-clip border shadow-sm md:rounded-xl">
             <LiveConsoleHeader
                 isConnected={isConnected}
                 hasSpawnLines={spawnLineNumbersRef.current.length > 0}

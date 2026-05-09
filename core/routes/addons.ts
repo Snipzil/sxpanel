@@ -2,9 +2,11 @@ const modulename = 'WebServer:AddonRoutes';
 import fs from 'node:fs';
 import path from 'node:path';
 import consoleFactory from '@lib/console';
+import xssFactory from '@lib/xss';
 import { AuthedCtx, InitializedCtx } from '@modules/WebServer/ctxTypes';
 import { txEnv } from '@core/globalData';
 const console = consoleFactory(modulename);
+const sanitiseXss = xssFactory();
 
 const MIME_TYPES: Record<string, string> = {
     '.js': 'application/javascript',
@@ -68,7 +70,7 @@ async function resolveAddonStaticPathCompat(
 
     const layerDir = path.resolve(addonDir, layer);
     const candidate = path.resolve(layerDir, filePath);
-    if (!await isPathInsideOrEqualCompat(layerDir, candidate)) return null;
+    if (!(await isPathInsideOrEqualCompat(layerDir, candidate))) return null;
 
     try {
         const stat = await fs.promises.stat(candidate);
@@ -144,7 +146,10 @@ function normalizeWildcardPath(rawPath: string | undefined, fallback = ''): stri
     }
 
     // Strip any URL query/hash artifacts and normalize accidental leading slash.
-    filePath = filePath.split('?')[0].split('#')[0].replace(/^[/\\]+/, '');
+    filePath = filePath
+        .split('?')[0]
+        .split('#')[0]
+        .replace(/^[/\\]+/, '');
     return filePath || fallback;
 }
 
@@ -184,17 +189,70 @@ const STRIPPED_RESPONSE_HEADERS = new Set([
     'access-control-expose-headers',
 ]);
 
+const MAX_ADDON_PROXY_JSON_BODY_BYTES = 1024 * 1024;
+
+const stripNewlines = (value: string) => value.replace(/[\r\n]+/g, ' ').trim();
+
+const sanitiseUnknown = (value: unknown): unknown => {
+    if (typeof value === 'string') return sanitiseXss(value);
+    if (Array.isArray(value)) return value.map((entry) => sanitiseUnknown(entry));
+    if (value && typeof value === 'object') {
+        const out: Record<string, unknown> = {};
+        for (const [key, inner] of Object.entries(value)) {
+            out[key] = sanitiseUnknown(inner);
+        }
+        return out;
+    }
+    return value;
+};
+
+const getSanitisedJsonRequestBody = (ctx: AuthedCtx) => {
+    const contentTypeRaw = ctx.get('content-type') || '';
+    const contentType = contentTypeRaw.split(';')[0]?.trim().toLowerCase();
+    if (contentType !== 'application/json') return null;
+
+    const contentLengthRaw = ctx.get('content-length');
+    if (contentLengthRaw) {
+        const parsed = Number(contentLengthRaw);
+        if (!Number.isFinite(parsed) || parsed > MAX_ADDON_PROXY_JSON_BODY_BYTES) {
+            return { error: 'Request body too large.' };
+        }
+    }
+
+    if (ctx.request.body === undefined || ctx.request.body === null) return null;
+    return sanitiseUnknown(ctx.request.body);
+};
+
+const getCtxParams = (ctx: unknown) => {
+    const params = (ctx as any)?.params;
+    if (!params || typeof params !== 'object') return {} as Record<string, unknown>;
+    return params as Record<string, unknown>;
+};
+
+const getAddonId = (ctx: unknown) => {
+    const params = getCtxParams(ctx);
+    return typeof params.addonId === 'string' ? params.addonId : undefined;
+};
+
+const getAddonWildcardPath = (ctx: unknown) => {
+    const params = getCtxParams(ctx);
+    const addonPath = params.addonPath;
+    if (Array.isArray(addonPath)) {
+        return addonPath.filter((value): value is string => typeof value === 'string').join('/');
+    }
+    if (typeof addonPath === 'string') return addonPath;
+    return typeof params[0] === 'string' ? params[0] : undefined;
+};
+
 /**
  * Build a sanitised header bag safe to forward into addon-controlled code.
  */
-function sanitiseRequestHeaders(
-    headers: Record<string, string | string[] | undefined>,
-): Record<string, string> {
+function sanitiseRequestHeaders(headers: Record<string, string | string[] | undefined>): Record<string, string> {
     const out: Record<string, string> = {};
     for (const [key, value] of Object.entries(headers)) {
         if (value === undefined) continue;
         if (STRIPPED_REQUEST_HEADERS.has(key.toLowerCase())) continue;
-        out[key] = Array.isArray(value) ? value.join(', ') : value;
+        out[key] = stripNewlines(Array.isArray(value) ? value.join(', ') : value);
     }
     return out;
 }
@@ -248,7 +306,7 @@ export async function addonsApprove(ctx: AuthedCtx) {
         return ctx.send({ error: 'Insufficient permissions.' });
     }
 
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     const { permissions } = ctx.request.body;
 
     if (!addonId || typeof addonId !== 'string') {
@@ -274,7 +332,7 @@ export async function addonsRevoke(ctx: AuthedCtx) {
         return ctx.send({ error: 'Insufficient permissions.' });
     }
 
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     if (!addonId || typeof addonId !== 'string') {
         return ctx.send({ error: 'Invalid addon ID.' });
     }
@@ -291,7 +349,7 @@ export async function addonsRevoke(ctx: AuthedCtx) {
  * Proxy HTTP requests to addon child processes.
  */
 export async function addonsProxy(ctx: AuthedCtx) {
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     if (!addonId || typeof addonId !== 'string') {
         ctx.status = 400;
         return ctx.send({ error: 'Invalid addon ID.' });
@@ -316,12 +374,18 @@ export async function addonsProxy(ctx: AuthedCtx) {
     const prefix = `/addons/${addonId}/api`;
     const addonPath = fullPath.slice(prefix.length) || '/';
 
+    const safeBody = getSanitisedJsonRequestBody(ctx);
+    if (safeBody && typeof safeBody === 'object' && 'error' in safeBody) {
+        ctx.status = 413;
+        return ctx.send({ error: safeBody.error });
+    }
+
     try {
         const result = await addonProcess.handleHttpRequest({
             method: ctx.method,
             path: addonPath,
             headers: sanitiseRequestHeaders(ctx.headers as Record<string, string | string[] | undefined>),
-            body: ctx.request.body,
+            body: safeBody,
             admin: {
                 name: ctx.admin.name,
                 permissions: ctx.admin.permissions,
@@ -333,22 +397,22 @@ export async function addonsProxy(ctx: AuthedCtx) {
         if (result.headers) {
             for (const [key, value] of Object.entries(result.headers)) {
                 if (STRIPPED_RESPONSE_HEADERS.has(key.toLowerCase())) continue;
-                ctx.set(key, value);
+                ctx.set(key, stripNewlines(String(value)));
             }
         }
         // Always enforce a strict CSP on addon responses — addon-served HTML/JS
         // must not be able to reach into the panel origin's cookies via fetch.
         ctx.set('X-Content-Type-Options', 'nosniff');
         ctx.set('X-Frame-Options', 'DENY');
-        ctx.body = result.body;
+        return ctx.send(sanitiseUnknown(result.body) as Record<string, unknown>);
     } catch (error) {
         const err = error as NodeJS.ErrnoException & { name?: string };
         console.error(`Addon proxy error for ${addonId}:`, error);
         const isTimeout =
-            err?.name === 'TimeoutError'
-            || err?.code === 'ECONNABORTED'
-            || err?.code === 'ETIMEDOUT'
-            || /timed?\s*out/i.test(err?.message ?? '');
+            err?.name === 'TimeoutError' ||
+            err?.code === 'ECONNABORTED' ||
+            err?.code === 'ETIMEDOUT' ||
+            /timed?\s*out/i.test(err?.message ?? '');
         if (isTimeout) {
             ctx.status = 504;
             ctx.body = { error: 'Addon request timed out.' };
@@ -371,7 +435,7 @@ export async function addonsProxy(ctx: AuthedCtx) {
  * the AddonPublicServer can reuse the same proxy logic when needed.
  */
 export async function addonsPublicProxy(ctx: InitializedCtx) {
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     if (!addonId || typeof addonId !== 'string') {
         ctx.status = 400;
         return ctx.send({ error: 'Invalid addon ID.' });
@@ -394,14 +458,15 @@ export async function addonsPublicProxy(ctx: InitializedCtx) {
  * Serve addon panel static files.
  */
 export async function addonsServePanelFile(ctx: InitializedCtx) {
-    const addonId = ctx.params.addonId;
+    const addonId = getAddonId(ctx);
     if (!addonId || !ADDON_ID_REGEX.test(addonId)) {
         ctx.status = 404;
         return;
     }
 
     // Get remaining path after /addons/:addonId/panel/
-    const filePath = normalizeWildcardPath(ctx.params[0], 'index.js');
+    const wildcardPath = getAddonWildcardPath(ctx);
+    const filePath = normalizeWildcardPath(wildcardPath, 'index.js');
 
     const resolved = await resolveAddonStaticPathCompat(addonId, 'panel', filePath);
     if (!resolved) {
@@ -422,13 +487,14 @@ export async function addonsServePanelFile(ctx: InitializedCtx) {
  * Serve addon NUI static files.
  */
 export async function addonsServeNuiFile(ctx: InitializedCtx) {
-    const addonId = ctx.params.addonId;
+    const addonId = getAddonId(ctx);
     if (!addonId || !ADDON_ID_REGEX.test(addonId)) {
         ctx.status = 404;
         return;
     }
 
-    const filePath = normalizeWildcardPath(ctx.params[0], 'index.js');
+    const wildcardPath = getAddonWildcardPath(ctx);
+    const filePath = normalizeWildcardPath(wildcardPath, 'index.js');
 
     const resolved = await resolveAddonStaticPathCompat(addonId, 'nui', filePath);
     if (!resolved) {
@@ -449,13 +515,14 @@ export async function addonsServeNuiFile(ctx: InitializedCtx) {
  * Serve addon static assets.
  */
 export async function addonsServeStaticFile(ctx: InitializedCtx) {
-    const addonId = ctx.params.addonId;
+    const addonId = getAddonId(ctx);
     if (!addonId || !ADDON_ID_REGEX.test(addonId)) {
         ctx.status = 404;
         return;
     }
 
-    const filePath = normalizeWildcardPath(ctx.params[0]);
+    const wildcardPath = getAddonWildcardPath(ctx);
+    const filePath = normalizeWildcardPath(wildcardPath);
     if (!filePath) {
         ctx.status = 404;
         return;
@@ -484,7 +551,7 @@ export async function addonsReload(ctx: AuthedCtx) {
         return ctx.send({ error: 'Insufficient permissions.' });
     }
 
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     if (!addonId || typeof addonId !== 'string') {
         return ctx.send({ error: 'Invalid addon ID.' });
     }
@@ -506,7 +573,7 @@ export async function addonsStop(ctx: AuthedCtx) {
         return ctx.send({ error: 'Insufficient permissions.' });
     }
 
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     if (!addonId || typeof addonId !== 'string') {
         return ctx.send({ error: 'Invalid addon ID.' });
     }
@@ -528,7 +595,7 @@ export async function addonsStart(ctx: AuthedCtx) {
         return ctx.send({ error: 'Insufficient permissions.' });
     }
 
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     if (!addonId || typeof addonId !== 'string') {
         return ctx.send({ error: 'Invalid addon ID.' });
     }
@@ -563,7 +630,7 @@ export async function addonsLogs(ctx: AuthedCtx) {
         return ctx.send({ error: 'Insufficient permissions.' });
     }
 
-    const { addonId } = ctx.params;
+    const addonId = getAddonId(ctx);
     if (!addonId || typeof addonId !== 'string') {
         return ctx.send({ error: 'Invalid addon ID.' });
     }

@@ -12,6 +12,23 @@ import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { SYM_RESET_CONFIG } from '@lib/symbols';
 const console = consoleFactory(modulename);
 
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
+const getNumberField = (value: unknown, field: string) =>
+    isObjectRecord(value) && typeof value[field] === 'number' ? (value[field] as number) : null;
+
+type RevokeWhitelistsFilter = 'all' | '30d' | '15d' | '7d';
+
+const parseRevokeWhitelistsFilter = (body: unknown): RevokeWhitelistsFilter | null => {
+    if (!isObjectRecord(body) || typeof body.filter !== 'string') return null;
+    if (body.filter === 'all') return 'all';
+    if (body.filter === '30d') return '30d';
+    if (body.filter === '15d') return '15d';
+    if (body.filter === '7d') return '7d';
+    return null;
+};
+
 /**
  * Handle all the master actions... actions
  */
@@ -56,64 +73,107 @@ async function handleCleanDatabase(ctx: AuthedCtx) {
     const sendTypedResp = (data: successResp | GenericApiErrorResp) => ctx.send(data);
 
     //Sanity check
+    if (!isObjectRecord(ctx.request.body)) {
+        return sendTypedResp({ error: 'Invalid Request' });
+    }
+    const playersInput = ctx.request.body.players;
+    const bansInput = ctx.request.body.bans;
+    const warnsInput = ctx.request.body.warns;
+    const hwidsInput = ctx.request.body.hwids;
     if (
-        typeof ctx.request.body.players !== 'string' ||
-        typeof ctx.request.body.bans !== 'string' ||
-        typeof ctx.request.body.warns !== 'string' ||
-        typeof ctx.request.body.hwids !== 'string'
+        typeof playersInput !== 'string' ||
+        typeof bansInput !== 'string' ||
+        typeof warnsInput !== 'string' ||
+        typeof hwidsInput !== 'string'
     ) {
         return sendTypedResp({ error: 'Invalid Request' });
     }
-    const { players, bans, warns, hwids } = ctx.request.body;
+    const players = playersInput;
+    const bans = bansInput;
+    const warns = warnsInput;
+    const hwids = hwidsInput;
     const daySecs = 86400;
     const currTs = now();
 
     //Prepare filters
-    let playersFilter: Function;
+    let playersFilter: (item: unknown) => boolean;
     if (players === 'none') {
-        playersFilter = (x: DatabasePlayerType) => false;
+        playersFilter = () => false;
     } else if (players === '60d') {
-        playersFilter = (x: DatabasePlayerType) => x.tsLastConnection < currTs - 60 * daySecs && !x.notes;
+        playersFilter = (item) => {
+            const tsLastConnection = getNumberField(item, 'tsLastConnection');
+            if (tsLastConnection === null) return false;
+            const notes = isObjectRecord(item) ? item.notes : undefined;
+            return tsLastConnection < currTs - 60 * daySecs && !notes;
+        };
     } else if (players === '30d') {
-        playersFilter = (x: DatabasePlayerType) => x.tsLastConnection < currTs - 30 * daySecs && !x.notes;
+        playersFilter = (item) => {
+            const tsLastConnection = getNumberField(item, 'tsLastConnection');
+            if (tsLastConnection === null) return false;
+            const notes = isObjectRecord(item) ? item.notes : undefined;
+            return tsLastConnection < currTs - 30 * daySecs && !notes;
+        };
     } else if (players === '15d') {
-        playersFilter = (x: DatabasePlayerType) => x.tsLastConnection < currTs - 15 * daySecs && !x.notes;
+        playersFilter = (item) => {
+            const tsLastConnection = getNumberField(item, 'tsLastConnection');
+            if (tsLastConnection === null) return false;
+            const notes = isObjectRecord(item) ? item.notes : undefined;
+            return tsLastConnection < currTs - 15 * daySecs && !notes;
+        };
     } else {
         return sendTypedResp({ error: 'Invalid players filter type.' });
     }
 
-    let bansFilter: Function;
+    let bansFilter: (item: unknown) => boolean;
     if (bans === 'none') {
-        bansFilter = (x: DatabaseActionBanType) => false;
+        bansFilter = () => false;
     } else if (bans === 'revoked') {
-        bansFilter = (x: DatabaseActionBanType) => x.type === 'ban' && !!x.revocation;
+        bansFilter = (item) => isObjectRecord(item) && item.type === 'ban' && !!item.revocation;
     } else if (bans === 'revokedExpired') {
-        bansFilter = (x: DatabaseActionBanType) =>
-            x.type === 'ban' && (x.revocation || (x.expiration && x.expiration < currTs));
+        bansFilter = (item) => {
+            if (!isObjectRecord(item) || item.type !== 'ban') return false;
+            const expiration = typeof item.expiration === 'number' ? item.expiration : null;
+            return !!item.revocation || (expiration !== null && expiration < currTs);
+        };
     } else if (bans === 'all') {
-        bansFilter = (x: DatabaseActionBanType) => x.type === 'ban';
+        bansFilter = (item) => isObjectRecord(item) && item.type === 'ban';
     } else {
         return sendTypedResp({ error: 'Invalid bans filter type.' });
     }
 
-    let warnsFilter: Function;
+    let warnsFilter: (item: unknown) => boolean;
     if (warns === 'none') {
-        warnsFilter = (x: DatabaseActionWarnType) => false;
+        warnsFilter = () => false;
     } else if (warns === 'revoked') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && !!x.revocation;
+        warnsFilter = (item) => isObjectRecord(item) && item.type === 'warn' && !!item.revocation;
     } else if (warns === '30d') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && x.timestamp < currTs - 30 * daySecs;
+        warnsFilter = (item) => {
+            const timestamp = getNumberField(item, 'timestamp');
+            return (
+                isObjectRecord(item) && item.type === 'warn' && timestamp !== null && timestamp < currTs - 30 * daySecs
+            );
+        };
     } else if (warns === '15d') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && x.timestamp < currTs - 15 * daySecs;
+        warnsFilter = (item) => {
+            const timestamp = getNumberField(item, 'timestamp');
+            return (
+                isObjectRecord(item) && item.type === 'warn' && timestamp !== null && timestamp < currTs - 15 * daySecs
+            );
+        };
     } else if (warns === '7d') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn' && x.timestamp < currTs - 7 * daySecs;
+        warnsFilter = (item) => {
+            const timestamp = getNumberField(item, 'timestamp');
+            return (
+                isObjectRecord(item) && item.type === 'warn' && timestamp !== null && timestamp < currTs - 7 * daySecs
+            );
+        };
     } else if (warns === 'all') {
-        warnsFilter = (x: DatabaseActionWarnType) => x.type === 'warn';
+        warnsFilter = (item) => isObjectRecord(item) && item.type === 'warn';
     } else {
         return sendTypedResp({ error: 'Invalid warns filter type.' });
     }
 
-    const actionsFilter = (x: DatabaseActionType) => {
+    const actionsFilter = (x: unknown) => {
         return bansFilter(x) || warnsFilter(x);
     };
 
@@ -175,22 +235,31 @@ async function handleRevokeWhitelists(ctx: AuthedCtx) {
     const sendTypedResp = (data: successResp | GenericApiErrorResp) => ctx.send(data);
 
     //Sanity check
-    if (typeof ctx.request.body.filter !== 'string') {
+    const filterInput = parseRevokeWhitelistsFilter(ctx.request.body);
+    if (!filterInput) {
         return sendTypedResp({ error: 'Invalid Request' });
     }
-    const filterInput = ctx.request.body.filter;
     const daySecs = 86400;
     const currTs = now();
 
-    let filterFunc: Function;
+    let filterFunc: (item: unknown) => boolean;
     if (filterInput === 'all') {
-        filterFunc = (p: DatabasePlayerType) => true;
+        filterFunc = () => true;
     } else if (filterInput === '30d') {
-        filterFunc = (p: DatabasePlayerType) => p.tsLastConnection < currTs - 30 * daySecs;
+        filterFunc = (item) => {
+            const tsLastConnection = getNumberField(item, 'tsLastConnection');
+            return tsLastConnection !== null && tsLastConnection < currTs - 30 * daySecs;
+        };
     } else if (filterInput === '15d') {
-        filterFunc = (p: DatabasePlayerType) => p.tsLastConnection < currTs - 15 * daySecs;
+        filterFunc = (item) => {
+            const tsLastConnection = getNumberField(item, 'tsLastConnection');
+            return tsLastConnection !== null && tsLastConnection < currTs - 15 * daySecs;
+        };
     } else if (filterInput === '7d') {
-        filterFunc = (p: DatabasePlayerType) => p.tsLastConnection < currTs - 7 * daySecs;
+        filterFunc = (item) => {
+            const tsLastConnection = getNumberField(item, 'tsLastConnection');
+            return tsLastConnection !== null && tsLastConnection < currTs - 7 * daySecs;
+        };
     } else {
         return sendTypedResp({ error: 'Invalid whitelists filter type.' });
     }

@@ -1,13 +1,16 @@
 export { default as diagnostics_page } from './diagnostics/page';
+export { default as diagnostics_actions } from './diagnostics/actions';
 export { default as diagnostics_sendReport } from './diagnostics/sendReport';
 export { default as intercom } from './intercom.js';
 export { default as resources } from './resources';
 export { default as resources_list } from './resources/list';
 export { default as perfChart } from './perfChart';
 export { default as playerDrops } from './playerDrops';
-export { systemLogPartial, systemLogSessions, systemLogSessionFile, systemLogScoped } from './logs/system';
-export { serverLogPartial, serverLogSessions, serverLogSessionFile } from './logs/server';
-export { downloadFxserverLog, downloadServerLog, downloadSystemLog } from './logs/download';
+export { default as systemLogPartial } from './systemLogPartial';
+export { systemLogSessions, systemLogSessionFile } from './systemLogSessions';
+export { default as systemLogScoped } from './systemLogs';
+export { serverLogPartial, serverLogSessions, serverLogSessionFile } from './serverLogs';
+export { downloadFxserverLog, downloadServerLog, downloadSystemLog } from './downloadLogs';
 
 export { default as auth_addMasterPin } from './authentication/addMasterPin.js';
 export { default as auth_addMasterCallback } from './authentication/addMasterCallback.js';
@@ -131,6 +134,8 @@ export {
 export {
     reportsList as reports_list,
     reportsDetail as reports_detail,
+    ticketsDelete as reports_delete,
+    ticketsRetentionExclusion as reports_retentionExclusion,
     reportsMessage as reports_message,
     reportsStatus as reports_status,
     ticketsAnalytics as reports_analytics,

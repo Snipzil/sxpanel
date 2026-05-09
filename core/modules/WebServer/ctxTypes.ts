@@ -1,8 +1,8 @@
 import type { ParameterizedContext } from 'koa';
-import type { CtxTxVars } from './middlewares/ctxVarsMw';
-import type { CtxTxUtils } from './middlewares/ctxUtilsMw';
-import type { AuthedAdminType } from './authLogic';
-import type { SessToolsType } from './middlewares/sessionMws';
+import type { CtxTxVars } from '@modules/WebServer/middlewares/ctxVarsMw';
+import type { CtxTxUtils } from '@modules/WebServer/middlewares/ctxUtilsMw';
+import type { AuthedAdminType } from '@modules/WebServer/authLogic';
+import type { SessToolsType } from '@modules/WebServer/middlewares/sessionMws';
 import { Socket } from 'socket.io';
 
 //Right as it comes from Koa

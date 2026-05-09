@@ -36,12 +36,14 @@ import { theme } from '../../styles/theme';
 // Types
 // =============================================
 
-/** Only allow https:// image URLs from trusted sources to prevent XSS/tracking via arbitrary URLs. */
-const ALLOWED_IMAGE_ORIGINS = ['https://i.imgur.com', 'https://cdn.discordapp.com', 'https://media.discordapp.net'];
+/** Allow HTTPS image URLs from any host that serve a known image file extension. */
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
 function validateImageUrl(url: string): boolean {
     try {
         const parsed = new URL(url);
-        return parsed.protocol === 'https:' && ALLOWED_IMAGE_ORIGINS.some((o) => parsed.origin === o);
+        if (parsed.protocol !== 'https:') return false;
+        const pathname = parsed.pathname.toLowerCase();
+        return IMAGE_EXTENSIONS.some((ext) => pathname.endsWith(ext));
     } catch {
         return false;
     }
@@ -183,7 +185,7 @@ const TicketDetailView: React.FC<{
     const isTerminal = ticket.status === 'resolved' || ticket.status === 'closed';
 
     return (
-        <Box display="flex" flexDirection="column" height="100%" color={theme.fg}>
+        <Box display="flex" flexDirection="column" flex={1} minHeight={0} color={theme.fg}>
             {/* Header */}
             <Box display="flex" alignItems="center" gap={1} mb={1}>
                 <IconButton size="small" onClick={onBack} sx={{ color: theme.fg }}>
@@ -220,18 +222,33 @@ const TicketDetailView: React.FC<{
                             sx={{
                                 height: 18,
                                 fontSize: '0.7rem',
-                                color: ticket.priority === 'high' ? theme.destructive : ticket.priority === 'medium' ? theme.warning : theme.muted,
-                                borderColor: ticket.priority === 'high' ? theme.destructive : ticket.priority === 'medium' ? theme.warning : theme.border,
+                                color:
+                                    ticket.priority === 'high'
+                                        ? theme.destructive
+                                        : ticket.priority === 'medium'
+                                          ? theme.warning
+                                          : theme.muted,
+                                borderColor:
+                                    ticket.priority === 'high'
+                                        ? theme.destructive
+                                        : ticket.priority === 'medium'
+                                          ? theme.warning
+                                          : theme.border,
                             }}
                         />
                     )}
-                    <Typography variant="caption" sx={{ color: theme.muted }}>·</Typography>
                     <Typography variant="caption" sx={{ color: theme.muted }}>
-                        by <strong style={{ color: theme.fg }}>{ticket.reporter.name}</strong> (#{ticket.reporter.netid})
+                        ·
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: theme.muted }}>
+                        by <strong style={{ color: theme.fg }}>{ticket.reporter.name}</strong> (#{ticket.reporter.netid}
+                        )
                     </Typography>
                     {ticket.targets.length > 0 && (
                         <>
-                            <Typography variant="caption" sx={{ color: theme.muted }}>→</Typography>
+                            <Typography variant="caption" sx={{ color: theme.muted }}>
+                                →
+                            </Typography>
                             <Typography variant="caption" sx={{ color: theme.muted }}>
                                 {ticket.targets.map((t) => `${t.name} (#${t.netid})`).join(', ')}
                             </Typography>
@@ -249,7 +266,7 @@ const TicketDetailView: React.FC<{
             </Box>
 
             {/* Messages */}
-            <Box flex={1} overflow="auto" display="flex" flexDirection="column" gap={0.75} mb={1}>
+            <Box flex={1} minHeight={0} overflow="auto" display="flex" flexDirection="column" gap={0.75} mb={1}>
                 {ticket.messages.length === 0 && (
                     <Typography variant="body2" sx={{ color: theme.muted }} textAlign="center" py={2}>
                         No messages yet. Send a reply below.
@@ -302,7 +319,12 @@ const TicketDetailView: React.FC<{
                                         component="img"
                                         src={url}
                                         alt="attachment"
-                                        sx={{ maxHeight: 80, maxWidth: 120, borderRadius: 0.5, border: `1px solid ${theme.border}` }}
+                                        sx={{
+                                            maxHeight: 80,
+                                            maxWidth: 120,
+                                            borderRadius: 0.5,
+                                            border: `1px solid ${theme.border}`,
+                                        }}
                                     />
                                 ))}
                             </Box>
@@ -335,14 +357,19 @@ const TicketDetailView: React.FC<{
                             },
                         }}
                     />
-                    <IconButton onClick={handleSend} disabled={sendingMessage || !msgText.trim()} size="small" sx={{ color: theme.info }}>
+                    <IconButton
+                        onClick={handleSend}
+                        disabled={sendingMessage || !msgText.trim()}
+                        size="small"
+                        sx={{ color: theme.info }}
+                    >
                         <Send />
                     </IconButton>
                 </Box>
             )}
 
             {/* Status controls */}
-            <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
+            <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1} pb={1}>
                 {ticket.status === 'open' && (
                     <Button
                         size="small"
@@ -362,7 +389,12 @@ const TicketDetailView: React.FC<{
                         startIcon={<CheckCircle />}
                         onClick={() => onStatusChange('resolved')}
                         disabled={changingStatus}
-                        sx={{ textTransform: 'none', bgcolor: theme.success, color: '#fff', '&:hover': { bgcolor: '#00875c' } }}
+                        sx={{
+                            textTransform: 'none',
+                            bgcolor: theme.success,
+                            color: '#fff',
+                            '&:hover': { bgcolor: '#00875c' },
+                        }}
                     >
                         Resolve
                     </Button>
@@ -586,7 +618,14 @@ export const ReportsTab: React.FC<{ visible: boolean }> = ({ visible }) => {
                     <Typography variant="body2" sx={{ color: theme.info }}>
                         New ticket from <strong>{notification.reporterName}</strong> — click to view
                     </Typography>
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); setNotification(null); }} sx={{ color: theme.info }}>
+                    <IconButton
+                        size="small"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setNotification(null);
+                        }}
+                        sx={{ color: theme.info }}
+                    >
                         <Close fontSize="small" />
                     </IconButton>
                 </Box>
@@ -596,7 +635,9 @@ export const ReportsTab: React.FC<{ visible: boolean }> = ({ visible }) => {
             {selectedTicketId !== null ? (
                 detailLoading || !ticketDetail ? (
                     <Box display="flex" justifyContent="center" alignItems="center" flex={1}>
-                        <Typography variant="body2" sx={{ color: theme.muted }}>Loading ticket...</Typography>
+                        <Typography variant="body2" sx={{ color: theme.muted }}>
+                            Loading ticket...
+                        </Typography>
                     </Box>
                 ) : (
                     <TicketDetailView
@@ -627,13 +668,22 @@ export const ReportsTab: React.FC<{ visible: boolean }> = ({ visible }) => {
                         <Box display="flex" gap={0.5}>
                             <IconButton
                                 size="small"
-                                onClick={() => { setShowArchive(!showArchive); setStatusFilter('all'); }}
+                                onClick={() => {
+                                    setShowArchive(!showArchive);
+                                    setStatusFilter('all');
+                                }}
                                 title={showArchive ? 'Show active' : 'Show archive'}
                                 sx={{ color: theme.muted }}
                             >
                                 {showArchive ? <Inbox fontSize="small" /> : <Archive fontSize="small" />}
                             </IconButton>
-                            <IconButton size="small" onClick={handleRefresh} disabled={loading} title="Refresh" sx={{ color: theme.muted }}>
+                            <IconButton
+                                size="small"
+                                onClick={handleRefresh}
+                                disabled={loading}
+                                title="Refresh"
+                                sx={{ color: theme.muted }}
+                            >
                                 <Refresh fontSize="small" />
                             </IconButton>
                         </Box>
@@ -689,13 +739,17 @@ export const ReportsTab: React.FC<{ visible: boolean }> = ({ visible }) => {
                     <ListContainer>
                         {loading ? (
                             <Box textAlign="center" py={4}>
-                                <Typography variant="body2" sx={{ color: theme.muted }}>Loading tickets...</Typography>
+                                <Typography variant="body2" sx={{ color: theme.muted }}>
+                                    Loading tickets...
+                                </Typography>
                             </Box>
                         ) : filtered.length === 0 ? (
                             <Box textAlign="center" py={4}>
                                 <Typography variant="body2" sx={{ color: theme.muted }}>
                                     {baseList.length === 0
-                                        ? showArchive ? 'No archived tickets.' : 'No open tickets.'
+                                        ? showArchive
+                                            ? 'No archived tickets.'
+                                            : 'No open tickets.'
                                         : 'No tickets match your filters.'}
                                 </Typography>
                             </Box>
@@ -716,7 +770,12 @@ export const ReportsTab: React.FC<{ visible: boolean }> = ({ visible }) => {
                                     {/* Row 1: id, status, category, date */}
                                     <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.25}>
                                         <Box display="flex" alignItems="center" gap={1}>
-                                            <Typography variant="caption" fontFamily="monospace" fontWeight={600} sx={{ color: theme.fg }}>
+                                            <Typography
+                                                variant="caption"
+                                                fontFamily="monospace"
+                                                fontWeight={600}
+                                                sx={{ color: theme.fg }}
+                                            >
                                                 {t.id}
                                             </Typography>
                                             <StatusChip status={t.status} />
@@ -724,13 +783,23 @@ export const ReportsTab: React.FC<{ visible: boolean }> = ({ visible }) => {
                                                 label={t.category}
                                                 size="small"
                                                 variant="outlined"
-                                                sx={{ height: 18, fontSize: '0.65rem', color: theme.muted, borderColor: theme.border }}
+                                                sx={{
+                                                    height: 18,
+                                                    fontSize: '0.65rem',
+                                                    color: theme.muted,
+                                                    borderColor: theme.border,
+                                                }}
                                             />
                                             {(t.unreadCount ?? 0) > 0 && (
                                                 <Chip
                                                     label={`${t.unreadCount} new`}
                                                     size="small"
-                                                    sx={{ height: 18, fontSize: '0.65rem', bgcolor: theme.info, color: '#fff' }}
+                                                    sx={{
+                                                        height: 18,
+                                                        fontSize: '0.65rem',
+                                                        bgcolor: theme.info,
+                                                        color: '#fff',
+                                                    }}
                                                 />
                                             )}
                                         </Box>
@@ -741,12 +810,33 @@ export const ReportsTab: React.FC<{ visible: boolean }> = ({ visible }) => {
                                     {/* Row 2: reporter → targets + claim info */}
                                     <Box display="flex" alignItems="center" justifyContent="space-between">
                                         <Box>
-                                            <Typography component="span" variant="body2" sx={{ color: theme.muted }}>by </Typography>
-                                            <Typography component="span" variant="body2" fontWeight={600} sx={{ color: theme.fg }}>{t.reporterName}</Typography>
+                                            <Typography component="span" variant="body2" sx={{ color: theme.muted }}>
+                                                by{' '}
+                                            </Typography>
+                                            <Typography
+                                                component="span"
+                                                variant="body2"
+                                                fontWeight={600}
+                                                sx={{ color: theme.fg }}
+                                            >
+                                                {t.reporterName}
+                                            </Typography>
                                             {t.targetNames.length > 0 && (
                                                 <>
-                                                    <Typography component="span" variant="body2" sx={{ color: theme.muted }}> → </Typography>
-                                                    <Typography component="span" variant="body2" fontWeight={600} sx={{ color: theme.fg }}>
+                                                    <Typography
+                                                        component="span"
+                                                        variant="body2"
+                                                        sx={{ color: theme.muted }}
+                                                    >
+                                                        {' '}
+                                                        →{' '}
+                                                    </Typography>
+                                                    <Typography
+                                                        component="span"
+                                                        variant="body2"
+                                                        fontWeight={600}
+                                                        sx={{ color: theme.fg }}
+                                                    >
                                                         {t.targetNames.join(', ')}
                                                     </Typography>
                                                 </>

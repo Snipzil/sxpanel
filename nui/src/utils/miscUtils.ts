@@ -1,5 +1,5 @@
 import { ResolvablePermission } from '../state/permissions.state';
-import { TxAdminActionRespType } from '../components/PlayerModal/Tabs/DialogActionView';
+import { TxAdminActionRespType } from '@nui/src/components/PlayerModal/Tabs/DialogActionView';
 import { VariantType } from 'notistack';
 
 export const userHasPerm = (perm: ResolvablePermission, permsState: ResolvablePermission[]): boolean => {

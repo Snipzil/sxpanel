@@ -14,11 +14,11 @@ export default function LiveConsoleHeader({
     onJumpToPrevStart,
 }: LiveConsoleHeaderProps) {
     return (
-        <div className="flex shrink flex-col border-b border-border/40 px-1 py-2.5 sm:px-4">
+        <div className="border-border/40 flex shrink flex-col border-b px-1 py-2.5 sm:px-4">
             <div className="flex items-center space-x-2">
                 <svg
                     aria-hidden="true"
-                    className="h-3.5 w-3.5 text-success"
+                    className="text-success h-3.5 w-3.5"
                     fill="none"
                     height="24"
                     stroke="currentColor"
@@ -32,8 +32,10 @@ export default function LiveConsoleHeader({
                     <polyline points="4 17 10 11 4 5" />
                     <line x1="12" x2="20" y1="19" y2="19" />
                 </svg>
-                <p className="font-mono text-sm font-medium text-foreground">Live Console</p>
-                <span className={`ml-1 h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-success' : 'bg-muted-foreground/40'}`}>
+                <p className="text-foreground font-mono text-sm font-medium">Live Console</p>
+                <span
+                    className={`ml-1 h-1.5 w-1.5 rounded-full ${isConnected ? 'bg-success' : 'bg-muted-foreground/40'}`}
+                >
                     <span className="sr-only">{isConnected ? 'Connected' : 'Disconnected'}</span>
                 </span>
 

@@ -134,11 +134,9 @@ export default class FxUpdater {
                 // .tar.xz — spawn tar directly (no shell); paths are passed as
                 // separate argv entries, so there is no injection surface.
                 await new Promise<void>((resolve, reject) => {
-                    const child = spawn(
-                        'tar',
-                        ['-xf', this.archivePath, '-C', this.stagingDir],
-                        { stdio: ['ignore', 'ignore', 'pipe'] },
-                    );
+                    const child = spawn('tar', ['-xf', this.archivePath, '-C', this.stagingDir], {
+                        stdio: ['ignore', 'ignore', 'pipe'],
+                    });
                     const stderrChunks: Buffer[] = [];
                     child.stderr!.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
                     child.on('error', reject);
@@ -182,7 +180,10 @@ export default class FxUpdater {
                 const alpineStat = await fsp.stat(alpineDir).catch(() => null);
                 if (alpineStat?.isDirectory()) {
                     const nestedBin = path.join(alpineDir, 'opt', 'cfx-server', 'FXServer');
-                    const hasBin = await fsp.access(nestedBin).then(() => true).catch(() => false);
+                    const hasBin = await fsp
+                        .access(nestedBin)
+                        .then(() => true)
+                        .catch(() => false);
                     if (hasBin) {
                         console.verbose.log('Unwrapping alpine/ from multi-entry archive...');
                         //Remove all non-alpine entries (e.g. run.sh)
@@ -207,32 +208,40 @@ export default class FxUpdater {
                 const expectedLdMusl = path.join(this.stagingDir, 'opt', 'cfx-server', 'ld-musl-x86_64.so.1');
                 const expectedFxServer = path.join(this.stagingDir, 'opt', 'cfx-server', 'FXServer');
                 const [hasLdMusl, hasFxServer] = await Promise.all([
-                    fsp.access(expectedLdMusl).then(() => true).catch(() => false),
-                    fsp.access(expectedFxServer).then(() => true).catch(() => false),
+                    fsp
+                        .access(expectedLdMusl)
+                        .then(() => true)
+                        .catch(() => false),
+                    fsp
+                        .access(expectedFxServer)
+                        .then(() => true)
+                        .catch(() => false),
                 ]);
                 if (!hasLdMusl || !hasFxServer) {
                     const listing = await this.listStagingContents();
-                    const missing = [
-                        !hasLdMusl && 'ld-musl-x86_64.so.1',
-                        !hasFxServer && 'FXServer',
-                    ].filter(Boolean).join(', ');
+                    const missing = [!hasLdMusl && 'ld-musl-x86_64.so.1', !hasFxServer && 'FXServer']
+                        .filter(Boolean)
+                        .join(', ');
                     console.error(`Extracted artifact missing: ${missing}`);
                     console.error(`Staging directory contents:\n${listing}`);
                     throw new Error(
-                        `Invalid artifact structure: expected ${missing} at opt/cfx-server/ but not found. `
-                        + 'The artifact may be for a different platform or have an incompatible structure.'
+                        `Invalid artifact structure: expected ${missing} at opt/cfx-server/ but not found. ` +
+                            'The artifact may be for a different platform or have an incompatible structure.',
                     );
                 }
             } else {
                 const expectedExe = path.join(this.stagingDir, 'FXServer.exe');
-                const hasExe = await fsp.access(expectedExe).then(() => true).catch(() => false);
+                const hasExe = await fsp
+                    .access(expectedExe)
+                    .then(() => true)
+                    .catch(() => false);
                 if (!hasExe) {
                     const listing = await this.listStagingContents();
                     console.error(`Extracted artifact missing FXServer.exe`);
                     console.error(`Staging directory contents:\n${listing}`);
                     throw new Error(
-                        'Invalid artifact structure: FXServer.exe not found at the expected location. '
-                        + 'The artifact may be corrupted or for a different platform.'
+                        'Invalid artifact structure: FXServer.exe not found at the expected location. ' +
+                            'The artifact may be corrupted or for a different platform.',
                     );
                 }
             }
@@ -436,10 +445,7 @@ export default class FxUpdater {
                     // in the batch file from unescaped metacharacters
                     const restartScriptPath = path.join(parentDir, 'fxs_restart_cmd.cmd');
                     const winRestartScript = escapeBatchPath(restartScriptPath);
-                    await fsp.writeFile(
-                        restartScriptPath,
-                        `@echo off\r\ncd /d "${winCwd}"\r\n${restartCmd}\r\n`,
-                    );
+                    await fsp.writeFile(restartScriptPath, `@echo off\r\ncd /d "${winCwd}"\r\n${restartCmd}\r\n`);
                     batLines.push(
                         ':restartfx',
                         'echo Restarting FXServer...',
@@ -483,7 +489,7 @@ export default class FxUpdater {
                 try {
                     const cmdlineRaw = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8');
                     const cmdArgs = cmdlineRaw.split('\0').filter(Boolean);
-                    restartCmd = cmdArgs.map(a => escapeSh(a)).join(' ');
+                    restartCmd = cmdArgs.map((a) => escapeSh(a)).join(' ');
                 } catch {
                     console.warn('Could not capture command line for auto-restart.');
                 }
@@ -499,7 +505,9 @@ export default class FxUpdater {
                 const shNewCitizen = escapeSh(newCitizenDir);
                 const shNewCitizenBak = escapeSh(newCitizenDir + '.bak');
                 const shArtifactRootBak = escapeSh(this.artifactRootDir + '.bak');
-                const shExpectedBin = escapeSh(path.join(this.artifactRootDir, 'opt', 'cfx-server', 'ld-musl-x86_64.so.1'));
+                const shExpectedBin = escapeSh(
+                    path.join(this.artifactRootDir, 'opt', 'cfx-server', 'ld-musl-x86_64.so.1'),
+                );
 
                 const shLines = [
                     '#!/bin/bash',
@@ -566,7 +574,7 @@ export default class FxUpdater {
                         '# Verify binary exists before attempting restart',
                         `if [ ! -f ${shExpectedBin} ]; then`,
                         `    log "ERROR: ld-musl-x86_64.so.1 not found after update!"`,
-                        `    log "Expected at: ${shExpectedBin}"`,  
+                        `    log "Expected at: ${shExpectedBin}"`,
                         `    log "Contents of artifact root:"`,
                         `    find ${shArtifactRoot} -maxdepth 3 -type f 2>&1 | tee -a "$LOGFILE" || true`,
                         `    log "Update completed but FXServer cannot start. Please check the artifact."`,
@@ -623,13 +631,17 @@ export default class FxUpdater {
                     //Send SIGTERM first for a graceful shutdown, then SIGKILL as safety net.
                     try {
                         process.kill(pid, 'SIGTERM');
-                    } catch { /* already dead */ }
+                    } catch {
+                        /* already dead */
+                    }
                 }
                 //Safety net: if the process is still alive after 5s, force kill it
                 setTimeout(() => {
                     try {
                         process.kill(pid, 'SIGKILL');
-                    } catch { /* already dead */ }
+                    } catch {
+                        /* already dead */
+                    }
                 }, 5000);
             }, 1500);
         } catch (error) {
@@ -664,11 +676,7 @@ export default class FxUpdater {
             const entries = await zip.entries();
             for (const entryName of Object.keys(entries)) {
                 // Reject absolute paths, drive letters, and null bytes.
-                if (
-                    path.isAbsolute(entryName) ||
-                    /^[a-zA-Z]:/.test(entryName) ||
-                    entryName.includes('\0')
-                ) {
+                if (path.isAbsolute(entryName) || /^[a-zA-Z]:/.test(entryName) || entryName.includes('\0')) {
                     throw new Error(`Archive entry has unsafe name: ${entryName}`);
                 }
                 const resolved = path.resolve(destResolved, entryName);
@@ -694,13 +702,17 @@ export default class FxUpdater {
                 lines.push(`${prefix}${entry.name}`);
                 if (entry.isDirectory()) {
                     try {
-                        const subEntries = await fsp.readdir(path.join(this.stagingDir, entry.name), { withFileTypes: true });
+                        const subEntries = await fsp.readdir(path.join(this.stagingDir, entry.name), {
+                            withFileTypes: true,
+                        });
                         for (const sub of subEntries.slice(0, 20)) {
                             const subPrefix = sub.isDirectory() ? '[dir] ' : '      ';
                             lines.push(`  ${subPrefix}${sub.name}`);
                         }
                         if (subEntries.length > 20) lines.push(`  ... and ${subEntries.length - 20} more`);
-                    } catch { /* ignore */ }
+                    } catch {
+                        /* ignore */
+                    }
                 }
             }
             return lines.join('\n');

@@ -26,7 +26,7 @@ export default async function FxUpdateApply(ctx: AuthedCtx) {
     txCore.fxUpdater.apply().catch(() => {
         //Error is already stored in status
     });
-    ctx.admin.logCommand('FXServer artifact update applied');
+    ctx.admin.logCommand('FXServer artifact update applied', 'artifact.apply');
 
     return ctx.send<ApiToastResp>({
         type: 'warning',

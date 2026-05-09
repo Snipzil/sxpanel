@@ -101,7 +101,10 @@
         @apply border-border;
     }
     html {
-        font-size: clamp(12px, calc(8px + 0.21vw), 16px);
+        --tx-shell-base-font-size: clamp(12px, calc(8px + 0.21vw), 16px);
+        --tx-shell-ui-scale: 1;
+        --tx-shell-density-scale: 1;
+        font-size: calc(var(--tx-shell-base-font-size) * var(--tx-shell-ui-scale) * var(--tx-shell-density-scale));
         overflow-y: auto;
         scrollbar-width: thin;
         scrollbar-color: hsl(var(--secondary)) hsl(var(--background));
@@ -127,7 +130,7 @@
         }
     }
     html[data-tx-shell-density='compact'] {
-        font-size: 11px;
+        --tx-shell-density-scale: 0.9167;
     }
     body {
         @apply bg-background text-foreground antialiased;

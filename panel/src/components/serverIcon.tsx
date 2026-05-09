@@ -9,6 +9,8 @@ type ServerIconProps = {
     extraClasses?: string;
 };
 
+const runtimeIconRegex = /^icon-([a-f0-9]{16})\.(png|jpe?g|gif|webp|svg|ico)$/i;
+
 export function ServerIcon({ serverName, gameName, iconFilename, className, extraClasses }: ServerIconProps) {
     let fallbackUrl: string;
     if (gameName === 'fivem') {
@@ -20,7 +22,7 @@ export function ServerIcon({ serverName, gameName, iconFilename, className, extr
     }
 
     let iconUrl = fallbackUrl;
-    if (iconFilename && /^icon-([a-f0-9]{16})\.png$/.test(iconFilename)) {
+    if (iconFilename && runtimeIconRegex.test(iconFilename)) {
         iconUrl = `/.runtime/${iconFilename}`;
     }
 

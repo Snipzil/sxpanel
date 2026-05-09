@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { rimrafSync } from 'rimraf';
 import { SemVer } from 'semver';
 import config from './config';
 
@@ -32,7 +33,6 @@ export const licenseBanner = (baseDir = '.', isBundledFile = false) => {
             .split('\n')
             .map((x) => logoPad + x),
         lineSep,
-        'Author: André Tabarra (https://github.com/tabarra)',
         'Author: SomeAussieGaymer (https://github.com/SomeAussieGaymer)',
         'Repository: https://github.com/SomeAussieGaymer/fxPanel',
         'fxPanel is a free open source software provided under the license below.',
@@ -103,7 +103,7 @@ export const getPublishVersion = (isOptional: boolean) => {
     try {
         if (!workflowRef) {
             if (isOptional) {
-                const txVersion = '0.2.2-Beta';
+                const txVersion = '0.3.0-Alpha-04';
                 return {
                     txVersion,
                     isPreRelease: /beta|alpha|rc/i.test(txVersion),
@@ -214,6 +214,137 @@ const setupDistFxmanifest = (targetPath: string, txVersion: string) => {
     fs.writeFileSync(fxManifestPath, fxManifestContent);
 };
 
+export const shouldCopyStaticEntry = (sourcePath: string) => path.basename(sourcePath) !== '.git';
+
+export const shouldSyncStaticContents = (srcPath: string, eventName: string) => {
+    if (eventName === 'publish') {
+        return true;
+    }
+
+    return path.basename(path.normalize(srcPath)) !== 'addons';
+};
+
+export const clearCopyDestination = (srcPath: string, destPath: string) => {
+    if (!fs.existsSync(destPath)) {
+        return;
+    }
+
+    const srcStat = fs.lstatSync(srcPath);
+    const destStat = fs.lstatSync(destPath);
+    if (srcStat.isDirectory() && destStat.isDirectory()) {
+        for (const entryName of fs.readdirSync(destPath)) {
+            rimrafSync(path.join(destPath, entryName));
+        }
+        return;
+    }
+
+    rimrafSync(destPath);
+};
+
+const resolveIfExists = (targetPath: string) => {
+    if (!fs.existsSync(targetPath)) return undefined;
+
+    try {
+        return fs.realpathSync(targetPath);
+    } catch {
+        return path.resolve(targetPath);
+    }
+};
+
+export const copyDirectoryIfDifferent = (srcPath: string, destPath: string) => {
+    const resolvedSource = resolveIfExists(srcPath) ?? path.resolve(srcPath);
+    const resolvedDestination = resolveIfExists(destPath);
+    if (resolvedDestination && resolvedSource === resolvedDestination) {
+        return false;
+    }
+
+    fs.mkdirSync(path.dirname(destPath), { recursive: true });
+    if (fs.existsSync(destPath)) {
+        fs.rmSync(destPath, { recursive: true, force: true });
+    }
+    fs.cpSync(srcPath, destPath, { recursive: true, force: true });
+    return true;
+};
+
+const readJsonFile = <T>(filePath: string): T => {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+};
+
+const resolveInstalledPackageDir = (packageName: string, fromDir: string) => {
+    let currentDir = path.resolve(fromDir);
+
+    while (true) {
+        const packageJsonPath = path.join(currentDir, 'node_modules', packageName, 'package.json');
+        if (fs.existsSync(packageJsonPath)) {
+            const packageJson = readJsonFile<{ name?: string }>(packageJsonPath);
+            if (packageJson.name === packageName) {
+                return path.dirname(packageJsonPath);
+            }
+        }
+
+        const parentDir = path.dirname(currentDir);
+        if (parentDir === currentDir) {
+            throw new Error(`Could not resolve installed package directory for ${packageName} from ${fromDir}.`);
+        }
+        currentDir = parentDir;
+    }
+};
+
+const getPackageDependencyNames = (packageDir: string) => {
+    const packageJson = readJsonFile<{
+        dependencies?: Record<string, string>;
+        optionalDependencies?: Record<string, string>;
+    }>(path.join(packageDir, 'package.json'));
+
+    return [
+        ...new Set([
+            ...Object.keys(packageJson.dependencies ?? {}),
+            ...Object.keys(packageJson.optionalDependencies ?? {}),
+        ]),
+    ];
+};
+
+export const copyBotRuntimeDependencies = (monitorPath: string) => {
+    const monitorNodeModulesDir = path.join(monitorPath, 'node_modules');
+    const rootNodeModulesDir = path.resolve('.', 'node_modules');
+    const botPackageJson = readJsonFile<{
+        dependencies?: Record<string, string>;
+    }>(path.join('.', 'bot', 'package.json'));
+    const pendingPackages = Object.keys(botPackageJson.dependencies ?? {}).map((packageName) => ({
+        packageName,
+        fromDir: path.resolve('.', 'bot'),
+    }));
+    const copiedPackageDirs = new Set<string>();
+
+    fs.mkdirSync(monitorNodeModulesDir, { recursive: true });
+
+    while (pendingPackages.length > 0) {
+        const pending = pendingPackages.shift();
+        if (!pending) continue;
+
+        const sourceDir = resolveInstalledPackageDir(pending.packageName, pending.fromDir);
+        const resolvedSourceDir = resolveIfExists(sourceDir) ?? path.resolve(sourceDir);
+        if (copiedPackageDirs.has(resolvedSourceDir)) continue;
+
+        const relativePackageDir = path.relative(rootNodeModulesDir, resolvedSourceDir);
+        if (relativePackageDir.startsWith('..')) {
+            throw new Error(`Bot dependency ${pending.packageName} resolved outside root node_modules.`);
+        }
+
+        copyDirectoryIfDifferent(resolvedSourceDir, path.join(monitorNodeModulesDir, relativePackageDir));
+        copiedPackageDirs.add(resolvedSourceDir);
+
+        for (const dependencyName of getPackageDependencyNames(resolvedSourceDir)) {
+            pendingPackages.push({
+                packageName: dependencyName,
+                fromDir: resolvedSourceDir,
+            });
+        }
+    }
+
+    copyDirectoryIfDifferent('./addon-sdk', path.join(monitorPath, 'node_modules', 'addon-sdk'));
+};
+
 /**
  * Sync the files from local path to target path.
  * This function tried to remove the files before copying new ones,
@@ -225,18 +356,25 @@ export const copyStaticFiles = (targetPath: string, txVersion: string, eventName
     let failures = 0;
     for (const srcPath of config.copy) {
         const destPath = path.join(targetPath, srcPath);
+        if (!shouldSyncStaticContents(srcPath, eventName)) {
+            fs.mkdirSync(destPath, { recursive: true });
+            continue;
+        }
+
         try {
-            fs.rmSync(destPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+            clearCopyDestination(srcPath, destPath);
         } catch (error) {
             console.warn(
                 `[COPIER] Failed to remove ${destPath}: ${error instanceof Error ? error.message : String(error)}, copying over existing files.`,
             );
         }
         try {
-            fs.cpSync(srcPath, destPath, { recursive: true, force: true });
+            fs.cpSync(srcPath, destPath, { recursive: true, force: true, filter: shouldCopyStaticEntry });
         } catch (error) {
             failures++;
-            console.error(`[COPIER] Failed to copy ${srcPath} → ${destPath}: ${error instanceof Error ? error.message : String(error)}`);
+            console.error(
+                `[COPIER] Failed to copy ${srcPath} → ${destPath}: ${error instanceof Error ? error.message : String(error)}`,
+            );
         }
     }
     try {

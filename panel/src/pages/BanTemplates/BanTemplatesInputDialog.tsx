@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AutosizeTextAreaRef, AutosizeTextarea } from '@/components/ui/autosize-textarea';
-import { BanTemplatesInputData } from './BanTemplatesPage';
+import { BanTemplatesInputData } from '@/pages/BanTemplates/BanTemplatesPage';
 import { BanDurationType } from '@shared/otherTypes';
 import { banDurationToString } from '@/lib/utils';
 import { txToast } from '@/components/TxToaster';

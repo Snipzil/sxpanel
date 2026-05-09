@@ -8,7 +8,7 @@ import useSWR from 'swr';
 import { navigate as setLocation } from 'wouter/use-browser-location';
 import { LazyMonacoEditor } from '@/components/LazyMonacoEditor';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Types - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 type RecipeInfo = {
     isTrustedSource: boolean;
     name: string;
@@ -64,7 +64,7 @@ type ActionResp = {
     markdown?: boolean;
 };
 
-// â”€â”€ Step: Review â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Step: Review - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function StepReview({
     recipe,
     onConfirm,
@@ -124,7 +124,7 @@ function StepReview({
     );
 }
 
-// â”€â”€ Step: Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Step: Input - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 function StepInput({
     requireDBConfig,
     requiresGithubToken,
@@ -208,7 +208,6 @@ function StepInput({
                         className="text-primary underline"
                     >
                         portal.cfx.re
-
                     </a>
                 </p>
             </div>
@@ -311,7 +310,7 @@ function StepInput({
     );
 }
 
-// â”€â”€ Step: Run â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Step: Run - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 function StepRun({ deployPath, onDone, onCancel }: { deployPath: string; onDone: () => void; onCancel: () => void }) {
     const [log, setLog] = useState<string[]>([]);
     const [progress, setProgress] = useState(0);
@@ -385,7 +384,7 @@ function StepRun({ deployPath, onDone, onCancel }: { deployPath: string; onDone:
                 />
             </div>
             <div className="text-muted-foreground text-xs">
-                {progress}% â€” {status}
+                {progress}% - {status}
             </div>
 
             {/* Log output */}
@@ -415,7 +414,7 @@ function StepRun({ deployPath, onDone, onCancel }: { deployPath: string; onDone:
     );
 }
 
-// â”€â”€ Step: Configure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Step: Configure - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 function StepConfigure({
     serverCFG,
     onSave,
@@ -453,7 +452,7 @@ function StepConfigure({
     );
 }
 
-// â”€â”€ Main Deployer Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// - -  Main Deployer Page - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 export default function DeployerPage() {
     const [actionLoading, setActionLoading] = useState(false);
 

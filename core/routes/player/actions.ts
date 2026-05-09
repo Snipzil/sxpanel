@@ -63,16 +63,16 @@ export default async function PlayerActions(ctx: AuthedCtx) {
 /**
  * Handle Save Note (open to all admins)
  */
-async function handleSaveNote(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+export async function handleSaveNote(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
-    if (anyUndefined(ctx.request.body, ctx.request.body.note)) {
+    if (anyUndefined(ctx.request.body, ctx.request.body.note) || typeof ctx.request.body.note !== 'string') {
         return { error: 'Invalid request.' };
     }
     const note = ctx.request.body.note.trim();
 
     try {
         player.setNote(note, ctx.admin.name);
-        ctx.admin.logAction(`Set notes for ${player.license}`);
+        ctx.admin.logAction(`Set notes for ${player.license}`, 'player.notes.save');
         return { success: true };
     } catch (error) {
         return { error: `Failed to save note: ${emsg(error)}` };
@@ -82,9 +82,9 @@ async function handleSaveNote(ctx: AuthedCtx, player: PlayerClass): Promise<Gene
 /**
  * Handle Send Warning
  */
-async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+export async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
-    if (anyUndefined(ctx.request.body, ctx.request.body.reason)) {
+    if (anyUndefined(ctx.request.body, ctx.request.body.reason) || typeof ctx.request.body.reason !== 'string') {
         return { error: 'Invalid request.' };
     }
     const reason = ctx.request.body.reason.trim() || 'no reason provided';
@@ -107,7 +107,7 @@ async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
     } catch (error) {
         return { error: `Failed to warn player: ${emsg(error)}` };
     }
-    ctx.admin.logAction(`Warned player "${player.displayName}": ${reason}`);
+    ctx.admin.logAction(`Warned player "${player.displayName}" (${player.license}): ${reason}`, 'player.warn');
 
     // Dispatch `txAdmin:events:playerWarned`
     const warnEventData = {
@@ -131,9 +131,13 @@ async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
 /**
  * Handle Banning command
  */
-async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
-    if (anyUndefined(ctx.request.body, ctx.request.body.duration, ctx.request.body.reason)) {
+    if (
+        anyUndefined(ctx.request.body, ctx.request.body.duration, ctx.request.body.reason) ||
+        typeof ctx.request.body.duration !== 'string' ||
+        typeof ctx.request.body.reason !== 'string'
+    ) {
         return { error: 'Invalid request.' };
     }
     const durationInput = ctx.request.body.duration.trim();
@@ -174,7 +178,7 @@ async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<GenericAp
     } catch (error) {
         return { error: `Failed to ban player: ${emsg(error)}` };
     }
-    ctx.admin.logAction(`Banned player "${player.displayName}": ${reason}`);
+    ctx.admin.logAction(`Banned player "${player.displayName}" (${player.license}): ${reason}`, 'player.ban');
 
     //No need to dispatch events if server is not online
     if (txCore.fxRunner.isIdle) {
@@ -238,9 +242,9 @@ async function handleSetWhitelist(ctx: AuthedCtx, player: PlayerClass): Promise<
     try {
         player.setWhitelist(status);
         if (status) {
-            ctx.admin.logAction(`Added ${player.license} to the whitelist.`);
+            ctx.admin.logAction(`Added ${player.license} to the whitelist.`, 'player.whitelist.add');
         } else {
-            ctx.admin.logAction(`Removed ${player.license} from the whitelist.`);
+            ctx.admin.logAction(`Removed ${player.license} from the whitelist.`, 'player.whitelist.remove');
         }
 
         // Dispatch `txAdmin:events:whitelistPlayer`
@@ -282,7 +286,10 @@ async function handleSetTag(ctx: AuthedCtx, player: PlayerClass): Promise<Generi
     try {
         player.setCustomTag(tagId, status);
         const actionLabel = status ? 'Added' : 'Removed';
-        ctx.admin.logAction(`${actionLabel} tag '${tagId}' for ${player.license}.`);
+        ctx.admin.logAction(
+            `${actionLabel} tag '${tagId}' for ${player.license}.`,
+            status ? 'player.tag.add' : 'player.tag.remove',
+        );
         return { success: true };
     } catch (error) {
         return { error: `Failed to save tag: ${emsg(error)}` };
@@ -294,7 +301,7 @@ async function handleSetTag(ctx: AuthedCtx, player: PlayerClass): Promise<Generi
  */
 async function handleDirectMessage(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
-    if (anyUndefined(ctx.request.body, ctx.request.body.message)) {
+    if (anyUndefined(ctx.request.body, ctx.request.body.message) || typeof ctx.request.body.message !== 'string') {
         return { error: 'Invalid request.' };
     }
     const message = ctx.request.body.message.trim();
@@ -316,7 +323,7 @@ async function handleDirectMessage(ctx: AuthedCtx, player: PlayerClass): Promise
     }
 
     try {
-        ctx.admin.logAction(`DM to "${player.displayName}": ${message}`);
+        ctx.admin.logAction(`DM to "${player.displayName}" (${player.license}): ${message}`, 'player.message.send');
 
         // Dispatch `txAdmin:events:playerDirectMessage`
         txCore.fxRunner.sendEvent('playerDirectMessage', {
@@ -334,9 +341,9 @@ async function handleDirectMessage(ctx: AuthedCtx, player: PlayerClass): Promise
 /**
  * Handle Kick Action
  */
-async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
+export async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
-    if (anyUndefined(ctx.request.body, ctx.request.body.reason)) {
+    if (anyUndefined(ctx.request.body, ctx.request.body.reason) || typeof ctx.request.body.reason !== 'string') {
         return { error: 'Invalid request.' };
     }
     const kickReason = ctx.request.body.reason.trim() || txCore.translator.t('kick_messages.unknown_reason');
@@ -363,7 +370,7 @@ async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<GenericA
     }
 
     try {
-        ctx.admin.logAction(`Kicked "${player.displayName}": ${kickReason}`);
+        ctx.admin.logAction(`Kicked "${player.displayName}" (${player.license}): ${kickReason}`, 'player.kick');
         const dropMessage = txCore.translator.t('kick_messages.player', { reason: kickReason });
 
         // Dispatch `txAdmin:events:playerKicked`
@@ -400,7 +407,7 @@ async function handleHeal(ctx: AuthedCtx, player: PlayerClass): Promise<GenericA
     }
 
     try {
-        ctx.admin.logAction(`Healed "${player.displayName}" from web panel.`);
+        ctx.admin.logAction(`Healed "${player.displayName}" (${player.license}) from web panel.`, 'player.heal');
         txCore.fxRunner.sendEvent('webPlayerHealed', {
             target: player.netid,
             author: ctx.admin.name,
@@ -430,7 +437,10 @@ async function handleSpectate(ctx: AuthedCtx, player: PlayerClass): Promise<Gene
     }
 
     try {
-        ctx.admin.logAction(`Spectating "${player.displayName}" from web panel.`);
+        ctx.admin.logAction(
+            `Spectating "${player.displayName}" (${player.license}) from web panel.`,
+            'player.spectate',
+        );
         txCore.fxRunner.sendEvent('webSpectatePlayer', {
             target: player.netid,
             adminName: ctx.admin.name,
@@ -453,7 +463,7 @@ async function handleWipeIds(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
     }
     try {
         txCore.database.players.wipePlayerIds(player.license);
-        ctx.admin.logAction(`Wiped IDs for ${player.license}`);
+        ctx.admin.logAction(`Wiped IDs for ${player.license}`, 'player.ids.wipe');
         return { success: true };
     } catch (error) {
         return { error: `Failed to wipe player IDs: ${emsg(error)}` };
@@ -472,7 +482,7 @@ async function handleWipeHwids(ctx: AuthedCtx, player: PlayerClass): Promise<Gen
     }
     try {
         txCore.database.players.wipePlayerHwids(player.license);
-        ctx.admin.logAction(`Wiped HWIDs for ${player.license}`);
+        ctx.admin.logAction(`Wiped HWIDs for ${player.license}`, 'player.hwids.wipe');
         return { success: true };
     } catch (error) {
         return { error: `Failed to wipe player HWIDs: ${emsg(error)}` };
@@ -491,7 +501,7 @@ async function handleDeletePlayer(ctx: AuthedCtx, player: PlayerClass): Promise<
     }
     try {
         txCore.database.players.deletePlayer(player.license);
-        ctx.admin.logAction(`Deleted player ${player.displayName} (${player.license}) from database`);
+        ctx.admin.logAction(`Deleted player ${player.displayName} (${player.license}) from database`, 'player.delete');
         return { success: true };
     } catch (error) {
         return { error: `Failed to delete player: ${emsg(error)}` };

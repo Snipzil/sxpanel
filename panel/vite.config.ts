@@ -1,18 +1,16 @@
 import path from 'node:path';
+import fs from 'node:fs';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { PluginOption, UserConfig, defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 // import tsconfigPaths from 'vite-tsconfig-paths';
 import { licenseBanner } from '../scripts/build/utils';
 import { parseTxDevEnv } from '../shared/txDevEnv';
-process.loadEnvFile('../.env');
-
-//Check if TXDEV_VITE_URL is set
-const txDevEnv = parseTxDevEnv();
-if (!txDevEnv.VITE_URL) {
-    console.error('Missing TXDEV_VITE_URL env variable.');
-    process.exit(1);
+if (fs.existsSync(path.resolve(__dirname, '../.env'))) {
+    process.loadEnvFile('../.env');
 }
+
+const txDevEnv = parseTxDevEnv();
 
 const baseConfig = {
     build: {
@@ -37,8 +35,16 @@ const baseConfig = {
                 manualChunks(id) {
                     if (id.includes('@monaco-editor/react')) return 'monaco-editor';
                     if (id.includes('@nivo/')) return 'nivo-charts';
-                    if (id.includes('d3-scale-chromatic') || id.includes('d3-color') || id.includes('node_modules/d3/')) return 'd3-vendor';
-                    if (id.includes('@xterm/xterm') || id.includes('@xterm/addon-fit') || id.includes('@xterm/addon-search') || id.includes('@xterm/addon-web-links') || id.includes('@xterm/addon-webgl')) return 'xterm-vendor';
+                    if (id.includes('d3-scale-chromatic') || id.includes('d3-color') || id.includes('node_modules/d3/'))
+                        return 'd3-vendor';
+                    if (
+                        id.includes('@xterm/xterm') ||
+                        id.includes('@xterm/addon-fit') ||
+                        id.includes('@xterm/addon-search') ||
+                        id.includes('@xterm/addon-web-links') ||
+                        id.includes('@xterm/addon-webgl')
+                    )
+                        return 'xterm-vendor';
                 },
             },
         },
@@ -68,6 +74,10 @@ const baseConfig = {
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
     if (command === 'serve') {
+        if (!txDevEnv.VITE_URL) {
+            console.error('Missing TXDEV_VITE_URL env variable.');
+            process.exit(1);
+        }
         baseConfig.server.origin = txDevEnv.VITE_URL;
         baseConfig.build.rollupOptions.input = './src/main.tsx'; // overwrite default .html entry
         return baseConfig;

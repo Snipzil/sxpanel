@@ -178,18 +178,39 @@ export default () => {
 
     //Diagnostic routes
     router.get('/diagnostics/data', apiAuthMw, routes.diagnostics_page);
+    router.post('/diagnostics/discordBot/:action', apiAuthMw, routes.diagnostics_actions);
     router.post('/diagnostics/sendReport', apiAuthMw, routes.diagnostics_sendReport);
     router.get('/advanced/data', apiAuthMw, routes.advanced_page);
     router.post('/advanced', apiAuthMw, routes.advanced_actions);
 
     //Log routes
     router.get('/logs/server/partial', apiAuthMw, readLimiter, wrapRoute('ServerLogPartial', routes.serverLogPartial));
-    router.get('/logs/server/sessions', apiAuthMw, readLimiter, wrapRoute('ServerLogSessions', routes.serverLogSessions));
-    router.get('/logs/server/session', apiAuthMw, readLimiter, wrapRoute('ServerLogSession', routes.serverLogSessionFile));
+    router.get(
+        '/logs/server/sessions',
+        apiAuthMw,
+        readLimiter,
+        wrapRoute('ServerLogSessions', routes.serverLogSessions),
+    );
+    router.get(
+        '/logs/server/session',
+        apiAuthMw,
+        readLimiter,
+        wrapRoute('ServerLogSession', routes.serverLogSessionFile),
+    );
     router.get('/logs/server/download', webAuthMw, wrapRoute('ServerLogDownload', routes.downloadServerLog));
     router.get('/logs/system/partial', apiAuthMw, readLimiter, wrapRoute('SystemLogPartial', routes.systemLogPartial));
-    router.get('/logs/system/sessions', apiAuthMw, readLimiter, wrapRoute('SystemLogSessions', routes.systemLogSessions));
-    router.get('/logs/system/session', apiAuthMw, readLimiter, wrapRoute('SystemLogSession', routes.systemLogSessionFile));
+    router.get(
+        '/logs/system/sessions',
+        apiAuthMw,
+        readLimiter,
+        wrapRoute('SystemLogSessions', routes.systemLogSessions),
+    );
+    router.get(
+        '/logs/system/session',
+        apiAuthMw,
+        readLimiter,
+        wrapRoute('SystemLogSession', routes.systemLogSessionFile),
+    );
     router.get('/logs/system/download', webAuthMw, wrapRoute('SystemLogDownload', routes.downloadSystemLog));
     router.get('/logs/system/:scope', apiAuthMw, wrapRoute('SystemLogScoped', routes.systemLogScoped));
     router.get('/logs/fxserver/download', webAuthMw, wrapRoute('FxLogDownload', routes.downloadFxserverLog));
@@ -227,7 +248,12 @@ export default () => {
         mutationLimiter,
         wrapRoute('LiveSpectateStart', routes.player_liveSpectate_start),
     );
-    router.post('/player/liveSpectate/stop', apiAuthMw, mutationLimiter, wrapRoute('LiveSpectateStop', routes.player_liveSpectate_stop));
+    router.post(
+        '/player/liveSpectate/stop',
+        apiAuthMw,
+        mutationLimiter,
+        wrapRoute('LiveSpectateStop', routes.player_liveSpectate_stop),
+    );
     router.post('/player/:action', apiAuthMw, mutationLimiter, routes.player_actions);
     router.get('/whitelist/:table', apiAuthMw, readLimiter, wrapRoute('WhitelistList', routes.whitelist_list));
     router.post('/whitelist/:table/:action', apiAuthMw, mutationLimiter, routes.whitelist_actions);
@@ -242,6 +268,8 @@ export default () => {
     router.post('/reports/status', apiAuthMw, mutationLimiter, routes.reports_status);
     router.post('/reports/claim', apiAuthMw, mutationLimiter, routes.reports_claim);
     router.post('/reports/note', apiAuthMw, mutationLimiter, routes.reports_note);
+    router.post('/reports/retention-exclusion', apiAuthMw, mutationLimiter, routes.reports_retentionExclusion);
+    router.delete('/reports/delete', apiAuthMw, mutationLimiter, routes.reports_delete);
     router.delete('/reports/note', apiAuthMw, mutationLimiter, routes.reports_note_delete);
 
     //Addon routes
@@ -255,15 +283,18 @@ export default () => {
     router.post('/addons/:addonId/start', apiAuthMw, mutationLimiter, routes.addons_start);
     router.post('/addons/reload-all', apiAuthMw, mutationLimiter, routes.addons_reloadAll);
     router.get('/addons/:addonId/logs', apiAuthMw, readLimiter, routes.addons_logs);
-    router.all('/addons/:addonId/api/(.*)', apiAuthMw, readLimiter, routes.addons_proxy);
+    router.all('/addons/:addonId/api', apiAuthMw, readLimiter, routes.addons_proxy);
+    router.all('/addons/:addonId/api/*addonPath', apiAuthMw, readLimiter, routes.addons_proxy);
     //Addon static file serving (panel bundles, NUI bundles & static assets)
     //SECURITY: panel & NUI bundles are same-origin, executable assets. They must
     //          only be served to authenticated admins to avoid exposing addon
     //          JS/CSS to unauthenticated visitors who could use them as part of
     //          an XSS / reconnaissance chain.
-    router.get('/addons/:addonId/panel/(.*)', webAuthMw, routes.addons_servePanelFile);
-    router.get('/nui/addons/:addonId/(.*)', assetAuthMw, routes.addons_serveNuiFile);
-    router.get('/addons/:addonId/static/(.*)', assetAuthMw, routes.addons_serveStaticFile);
+    router.get('/addons/:addonId/panel', webAuthMw, routes.addons_servePanelFile);
+    router.get('/addons/:addonId/panel/*addonPath', webAuthMw, routes.addons_servePanelFile);
+    router.get('/nui/addons/:addonId', assetAuthMw, routes.addons_serveNuiFile);
+    router.get('/nui/addons/:addonId/*addonPath', assetAuthMw, routes.addons_serveNuiFile);
+    router.get('/addons/:addonId/static/*addonPath', assetAuthMw, routes.addons_serveStaticFile);
     //Addon public routes are intentionally NOT registered on the primary panel
     //origin. Public traffic for addons with publicRoutes enabled is served by
     //AddonPublicServer on a dedicated port so that addon-controlled HTML/JS

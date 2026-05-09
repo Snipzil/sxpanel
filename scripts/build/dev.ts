@@ -3,7 +3,7 @@ import path from 'node:path';
 import chokidar from 'chokidar';
 import { debounce } from 'lodash-es';
 import esbuild, { BuildOptions } from 'esbuild';
-import { copyStaticFiles, getFxsPaths, getPublishVersion } from './utils';
+import { copyBotRuntimeDependencies, copyStaticFiles, getFxsPaths, getPublishVersion } from './utils';
 import config from './config';
 import { parseTxDevEnv } from '../../shared/txDevEnv';
 import { TxAdminRunner } from './TxAdminRunner';
@@ -47,8 +47,7 @@ console.log(`[BUILDER] Starting fxPanel Dev Builder for ${fxsPaths.root}`);
 //Sync target path and start chokidar
 //We don't really care about the path, just remove everything and copy again
 copyStaticFiles(fxsPaths.monitor, txVersion, 'init');
-//Copy addon-sdk into node_modules so ESM resolution finds it
-fs.cpSync('./addon-sdk', path.join(fxsPaths.monitor, 'node_modules/addon-sdk'), { recursive: true, force: true });
+copyBotRuntimeDependencies(fxsPaths.monitor);
 const debouncedCopier = debounce((eventName) => {
     try {
         copyStaticFiles(fxsPaths.monitor, txVersion, eventName);

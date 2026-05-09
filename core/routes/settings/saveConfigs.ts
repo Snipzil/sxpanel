@@ -13,7 +13,7 @@ import ConfigStore from '@modules/ConfigStore';
 import { resolveCFGFilePath, findLikelyCFGPath } from '@lib/fxserver/fxsConfigHelper';
 import { findPotentialServerDataPaths, isValidServerDataPath } from '@lib/fxserver/serverData';
 import { getFsErrorMdMessage } from '@lib/fs';
-import { generateStatusMessage } from '@modules/DiscordBot/commands/status';
+import { generatePlayerListMessage, generateStatusMessage } from '@modules/DiscordBot/statusMessage';
 import { getSchemaChainError } from '@modules/ConfigStore/schema/utils';
 import { confx } from '@modules/ConfigStore/utils';
 import { SYM_RESET_CONFIG } from '@lib/symbols';
@@ -308,10 +308,14 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
 
     //Validating embed JSONs
     //NOTE: need this before checking if enabled, or while disabled one could save invalid JSON
-    if (
+    const shouldValidateStatusEmbed =
         typeof inputConfig.discordBot.embedJson === 'string' ||
-        typeof inputConfig.discordBot.embedConfigJson === 'string'
-    ) {
+        typeof inputConfig.discordBot.embedConfigJson === 'string';
+    const shouldValidatePlayerListEmbed =
+        typeof inputConfig.discordBot.playerListEmbedJson === 'string' ||
+        typeof inputConfig.discordBot.playerListEmbedConfigJson === 'string';
+
+    if (shouldValidateStatusEmbed) {
         try {
             generateStatusMessage(
                 (inputConfig.discordBot.embedJson as string | undefined) ?? txConfig.discordBot.embedJson,
@@ -327,8 +331,39 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
         }
     }
 
-    //If bot disabled, kill the bot and don't validate anything
-    if (!inputConfig.discordBot?.enabled) {
+    if (shouldValidatePlayerListEmbed) {
+        try {
+            generatePlayerListMessage(
+                (inputConfig.discordBot.playerListEmbedJson as string | undefined) ??
+                    txConfig.discordBot.playerListEmbedJson,
+                (inputConfig.discordBot.playerListEmbedConfigJson as string | undefined) ??
+                    txConfig.discordBot.playerListEmbedConfigJson,
+            );
+        } catch (error) {
+            return sendTypedResp({
+                type: 'error',
+                title: 'Player list embed validation failed:',
+                md: true,
+                msg: emsg(error),
+            });
+        }
+    }
+
+    const nextEnabled =
+        inputConfig.discordBot.enabled === undefined ? txConfig.discordBot.enabled : inputConfig.discordBot.enabled;
+    const nextToken = inputConfig.discordBot.token === undefined ? txConfig.discordBot.token : inputConfig.discordBot.token;
+    const nextGuild = inputConfig.discordBot.guild === undefined ? txConfig.discordBot.guild : inputConfig.discordBot.guild;
+    const nextWarningsChannel =
+        inputConfig.discordBot.warningsChannel === undefined
+            ? txConfig.discordBot.warningsChannel
+            : inputConfig.discordBot.warningsChannel;
+    const nextLogGuildOverride =
+        inputConfig.discordBot.logGuildOverride === undefined
+            ? txConfig.discordBot.logGuildOverride
+            : inputConfig.discordBot.logGuildOverride;
+
+    //If bot will be disabled after this save, kill it and don't validate anything else.
+    if (!nextEnabled) {
         await txCore.discordBot.attemptBotReset(false);
         return { processedConfig: inputConfig };
     }
@@ -341,10 +376,11 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
     } as const;
     const schemas = ConfigStore.Schema.discordBot;
     const validationError = getSchemaChainError([
-        [schemas.enabled, inputConfig.discordBot.enabled],
-        [schemas.token, inputConfig.discordBot.token],
-        [schemas.guild, inputConfig.discordBot.guild],
-        [schemas.warningsChannel, inputConfig.discordBot.warningsChannel],
+        [schemas.enabled, nextEnabled],
+        [schemas.token, nextToken],
+        [schemas.guild, nextGuild],
+        [schemas.warningsChannel, nextWarningsChannel],
+        [schemas.logGuildOverride, nextLogGuildOverride],
     ]);
     if (validationError) {
         return sendTypedResp({
@@ -354,7 +390,7 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
     }
 
     //Checking if required fields are present (frontend should have done this already)
-    if (!inputConfig.discordBot.token || !inputConfig.discordBot.guild) {
+    if (!nextToken || !nextGuild) {
         return sendTypedResp({
             ...baseError,
             msg: 'Missing required fields to enable the bot.',
@@ -367,9 +403,9 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
         successMsg = await txCore.discordBot.attemptBotReset({
             enabled: true,
             //They have been validated, so this is fine
-            token: inputConfig.discordBot.token as any,
-            guild: inputConfig.discordBot.guild as any,
-            warningsChannel: inputConfig.discordBot.warningsChannel as any,
+            token: nextToken as any,
+            guild: nextGuild as any,
+            warningsChannel: nextWarningsChannel as any,
         });
     } catch (error) {
         const errorCode = (error as any).code;
@@ -390,15 +426,6 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
             - **Wrong server ID:** read the description of the server ID setting for more information.
             - **Bot is not in the server:** you need to [INVITE THE BOT](${inviteUrl}) to join the server.
             - **Wrong bot:** you may be using the token of another discord bot.`;
-        } else if (errorCode === 'DangerousPermission') {
-            extraContext = `You need to remove the permissions listed above to be able to enable this bot.
-            This should be done in the Discord Server role configuration page and not in the Dev Portal.
-            Check every single role that the bot has in the server.
-
-            Please keep in mind that:
-            - These permissions are dangerous because if the bot token leaks, an attacker can cause permanent damage to your server.
-            - No bot should have more permissions than strictly needed, especially \`Administrator\`.
-            - You should never have multiple bots using the same token, create a new one for each bot.`;
         }
         return sendTypedResp({
             ...baseError,

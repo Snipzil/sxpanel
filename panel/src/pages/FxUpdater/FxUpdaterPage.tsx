@@ -77,7 +77,7 @@ function StatusSection({
                             Downloading... {updateStatus.percentage}%
                         </div>
                         <div
-                            className="bg-muted/70 h-2.5 w-full overflow-hidden rounded-full border border-border/40"
+                            className="bg-muted/70 border-border/40 h-2.5 w-full overflow-hidden rounded-full border"
                             role="progressbar"
                             aria-valuemin={0}
                             aria-valuemax={100}
@@ -189,9 +189,7 @@ export default function FxUpdaterPage() {
             () => {
                 fetchStatus();
             },
-            currentPhase === 'downloading' ||
-                currentPhase === 'extracting' ||
-                currentPhase === 'applying'
+            currentPhase === 'downloading' || currentPhase === 'extracting' || currentPhase === 'applying'
                 ? 2000
                 : 30000,
         );
@@ -218,7 +216,9 @@ export default function FxUpdaterPage() {
             const parsed = new URL(url);
             if (parsed.protocol !== 'https:') throw new Error('not https');
             if (!ALLOWED_DOWNLOAD_DOMAINS.includes(parsed.hostname)) {
-                txToast.error(`Please enter a valid https URL from an allowed domain (${ALLOWED_DOWNLOAD_DOMAINS.join(', ')})`);
+                txToast.error(
+                    `Please enter a valid https URL from an allowed domain (${ALLOWED_DOWNLOAD_DOMAINS.join(', ')})`,
+                );
                 return;
             }
         } catch {
@@ -371,9 +371,7 @@ export default function FxUpdaterPage() {
                                             key={tier.tier}
                                             className={cn(
                                                 'bg-card rounded-xl border p-3 sm:p-4',
-                                                isCurrent
-                                                    ? 'border-success/40 bg-success/5'
-                                                    : 'border-border/60',
+                                                isCurrent ? 'border-success/40 bg-success/5' : 'border-border/60',
                                             )}
                                         >
                                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

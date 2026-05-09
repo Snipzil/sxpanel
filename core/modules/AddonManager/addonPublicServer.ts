@@ -1,9 +1,11 @@
 const modulename = 'AddonPublicServer';
+import fs from 'node:fs';
 import Koa from 'koa';
-import KoaBodyParser from 'koa-bodyparser';
-import HttpClass from 'node:http';
+import HttpsClass from 'node:https';
+import type { Server as HttpsServer } from 'node:https';
 
 import consoleFactory from '@lib/console';
+import xssFactory from '@lib/xss';
 import type AddonProcess from './addonProcess';
 const console = consoleFactory(modulename);
 
@@ -13,6 +15,60 @@ const console = consoleFactory(modulename);
  * isolated rate-limit pool.
  */
 const MAX_RPM = 600;
+
+const sanitiseXss = xssFactory();
+const stripNewlines = (value: string) => value.replace(/[\r\n]+/g, ' ').trim();
+const ALLOWED_RESPONSE_HEADERS = new Set([
+    'cache-control',
+    'content-language',
+    'content-type',
+    'etag',
+    'expires',
+    'last-modified',
+    'location',
+    'pragma',
+    'vary',
+]);
+const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
+
+type TlsCredentials = {
+    key: string | Buffer;
+    cert: string | Buffer;
+};
+
+const getTlsCredentials = (): TlsCredentials => {
+    const rawKey = process.env.TXHOST_ADDON_PUBLIC_TLS_KEY;
+    const rawCert = process.env.TXHOST_ADDON_PUBLIC_TLS_CERT;
+    if (rawKey && rawCert) {
+        return { key: rawKey, cert: rawCert };
+    }
+
+    const keyPath = process.env.TXHOST_ADDON_PUBLIC_TLS_KEY_FILE;
+    const certPath = process.env.TXHOST_ADDON_PUBLIC_TLS_CERT_FILE;
+    if (keyPath && certPath) {
+        return {
+            key: fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath),
+        };
+    }
+
+    throw new Error(
+        'Public addon server requires TLS credentials. Set TXHOST_ADDON_PUBLIC_TLS_KEY + TXHOST_ADDON_PUBLIC_TLS_CERT or TXHOST_ADDON_PUBLIC_TLS_KEY_FILE + TXHOST_ADDON_PUBLIC_TLS_CERT_FILE.',
+    );
+};
+
+const sanitiseResponseBody = (value: unknown): unknown => {
+    if (typeof value === 'string') return sanitiseXss(value);
+    if (Array.isArray(value)) return value.map((item) => sanitiseResponseBody(item));
+    if (value && typeof value === 'object') {
+        const safeObject: Record<string, unknown> = {};
+        for (const [key, innerValue] of Object.entries(value)) {
+            safeObject[key] = sanitiseResponseBody(innerValue);
+        }
+        return safeObject;
+    }
+    return value;
+};
 
 type ProcessResolver = (addonId: string) => AddonProcess | null;
 
@@ -25,7 +81,7 @@ type ProcessResolver = (addonId: string) => AddonProcess | null;
  */
 export default class AddonPublicServer {
     private app: Koa;
-    private httpServer: HttpClass.Server | null = null;
+    private httpServer: HttpsServer | null = null;
     private ipClearTimer: ReturnType<typeof setInterval> | null = null;
     private readonly ipCounters = new Map<string, number>();
     private readonly port: number;
@@ -53,9 +109,6 @@ export default class AddonPublicServer {
             console.error(`Koa error: ${(error as Error).message}`);
         });
 
-        // Body parser
-        this.app.use(KoaBodyParser({ jsonLimit: '1mb' }));
-
         // Main routing middleware
         this.app.use(async (ctx) => {
             // Rate limit
@@ -78,26 +131,41 @@ export default class AddonPublicServer {
                 for (const [key, value] of Object.entries(ctx.headers)) {
                     if (value === undefined) continue;
                     const lower = key.toLowerCase();
-                    if (lower === 'cookie' || lower === 'authorization' || lower === 'x-txadmin-csrftoken' || lower === 'x-txadmin-token') continue;
-                    sanitisedHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
+                    if (
+                        lower === 'cookie' ||
+                        lower === 'authorization' ||
+                        lower === 'x-txadmin-csrftoken' ||
+                        lower === 'x-txadmin-token'
+                    )
+                        continue;
+                    if (!/^[a-z0-9-]+$/i.test(lower)) continue;
+                    const joined = Array.isArray(value) ? value.join(', ') : String(value);
+                    sanitisedHeaders[lower] = sanitiseXss(stripNewlines(joined));
                 }
 
+                const normalisedMethod = ALLOWED_METHODS.has(ctx.method.toUpperCase())
+                    ? ctx.method.toUpperCase()
+                    : 'GET';
+                const normalisedPath = /^\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]*$/.test(ctx.path || '/')
+                    ? ctx.path || '/'
+                    : '/';
+
                 const result = await addonProcess.handlePublicRequest({
-                    method: ctx.method,
-                    path: ctx.path || '/',
+                    method: normalisedMethod,
+                    path: normalisedPath,
                     headers: sanitisedHeaders,
-                    body: ctx.request.body,
+                    body: null,
                 });
 
                 ctx.status = result.status;
                 if (result.headers) {
                     for (const [key, value] of Object.entries(result.headers)) {
                         const lowerKey = key.toLowerCase();
-                        if (lowerKey === 'set-cookie') continue;
-                        ctx.set(key, value);
+                        if (!ALLOWED_RESPONSE_HEADERS.has(lowerKey)) continue;
+                        ctx.set(lowerKey, stripNewlines(String(value)));
                     }
                 }
-                ctx.body = result.body;
+                ctx.body = sanitiseResponseBody(result.body);
             } catch (error) {
                 console.error(`Public request error for ${this.addonId}: ${(error as Error).message}`);
                 ctx.status = 504;
@@ -117,7 +185,7 @@ export default class AddonPublicServer {
         }
 
         return new Promise((resolve, reject) => {
-            this.httpServer = HttpClass.createServer(this.app.callback());
+            this.httpServer = HttpsClass.createServer(getTlsCredentials(), this.app.callback());
 
             this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
                 this.isStarting = false;
@@ -130,15 +198,16 @@ export default class AddonPublicServer {
                     console.error(`Port ${this.port} is already in use. Public server not started.`);
                     reject(error);
                 } else {
-                    console.error(`HTTP server error: ${error.message}`);
+                    console.error(`HTTPS server error: ${error.message}`);
                     reject(error);
                 }
             });
 
-            this.httpServer.listen(this.port, '0.0.0.0', () => {
+            this.httpServer.listen(this.port, '0.0.0.0');
+            this.httpServer.on('listening', () => {
                 this.isStarting = false;
                 this.isListening = true;
-                console.log(`Public server listening on port ${this.port}`);
+                console.log(`Public server listening on port ${this.port} (HTTPS)`);
                 resolve();
             });
         });

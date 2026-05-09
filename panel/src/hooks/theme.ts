@@ -16,7 +16,8 @@ const initialAtomValue =
  * Helpers
  */
 const setThemeCookieValue = (value: string) => {
-    document.cookie = `txAdmin-theme=${value};path=/;SameSite=Lax;max-age=31536000;`;
+    const secureAttr = window.location.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = `txAdmin-theme=${value};path=/;SameSite=Lax;max-age=31536000${secureAttr};`;
 };
 
 const parseTheme = (themeName: string) => {

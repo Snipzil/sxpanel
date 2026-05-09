@@ -165,11 +165,12 @@ export class DbInstance {
                 !Array.isArray(this.obj!.data.actions) ||
                 !Array.isArray(this.obj!.data.players) ||
                 !Array.isArray(this.obj!.data.whitelistApprovals) ||
-                !Array.isArray(this.obj!.data.whitelistRequests)
+                !Array.isArray(this.obj!.data.whitelistRequests) ||
+                !Array.isArray(this.obj!.data.botCommandEvents)
             ) {
                 fatalError.Database(2, [
                     'Your fxPanel player/actions database is corrupted!',
-                    'It is missing one of the required arrays (players, actions, whitelistApprovals, whitelistRequests).',
+                    'It is missing one of the required arrays (players, actions, whitelistApprovals, whitelistRequests, botCommandEvents).',
                     'If you modified the database file manually, you may try to restore it from the automatic backup file.',
                     ['Database path', this.dbPath],
                 ]);
@@ -178,6 +179,10 @@ export class DbInstance {
             //Ensure reports array exists for databases created before the reports feature
             if (!Array.isArray(this.obj!.data.reports)) {
                 this.obj!.data.reports = [];
+            }
+
+            if (!Array.isArray(this.obj!.data.botCommandEvents)) {
+                this.obj!.data.botCommandEvents = [];
             }
 
             this.lastWrite = Date.now();

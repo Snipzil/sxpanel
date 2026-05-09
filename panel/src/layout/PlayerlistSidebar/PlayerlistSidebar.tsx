@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { useShellBreakpoints } from '@/hooks/useShellBreakpoints';
 import PlayerlistSummary from './PlayerlistSummary';
 import Playerlist from './Playerlist';
 
@@ -6,15 +7,19 @@ type PlayerSidebarProps = {
     isSheet?: boolean;
 };
 export function PlayerlistSidebar({ isSheet }: PlayerSidebarProps) {
+        const { isXl } = useShellBreakpoints();
+
     return (
         <aside
             className={cn(
                 'z-10 flex-col',
                 isSheet
                     ? 'flex h-screen w-full'
-                    // Only show inline on xl+; on narrower viewports the mobile
-                    // header's Players button opens it as a sheet instead.
-                    : 'tx-sidebar h-contentvh hidden gap-4 xl:flex',
+                                        : isXl
+                                            ? // Only show inline on xl+; on narrower viewports the mobile
+                                                // header's Players button opens it as a sheet instead.
+                                                'tx-sidebar h-contentvh flex gap-4'
+                                            : 'hidden',
             )}
         >
             <div

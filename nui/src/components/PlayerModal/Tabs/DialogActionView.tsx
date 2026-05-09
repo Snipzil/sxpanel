@@ -6,8 +6,8 @@ import { fetchWebPipe } from '../../../utils/fetchWebPipe';
 import { fetchNui } from '../../../utils/fetchNui';
 import { useDialogContext } from '../../../provider/DialogProvider';
 import { useSnackbar } from 'notistack';
-import { usePlayerModalContext } from '../../../provider/PlayerModalProvider';
-import { userHasPerm } from '../../../utils/miscUtils';
+import { usePlayerModalContext } from '@nui/src/provider/PlayerModalProvider';
+import { userHasPerm } from '@nui/src/utils/miscUtils';
 import { useTranslate } from 'react-polyglot';
 import { usePermissionsValue } from '../../../state/permissions.state';
 import { DialogLoadError } from './DialogLoadError';
@@ -180,13 +180,10 @@ const DialogActionView: React.FC = () => {
         if (!userHasPerm('players.heal', playerPerms)) return showNoPerms('Heal');
 
         try {
-            const result = await fetchWebPipe<GenericApiResp>(
-                `/player/heal?mutex=current&netid=${assocPlayer.id}`,
-                {
-                    method: 'POST',
-                    data: {},
-                },
-            );
+            const result = await fetchWebPipe<GenericApiResp>(`/player/heal?mutex=current&netid=${assocPlayer.id}`, {
+                method: 'POST',
+                data: {},
+            });
             handleGenericApiResponse(result, 'interaction.notifications.heal_player');
         } catch (error) {
             enqueueSnackbar((error as Error).message, { variant: 'error' });

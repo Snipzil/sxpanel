@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { fetchNui } from '../utils/fetchNui';
+import { fetchNui } from '@nui/src/utils/fetchNui';
 import { useIsMenuVisibleValue } from '../state/visibility.state';
 import { txAdminMenuPage, usePageValue } from '../state/page.state';
 

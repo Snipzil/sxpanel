@@ -92,9 +92,7 @@ function ChangelogEntry({ entry }: { entry: ConfigChangelogEntry }) {
                 {entry.keys.length ? (
                     entry.keys.map((cfg: string, index: number) => (
                         <span key={`${cfg}-${index}`}>
-                            <span
-                                className="bg-secondary/50 inline rounded px-1 py-0.5 font-mono tracking-wide"
-                            >
+                            <span className="bg-secondary/50 inline rounded px-1 py-0.5 font-mono tracking-wide">
                                 {cfg}
                             </span>
                             {index < entry.keys.length - 1 && ','}
@@ -194,9 +192,7 @@ function PageHeaderContent({ title, icon, description, parentName, parentLink, c
                     </div>
                 </div>
                 {children ? (
-                    <div className="-mx-0.5 flex flex-wrap items-center gap-2 overflow-x-auto px-0.5">
-                        {children}
-                    </div>
+                    <div className="-mx-0.5 flex flex-wrap items-center gap-2 overflow-x-auto px-0.5">{children}</div>
                 ) : null}
             </div>
             <div className="border-border/40 mt-3 border-b sm:mt-4" />

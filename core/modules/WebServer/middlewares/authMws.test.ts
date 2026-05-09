@@ -13,10 +13,12 @@ vi.stubGlobal('txCore', {
     },
 });
 
-function createMockCtx(overrides: {
-    ip?: string;
-    body?: any;
-} = {}) {
+function createMockCtx(
+    overrides: {
+        ip?: string;
+        body?: any;
+    } = {},
+) {
     const sentData: any[] = [];
     return {
         ctx: {

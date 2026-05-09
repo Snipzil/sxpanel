@@ -7,7 +7,7 @@ type RefreshConfigFunc = import('@modules/ConfigStore/').RefreshConfigFunc;
 interface GenericTxModuleInstance {
     handleConfigUpdate?: RefreshConfigFunc;
     handleShutdown?: () => void;
-    timers?: NodeJS.Timer[];
+    timers?: ReturnType<typeof setInterval>[];
     // measureMemory?: () => { [key: string]: number };
 }
 declare interface GenericTxModule<T> {

@@ -1,5 +1,6 @@
-import type { RefreshConfigKey } from './index';
 import { ConfigScaffold } from './schema';
+
+type RefreshConfigKey = { full: string; scope: string; key: string };
 
 /**
  * A utility for manipulating a configuration scaffold with nested key-value structures.

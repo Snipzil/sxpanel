@@ -2,12 +2,11 @@
 -- Feel free to open an issue or pull request in our GitHub.
 -- Official discord server: https://discord.gg/6FcqBYwxH5
 
-author('SomeAussieGamer | (Originally made by tabarra)')
+author('SomeAussieGamer')
 description('fxPanel - A Replacement for txAdmin built on its source code.')
 repository('https://github.com/SomeAussieGaymer/fxPanel')
-version '0.2.2-Beta'
+version '0.3.0-Alpha-04'
 ui_label 'fxPanel'
-
 fx_version('cerulean')
 game('common')
 -- nui_callback_strict_mode 'true'
@@ -70,7 +69,7 @@ client_scripts({
 
 -- Cache-bust query prevents FiveM's CEF from serving stale NUI files.
 -- Bump the version whenever dist/nui content changes.
-ui_page 'nui/index.html?v=4'
+ui_page 'nui/index.html?v=6'
 
 files {
     'locale/*.json',

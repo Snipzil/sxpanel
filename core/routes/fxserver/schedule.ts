@@ -28,7 +28,7 @@ export default async function FXServerSchedule(ctx: AuthedCtx) {
     if (action === 'setNextTempSchedule') {
         try {
             txCore.fxScheduler.setNextTempSchedule(parameter);
-            ctx.admin.logAction(`Scheduling server restart at ${parameter}`);
+            ctx.admin.logAction(`Scheduling server restart at ${parameter}`, 'scheduler.restart.schedule');
             return ctx.send<ApiToastResp>({
                 type: 'success',
                 msg: 'Restart scheduled.',
@@ -43,7 +43,10 @@ export default async function FXServerSchedule(ctx: AuthedCtx) {
         try {
             txCore.fxScheduler.setNextSkip(parameter, ctx.admin.name);
             const logAct = parameter ? 'Cancelling' : 'Re-enabling';
-            ctx.admin.logAction(`${logAct} next scheduled restart.`);
+            ctx.admin.logAction(
+                `${logAct} next scheduled restart.`,
+                parameter ? 'scheduler.restart.skip' : 'scheduler.restart.enable',
+            );
             return ctx.send<ApiToastResp>({
                 type: 'success',
                 msg: 'Schedule changed.',

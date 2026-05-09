@@ -9,6 +9,17 @@ import { LogoutReasonHash } from './Login';
 import { fetchWithTimeout } from '@/hooks/fetch';
 import { AuthError, processFetchError, type AuthErrorData } from './errors';
 
+const getSafeRedirectPath = (value: string) => {
+    try {
+        const parsed = new URL(value, window.location.origin);
+        if (parsed.origin !== window.location.origin) return null;
+        if (!parsed.pathname.startsWith('/')) return null;
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+        return null;
+    }
+};
+
 export default function AddMasterPin() {
     const pinRef = useRef<HTMLInputElement>(null);
     const [isRedirecting, setIsRedirecting] = useState(false);
@@ -39,8 +50,15 @@ export default function AddMasterPin() {
                 }
             } else {
                 setIsRedirecting(true);
-                console.log('Redirecting to', data.authUrl);
-                window.location.href = data.authUrl;
+                const safeRedirectPath = getSafeRedirectPath(data.authUrl);
+                if (!safeRedirectPath) {
+                    setIsRedirecting(false);
+                    setIsMessageError(true);
+                    setMessageText('Invalid redirect URL.');
+                    return;
+                }
+                console.log('Redirecting to', safeRedirectPath);
+                window.location.assign(safeRedirectPath);
             }
         } catch (error) {
             setIsMessageError(true);

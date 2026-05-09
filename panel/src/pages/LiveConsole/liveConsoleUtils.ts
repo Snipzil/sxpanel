@@ -77,9 +77,7 @@ export const filterTermLine = (selection: string, opts: LiveConsoleOptions) => {
  * Returns the platform-appropriate line ending.
  */
 function getEOL(): string {
-    const isWindows =
-        (navigator as any).userAgentData?.platform === 'Windows' ||
-        navigator.platform?.startsWith('Win');
+    const isWindows = (navigator as any).userAgentData?.platform === 'Windows' || navigator.platform?.startsWith('Win');
     return isWindows ? '\r\n' : '\n';
 }
 

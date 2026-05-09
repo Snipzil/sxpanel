@@ -124,10 +124,7 @@ export default function HistoryPage() {
 
     return (
         <div className="h-contentvh flex w-full min-w-96 flex-col">
-            <PageHeader
-                title="History"
-                icon={<ClockIcon className="size-5" />}
-            />
+            <PageHeader title="History" icon={<ClockIcon className="size-5" />} />
 
             <PageCalloutRowMemo callouts={calloutRowData} />
 

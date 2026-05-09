@@ -42,7 +42,7 @@ export default async function TotpConfirm(ctx: AuthedCtx) {
             tmpTotpSecret: undefined,
         });
 
-        ctx.admin.logAction('Enabled 2FA (TOTP)');
+        ctx.admin.logAction('Enabled 2FA (TOTP)', 'auth.2fa.enable');
         console.ok(`Admin ${ctx.admin.name} enabled 2FA`);
 
         return sendTypedResp({ success: true, backupCodes: plaintext });

@@ -4,8 +4,8 @@ import { useAssociatedPlayerValue, usePlayerDetailsValue } from '../../../state/
 import { fetchWebPipe } from '../../../utils/fetchWebPipe';
 import { useSnackbar } from 'notistack';
 import { useTranslate } from 'react-polyglot';
-import { usePlayerModalContext } from '../../../provider/PlayerModalProvider';
-import { userHasPerm } from '../../../utils/miscUtils';
+import { usePlayerModalContext } from '@nui/src/provider/PlayerModalProvider';
+import { userHasPerm } from '@nui/src/utils/miscUtils';
 import { usePermissionsValue } from '../../../state/permissions.state';
 import { DialogLoadError } from './DialogLoadError';
 import { GenericApiErrorResp, GenericApiResp } from '@shared/genericApiTypes';

@@ -1,6 +1,6 @@
 const modulename = 'WebServer:AdminManagerActions';
 import { customAlphabet } from 'nanoid';
-import dict49 from 'nanoid-dictionary/nolookalikes';
+import { nolookalikes } from 'nanoid-dictionary';
 import got from '@lib/got';
 import consts from '@shared/consts';
 import consoleFactory from '@lib/console';
@@ -8,7 +8,7 @@ import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 const console = consoleFactory(modulename);
 
 //Helpers
-const nanoid = customAlphabet(dict49, 20);
+const nanoid = customAlphabet(nolookalikes, 20);
 //NOTE: this desc misses that it should start and end with alphanum or _, and cannot have repeated -_.
 const nameRegexDesc = 'up to 20 characters containing only letters, numbers and the characters \`_.-\`';
 const cfxHttpReqOptions = {
@@ -120,7 +120,10 @@ async function handleAdd(ctx: AuthedCtx) {
             }
         } catch (error) {
             console.error(`Failed to resolve CitizenFX ID to game identifier with error: ${emsg(error)}`);
-            return ctx.send({ type: 'danger', message: 'Failed to verify CitizenFX ID. Please try again or check the ID.' });
+            return ctx.send({
+                type: 'danger',
+                message: 'Failed to verify CitizenFX ID. Please try again or check the ID.',
+            });
         }
     }
 
@@ -150,7 +153,7 @@ async function handleAdd(ctx: AuthedCtx) {
     //Add admin and give output
     try {
         await txCore.adminStore.addAdmin(name, citizenfxData, discordData, password, permissions);
-        ctx.admin.logAction(`Adding user '${name}'.`);
+        ctx.admin.logAction(`Adding user '${name}'.`, 'admin.user.add');
         return ctx.send({ type: 'showPassword', password });
     } catch (error) {
         return ctx.send({ type: 'danger', message: emsg(error) });
@@ -230,7 +233,10 @@ async function handleEdit(ctx: AuthedCtx) {
             }
         } catch (error) {
             console.error(`Failed to resolve CitizenFX ID to game identifier with error: ${emsg(error)}`);
-            return ctx.send({ type: 'danger', message: 'Failed to verify CitizenFX ID. Please try again or check the ID.' });
+            return ctx.send({
+                type: 'danger',
+                message: 'Failed to verify CitizenFX ID. Please try again or check the ID.',
+            });
         }
     }
 
@@ -275,7 +281,7 @@ async function handleEdit(ctx: AuthedCtx) {
         if (name.toLowerCase() !== lookupName.toLowerCase()) {
             await txCore.adminStore.renameAdmin(lookupName, name);
         }
-        ctx.admin.logAction(`Editing user '${name}'.`);
+        ctx.admin.logAction(`Editing user '${name}'.`, 'admin.user.edit');
         return ctx.send({ type: 'success', refresh: true });
     } catch (error) {
         return ctx.send({ type: 'danger', message: emsg(error) });
@@ -309,7 +315,7 @@ async function handleDelete(ctx: AuthedCtx) {
     //Delete admin and give output
     try {
         await txCore.adminStore.deleteAdmin(name);
-        ctx.admin.logAction(`Deleting user '${name}'.`);
+        ctx.admin.logAction(`Deleting user '${name}'.`, 'admin.user.delete');
         return ctx.send({ type: 'success', refresh: true });
     } catch (error) {
         return ctx.send({ type: 'danger', message: emsg(error) });
@@ -347,7 +353,7 @@ async function handleResetPassword(ctx: AuthedCtx) {
     const password = nanoid();
     try {
         await txCore.adminStore.resetAdminPassword(name, password);
-        ctx.admin.logAction(`Resetting password for user '${name}'.`);
+        ctx.admin.logAction(`Resetting password for user '${name}'.`, 'admin.user.password_reset');
         return ctx.send({ type: 'showPassword', password });
     } catch (error) {
         return ctx.send({ type: 'danger', message: emsg(error) });

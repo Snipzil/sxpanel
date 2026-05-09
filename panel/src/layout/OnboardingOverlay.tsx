@@ -20,9 +20,7 @@ export default function OnboardingOverlay() {
     const matched = matchOnboarding(location);
 
     // If AddMasterCallback already played the slide animation, skip ours.
-    const skipSlide = useRef(
-        sessionStorage.getItem('fxp_onboarding_instant') === '1'
-    );
+    const skipSlide = useRef(sessionStorage.getItem('fxp_onboarding_instant') === '1');
     if (skipSlide.current) sessionStorage.removeItem('fxp_onboarding_instant');
 
     const initialPhase: Phase = matched ? (skipSlide.current ? 'shown' : 'entering') : 'idle';
@@ -89,14 +87,14 @@ export default function OnboardingOverlay() {
         // Same bg-background colour as the auth shell so there's no flash.
         // Sidebar/header/playerlist never show through this.
         <div
-            className="fixed inset-0 z-50 overflow-hidden bg-background"
+            className="bg-background fixed inset-0 z-50 overflow-hidden"
             style={{ opacity: fading ? 0 : 1, transition: 'opacity 300ms ease-in' }}
         >
             {/* Layer 2 — the panel that slides in from the right.
                 bg-card is slightly lighter than bg-background, giving a
                 visible edge as it sweeps across. The shadow reinforces depth. */}
             <div
-                className="flex min-h-screen w-full flex-col overflow-auto bg-card"
+                className="bg-card flex min-h-screen w-full flex-col overflow-auto"
                 style={{
                     transform: panelIn ? 'translateX(0%)' : 'translateX(100%)',
                     transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -107,11 +105,9 @@ export default function OnboardingOverlay() {
                 }}
             >
                 {/* Header bar — always visible once panel arrives */}
-                <div className="flex shrink-0 items-center gap-3 border-b border-border/40 px-6 py-4">
+                <div className="border-border/40 flex shrink-0 items-center gap-3 border-b px-6 py-4">
                     <LogoFullSquareGreen className="h-8 w-auto opacity-90" />
-                    <span className="text-muted-foreground text-xs uppercase tracking-wide">
-                        First-time setup
-                    </span>
+                    <span className="text-muted-foreground text-xs tracking-wide uppercase">First-time setup</span>
                 </div>
 
                 {/* Setup content flies up after the panel finishes sliding */}

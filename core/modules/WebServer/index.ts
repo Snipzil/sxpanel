@@ -11,7 +11,7 @@ import { Server as SocketIO } from 'socket.io';
 import WebSocket from './webSocket';
 
 import { customAlphabet } from 'nanoid';
-import dict49 from 'nanoid-dictionary/nolookalikes';
+import { nolookalikes } from 'nanoid-dictionary';
 
 import { txDevEnv, txEnv, txHostConfig } from '@core/globalData';
 import router from './router';
@@ -29,7 +29,7 @@ import { isProxy } from 'node:util/types';
 import serveStaticMw from './middlewares/serveStaticMw';
 import serveRuntimeMw from './middlewares/serveRuntimeMw';
 const console = consoleFactory(modulename);
-const nanoid = customAlphabet(dict49, 32);
+const nanoid = customAlphabet(nolookalikes, 32);
 
 /**
  * Module for the web server and socket.io.
@@ -91,13 +91,15 @@ export default class WebServer {
         //exposed cross-origin (credentials=false).
         if (txDevEnv.ENABLED) {
             const devOriginAllowlist = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
-            this.app.use(KoaCors({
-                origin: (ctx) => {
-                    const requestOrigin = ctx.get('Origin');
-                    return devOriginAllowlist.test(requestOrigin) ? requestOrigin : '';
-                },
-                credentials: false,
-            }));
+            this.app.use(
+                KoaCors({
+                    origin: (ctx) => {
+                        const requestOrigin = ctx.get('Origin');
+                        return devOriginAllowlist.test(requestOrigin) ? requestOrigin : '';
+                    },
+                    credentials: false,
+                }),
+            );
         }
 
         //Setting up timeout/error/no-output/413
@@ -216,7 +218,6 @@ export default class WebServer {
                     'You can also try restarting the host machine.',
                 ]);
             };
-            //@ts-expect-error custom callback signature for HTTP handler
             this.httpServer = HttpClass.createServer(this.httpCallbackHandler.bind(this));
             // this.httpServer = HttpClass.createServer((req, res) => {
             //     // const reqSize = parseInt(req.headers['content-length'] || '0');

@@ -1,7 +1,7 @@
 import { PlayerDropsSummaryHour } from '@shared/otherTypes';
 import { playerDropExpectedCategories, playerDropUnexpectedCategories } from '@/lib/playerDropCategories';
-import { TimelineDropsDatum } from './drawDropsTimeline';
-import { DisplayLodType } from './PlayerDropsPage';
+import { TimelineDropsDatum } from '@/pages/PlayerDropsPage/drawDropsTimeline';
+import { DisplayLodType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
 
 export type PlayerDropsCategoryCount = [category: string, count: number];
 

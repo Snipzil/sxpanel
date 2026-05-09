@@ -17,6 +17,7 @@ import { ListOf } from './schema/utils';
 import { CCLOG_VERSION, ConfigChangelogEntry, ConfigChangelogFileSchema, truncateConfigChangelog } from './changelog';
 import { UpdateConfigKeySet } from './utils';
 import { CONFIG_VERSION } from './consts';
+import { getConfigChangeLogActionDefinition } from '@shared/systemLogTypes';
 const console = consoleFactory(modulename);
 
 //Types
@@ -195,7 +196,19 @@ export default class ConfigStore /*does not extend TxModuleBase*/ {
      * FIXME: ignore banlist.templates? or join consequent changes?
      */
     private logChanges(author: string, keysUpdated: string[]) {
-        txCore.logger.system.write(author, `Config changes: ${keysUpdated.join(', ')}`, 'config');
+        if (!keysUpdated.length) return;
+
+        for (const configKey of keysUpdated) {
+            const configLogDefinition = getConfigChangeLogActionDefinition(configKey);
+            const action = configLogDefinition
+                ? `Changed config: ${configLogDefinition.label} (${configKey})`
+                : `Changed config: ${configKey}`;
+
+            txCore.logger.system.write(author, action, 'config', {
+                actionId: configLogDefinition?.id,
+            });
+        }
+
         this.changelog.push({
             author,
             ts: Date.now(),

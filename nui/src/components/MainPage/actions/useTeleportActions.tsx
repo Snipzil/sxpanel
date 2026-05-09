@@ -2,10 +2,10 @@ import React from 'react';
 import { FileCopy, GpsFixed, PersonPinCircle, Restore } from '@mui/icons-material';
 import { useDialogContext } from '../../../provider/DialogProvider';
 import { fetchNui } from '../../../utils/fetchNui';
+import { copyToClipboard } from '../../../utils/copyToClipboard';
 import { useTranslate } from 'react-polyglot';
 import { useSnackbar } from 'notistack';
 import { TeleportMode, useTeleportMode } from '../../../state/teleportmode.state';
-import { copyToClipboard } from '../../../utils/copyToClipboard';
 import { useNuiEvent } from '@nui/src/hooks/useNuiEvent';
 import { usePlayerModalContext } from '@nui/src/provider/PlayerModalProvider';
 
@@ -48,12 +48,22 @@ export function useTeleportActions() {
 
     const handleCopyCoords = () => {
         fetchNui<{ coords: string }>('copyCurrentCoords')
-            .then(({ coords }) => {
-                if (!coords) {
-                    return enqueueSnackbar(t('nui_menu.common.error'), { variant: 'error' });
+            .then((data) => {
+                if (!data?.coords) {
+                    throw new Error('Missing current coords.');
                 }
-                copyToClipboard(coords);
-                enqueueSnackbar(t('nui_menu.common.copied'), { variant: 'success' });
+
+                // Parse as floats and re-format to break taint chain and ensure only numeric data
+                const parts = String(data.coords).split(',').map((s) => parseFloat(s.trim()));
+                if (parts.length < 3 || parts.some((n) => !Number.isFinite(n))) {
+                    throw new Error('Invalid current coords.');
+                }
+
+                const safeCoords = parts.map((n) => n.toFixed(4)).join(', ');
+                const wasCopied = copyToClipboard(safeCoords);
+                enqueueSnackbar(t(wasCopied ? 'nui_menu.common.copied' : 'nui_menu.common.error'), {
+                    variant: wasCopied ? 'success' : 'error',
+                });
             })
             .catch(() => {
                 enqueueSnackbar(t('nui_menu.common.error'), { variant: 'error' });

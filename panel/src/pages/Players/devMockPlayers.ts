@@ -60,9 +60,7 @@ const makePlayer = (idx: number): PlayersTablePlayerType => {
     const joinDaysAgo = 2 + ((id * 17) % 220);
     const joinedAt = now - joinDaysAgo * 24 * 60 * 60 * 1000 - ((id * 193) % (20 * 60 * 60 * 1000));
     const online = id % 3 !== 0;
-    const lastConnection = online
-        ? now - ((id * 41) % (25 * 60 * 1000))
-        : now - (1 + ((id * 9) % 12)) * 60 * 60 * 1000;
+    const lastConnection = online ? now - ((id * 41) % (25 * 60 * 1000)) : now - (1 + ((id * 9) % 12)) * 60 * 60 * 1000;
     const playTimeMinutes = clamp(joinDaysAgo * (25 + (id % 90)), 120, 58_000);
     const isAdmin = id % 23 === 0;
     const isWhitelisted = id % 4 !== 0;
@@ -133,7 +131,12 @@ const filterBySearch = (players: PlayersTablePlayerType[], searchValue: string, 
 
 const filterByFlags = (players: PlayersTablePlayerType[], filtersCsv?: string) => {
     if (!filtersCsv?.length) return players;
-    const filters = new Set(filtersCsv.split(',').map((f) => f.trim()).filter(Boolean));
+    const filters = new Set(
+        filtersCsv
+            .split(',')
+            .map((f) => f.trim())
+            .filter(Boolean),
+    );
 
     return players.filter((p) => {
         if (filters.has('isAdmin') && !p.isAdmin) return false;
@@ -180,10 +183,15 @@ export const searchMockPlayers = async (queryParams: {
     filters?: string | number | boolean;
     offsetLicense?: string | number | boolean;
 }): Promise<PlayersTableSearchResp> => {
-    const allowedSortingKeys: ReadonlyArray<PlayersTableSortingType['key']> = ['playTime', 'tsJoined', 'tsLastConnection'];
+    const allowedSortingKeys: ReadonlyArray<PlayersTableSortingType['key']> = [
+        'playTime',
+        'tsJoined',
+        'tsLastConnection',
+    ];
     const requestedSortingKey = queryParams.sortingKey;
     const sortingKey: PlayersTableSortingType['key'] =
-        typeof requestedSortingKey === 'string' && (allowedSortingKeys as readonly string[]).includes(requestedSortingKey)
+        typeof requestedSortingKey === 'string' &&
+        (allowedSortingKeys as readonly string[]).includes(requestedSortingKey)
             ? (requestedSortingKey as PlayersTableSortingType['key'])
             : 'tsJoined';
     const sorting: PlayersTableSortingType = {

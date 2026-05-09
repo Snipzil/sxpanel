@@ -6,8 +6,8 @@ import { numberToLocaleString } from '@/lib/utils';
 import { msToShortDuration } from '@/lib/dateTime';
 import { playerDropCategories } from '@/lib/playerDropCategories';
 import { PlayerDropsCategoryCount } from './chartingUtils';
-import { TimelineDropsChartData } from './TimelineDropsChart';
-import { DrilldownRangeSelectionType } from './PlayerDropsPage';
+import { TimelineDropsChartData } from '@/pages/PlayerDropsPage/TimelineDropsChart';
+import { DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
 
 //Helpers
 const translate = (x: number, y: number) => `translate(${x}, ${y})`;

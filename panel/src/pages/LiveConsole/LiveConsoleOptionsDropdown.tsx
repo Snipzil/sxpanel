@@ -9,7 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SettingsIcon } from 'lucide-react';
-import type { LiveConsoleOptions } from './LiveConsolePage';
+import type { LiveConsoleOptions } from '@/pages/LiveConsole/LiveConsolePage';
 
 type LiveConsoleOptionsDropdownProps = {
     options: LiveConsoleOptions;

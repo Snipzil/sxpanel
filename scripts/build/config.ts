@@ -2,5 +2,5 @@
 export default {
     debouncerInterval: 250,
     preReleaseExpirationDays: 21,
-    copy: ['docs/', 'fxmanifest.lua', 'entrypoint.js', 'resource/', 'locale/', 'addons/'],
+    copy: ['docs/', 'fxmanifest.lua', 'entrypoint.js', 'resource/', 'locale/', 'addons/', 'bot/'],
 };

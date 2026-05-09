@@ -145,7 +145,7 @@ export default function PlayerDropsPage() {
                         <CalendarRangeIcon className="size-3.5" />
                     </div>
                     <div className="text-xs">
-                        <div className="font-semibold leading-tight">Drilldown Range</div>
+                        <div className="leading-tight font-semibold">Drilldown Range</div>
                         <div className="text-muted-foreground/70 leading-tight">Pick a window to inspect</div>
                     </div>
                 </div>
@@ -181,7 +181,7 @@ export default function PlayerDropsPage() {
             {swrDataApiResp.data ? (
                 <div className="relative min-h-128">
                     {swrDataApiResp.isValidating && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 rounded-xl">
+                        <div className="bg-background/50 absolute inset-0 z-10 flex items-center justify-center rounded-xl">
                             <DrilldownCardLoading isError={false} />
                         </div>
                     )}

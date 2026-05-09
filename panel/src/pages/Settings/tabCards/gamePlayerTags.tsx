@@ -64,10 +64,11 @@ const extractStoredTags = (merged: CustomTagEntry[]): CustomTagEntry[] => {
     for (const tag of merged) {
         const autoDef = AUTO_TAG_DEFINITIONS.find((a) => a.id === tag.id);
         if (autoDef) {
-            const isChanged = tag.color !== autoDef.color
-                || tag.priority !== autoDef.priority
-                || tag.label !== autoDef.label
-                || tag.enabled === false;
+            const isChanged =
+                tag.color !== autoDef.color ||
+                tag.priority !== autoDef.priority ||
+                tag.label !== autoDef.label ||
+                tag.enabled === false;
             if (isChanged) {
                 result.push(tag);
             }
@@ -142,7 +143,7 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
 
     return (
         <SettingsCardShell cardCtx={cardCtx} pageCtx={pageCtx} onClickSave={handleOnSave}>
-            <SettingItem label="New Player Threshold" htmlFor={cfg.newplayerThreshold.eid} showNew>
+            <SettingItem label="New Player Threshold" htmlFor={cfg.newplayerThreshold.eid}>
                 <Input
                     id={cfg.newplayerThreshold.eid}
                     ref={thresholdRef}
@@ -159,7 +160,7 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                 </SettingItemDesc>
             </SettingItem>
 
-            <SettingItem label="Tags" showNew>
+            <SettingItem label="Tags">
                 <div className="space-y-3">
                     {mergedTags.map((tag, i) => {
                         const isAutoTag = AUTO_TAG_IDS.has(tag.id);
@@ -226,9 +227,7 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                                     <div className="flex h-9 shrink-0 items-center gap-2">
                                         <Switch
                                             checked={tag.enabled !== false}
-                                            onCheckedChange={(checked) =>
-                                                updateMergedTag(i, 'enabled', checked)
-                                            }
+                                            onCheckedChange={(checked) => updateMergedTag(i, 'enabled', checked)}
                                             disabled={pageCtx.isReadOnly}
                                         />
                                         <span className="text-muted-foreground text-xs">
@@ -266,10 +265,11 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                 </div>
                 <SettingItemDesc>
                     Built-in tags (Staff, Problematic, Newcomer) can be enabled/disabled and customized (label, color,
-                    priority) but cannot be deleted. Define up to 20 additional custom tags for identifying players (e.g. Streamer, VIP). Tags
-                    are assigned via resource exports: <strong>exports.txadmin:addPlayerTag(serverId, tagId)</strong>{' '}
-                    and <strong>exports.txadmin:removePlayerTag(serverId, tagId)</strong>. Lower priority number =
-                    higher importance (1 is highest priority, 100 is lowest).
+                    priority) but cannot be deleted. Define up to 20 additional custom tags for identifying players
+                    (e.g. Streamer, VIP). Tags are assigned via resource exports:{' '}
+                    <strong>exports.txadmin:addPlayerTag(serverId, tagId)</strong> and{' '}
+                    <strong>exports.txadmin:removePlayerTag(serverId, tagId)</strong>. Lower priority number = higher
+                    importance (1 is highest priority, 100 is lowest).
                 </SettingItemDesc>
             </SettingItem>
         </SettingsCardShell>

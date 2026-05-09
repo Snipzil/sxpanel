@@ -1,5 +1,51 @@
 import { suite, it, expect, vi, beforeEach } from 'vitest';
-import { checkRequestAuth, normalAuthLogic, nuiAuthLogic } from './authLogic';
+
+vi.mock('@modules/AdminStore/permissionPresets', () => ({
+    getAllPermissionPresets: () => [
+        {
+            id: 'custom:supporter',
+            name: 'Supporter',
+            permissions: [
+                'console.view',
+                'players.direct_message',
+                'players.warn',
+                'players.kick',
+                'players.spectate',
+                'menu.viewids',
+            ],
+        },
+    ],
+    resolvePermissionPresetIdsFromCatalog: (catalog: Array<{ id: string; name: string; permissions: string[] }>, presetIds: unknown) => {
+        const normalizedPresetIds = typeof presetIds === 'string'
+            ? [presetIds]
+            : Array.isArray(presetIds)
+              ? presetIds.filter((presetId): presetId is string => typeof presetId === 'string')
+              : [];
+
+        const matchedPresetIds = [] as string[];
+        const matchedPresetNames = [] as string[];
+        const grantedPermissions = new Set<string>();
+
+        for (const presetId of normalizedPresetIds) {
+            const preset = catalog.find((entry) => entry.id === presetId);
+            if (!preset) continue;
+
+            matchedPresetIds.push(preset.id);
+            matchedPresetNames.push(preset.name);
+            for (const permission of preset.permissions) {
+                grantedPermissions.add(permission);
+            }
+        }
+
+        return {
+            presetIds: matchedPresetIds,
+            presetNames: matchedPresetNames,
+            permissions: [...grantedPermissions],
+        };
+    },
+}));
+
+import { checkRequestAuth, normalAuthLogic, nuiAuthLogic, resolveEffectiveAuthedAdmin } from './authLogic';
 import { StoredAdmin } from '@modules/AdminStore/adminClasses';
 import type { SessToolsType } from './middlewares/sessionMws';
 import type { PassSessAuthType, CfxreSessAuthType } from './authLogic';
@@ -20,8 +66,23 @@ const mockAdminRaw = {
     permissions: ['all_permissions'],
 };
 const storedAdmin = new StoredAdmin(mockAdminRaw);
+const storedDiscordAdmin = new StoredAdmin({
+    ...mockAdminRaw,
+    master: false,
+    permissions: ['players.warn'],
+    providers: {
+        ...mockAdminRaw.providers,
+        discord: {
+            id: '123456789012345678',
+            identifier: 'discord:123456789012345678',
+            data: {},
+        },
+    },
+});
 
 //Stub txCore globals for auth logic
+const syncAdminDiscordRolePermissions = vi.fn(async () => true);
+
 vi.stubGlobal('txCore', {
     adminStore: {
         getAdminByName: (name: string) => (name === 'testadmin' ? storedAdmin : null),
@@ -29,6 +90,11 @@ vi.stubGlobal('txCore', {
             if (ids.some((id) => id === 'fivem:123456')) return storedAdmin;
             return null;
         },
+        syncAdminDiscordRolePermissions,
+    },
+    discordBot: {
+        isClientReady: true,
+        resolveMemberRoles: vi.fn(async () => ({ isMember: true, memberRoles: ['role-moderator'] })),
     },
     webServer: {
         luaComToken: 'test-lua-com-token',
@@ -40,6 +106,16 @@ vi.stubGlobal('txCore', {
 vi.stubGlobal('txConfig', {
     webServer: {
         disableNuiSourceCheck: false,
+    },
+    discordBot: {
+        rolePermissions: [
+            {
+                id: 'mapping-1',
+                label: 'Moderators',
+                discordRoleIds: ['role-moderator'],
+                permissionPresetId: 'custom:supporter',
+            },
+        ],
     },
 });
 
@@ -233,5 +309,95 @@ suite('checkRequestAuth', () => {
     it('should fail normalAuthLogic path when no session', () => {
         const result = checkRequestAuth({}, '127.0.0.1', true, mockSessTools(undefined));
         expect(result.success).toBe(false);
+    });
+});
+
+suite('resolveEffectiveAuthedAdmin', () => {
+    beforeEach(() => {
+        syncAdminDiscordRolePermissions.mockClear();
+        (txCore.discordBot.resolveMemberRoles as ReturnType<typeof vi.fn>).mockResolvedValue({
+            isMember: true,
+            memberRoles: ['role-moderator'],
+        });
+    });
+
+    it('should merge mapped Discord role permissions into linked admins', async () => {
+        const authedAdmin = await resolveEffectiveAuthedAdmin(storedDiscordAdmin, 'csrf-token');
+
+        expect(authedAdmin.permissions).toEqual([
+            'players.warn',
+            'console.view',
+            'players.direct_message',
+            'players.kick',
+            'players.spectate',
+            'menu.viewids',
+        ]);
+        expect(authedAdmin.isMaster).toBe(false);
+        expect(authedAdmin.getAuthData().permissions).toEqual([
+            'players.warn',
+            'console.view',
+            'players.direct_message',
+            'players.kick',
+            'players.spectate',
+            'menu.viewids',
+        ]);
+        expect(syncAdminDiscordRolePermissions).toHaveBeenCalledWith('123456789012345678', {
+            permissions: [
+                'console.view',
+                'players.direct_message',
+                'players.warn',
+                'players.kick',
+                'players.spectate',
+                'menu.viewids',
+            ],
+            presetIds: ['custom:supporter'],
+            roleIds: ['role-moderator'],
+        });
+    });
+
+    it('should fall back to stored permissions when the bot is unavailable', async () => {
+        vi.stubGlobal('txCore', {
+            ...txCore,
+            discordBot: {
+                isClientReady: false,
+                resolveMemberRoles: vi.fn(async () => ({ isMember: false, memberRoles: [] })),
+            },
+        });
+
+        const authedAdmin = await resolveEffectiveAuthedAdmin(storedDiscordAdmin, 'csrf-token');
+        expect(authedAdmin.permissions).toEqual(['players.warn']);
+    });
+
+    it('should fall back to stored Discord role sync permissions when the bot is unavailable', async () => {
+        vi.stubGlobal('txCore', {
+            ...txCore,
+            discordBot: {
+                isClientReady: false,
+                resolveMemberRoles: vi.fn(async () => ({ isMember: false, memberRoles: [] })),
+            },
+        });
+
+        const storedSyncedAdmin = new StoredAdmin({
+            ...mockAdminRaw,
+            master: false,
+            permissions: ['players.warn'],
+            providers: {
+                ...mockAdminRaw.providers,
+                discord: {
+                    id: '123456789012345678',
+                    identifier: 'discord:123456789012345678',
+                    data: {
+                        fxpanelRoleSync: {
+                            permissions: ['players.kick', 'menu.viewids'],
+                            presetIds: ['custom:supporter'],
+                            roleIds: ['role-moderator'],
+                        },
+                    },
+                },
+            },
+        });
+
+        const authedAdmin = await resolveEffectiveAuthedAdmin(storedSyncedAdmin, 'csrf-token');
+        expect(authedAdmin.permissions).toEqual(['players.warn', 'players.kick', 'menu.viewids']);
     });
 });

@@ -25,7 +25,7 @@ export default async function FXServerControls(ctx: AuthedCtx) {
     }
 
     if (action === 'restart') {
-        ctx.admin.logCommand('RESTART SERVER');
+        ctx.admin.logCommand('RESTART SERVER', 'server.restart');
 
         //If too much of a delay, do it async
         const respawnDelay = txCore.fxRunner.restartSpawnDelay;
@@ -48,7 +48,7 @@ export default async function FXServerControls(ctx: AuthedCtx) {
         if (txCore.fxRunner.isIdle) {
             return ctx.send<ApiToastResp>({ type: 'success', msg: 'The server is already stopped.' });
         }
-        ctx.admin.logCommand('STOP SERVER');
+        ctx.admin.logCommand('STOP SERVER', 'server.stop');
         await txCore.fxRunner.killServer('admin request', ctx.admin.name, false);
         return ctx.send<ApiToastResp>({ type: 'success', msg: 'Server stopped.' });
     } else if (action === 'start') {
@@ -58,7 +58,7 @@ export default async function FXServerControls(ctx: AuthedCtx) {
                 msg: "The server is already running. If it's not working, press RESTART.",
             });
         }
-        ctx.admin.logCommand('START SERVER');
+        ctx.admin.logCommand('START SERVER', 'server.start');
         const spawnResult = await txCore.fxRunner.spawnServer(true);
         if (!spawnResult.success) {
             return ctx.send<ApiToastResp>({ type: 'error', md: spawnResult.md, msg: spawnResult.error });

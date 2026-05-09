@@ -1,5 +1,5 @@
 import { debugLog } from './debugLog';
-import { isBrowserEnv } from './miscUtils';
+import { isBrowserEnv } from '@nui/src/utils/miscUtils';
 
 type OptsWithMockData<T> = Partial<RequestInit & { mockResp: T }>;
 

@@ -65,7 +65,9 @@ function PlayerCountChart({ series }: Props) {
         id: 'Players',
         data: series.map((p) => ({ x: p.ts, y: p.players })),
     };
-    const memoryPoints = series.filter((p): p is InsightsPlayerCountPoint & { fxsMemory: number } => p.fxsMemory !== null);
+    const memoryPoints = series.filter(
+        (p): p is InsightsPlayerCountPoint & { fxsMemory: number } => p.fxsMemory !== null,
+    );
     const memoryData: Serie | null = memoryPoints.length
         ? {
               id: 'FXS Memory',
@@ -76,7 +78,7 @@ function PlayerCountChart({ series }: Props) {
     return (
         <div className="space-y-3">
             <div>
-                <div className="text-muted-foreground mb-1 px-1 text-[11px] uppercase tracking-wider">Players</div>
+                <div className="text-muted-foreground mb-1 px-1 text-[11px] tracking-wider uppercase">Players</div>
                 <div style={{ height: 220 }}>
                     <ResponsiveLine
                         data={[playerData]}
@@ -111,7 +113,7 @@ function PlayerCountChart({ series }: Props) {
             </div>
             {memoryData && (
                 <div>
-                    <div className="text-muted-foreground mb-1 px-1 text-[11px] uppercase tracking-wider">
+                    <div className="text-muted-foreground mb-1 px-1 text-[11px] tracking-wider uppercase">
                         FXServer Memory
                     </div>
                     <div style={{ height: 130 }}>

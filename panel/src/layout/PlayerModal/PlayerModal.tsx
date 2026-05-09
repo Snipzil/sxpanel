@@ -103,19 +103,22 @@ export default function PlayerModal() {
         }
     }, [isModalOpen]);
 
-    const combinedTabs = useMemo(() => [
-        ...modalTabs.map((t) => ({
-            value: t.title,
-            id: `player-modal-tab-${t.title.replace(/[^a-zA-Z0-9_-]/g, '-')}`,
-        })),
-        ...addonTabs.map((w, i) => {
-            const sanitized = `${w.addonId}-${w.title}`.replace(/[^a-zA-Z0-9_-]/g, '-');
-            return {
-                value: `addon:${w.addonId}:${w.title}:${i}`,
-                id: `player-modal-tab-addon-${sanitized}-${i}`,
-            };
-        }),
-    ], [addonTabs]);
+    const combinedTabs = useMemo(
+        () => [
+            ...modalTabs.map((t) => ({
+                value: t.title,
+                id: `player-modal-tab-${t.title.replace(/[^a-zA-Z0-9_-]/g, '-')}`,
+            })),
+            ...addonTabs.map((w, i) => {
+                const sanitized = `${w.addonId}-${w.title}`.replace(/[^a-zA-Z0-9_-]/g, '-');
+                return {
+                    value: `addon:${w.addonId}:${w.title}:${i}`,
+                    id: `player-modal-tab-addon-${sanitized}-${i}`,
+                };
+            }),
+        ],
+        [addonTabs],
+    );
 
     const handleOpenClose = (newOpenState: boolean) => {
         if (isModalOpen && !newOpenState) {
@@ -197,34 +200,46 @@ export default function PlayerModal() {
                         {modalTabs.map((tab) => {
                             const tabEntry = combinedTabs.find((t) => t.value === tab.title);
                             if (!tabEntry) {
-                                console.warn('[PlayerModal] No combinedTabs entry for tab:', tab.title, 'available:', combinedTabs.map((t) => t.value));
+                                console.warn(
+                                    '[PlayerModal] No combinedTabs entry for tab:',
+                                    tab.title,
+                                    'available:',
+                                    combinedTabs.map((t) => t.value),
+                                );
                                 return null;
                             }
                             return (
-                            <Button
-                                id={tabEntry.id}
-                                key={tab.title}
-                                variant={selectedTab === tab.title ? 'secondary' : 'ghost'}
-                                className={cn(
-                                    'w-full justify-center tracking-wider md:justify-start',
-                                    'h-7 rounded-sm px-2 text-sm',
-                                    'md:h-10 md:text-base',
-                                    tab.className,
-                                )}
-                                onClick={() => setSelectedTab(tab.title)}
-                                onKeyDown={handleTabButtonKeyDown}
-                            >
-                                {tab.icon} {tab.title}
-                            </Button>
+                                <Button
+                                    id={tabEntry.id}
+                                    key={tab.title}
+                                    variant={selectedTab === tab.title ? 'secondary' : 'ghost'}
+                                    className={cn(
+                                        'w-full justify-center tracking-wider md:justify-start',
+                                        'h-7 rounded-sm px-2 text-sm',
+                                        'md:h-10 md:text-base',
+                                        tab.className,
+                                    )}
+                                    onClick={() => setSelectedTab(tab.title)}
+                                    onKeyDown={handleTabButtonKeyDown}
+                                >
+                                    {tab.icon} {tab.title}
+                                </Button>
                             );
                         })}
                         {addonTabs.length > 0 && (
                             <>
-                                <hr className="my-1 hidden border-border md:block" />
+                                <hr className="border-border my-1 hidden md:block" />
                                 {addonTabs.map((w, i) => {
-                                    const tabEntry = combinedTabs.find((t) => t.value === `addon:${w.addonId}:${w.title}:${i}`);
+                                    const tabEntry = combinedTabs.find(
+                                        (t) => t.value === `addon:${w.addonId}:${w.title}:${i}`,
+                                    );
                                     if (!tabEntry) {
-                                        console.warn('[PlayerModal] No combinedTabs entry for addon tab:', `addon:${w.addonId}:${w.title}:${i}`, 'available:', combinedTabs.map((t) => t.value));
+                                        console.warn(
+                                            '[PlayerModal] No combinedTabs entry for addon tab:',
+                                            `addon:${w.addonId}:${w.title}:${i}`,
+                                            'available:',
+                                            combinedTabs.map((t) => t.value),
+                                        );
                                         return null;
                                     }
                                     return (
@@ -287,21 +302,31 @@ export default function PlayerModal() {
                                     <PlayerIdsTab player={modalData.player} refreshModalData={refreshModalData} />
                                 )}
                                 {selectedTab === 'Ban' && <PlayerBanTab playerRef={playerRef} />}
-                                {selectedTab.startsWith('addon:') && (() => {
-                                    const matchIndex = addonTabs.findIndex((w, i) => selectedTab === `addon:${w.addonId}:${w.title}:${i}`);
-                                    if (matchIndex === -1) return null;
-                                    const match = addonTabs[matchIndex];
-                                    return (
-                                        <ErrorBoundary key={`${match.addonId}-${match.title}-${matchIndex}`} fallback={<div className="p-4 text-sm text-destructive">Addon tab error: {match.title}</div>}>
-                                            <match.Component
-                                                license={modalData.player.license}
-                                                displayName={modalData.player.displayName}
-                                                netid={modalData.player.netid}
-                                                playerRef={playerRef}
-                                            />
-                                        </ErrorBoundary>
-                                    );
-                                })()}
+                                {selectedTab.startsWith('addon:') &&
+                                    (() => {
+                                        const matchIndex = addonTabs.findIndex(
+                                            (w, i) => selectedTab === `addon:${w.addonId}:${w.title}:${i}`,
+                                        );
+                                        if (matchIndex === -1) return null;
+                                        const match = addonTabs[matchIndex];
+                                        return (
+                                            <ErrorBoundary
+                                                key={`${match.addonId}-${match.title}-${matchIndex}`}
+                                                fallback={
+                                                    <div className="text-destructive p-4 text-sm">
+                                                        Addon tab error: {match.title}
+                                                    </div>
+                                                }
+                                            >
+                                                <match.Component
+                                                    license={modalData.player.license}
+                                                    displayName={modalData.player.displayName}
+                                                    netid={modalData.player.netid}
+                                                    playerRef={playerRef}
+                                                />
+                                            </ErrorBoundary>
+                                        );
+                                    })()}
                             </>
                         )}
                     </ScrollArea>

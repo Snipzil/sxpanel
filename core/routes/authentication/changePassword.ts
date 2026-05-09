@@ -49,7 +49,7 @@ export default async function AuthChangePassword(ctx: AuthedCtx) {
             });
         }
 
-        ctx.admin.logAction('Changing own password.');
+        ctx.admin.logAction('Changing own password.', 'auth.password.change');
         return ctx.send<GenericApiResp>({ success: true });
     } catch (error) {
         return ctx.send<GenericApiResp>({ error: emsg(error) });

@@ -1,4 +1,4 @@
-import type { RoomType } from '../webSocket';
+import type { RoomType } from '@modules/WebServer/webSocket';
 import type { ResourcesWsEventType } from '@shared/resourcesApiTypes';
 
 /**

@@ -13,15 +13,16 @@ const console = consoleFactory(modulename);
  */
 export async function handleSaveDeployerImport(ctx: AuthedCtx) {
     if (
-        ctx.request.body.name === undefined ||
-        ctx.request.body.isTrustedSource === undefined ||
-        ctx.request.body.recipeURL === undefined ||
-        ctx.request.body.targetPath === undefined ||
-        ctx.request.body.deploymentID === undefined
+        typeof ctx.request.body.name !== 'string' ||
+        (typeof ctx.request.body.isTrustedSource !== 'string' &&
+            typeof ctx.request.body.isTrustedSource !== 'boolean') ||
+        typeof ctx.request.body.recipeURL !== 'string' ||
+        typeof ctx.request.body.targetPath !== 'string' ||
+        typeof ctx.request.body.deploymentID !== 'string'
     ) {
         return ctx.utils.error(400, 'Invalid Request - missing parameters');
     }
-    const isTrustedSource = ctx.request.body.isTrustedSource === 'true';
+    const isTrustedSource = ctx.request.body.isTrustedSource === true || ctx.request.body.isTrustedSource === 'true';
     const serverName = ctx.request.body.name.trim();
     const recipeURL = ctx.request.body.recipeURL.trim();
     const targetPath = slash(path.normalize(ctx.request.body.targetPath + '/'));
@@ -31,8 +32,7 @@ export async function handleSaveDeployerImport(ctx: AuthedCtx) {
     let recipeText;
     try {
         recipeText = await got
-            .get({
-                url: recipeURL,
+            .get(recipeURL, {
                 timeout: { request: 4500 },
             })
             .text();
@@ -58,7 +58,7 @@ export async function handleSaveDeployerImport(ctx: AuthedCtx) {
             message: `**Error saving the configuration file:** ${(error as Error).message}`,
         });
     }
-    ctx.admin.logAction('Changing global settings via setup stepper and started Deployer.');
+    ctx.admin.logAction('Changing global settings via setup stepper and started Deployer.', 'setup.deployer.import');
 
     //Start deployer (constructor will validate the recipe)
     try {
@@ -76,9 +76,9 @@ export async function handleSaveDeployerImport(ctx: AuthedCtx) {
  */
 export async function handleSaveDeployerCustom(ctx: AuthedCtx) {
     if (
-        ctx.request.body.name === undefined ||
-        ctx.request.body.targetPath === undefined ||
-        ctx.request.body.deploymentID === undefined
+        typeof ctx.request.body.name !== 'string' ||
+        typeof ctx.request.body.targetPath !== 'string' ||
+        typeof ctx.request.body.deploymentID !== 'string'
     ) {
         return ctx.utils.error(400, 'Invalid Request - missing parameters');
     }
@@ -103,7 +103,7 @@ export async function handleSaveDeployerCustom(ctx: AuthedCtx) {
             message: `**Error saving the configuration file:** ${(error as Error).message}`,
         });
     }
-    ctx.admin.logAction('Changing global settings via setup stepper and started Deployer.');
+    ctx.admin.logAction('Changing global settings via setup stepper and started Deployer.', 'setup.deployer.custom');
 
     //Start deployer (constructor will create the recipe template)
     const customMetaData = {

@@ -11,7 +11,7 @@ export type ApiVerifyPasswordReqSchema = z.infer<typeof verifyPasswordBodySchema
 // Add Master flow
 export const addMasterPinBodySchema = z.object({
     pin: z.string().trim(),
-    origin: z.string(),
+    origin: z.string().url().max(256),
 });
 export type ApiAddMasterPinReqSchema = z.infer<typeof addMasterPinBodySchema>;
 

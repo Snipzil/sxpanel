@@ -81,7 +81,7 @@ async function handleApprovals(ctx: AuthedCtx, action: any): Promise<GenericApiR
         } catch (error) {
             return { error: `Failed to save wl approval: ${emsg(error)}` };
         }
-        ctx.admin.logAction(`Added whitelist approval for ${playerName}.`);
+        ctx.admin.logAction(`Added whitelist approval for ${playerName}.`, 'whitelist.approval.add');
         return { success: true };
     } else if (action === 'remove') {
         try {
@@ -102,7 +102,7 @@ async function handleApprovals(ctx: AuthedCtx, action: any): Promise<GenericApiR
         } catch (error) {
             return { error: `Failed to remove wl approval: ${emsg(error)}` };
         }
-        ctx.admin.logAction(`Removed whitelist approval from ${idlowerCased}.`);
+        ctx.admin.logAction(`Removed whitelist approval from ${idlowerCased}.`, 'whitelist.approval.remove');
         return { success: true };
     } else {
         return { error: 'unknown action' };
@@ -130,7 +130,7 @@ async function handleRequests(ctx: AuthedCtx, action: any): Promise<GenericApiRe
         } catch (error) {
             return { error: `Failed to remove all wl request: ${emsg(error)}` };
         }
-        ctx.admin.logAction('Denied all whitelist requests.');
+        ctx.admin.logAction('Denied all whitelist requests.', 'whitelist.request.deny_all');
         return { success: true };
     }
 
@@ -171,7 +171,7 @@ async function handleRequests(ctx: AuthedCtx, action: any): Promise<GenericApiRe
                 return { error: `Failed to save wl approval: ${emsg(error)}` };
             }
         }
-        ctx.admin.logAction(`Approved whitelist request from ${playerName}.`);
+        ctx.admin.logAction(`Approved whitelist request from ${playerName}.`, 'whitelist.request.approve');
 
         //Remove record from whitelistRequests
         try {
@@ -196,7 +196,7 @@ async function handleRequests(ctx: AuthedCtx, action: any): Promise<GenericApiRe
         } catch (error) {
             return { error: `Failed to remove wl request: ${emsg(error)}` };
         }
-        ctx.admin.logAction(`Denied whitelist request ${reqId}.`);
+        ctx.admin.logAction(`Denied whitelist request ${reqId}.`, 'whitelist.request.deny');
         return { success: true };
     } else {
         return { error: 'unknown action' };

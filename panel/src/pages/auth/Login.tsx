@@ -18,8 +18,8 @@ function MobileServerHeader() {
         <div className="mb-6 flex items-center gap-3 xl:hidden">
             <ServerGlowIcon iconFilename={server.icon} serverName={server.name} gameName={server.game} />
             <div>
-                <div className="text-base font-semibold leading-tight">{server.name}</div>
-                <div className="text-xs text-muted-foreground">Sign in to continue</div>
+                <div className="text-base leading-tight font-semibold">{server.name}</div>
+                <div className="text-muted-foreground text-xs">Sign in to continue</div>
             </div>
         </div>
     );
@@ -177,13 +177,13 @@ export default function Login() {
 
             {/* Heading */}
             <div className="mb-1">
-                <h1 className="text-xl font-semibold text-foreground">Sign in</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">Enter your credentials to continue</p>
+                <h1 className="text-foreground text-xl font-semibold">Sign in</h1>
+                <p className="text-muted-foreground mt-0.5 text-sm">Enter your credentials to continue</p>
             </div>
 
             {/* Error */}
             {errorMessage && (
-                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive-inline whitespace-pre-wrap">
+                <div className="border-destructive/30 bg-destructive/10 text-destructive-inline rounded-md border px-3 py-2.5 text-sm whitespace-pre-wrap">
                     {errorMessage}
                 </div>
             )}
@@ -191,7 +191,7 @@ export default function Login() {
             {/* Fields */}
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="frm-login" className="text-sm font-medium text-foreground/80">
+                    <Label htmlFor="frm-login" className="text-foreground/80 text-sm font-medium">
                         Username
                     </Label>
                     <Input
@@ -201,12 +201,12 @@ export default function Login() {
                         placeholder="your username"
                         autoCapitalize="off"
                         autoComplete="off"
-                        className="h-10 bg-background/60"
+                        className="bg-background/60 h-10"
                         required
                     />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="frm-password" className="text-sm font-medium text-foreground/80">
+                    <Label htmlFor="frm-password" className="text-foreground/80 text-sm font-medium">
                         Password
                     </Label>
                     <Input
@@ -216,7 +216,7 @@ export default function Login() {
                         placeholder="••••••••"
                         autoCapitalize="off"
                         autoComplete="off"
-                        className="h-10 bg-background/60"
+                        className="bg-background/60 h-10"
                         required
                     />
                 </div>
@@ -225,7 +225,7 @@ export default function Login() {
             {/* Primary sign in button */}
             <Button
                 type="submit"
-                className="h-10 w-full bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 h-10 w-full font-medium"
                 disabled={isFetching}
             >
                 {fetchingAction === 'login' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -234,14 +234,14 @@ export default function Login() {
 
             {/* OAuth options */}
             <div className="relative flex items-center gap-3">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-xs text-muted-foreground/60 shrink-0">or continue with</span>
-                <div className="h-px flex-1 bg-border" />
+                <div className="bg-border h-px flex-1" />
+                <span className="text-muted-foreground/60 shrink-0 text-xs">or continue with</span>
+                <div className="bg-border h-px flex-1" />
             </div>
 
             <div className="flex flex-col gap-2">
                 <Button
-                    className="h-10 w-full border-border/60 bg-secondary/50 text-foreground hover:bg-secondary hover:text-foreground font-normal"
+                    className="border-border/60 bg-secondary/50 text-foreground hover:bg-secondary hover:text-foreground h-10 w-full font-normal"
                     variant="outline"
                     type="button"
                     disabled={isFetching}
@@ -254,13 +254,17 @@ export default function Login() {
 
                 {window.txConsts.discordOAuthEnabled && (
                     <Button
-                        className="h-10 w-full border-border/60 bg-secondary/50 text-foreground hover:bg-secondary hover:text-foreground font-normal"
+                        className="border-border/60 bg-secondary/50 text-foreground hover:bg-secondary hover:text-foreground h-10 w-full font-normal"
                         variant="outline"
                         type="button"
                         disabled={isFetching}
                         onClick={handleDiscordRedirect}
                     >
-                        {fetchingAction === 'discord' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FaDiscord className="mr-2 h-4 w-4 text-[#5865F2]" />}
+                        {fetchingAction === 'discord' ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <FaDiscord className="mr-2 h-4 w-4 text-[#5865F2]" />
+                        )}
                         Discord
                     </Button>
                 )}

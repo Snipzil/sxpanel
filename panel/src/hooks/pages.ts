@@ -20,11 +20,14 @@ export const usePageHeader = (node: ReactNode, deps?: ReadonlyArray<unknown>) =>
     const setPageHeader = useSetAtom(pageHeaderAtom);
     const nodeRef = useRef(node);
     nodeRef.current = node;
-    useEffect(() => {
-        setPageHeader(nodeRef.current);
-        return () => setPageHeader(null);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, deps ?? [node, setPageHeader]);
+    useEffect(
+        () => {
+            setPageHeader(nodeRef.current);
+            return () => setPageHeader(null);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        },
+        deps ?? [node, setPageHeader],
+    );
 };
 
 /**

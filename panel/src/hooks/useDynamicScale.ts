@@ -23,9 +23,11 @@ const supportsZoom: boolean = (() => {
     return 'zoom' in el.style;
 })();
 
-export function useDynamicScale<C extends HTMLElement, E extends HTMLElement>(
-    options?: { minScale?: number; maxScale?: number; enabled?: boolean },
-) {
+export function useDynamicScale<C extends HTMLElement, E extends HTMLElement>(options?: {
+    minScale?: number;
+    maxScale?: number;
+    enabled?: boolean;
+}) {
     const containerRef = useRef<C | null>(null);
     const contentRef = useRef<E | null>(null);
     const minScale = options?.minScale ?? 0.6;

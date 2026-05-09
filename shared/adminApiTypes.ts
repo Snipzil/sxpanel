@@ -7,8 +7,11 @@ export type AdminListItem = {
     name: string;
     isMaster: boolean;
     hasCitizenFx: boolean;
+    citizenfxId: string;
     hasDiscord: boolean;
+    discordId: string;
     permissions: string[];
+    effectivePermissions?: string[];
     isYou: boolean;
     isOnline: boolean;
 };

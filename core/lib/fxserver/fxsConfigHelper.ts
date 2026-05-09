@@ -146,6 +146,12 @@ export const resolveCFGFilePath = (cfgPath: string, dataPath: string) => {
     return path.isAbsolute(cfgPath) ? path.normalize(cfgPath) : path.resolve(dataPath, cfgPath);
 };
 
+const resolvePathRelativeToCfgFile = (targetPath: string, cfgAbsolutePath: string) => {
+    return path.isAbsolute(targetPath)
+        ? path.normalize(targetPath)
+        : path.resolve(path.dirname(cfgAbsolutePath), targetPath);
+};
+
 /**
  * Reads CFG Path and return the file contents, or throw error if:
  *  - the path is not valid (must be absolute)
@@ -323,7 +329,7 @@ export const parseRecursiveConfig = async (
             if (cmdObject.command === 'exec' && typeof cmdObject.args[0] === 'string') {
                 //Skip resource-relative paths (@resource/file.cfg) as they can't be resolved at parse time
                 if (!cmdObject.args[0].startsWith('@')) {
-                    const recursiveCfgAbsolutePath = resolveCFGFilePath(cmdObject.args[0], serverDataPath);
+                    const recursiveCfgAbsolutePath = resolvePathRelativeToCfgFile(cmdObject.args[0], cfgAbsolutePath);
                     try {
                         const extractedCommands = await parseRecursiveConfig(
                             null,
@@ -342,6 +348,21 @@ export const parseRecursiveConfig = async (
 
     stack.pop();
     return parsedCommands;
+};
+
+export const getConfiguredServerIconPath = async (cfgPath: string, serverDataPath: string) => {
+    const cfgAbsolutePath = resolveCFGFilePath(cfgPath, serverDataPath);
+    const parsedCommands = await parseRecursiveConfig(null, cfgAbsolutePath, serverDataPath);
+
+    for (let i = parsedCommands.length - 1; i >= 0; i--) {
+        const cmd = parsedCommands[i];
+        if (cmd instanceof ExecRecursionError) continue;
+        if (cmd.command !== 'load_server_icon' || cmd.args.length !== 1) continue;
+
+        return resolvePathRelativeToCfgFile(cmd.args[0], cmd.file);
+    }
+
+    return null;
 };
 
 type EndpointsObjectType = Record<string, { tcp?: true; udp?: true }>;

@@ -1,5 +1,5 @@
 const modulename = 'WebServer:ServeStaticMw';
-import path from 'path';
+import path from 'node:path';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import consoleFactory from '@lib/console';
@@ -7,7 +7,7 @@ import type { Next } from 'koa';
 import type { RawKoaCtx } from '../ctxTypes';
 import zlib from 'node:zlib';
 import bytes from 'bytes';
-import { promisify } from 'util';
+import { promisify } from 'node:util';
 const console = consoleFactory(modulename);
 
 const gzip = promisify(zlib.gzip);

@@ -79,9 +79,7 @@ function normalizeAddonModuleExports(raw: any): AddonPanelModule {
 
     const widgets = asComponentMap(raw?.widgets ?? rawDefault?.widgets);
 
-    const settings =
-        raw?.settings ??
-        rawDefault?.settings;
+    const settings = raw?.settings ?? rawDefault?.settings;
 
     return {
         pages,
@@ -172,11 +170,7 @@ function getAddonFallbackPage(addonId: string, pageTitle: string, error?: string
                     'Page: ',
                     React.createElement('span', { className: 'font-medium' }, pageTitle),
                 ),
-                React.createElement(
-                    'p',
-                    { className: 'text-muted-foreground mt-3 text-sm whitespace-pre-wrap' },
-                    msg,
-                ),
+                React.createElement('p', { className: 'text-muted-foreground mt-3 text-sm whitespace-pre-wrap' }, msg),
             ),
         );
     };
@@ -328,7 +322,9 @@ export function useAddonLoader() {
 
     useEffect(() => {
         mountedRef.current = true;
-        return () => { mountedRef.current = false; };
+        return () => {
+            mountedRef.current = false;
+        };
     }, []);
 
     // Keep the module-level token in sync so the txAddonApi getter is never stale
@@ -367,7 +363,9 @@ export function useAddonLoader() {
                 (window as any).React = React;
                 (window as any).txAddonApi = {
                     ...(window as any).txAddonApi,
-                    get csrfToken() { return currentCsrfToken; },
+                    get csrfToken() {
+                        return currentCsrfToken;
+                    },
                     getHeaders: () => ({
                         'Content-Type': 'application/json',
                         'X-TxAdmin-CsrfToken': currentCsrfToken ?? '',
@@ -404,12 +402,10 @@ export function useAddonLoader() {
                                 pages: normalized.pages ?? {},
                                 widgets: normalized.widgets ?? {},
                                 settings: descriptor.settingsComponent
-                                    ? (
-                                        resolveNamedComponent(normalized.widgets ?? {}, descriptor.settingsComponent)
-                                        ?? resolveNamedComponent(normalized.pages ?? {}, descriptor.settingsComponent)
-                                        ?? normalized.settings
-                                        ?? mod?.[descriptor.settingsComponent]
-                                    )
+                                    ? (resolveNamedComponent(normalized.widgets ?? {}, descriptor.settingsComponent) ??
+                                      resolveNamedComponent(normalized.pages ?? {}, descriptor.settingsComponent) ??
+                                      normalized.settings ??
+                                      mod?.[descriptor.settingsComponent])
                                     : undefined,
                             },
                         });
@@ -449,8 +445,8 @@ export function useAddonLoader() {
         if (!addon.descriptor.pages) continue;
         for (const page of addon.descriptor.pages) {
             const Component =
-                resolveNamedComponent(addon.module.pages ?? {}, page.component)
-                ?? getAddonFallbackPage(addon.descriptor.id, page.title, addon.error);
+                resolveNamedComponent(addon.module.pages ?? {}, page.component) ??
+                getAddonFallbackPage(addon.descriptor.id, page.title, addon.error);
             pages.push({
                 addonId: addon.descriptor.id,
                 path: `/addon/${addon.descriptor.id}${page.path}`,
@@ -489,7 +485,7 @@ export function useAddonLoader() {
 export function useAddonWidgets(slot: string): AddonWidgetEntry[] {
     const { widgets } = useAddonLoader();
     const { hasPerm } = useAdminPerms();
-    return widgets.filter(w => w.slot === slot && (!w.permission || hasPerm(w.permission)));
+    return widgets.filter((w) => w.slot === slot && (!w.permission || hasPerm(w.permission)));
 }
 
 /**
@@ -498,7 +494,7 @@ export function useAddonWidgets(slot: string): AddonWidgetEntry[] {
 export function useAddonWidgetsByPrefix(prefix: string): AddonWidgetEntry[] {
     const { widgets } = useAddonLoader();
     const { hasPerm } = useAdminPerms();
-    return widgets.filter(w => w.slot.startsWith(prefix) && (!w.permission || hasPerm(w.permission)));
+    return widgets.filter((w) => w.slot.startsWith(prefix) && (!w.permission || hasPerm(w.permission)));
 }
 
 /**
@@ -506,7 +502,7 @@ export function useAddonWidgetsByPrefix(prefix: string): AddonWidgetEntry[] {
  */
 export function useAddonSettings(addonId: string): React.ComponentType<any> | undefined {
     const { addons } = useAddonLoader();
-    const addon = addons.find(a => a.descriptor.id === addonId);
+    const addon = addons.find((a) => a.descriptor.id === addonId);
     return addon?.module.settings;
 }
 

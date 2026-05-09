@@ -116,7 +116,7 @@ export default function CfgEditorPage() {
         const cfgData = editorRef.current?.getValue() ?? editorContent;
         if (cfgData.length < 1024 && currentFile === mainCfgName) {
             txToast.warning(
-                "Your CFG file is very small â€” there is a good chance you deleted something you shouldn't. A backup file will be saved just in case.",
+                "Your CFG file is very small - there is a good chance you deleted something you shouldn't. A backup file will be saved just in case.",
             );
         }
 
@@ -178,14 +178,14 @@ export default function CfgEditorPage() {
 
     const fileHint =
         currentFile === mainCfgName
-            ? '(main server config â€” validated on save)'
-            : '(auxiliary config â€” saved without validation)';
+            ? '(main server config - validated on save)'
+            : '(auxiliary config - saved without validation)';
 
     return (
         <div className="h-contentvh flex w-full flex-col gap-3 px-2 md:px-0">
             {/* CFG Errors Banner */}
             {initialData?.cfgErrors && (
-                <div className="shrink-0 relative rounded-lg border border-[rgba(244,5,82,0.4)] bg-[rgba(244,5,82,0.15)] p-4">
+                <div className="relative shrink-0 rounded-lg border border-[rgba(244,5,82,0.4)] bg-[rgba(244,5,82,0.15)] p-4">
                     <strong className="text-destructive">&#9888; Server failed to start due to config error(s):</strong>
                     <div className="mt-2 text-sm">
                         <MarkdownProse md={initialData.cfgErrors} isSmall />
@@ -198,7 +198,7 @@ export default function CfgEditorPage() {
             )}
 
             {/* File Picker */}
-            <div className="shrink-0 flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
                 <select
                     className={SELECT_CLASS}
                     style={{ maxWidth: 280 }}
@@ -216,7 +216,7 @@ export default function CfgEditorPage() {
             </div>
 
             {/* Monaco Editor */}
-            <div className="relative flex-1 min-h-0 overflow-hidden rounded-lg border">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border">
                 <div className="absolute inset-0">
                     <LazyMonacoEditor
                         height="100%"
@@ -241,7 +241,7 @@ export default function CfgEditorPage() {
             <div className="shrink-0 pb-2 text-center">
                 <Button variant="outline" size="sm" disabled={isSaving} onClick={handleSave}>
                     {isSaving && <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />}
-                    Save File (âŒ˜/Ctrl+S)
+                    Save File (⌘+S/Ctrl+S)
                 </Button>
             </div>
         </div>

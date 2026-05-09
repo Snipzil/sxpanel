@@ -37,7 +37,8 @@
 <tr>
 <td width="50%" valign="top">
 
-###  Web Panel
+### Web Panel
+
 - Live console with block-based buffer & lazy-loading
 - Server performance charts (CPU, memory, threads)
 - Per-resource runtime stats (CPU, memory, tick time)
@@ -47,7 +48,8 @@
 </td>
 <td width="50%" valign="top">
 
-###  In-Game Menu
+### In-Game Menu
+
 - Player Mode: NoClip, God, SuperJump
 - Teleport, Vehicle, Heal, Announcements
 - Live Spectate from the web panel
@@ -59,7 +61,8 @@
 <tr>
 <td width="50%" valign="top">
 
-###  Insights & Analytics
+### Insights & Analytics
+
 - Player count & memory timeline (up to 96h)
 - Retention metrics (1d / 7d / 30d)
 - Peak hours heatmap & playtime distribution
@@ -69,7 +72,8 @@
 </td>
 <td width="50%" valign="top">
 
-###  Player Management
+### Player Management
+
 - Warning & Ban system with full history
 - Whitelist (Discord, License, Role, Admin-only)
 - Auto-tags + up to 20 custom tags via resource exports
@@ -81,7 +85,8 @@
 <tr>
 <td width="50%" valign="top">
 
-###  Access Control
+### Access Control
+
 - Login via Cfx.re or password
 - 40+ granular permissions with presets
 - Per-admin statistics & action logging
@@ -90,9 +95,10 @@
 </td>
 <td width="50%" valign="top">
 
-###  Discord Integration
+### Discord Integration
+
 - Auto-updated status embed with custom footer
-- `/status`, `/whitelist`, `/info`, `/admininfo` commands
+- `/status`, `/whitelist`, `/info`, `/admininfo`, `/warn`, `/kick`, `/ban`, `/unban`, `/notes`, `/history` commands
 - Notifications for reports, bans, crashes, whitelist
 
 </td>

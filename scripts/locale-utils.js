@@ -302,12 +302,16 @@ const applyGptResults = () => {
     // Validate the configurable target key once before applying results.
     const normalizedTargetKey = typeof targetLocaleKey === 'string' ? targetLocaleKey.trim() : '';
     if (
-        !normalizedTargetKey
-        || normalizedTargetKey.startsWith('.')
-        || normalizedTargetKey.endsWith('.')
-        || normalizedTargetKey.split('.').includes('')
+        !normalizedTargetKey ||
+        normalizedTargetKey.startsWith('.') ||
+        normalizedTargetKey.endsWith('.') ||
+        normalizedTargetKey.split('.').includes('')
     ) {
-        console.log(chalk.red(`Invalid LOCALE_TARGET_KEY: '${targetLocaleKey}'. Must be a non-empty dot-path with no empty segments.`));
+        console.log(
+            chalk.red(
+                `Invalid LOCALE_TARGET_KEY: '${targetLocaleKey}'. Must be a non-empty dot-path with no empty segments.`,
+            ),
+        );
         process.exit(1);
     }
 

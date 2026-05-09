@@ -69,7 +69,11 @@ export interface Addon {
     storage: AddonStorage;
     players: AddonPlayers;
     registerRoute(method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, handler: RouteHandler): void;
-    registerPublicRoute(method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ALL', path: string, handler: PublicRouteHandler): void;
+    registerPublicRoute(
+        method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ALL',
+        path: string,
+        handler: PublicRouteHandler,
+    ): void;
     ws: AddonWebSocket;
     on(event: string, handler: (data: unknown) => void | Promise<void>): void;
     /** Remove an event handler. If no handler is given, removes all handlers for the event. */

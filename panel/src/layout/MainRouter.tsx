@@ -1,4 +1,5 @@
 import { ErrorBoundary } from 'react-error-boundary';
+import type { ReactElement } from 'react';
 import { Route as WouterRoute, Switch } from 'wouter';
 import { PageErrorFallback } from '@/components/ErrorFallback';
 import { useAtomValue, useSetAtom } from 'jotai';
@@ -6,7 +7,6 @@ import { contentRefreshKeyAtom, pageErrorStatusAtom, useSetPageTitle } from '@/h
 import { navigate as setLocation } from 'wouter/use-browser-location';
 
 import NotFound from '@/pages/NotFound';
-import TestingPage from '@/pages/TestingPage/TestingPage';
 import LiveConsolePage from '@/pages/LiveConsole/LiveConsolePage';
 import AdminManagerPage from '@/pages/AdminManager/AdminManagerPage';
 import PlayersPage from '@/pages/Players/PlayersPage';
@@ -24,6 +24,7 @@ import PlayerDropsPage from '@/pages/PlayerDropsPage/PlayerDropsPage';
 import SettingsPage from '@/pages/Settings/SettingsPage';
 import AddonsManagerPage from '@/pages/AddonsManagerPage';
 import EmbedEditorPage from '@/pages/Settings/EmbedEditorPage';
+import DiscordLogRoutesEditorPage from '@/pages/Settings/DiscordLogRoutesEditorPage';
 import FxUpdaterPage from '@/pages/FxUpdater/FxUpdaterPage';
 import WhitelistPage from '@/pages/Whitelist/WhitelistPage';
 import ResourcesPage from '@/pages/ResourcesPage/ResourcesPage';
@@ -33,6 +34,7 @@ import MasterActionsPage from '@/pages/MasterActionsPage';
 import CfgEditorPage from '@/pages/CfgEditorPage';
 import SetupPage from '@/pages/SetupPage';
 import DeployerPage from '@/pages/DeployerPage';
+import TestingPage from '@/pages/TestingPage/TestingPage';
 import { useAdminPerms } from '@/hooks/auth';
 import { useAddonLoader, type AddonPageRoute } from '@/hooks/addons';
 import UnauthorizedPage from '@/pages/UnauthorizedPage';
@@ -41,7 +43,7 @@ type RouteType = {
     path: string;
     title: string;
     permission?: string;
-    Page: JSX.Element;
+    Page: ReactElement;
 };
 
 const allRoutes: RouteType[] = [
@@ -64,7 +66,7 @@ const allRoutes: RouteType[] = [
     },
     {
         path: '/reports/analytics',
-        title: 'Ticket Analytics',
+        title: 'Report Analytics',
         permission: 'players.reports',
         Page: <AnalyticsPage />,
     },
@@ -193,6 +195,12 @@ const allRoutes: RouteType[] = [
         Page: <EmbedEditorPage />,
     },
     {
+        path: '/settings/discord-logs',
+        title: 'Discord Logging',
+        permission: 'settings.write',
+        Page: <DiscordLogRoutesEditorPage />,
+    },
+    {
         path: '/ban-identifiers',
         title: 'Ban Identifiers',
         Page: <AddLegacyBanPage />,
@@ -244,7 +252,7 @@ export function MainRouterInner() {
                 <Route key={route.path} {...route} />
             ))}
 
-            {/* Addon Routes â€” WouterRoute must be the direct Switch child
+            {/* Addon Routes - WouterRoute must be the direct Switch child
                 so that Switch can read props.path for matching. */}
             {addonPages.map((route) => (
                 <WouterRoute key={route.path} path={route.path}>
@@ -253,11 +261,7 @@ export function MainRouterInner() {
             ))}
 
             {/* While addons are loading, don't show NotFound for addon paths */}
-            {addonsLoading && (
-                <WouterRoute path="/addon/:rest*">
-                    {null}
-                </WouterRoute>
-            )}
+            {addonsLoading && <WouterRoute path="/addon/:rest*">{null}</WouterRoute>}
 
             {/* Other Routes - they need to set the title manually */}
             {import.meta.env.DEV && (

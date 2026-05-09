@@ -1,5 +1,5 @@
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { VehicleStatus, PlayerData, LuaPlayerData } from '../hooks/usePlayerListListener';
+import { VehicleStatus, PlayerData, LuaPlayerData } from '@nui/src/hooks/usePlayerListListener';
 import { debugData } from '../utils/debugData';
 import cleanPlayerName from '@shared/cleanPlayerName';
 

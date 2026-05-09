@@ -8,26 +8,36 @@ import { PlayerDropsLoadingSpinner } from './PlayerDropsGenericSubcards';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DrilldownChangesSubcard from './DrilldownChangesSubcard';
 import DrilldownOverviewSubcard from './DrilldownOverviewSubcard';
-import { DisplayLodType, DrilldownRangeSelectionType } from './PlayerDropsPage';
+import { DisplayLodType, DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
 import InlineCode from '@/components/InlineCode';
 import DrilldownResourcesSubcard from './DrilldownResourcesSubcard';
 import { Card, CardContent } from '@/components/ui/card';
 import type { ReactNode } from 'react';
 
-function DrilldownSection({ icon, title, action, children, className }: { icon: ReactNode; title: string; action?: ReactNode; children: ReactNode; className?: string }) {
+function DrilldownSection({
+    icon,
+    title,
+    action,
+    children,
+    className,
+}: {
+    icon: ReactNode;
+    title: string;
+    action?: ReactNode;
+    children: ReactNode;
+    className?: string;
+}) {
     return (
         <Card className={cn('overflow-hidden', className)}>
-            <div className="flex flex-col gap-2 border-b border-border/40 px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
+            <div className="border-border/40 flex flex-col gap-2 border-b px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
                 <div className="flex min-w-0 items-center gap-3">
                     <div className="bg-secondary/40 border-border/50 text-accent/80 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border [&>svg]:size-4">
                         {icon}
                     </div>
-                    <h3 className="text-sm font-semibold leading-tight tracking-tight">{title}</h3>
+                    <h3 className="text-sm leading-tight font-semibold tracking-tight">{title}</h3>
                 </div>
                 {action ? (
-                    <div className="flex flex-wrap items-center gap-2 pl-12 sm:ml-auto sm:pl-0">
-                        {action}
-                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pl-12 sm:ml-auto sm:pl-0">{action}</div>
                 ) : null}
             </div>
             <CardContent className="p-3 sm:p-4">{children}</CardContent>

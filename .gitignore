@@ -17,6 +17,7 @@ scripts/**/*.local.*
 .vscode/
 *.tsbuildinfo
 .npm-upgrade.json
+.github/agents/*
 
 # OS files
 .DS_Store

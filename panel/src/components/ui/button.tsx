@@ -31,7 +31,8 @@ const buttonVariants = cva(
                 'ghost-success': 'text-success-foreground hover:bg-success/15',
                 'outline-info': 'border border-info bg-transparent text-info-foreground hover:bg-info/15',
                 'ghost-info': 'text-info-foreground hover:bg-info/15',
-                'outline-muted': 'border border-muted-foreground/40 bg-transparent text-muted-foreground hover:bg-muted',
+                'outline-muted':
+                    'border border-muted-foreground/40 bg-transparent text-muted-foreground hover:bg-muted',
                 'ghost-muted': 'text-muted-foreground hover:bg-muted',
                 link: 'text-accent underline-offset-4 hover:underline',
             },

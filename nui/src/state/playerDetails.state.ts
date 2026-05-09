@@ -2,7 +2,7 @@ import { atom, useAtomValue, useSetAtom } from 'jotai';
 import { fetchWebPipe } from '../utils/fetchWebPipe';
 import { debugLog } from '../utils/debugLog';
 import { MockedPlayerDetails } from '../utils/constants';
-import { PlayerData } from '../hooks/usePlayerListListener';
+import { PlayerData } from '@nui/src/hooks/usePlayerListListener';
 import { PlayerModalResp, PlayerModalSuccess } from '@shared/playerApiTypes';
 import { GenericApiErrorResp } from '@shared/genericApiTypes';
 

@@ -34,7 +34,7 @@ function CrashTypeRow({ datum, isLast, isOdd }: CrashTypeRowProps) {
         <tr
             className={cn(
                 'group font-mono text-sm',
-                !isLast && 'border-b border-border/30',
+                !isLast && 'border-border/30 border-b',
                 isOdd && 'bg-secondary/15',
                 'hover:bg-secondary/25 transition-colors',
             )}
@@ -110,7 +110,7 @@ export default function DrilldownCrashesSubcard({
         <div className="w-full overflow-x-auto">
             <table className="w-full min-w-lg">
                 <thead>
-                    <tr className="text-muted-foreground/75 border-b border-border/40">
+                    <tr className="text-muted-foreground/75 border-border/40 border-b">
                         <th className="min-w-[4ch] border-r px-2 py-1 text-right">%</th>
                         <th className="min-w-[4ch] border-r px-2 py-1 text-right">Count</th>
                         <th className="px-2 py-1">Crash Reason</th>

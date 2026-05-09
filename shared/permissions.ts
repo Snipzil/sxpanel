@@ -253,6 +253,13 @@ export const registeredPermissions: PermissionDefinition[] = [
         category: 'players',
     },
     {
+        id: 'manage_tickets',
+        label: 'Manage Tickets',
+        description: 'Delete any ticket at any time.',
+        category: 'players',
+        dangerous: true,
+    },
+    {
         id: 'players.delete',
         label: 'Remove Player Data',
         description: 'Delete bans/warns, players, and player identifiers.',
@@ -296,43 +303,3 @@ export type PermissionPreset = {
     name: string;
     permissions: string[];
 };
-
-/**
- * Built-in preset templates that ship with txAdmin.
- * Users can create their own on top of these.
- */
-export const builtinPresets: PermissionPreset[] = [
-    {
-        id: 'builtin:full_admin',
-        name: 'Full Admin',
-        permissions: ['all_permissions'],
-    },
-    {
-        id: 'builtin:moderator',
-        name: 'Moderator',
-        permissions: [
-            'console.view',
-            'server.log.view',
-            'players.direct_message',
-            'players.warn',
-            'players.kick',
-            'players.ban',
-            'players.freeze',
-            'players.spectate',
-            'players.teleport',
-            'menu.viewids',
-        ],
-    },
-    {
-        id: 'builtin:supporter',
-        name: 'Supporter',
-        permissions: [
-            'console.view',
-            'players.direct_message',
-            'players.warn',
-            'players.kick',
-            'players.spectate',
-            'menu.viewids',
-        ],
-    },
-];

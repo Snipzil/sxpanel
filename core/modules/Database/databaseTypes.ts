@@ -1,4 +1,5 @@
 import { DatabaseTicketType } from '@shared/ticketApiTypes';
+import type { BotCommandEvent } from '@shared/discordBotAnalyticsTypes';
 import type { License, ActionId } from '@shared/brandedTypes';
 
 export type DatabasePlayerType = {
@@ -66,6 +67,8 @@ export type DatabaseWhitelistRequestsType = {
     tsLastAttempt: number;
 };
 
+export type DatabaseBotCommandEventType = BotCommandEvent;
+
 export type DatabaseDataType = {
     version: number;
     players: DatabasePlayerType[];
@@ -73,6 +76,7 @@ export type DatabaseDataType = {
     whitelistApprovals: DatabaseWhitelistApprovalsType[];
     whitelistRequests: DatabaseWhitelistRequestsType[];
     tickets: DatabaseTicketType[];
+    botCommandEvents: DatabaseBotCommandEventType[];
     /** @deprecated Retained for migration path only — use tickets */
     reports?: any[];
 };

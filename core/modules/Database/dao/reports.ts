@@ -13,11 +13,12 @@ import type {
     PlayerFeedback,
     TicketPriority,
     IntercomTicketCreateReq,
-    ApiGetAnalyticsResp,
+    TicketActivityEntry,
+    TicketAnalyticsSummary,
 } from '@shared/ticketApiTypes';
 const console = consoleFactory('DatabaseDao');
 
-type AnalyticsData = Exclude<ApiGetAnalyticsResp, { error: string }>;
+type AnalyticsData = TicketAnalyticsSummary;
 
 /**
  * Data access object for the database "tickets" collection.
@@ -94,6 +95,7 @@ export default class TicketsDao {
             screenshotUrl: undefined, // will be set after screenshot upload (if any)
             messages: [],
             staffNotes: [],
+                activityLog: [],
             logContext,
             tsCreated: tsNow,
             tsLastActivity: tsNow,
@@ -147,6 +149,19 @@ export default class TicketsDao {
 
         ticket.tsLastActivity = now();
         this.db.writeFlag(SavePriority.MEDIUM);
+        return true;
+    }
+
+    /**
+     * Adds an activity log entry to a ticket (audit trail)
+     */
+    addActivityEntry(ticketId: string, entry: TicketActivityEntry): boolean {
+        const ticket = this.chain.get('tickets').find({ id: ticketId }).value();
+        if (!ticket) return false;
+
+        if (!ticket.activityLog) ticket.activityLog = [];
+        ticket.activityLog.push(entry);
+        this.db.writeFlag(SavePriority.LOW);
         return true;
     }
 
@@ -354,4 +369,3 @@ export default class TicketsDao {
 
 // ── Backwards compat alias ──
 export { TicketsDao as ReportsDao };
-

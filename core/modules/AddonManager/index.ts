@@ -11,15 +11,22 @@ import AddonStorage from './addonStorage';
 import AddonProcess from './addonProcess';
 import AddonFileWatcher from './addonFileWatcher';
 import AddonPublicServer from './addonPublicServer';
-import { topologicalSort as topoSort, getMissingDependencies as getMissingDeps, isPathInside, isPathInsideOrEqual } from './addonUtils';
+import {
+    topologicalSort as topoSort,
+    getMissingDependencies as getMissingDeps,
+    isPathInside,
+    isPathInsideOrEqual,
+} from './addonUtils';
 import {
     AddonManifestSchema,
     AddonConfigSchema,
     AddonState,
     AddonPanelDescriptor,
     AddonNuiDescriptor,
+    AddonDiscordBotDescriptor,
     ADDON_PERMISSIONS,
     AddonListItem,
+    type AddonPermission,
     type AddonManifest,
     type AddonConfig,
 } from '@shared/addonTypes';
@@ -32,6 +39,7 @@ interface AddonDescriptor {
     manifest: AddonManifest;
     dir: string;
     state: AddonState;
+    lastError?: string;
     process: AddonProcess | null;
     grantedPermissions: string[];
 }
@@ -42,7 +50,7 @@ const ADDON_DATA_DIR = 'addon-data';
 
 /**
  * AddonManager — Discovers, validates, and manages addons.
- * 
+ *
  * Conforms to the GenericTxModule interface. Registered as a module in txAdmin boot.
  */
 export default class AddonManager {
@@ -88,6 +96,23 @@ export default class AddonManager {
     }
 
     /**
+     * Resolve an addon-relative manifest path to an absolute path.
+     */
+    private resolveAddonPath(addonDir: string, relativePath?: string): string | null {
+        if (!relativePath) return null;
+        return path.resolve(addonDir, relativePath);
+    }
+
+    /**
+     * Validate that an addon-relative manifest path does not escape the addon directory.
+     */
+    private isSafeAddonPath(addonDir: string, relativePath?: string): boolean {
+        const resolved = this.resolveAddonPath(addonDir, relativePath);
+        if (!resolved) return true;
+        return isPathInside(addonDir, resolved);
+    }
+
+    /**
      * Load addon-config.json or create defaults.
      */
     private loadConfig(): AddonConfig {
@@ -123,7 +148,9 @@ export default class AddonManager {
         // Pre-flight: verify addon-sdk is available
         const sdkPath = path.join(this.nodeModulesDir, 'addon-sdk');
         if (!fs.existsSync(sdkPath)) {
-            console.error(`addon-sdk not found at ${sdkPath} — addons will not be able to start. Ensure the monitor resource was deployed correctly.`);
+            console.error(
+                `addon-sdk not found at ${sdkPath} — addons will not be able to start. Ensure the monitor resource was deployed correctly.`,
+            );
         }
 
         // 1. Discover and validate
@@ -153,7 +180,7 @@ export default class AddonManager {
         this.fileWatcher = null;
 
         // 5. Register panel/NUI extensions (done passively via getters)
-        const running = [...this.addons.values()].filter(a => a.state === 'running').length;
+        const running = [...this.addons.values()].filter((a) => a.state === 'running').length;
         const total = this.addons.size;
         console.log(`Addon system ready: ${running}/${total} addons running`);
 
@@ -201,7 +228,9 @@ export default class AddonManager {
 
                 // Check for duplicate IDs (different folder, same manifest ID)
                 if (this.addons.has(manifest.id)) {
-                    console.warn(`Addon ${entry}: duplicate manifest id "${manifest.id}" (already loaded from another folder), skipping`);
+                    console.warn(
+                        `Addon ${entry}: duplicate manifest id "${manifest.id}" (already loaded from another folder), skipping`,
+                    );
                     continue;
                 }
 
@@ -225,12 +254,17 @@ export default class AddonManager {
 
                 // Validated paths within addon dir — prevent path traversal (including
                 // sibling-prefix escapes and symlinks out of the addon tree).
-                if (manifest.server?.entry) {
-                    const resolved = path.resolve(addonDir, manifest.server.entry);
-                    if (!isPathInside(addonDir, resolved)) {
+                if (!this.isSafeAddonPath(addonDir, manifest.server?.entry)) {
                         console.warn(`Addon ${manifest.id}: server entry path escapes addon directory, skipping`);
                         continue;
-                    }
+                }
+                if (!this.isSafeAddonPath(addonDir, manifest.discordBot?.commands)) {
+                    console.warn(`Addon ${manifest.id}: discord bot commands path escapes addon directory, skipping`);
+                    continue;
+                }
+                if (!this.isSafeAddonPath(addonDir, manifest.discordBot?.events)) {
+                    console.warn(`Addon ${manifest.id}: discord bot events path escapes addon directory, skipping`);
+                    continue;
                 }
 
                 this.addons.set(manifest.id, {
@@ -244,7 +278,7 @@ export default class AddonManager {
                 console.log(`Discovered addon: ${manifest.name} v${manifest.version} by ${manifest.author}`);
             } catch (error) {
                 if (error instanceof z.ZodError) {
-                    const issues = error.issues.map(i => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
+                    const issues = error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
                     console.warn(`Addon ${entry}: invalid manifest:\n${issues}`);
                 } else {
                     console.warn(`Addon ${entry}: failed to parse addon.json: ${(error as Error).message}`);
@@ -268,7 +302,7 @@ export default class AddonManager {
                     if (semver.lt(currentVersion, manifest.fxpanel.minVersion)) {
                         console.warn(
                             `Addon ${manifest.id}: requires fxPanel >= ${manifest.fxpanel.minVersion}, ` +
-                            `current is ${currentVersion}, skipping`
+                                `current is ${currentVersion}, skipping`,
                         );
                         return false;
                     }
@@ -286,7 +320,7 @@ export default class AddonManager {
                     if (!semver.satisfies(currentVersion, `<=${manifest.fxpanel.maxVersion}`)) {
                         console.warn(
                             `Addon ${manifest.id}: max version ${manifest.fxpanel.maxVersion}, ` +
-                            `current is ${currentVersion}, skipping`
+                                `current is ${currentVersion}, skipping`,
                         );
                         return false;
                     }
@@ -314,21 +348,21 @@ export default class AddonManager {
             }
 
             // Check that all required permissions are granted
-            const missingRequired = addon.manifest.permissions.required.filter(
-                p => !approval.granted.includes(p)
-            );
+            const missingRequired = addon.manifest.permissions.required.filter((p) => !approval.granted.includes(p));
             if (missingRequired.length > 0) {
                 console.warn(
                     `Addon ${id}: missing required permissions: ${missingRequired.join(', ')}. ` +
-                    `Re-approve addon to grant them.`
+                        `Re-approve addon to grant them.`,
                 );
                 addon.state = 'discovered';
+                addon.lastError = `Missing required permissions: ${missingRequired.join(', ')}`;
                 continue;
             }
 
             // Set granted permissions (required + approved optional)
             addon.grantedPermissions = approval.granted;
             addon.state = 'approved';
+            addon.lastError = undefined;
             console.log(`Addon ${id}: approved with permissions [${approval.granted.join(', ')}]`);
         }
     }
@@ -338,7 +372,7 @@ export default class AddonManager {
      * Addons are started in dependency order — dependencies first.
      */
     private async startProcesses(): Promise<void> {
-        const approvedAddons = [...this.addons.values()].filter(a => a.state === 'approved');
+        const approvedAddons = [...this.addons.values()].filter((a) => a.state === 'approved');
         const sorted = this.topologicalSort(approvedAddons);
 
         for (const addon of sorted) {
@@ -346,6 +380,7 @@ export default class AddonManager {
             const missingDeps = this.getMissingDependencies(addon);
             if (missingDeps.length > 0) {
                 addon.state = 'failed';
+                addon.lastError = `Missing dependencies: ${missingDeps.join(', ')}`;
                 console.error(`Addon ${addon.manifest.id}: missing dependencies: ${missingDeps.join(', ')}`);
                 continue;
             }
@@ -353,6 +388,7 @@ export default class AddonManager {
             if (!addon.manifest.server) {
                 // No server process needed — just mark as running
                 addon.state = 'running';
+                addon.lastError = undefined;
                 this.registerAddonPerms(addon);
                 continue;
             }
@@ -371,10 +407,12 @@ export default class AddonManager {
             const result = await addon.process.start(this.config.processTimeoutMs);
             if (result.success) {
                 addon.state = 'running';
+                addon.lastError = undefined;
                 this.registerAddonPerms(addon);
                 console.log(`Addon ${addon.manifest.id}: process started successfully`);
             } else {
                 addon.state = 'failed';
+                addon.lastError = result.error;
                 addon.process = null;
                 console.error(`Addon ${addon.manifest.id}: failed to start — ${result.error}`);
             }
@@ -397,7 +435,9 @@ export default class AddonManager {
         }
 
         const delayMs = 5_000 * Math.pow(3, attempts - 1); // 5s, 15s, 45s
-        console.warn(`Addon ${addonId}: scheduling restart attempt ${attempts}/${MAX_CRASH_RESTARTS} in ${delayMs / 1000}s`);
+        console.warn(
+            `Addon ${addonId}: scheduling restart attempt ${attempts}/${MAX_CRASH_RESTARTS} in ${delayMs / 1000}s`,
+        );
 
         // Clear any existing restart timer for this addon
         const existing = this.crashRestartTimers.get(addonId);
@@ -458,13 +498,14 @@ export default class AddonManager {
      * Get the list of addons for the settings UI.
      */
     getAddonList(): AddonListItem[] {
-        return [...this.addons.values()].map(addon => ({
+        return [...this.addons.values()].map((addon) => ({
             id: addon.manifest.id,
             name: addon.manifest.name,
             description: addon.manifest.description,
             version: addon.manifest.version,
             author: addon.manifest.author,
             state: addon.state,
+            lastError: addon.lastError,
             needsReapproval: addon.state === 'discovered' && !!this.config.approved[addon.manifest.id],
             hasSettings: !!addon.manifest.panel?.settingsComponent,
             dependencies: addon.manifest.dependencies,
@@ -480,7 +521,7 @@ export default class AddonManager {
      * Get the number of addons awaiting approval or re-approval.
      */
     getPendingApprovalCount(): number {
-        return [...this.addons.values()].filter(a => a.state === 'discovered').length;
+        return [...this.addons.values()].filter((a) => a.state === 'discovered').length;
     }
 
     /**
@@ -540,6 +581,25 @@ export default class AddonManager {
     }
 
     /**
+     * Get Discord bot addon descriptors for the standalone bot runtime.
+     */
+    getDiscordBotManifest(): AddonDiscordBotDescriptor[] {
+        const result: AddonDiscordBotDescriptor[] = [];
+        for (const addon of this.addons.values()) {
+            if (addon.state !== 'running' || !addon.manifest.discordBot) continue;
+
+            result.push({
+                id: addon.manifest.id,
+                name: addon.manifest.name,
+                commandsPath: this.resolveAddonPath(addon.dir, addon.manifest.discordBot.commands),
+                eventsPath: this.resolveAddonPath(addon.dir, addon.manifest.discordBot.events),
+                rateLimit: addon.manifest.discordBot.rateLimit ?? null,
+            });
+        }
+        return result;
+    }
+
+    /**
      * Get the addon process for HTTP request proxying.
      */
     getProcess(addonId: string): AddonProcess | null {
@@ -565,7 +625,11 @@ export default class AddonManager {
      * Approve an addon with specific permissions.
      * Saves config then triggers a reload to start the addon immediately.
      */
-    async approveAddon(addonId: string, grantedPermissions: string[], approvedBy: string): Promise<{ success: boolean; error?: string }> {
+    async approveAddon(
+        addonId: string,
+        grantedPermissions: string[],
+        approvedBy: string,
+    ): Promise<{ success: boolean; error?: string }> {
         const addon = this.addons.get(addonId);
         if (!addon) return { success: false, error: 'Addon not found' };
 
@@ -582,20 +646,18 @@ export default class AddonManager {
             ...addon.manifest.permissions.required,
             ...addon.manifest.permissions.optional,
         ]);
-        const unknown = uniqueGranted.filter(p => !knownPerms.has(p));
+        const unknown = uniqueGranted.filter((p) => !knownPerms.has(p));
         if (unknown.length > 0) {
             return { success: false, error: `Unknown permissions: ${unknown.join(', ')}` };
         }
-        const undeclared = uniqueGranted.filter(p => !declaredPerms.has(p));
+        const undeclared = uniqueGranted.filter((p) => !declaredPerms.has(p));
         if (undeclared.length > 0) {
             return { success: false, error: `Permissions not declared in manifest: ${undeclared.join(', ')}` };
         }
-        const sanitisedGranted = uniqueGranted;
+        const sanitisedGranted = uniqueGranted as AddonPermission[];
 
         // Verify all required permissions are granted
-        const missingRequired = addon.manifest.permissions.required.filter(
-            p => !sanitisedGranted.includes(p),
-        );
+        const missingRequired = addon.manifest.permissions.required.filter((p) => !sanitisedGranted.includes(p));
         if (missingRequired.length > 0) {
             return {
                 success: false,
@@ -611,7 +673,7 @@ export default class AddonManager {
         };
 
         // Remove from disabled list if present
-        this.config.disabled = this.config.disabled.filter(id => id !== addonId);
+        this.config.disabled = this.config.disabled.filter((id) => id !== addonId);
 
         this.saveConfig(this.config);
 
@@ -682,7 +744,7 @@ export default class AddonManager {
         if (disabled && !this.config.disabled.includes(addonId)) {
             this.config.disabled.push(addonId);
         } else if (!disabled) {
-            this.config.disabled = this.config.disabled.filter(id => id !== addonId);
+            this.config.disabled = this.config.disabled.filter((id) => id !== addonId);
         }
 
         this.saveConfig(this.config);
@@ -768,6 +830,7 @@ export default class AddonManager {
         if (missingDeps.length > 0) {
             addon.state = 'failed';
             const msg = `Missing dependencies: ${missingDeps.join(', ')}`;
+            addon.lastError = msg;
             console.error(`Addon ${addonId}: ${msg}`);
             this.broadcastReloadEvent(addonId, 'reloaded');
             return { success: false, error: msg };
@@ -776,6 +839,7 @@ export default class AddonManager {
         // No server entry — just mark running
         if (!addon.manifest.server) {
             addon.state = 'running';
+            addon.lastError = undefined;
             addon.grantedPermissions = approval.granted;
             this.registerAddonPerms(addon);
             this.broadcastReloadEvent(addonId, 'reloaded');
@@ -798,6 +862,7 @@ export default class AddonManager {
         const result = await addon.process.start(this.config.processTimeoutMs);
         if (result.success) {
             addon.state = 'running';
+            addon.lastError = undefined;
             this.registerAddonPerms(addon);
             await this.maybeStartPublicServer();
             console.log(`Addon ${addonId} started`);
@@ -805,6 +870,7 @@ export default class AddonManager {
             return { success: true };
         } else {
             addon.state = 'failed';
+            addon.lastError = result.error;
             addon.process = null;
             console.error(`Addon ${addonId} failed to start: ${result.error}`);
             this.broadcastReloadEvent(addonId, 'reloaded');
@@ -832,7 +898,7 @@ export default class AddonManager {
 
         // Reject any dotfile/dotfolder segment to avoid leaking .env, .git, etc.
         const segments = filePath.split(/[\\/]+/);
-        if (segments.some(seg => seg === '..' || (seg.startsWith('.') && seg.length > 1))) {
+        if (segments.some((seg) => seg === '..' || (seg.startsWith('.') && seg.length > 1))) {
             return null;
         }
 
@@ -880,7 +946,9 @@ export default class AddonManager {
     /**
      * Update global addon config settings.
      */
-    updateConfig(updates: Partial<Pick<AddonConfig, 'enabled' | 'maxAddons' | 'maxStorageMb' | 'processTimeoutMs'>>): void {
+    updateConfig(
+        updates: Partial<Pick<AddonConfig, 'enabled' | 'maxAddons' | 'maxStorageMb' | 'processTimeoutMs'>>,
+    ): void {
         Object.assign(this.config, updates);
         this.saveConfig(this.config);
     }
@@ -905,8 +973,9 @@ export default class AddonManager {
      * Addons with circular or unresolvable dependencies are placed at the end.
      */
     private topologicalSort(addons: AddonDescriptor[]): AddonDescriptor[] {
-        return topoSort(addons.map(a => ({ ...a, id: a.manifest.id, dependencies: a.manifest.dependencies })))
-            .map(n => addons.find(a => a.manifest.id === n.id)!);
+        return topoSort(addons.map((a) => ({ ...a, id: a.manifest.id, dependencies: a.manifest.dependencies }))).map(
+            (n) => addons.find((a) => a.manifest.id === n.id)!,
+        );
     }
 
     /**
@@ -979,12 +1048,14 @@ export default class AddonManager {
             const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
             manifest = AddonManifestSchema.parse(raw);
         } catch (error) {
-            const msg = error instanceof z.ZodError
-                ? error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
-                : (error as Error).message;
+            const msg =
+                error instanceof z.ZodError
+                    ? error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')
+                    : (error as Error).message;
             console.error(`Addon ${addonId}: invalid manifest on reload — ${msg}`);
             if (existing) {
                 existing.state = 'invalid';
+                existing.lastError = `Invalid manifest: ${msg}`;
                 existing.process = null;
             }
             return { success: false, error: `Invalid manifest: ${msg}` };
@@ -1001,19 +1072,38 @@ export default class AddonManager {
 
         // 4. Verify version compatibility
         if (!this.checkVersionCompat(manifest)) {
-            if (existing) existing.state = 'invalid';
+            if (existing) {
+                existing.state = 'invalid';
+                existing.lastError = 'Version incompatible';
+            }
             return { success: false, error: 'Version incompatible' };
         }
 
         // 5. Path traversal check on server entry (robust against sibling-prefix
         //    and symlink escapes).
-        if (manifest.server?.entry) {
-            const resolved = path.resolve(addonDir, manifest.server.entry);
-            if (!isPathInside(addonDir, resolved)) {
-                console.warn(`Addon ${addonId}: server entry escapes addon directory on reload`);
-                if (existing) existing.state = 'invalid';
-                return { success: false, error: 'Server entry escapes addon directory' };
+        if (!this.isSafeAddonPath(addonDir, manifest.server?.entry)) {
+            console.warn(`Addon ${addonId}: server entry escapes addon directory on reload`);
+            if (existing) {
+                existing.state = 'invalid';
+                existing.lastError = 'Server entry escapes addon directory';
             }
+            return { success: false, error: 'Server entry escapes addon directory' };
+        }
+        if (!this.isSafeAddonPath(addonDir, manifest.discordBot?.commands)) {
+            console.warn(`Addon ${addonId}: discord bot commands path escapes addon directory on reload`);
+            if (existing) {
+                existing.state = 'invalid';
+                existing.lastError = 'Discord bot commands path escapes addon directory';
+            }
+            return { success: false, error: 'Discord bot commands path escapes addon directory' };
+        }
+        if (!this.isSafeAddonPath(addonDir, manifest.discordBot?.events)) {
+            console.warn(`Addon ${addonId}: discord bot events path escapes addon directory on reload`);
+                if (existing) {
+                    existing.state = 'invalid';
+                    existing.lastError = 'Discord bot events path escapes addon directory';
+                }
+            return { success: false, error: 'Discord bot events path escapes addon directory' };
         }
 
         // 6. Check disabled
@@ -1022,6 +1112,7 @@ export default class AddonManager {
                 manifest,
                 dir: addonDir,
                 state: 'stopped',
+                lastError: undefined,
                 process: null,
                 grantedPermissions: existing?.grantedPermissions ?? [],
             });
@@ -1037,6 +1128,7 @@ export default class AddonManager {
                 manifest,
                 dir: addonDir,
                 state: 'discovered',
+                lastError: undefined,
                 process: null,
                 grantedPermissions: [],
             });
@@ -1046,14 +1138,13 @@ export default class AddonManager {
         }
 
         // 8. Check required permissions
-        const missingRequired = manifest.permissions.required.filter(
-            p => !approval.granted.includes(p)
-        );
+        const missingRequired = manifest.permissions.required.filter((p) => !approval.granted.includes(p));
         if (missingRequired.length > 0) {
             this.addons.set(addonId, {
                 manifest,
                 dir: addonDir,
                 state: 'discovered',
+                lastError: `Missing permissions: ${missingRequired.join(', ')}`,
                 process: null,
                 grantedPermissions: [],
             });
@@ -1065,19 +1156,20 @@ export default class AddonManager {
         const grantedPermissions = approval.granted;
 
         // 9. Check dependencies are running
-        const missingDeps = manifest.dependencies.filter(depId => {
+        const missingDeps = manifest.dependencies.filter((depId) => {
             const dep = this.addons.get(depId);
             return !dep || dep.state !== 'running';
         });
         if (missingDeps.length > 0) {
+            const msg = `Missing dependencies: ${missingDeps.join(', ')}`;
             this.addons.set(addonId, {
                 manifest,
                 dir: addonDir,
                 state: 'failed',
+                lastError: msg,
                 process: null,
                 grantedPermissions,
             });
-            const msg = `Missing dependencies: ${missingDeps.join(', ')}`;
             console.warn(`Addon ${addonId}: ${msg}`);
             this.broadcastReloadEvent(addonId, 'reloaded');
             return { success: false, error: msg };
@@ -1089,6 +1181,7 @@ export default class AddonManager {
                 manifest,
                 dir: addonDir,
                 state: 'running',
+                lastError: undefined,
                 process: null,
                 grantedPermissions,
             });
@@ -1116,6 +1209,7 @@ export default class AddonManager {
                 manifest,
                 dir: addonDir,
                 state: 'running',
+                lastError: undefined,
                 process: addonProcess,
                 grantedPermissions,
             });
@@ -1130,6 +1224,7 @@ export default class AddonManager {
                 manifest,
                 dir: addonDir,
                 state: 'failed',
+                lastError: result.error,
                 process: null,
                 grantedPermissions,
             });
@@ -1150,13 +1245,12 @@ export default class AddonManager {
         // Get current addon IDs + scan for new directories
         const knownIds = new Set(this.addons.keys());
         const dirEntries = fs.existsSync(this.addonsDir)
-            ? fs.readdirSync(this.addonsDir).filter(e =>
-                fs.statSync(path.join(this.addonsDir, e)).isDirectory())
+            ? fs.readdirSync(this.addonsDir).filter((e) => fs.statSync(path.join(this.addonsDir, e)).isDirectory())
             : [];
 
         // For on-disk dirs, resolve to addon ID if already known, otherwise use dir name
         // so reloadAddon can discover new addons from their directory
-        const onDiskIds = dirEntries.map(dir => this.resolveAddonIdFromDir(dir) ?? dir);
+        const onDiskIds = dirEntries.map((dir) => this.resolveAddonIdFromDir(dir) ?? dir);
 
         // Merge known + on-disk
         const allIds = new Set([...knownIds, ...onDiskIds]);
@@ -1166,12 +1260,10 @@ export default class AddonManager {
         }
 
         // If any running addon has NUI content, ensure monitor once to refresh all NUI
-        const hasNuiAddon = [...this.addons.values()].some(
-            a => a.state === 'running' && a.manifest.nui,
-        );
+        const hasNuiAddon = [...this.addons.values()].some((a) => a.state === 'running' && a.manifest.nui);
         if (hasNuiAddon) await this.ensureMonitorResource();
 
-        const running = [...this.addons.values()].filter(a => a.state === 'running').length;
+        const running = [...this.addons.values()].filter((a) => a.state === 'running').length;
         console.log(`Reload complete: ${running}/${this.addons.size} addons running`);
         return { results };
     }
@@ -1214,6 +1306,7 @@ export default class AddonManager {
         const monitorRoot = txEnv.txaPath;
         const monitorNuiAddonsRoot = path.join(monitorRoot, 'nui', 'addons');
         const monitorStaticAddonsRoot = path.join(monitorRoot, 'addons');
+        const isStaticRootSourceAddons = path.resolve(monitorStaticAddonsRoot) === path.resolve(this.addonsDir);
 
         const normalizeForCompare = (value: string) => {
             const normalized = path.normalize(value);
@@ -1262,22 +1355,29 @@ export default class AddonManager {
         const pruneStaleDirs = async (rootDir: string) => {
             try {
                 const entries = await fs.promises.readdir(rootDir, { withFileTypes: true });
-                await Promise.all(entries.map(async (entry) => {
-                    if (!entry.isDirectory()) return;
-                    if (!desiredIds.has(entry.name)) {
-                        await fs.promises.rm(path.join(rootDir, entry.name), { recursive: true, force: true });
-                    }
-                }));
+                await Promise.all(
+                    entries.map(async (entry) => {
+                        if (!entry.isDirectory()) return;
+                        if (!desiredIds.has(entry.name)) {
+                            await fs.promises.rm(path.join(rootDir, entry.name), { recursive: true, force: true });
+                        }
+                    }),
+                );
             } catch (err: unknown) {
-                const code = (typeof err === 'object' && err !== null && 'code' in err)
-                    ? (err as NodeJS.ErrnoException).code
-                    : undefined;
+                const code =
+                    typeof err === 'object' && err !== null && 'code' in err
+                        ? (err as NodeJS.ErrnoException).code
+                        : undefined;
                 if (code !== 'ENOENT') throw err;
             }
         };
 
         await pruneStaleDirs(monitorNuiAddonsRoot);
-        if (!staticRootIsAddonSourceRoot) {
+    if (staticRootIsAddonSourceRoot) {
+            console.error(
+                `Refusing to prune static addon dirs because target root equals source addons dir: ${monitorStaticAddonsRoot}`,
+            );
+        } else {
             await pruneStaleDirs(monitorStaticAddonsRoot);
         }
 
@@ -1305,10 +1405,16 @@ export default class AddonManager {
                 // When addons are loaded directly from monitor/addons, never mirror
                 // static files back onto the same directory tree.
                 if (await pathsEqual(addon.dir, targetAddonRoot)) {
+                    console.error(
+                        `Refusing to sync static assets for addon '${addonId}' because target root equals source addon dir: ${targetAddonRoot}`,
+                    );
                     continue;
                 }
 
                 if (await pathsEqual(sourceStaticDir, targetStaticDir)) {
+                    console.error(
+                        `Refusing to sync static assets for addon '${addonId}' because source and target static dirs are identical: ${targetStaticDir}`,
+                    );
                     continue;
                 }
 
@@ -1343,6 +1449,12 @@ export default class AddonManager {
         } catch {
             // WebSocket might not be initialized yet during early boot
         }
+
+        try {
+            txCore.discordBot.handleAddonReload();
+        } catch {
+            // Discord bot might not be initialized yet during early boot
+        }
     }
 
     /**
@@ -1370,7 +1482,7 @@ export default class AddonManager {
 
         // Find first addon with publicRoutes enabled
         const publicAddon = [...this.addons.values()].find(
-            a => a.state === 'running' && a.manifest.publicRoutes === true,
+            (a) => a.state === 'running' && a.manifest.publicRoutes === true,
         );
         if (!publicAddon) return;
 
@@ -1384,11 +1496,7 @@ export default class AddonManager {
             return;
         }
 
-        this.publicServer = new AddonPublicServer(
-            port,
-            publicAddon.manifest.id,
-            (addonId) => this.getProcess(addonId),
-        );
+        this.publicServer = new AddonPublicServer(port, publicAddon.manifest.id, (addonId) => this.getProcess(addonId));
 
         try {
             await this.publicServer.start();
@@ -1405,7 +1513,7 @@ export default class AddonManager {
         if (!this.publicServer?.isListening) return;
 
         const hasPublicAddon = [...this.addons.values()].some(
-            a => a.state === 'running' && a.manifest.publicRoutes === true,
+            (a) => a.state === 'running' && a.manifest.publicRoutes === true,
         );
         if (hasPublicAddon) return;
 

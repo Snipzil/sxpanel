@@ -1,0 +1,39 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../docs"
+		}
+	],
+	"settings": {
+		"Lua.runtime.version": "Lua 5.4",
+		"Lua.runtime.plugin": "~\\AppData\\Roaming\\Code\\User\\globalStorage\\overextended.cfxlua-vscode\\plugin.lua",
+		"Lua.runtime.nonstandardSymbol": [
+			"/**/",
+			"`",
+			"+=",
+			"-=",
+			"*=",
+			"/=",
+			"<<=",
+			">>=",
+			"&=",
+			"|=",
+			"^="
+		],
+		"Lua.workspace.ignoreDir": [
+			".vscode",
+			".git",
+			".github",
+			"node_modules",
+			"\\[cfx\\]"
+		],
+		"Lua.workspace.library": [
+			"~\\AppData\\Roaming\\Code\\User\\globalStorage\\overextended.cfxlua-vscode\\library\\runtime",
+			"~\\AppData\\Roaming\\Code\\User\\globalStorage\\overextended.cfxlua-vscode\\library\\natives\\CFX-NATIVE",
+			"~\\AppData\\Roaming\\Code\\User\\globalStorage\\overextended.cfxlua-vscode\\library\\natives\\GTAV"
+		]
+	}
+}

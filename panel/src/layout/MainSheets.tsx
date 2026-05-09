@@ -19,7 +19,7 @@ export function GlobalMenuSheet() {
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetContent
                 side="left"
-                className="xs:w-80 bg-[#0c0e16] flex w-full flex-col gap-0 border-border/40 p-0 select-none"
+                className="xs:w-80 border-border/40 flex w-full flex-col gap-0 bg-[#0c0e16] p-0 select-none"
                 onOpenAutoFocus={(e) => e.preventDefault()}
             >
                 <SidebarCollapsedCtx.Provider value={false}>

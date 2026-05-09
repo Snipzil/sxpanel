@@ -14,9 +14,9 @@ const console = consoleFactory(modulename);
  */
 export async function handleSaveLocal(ctx: AuthedCtx) {
     if (
-        ctx.request.body.name === undefined ||
-        ctx.request.body.dataFolder === undefined ||
-        ctx.request.body.cfgFile === undefined
+        typeof ctx.request.body.name !== 'string' ||
+        typeof ctx.request.body.dataFolder !== 'string' ||
+        typeof ctx.request.body.cfgFile !== 'string'
     ) {
         return ctx.utils.error(400, 'Invalid Request - missing parameters');
     }
@@ -74,11 +74,11 @@ export async function handleSaveLocal(ctx: AuthedCtx) {
     txCore.cacheStore.set('deployer:recipe', 'none');
 
     //Logging
-    ctx.admin.logAction('Changing global/fxserver settings via setup stepper.');
+    ctx.admin.logAction('Changing global/fxserver settings via setup stepper.', 'setup.local.save');
 
     //If running (for some reason), kill it first
     if (!txCore.fxRunner.isIdle) {
-        ctx.admin.logCommand('STOP SERVER');
+        ctx.admin.logCommand('STOP SERVER', 'server.stop');
         await txCore.fxRunner.killServer('new server set up', ctx.admin.name, true);
     }
 

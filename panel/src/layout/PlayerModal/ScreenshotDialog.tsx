@@ -20,7 +20,9 @@ export default function ScreenshotDialog({
     playerName,
 }: ScreenshotDialogProps) {
     const imageSrc = imageData
-        ? imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`
+        ? imageData.startsWith('data:')
+            ? imageData
+            : `data:image/jpeg;base64,${imageData}`
         : null;
 
     const handleDownload = () => {

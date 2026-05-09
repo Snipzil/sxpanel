@@ -40,7 +40,7 @@ export default async function TotpDisable(ctx: AuthedCtx) {
         // Clear TOTP data
         await txCore.adminStore.clearAdminTotp(adminName);
 
-        txCore.logger.system.write(adminName, 'disabled 2FA', 'config');
+        txCore.logger.system.write(adminName, 'disabled 2FA', 'config', { actionId: 'auth.2fa.disable' });
         console.ok(`Admin ${adminName} disabled 2FA`);
 
         return sendTypedResp({ success: true });

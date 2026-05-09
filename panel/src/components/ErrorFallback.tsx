@@ -46,11 +46,14 @@ export function PageErrorFallback({ error, resetErrorBoundary }: FallbackProps) 
 type GenericErrorBoundaryCardProps = {
     title: string;
     description: string;
-    error: Error;
+    error: unknown;
     resetButton: React.ReactNode;
 };
 
 export function GenericErrorBoundaryCard(props: GenericErrorBoundaryCardProps) {
+    const errorMessage = props.error instanceof Error ? props.error.message : String(props.error);
+    const errorStack = props.error instanceof Error ? props.error.stack : undefined;
+
     return (
         <Card className="max-w-xl">
             <CardHeader>
@@ -76,12 +79,12 @@ export function GenericErrorBoundaryCard(props: GenericErrorBoundaryCardProps) {
                 </p>
                 <p>
                     Message:&nbsp;
-                    <code className="text-muted-foreground">{props.error.message ?? 'unknown'}</code>
+                    <code className="text-muted-foreground">{errorMessage || 'unknown'}</code>
                 </p>
                 <p>Stack:</p>
                 <pre className="mt-1">
                     <ScrollArea className="text-muted-foreground h-32 w-full rounded-sm border border-red-800 p-2 font-mono text-xs text-red-800">
-                        {props.error.stack}
+                        {errorStack}
                     </ScrollArea>
                 </pre>
             </CardContent>

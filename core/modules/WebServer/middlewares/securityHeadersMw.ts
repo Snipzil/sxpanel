@@ -18,8 +18,9 @@ const buildCSP = (isDev: boolean, nonce?: string): string => {
         'script-src': isDev
             ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
             : ["'self'", `'nonce-${nonce}'`, "'unsafe-eval'"],
+        'worker-src': ["'self'", 'blob:'],
         'style-src': ["'self'", "'unsafe-inline'"],
-        'img-src': ["'self'", 'data:', 'blob:'],
+        'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:'],
         'font-src': ["'self'"],
         'connect-src': ["'self'", 'ws:', 'wss:'],
         'media-src': ["'self'"],

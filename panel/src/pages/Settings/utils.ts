@@ -55,14 +55,7 @@ export const SYM_RESET_CONFIG = Symbol('Settings:ResetConfig');
 /**
  * Helper to get the inferred type of a config object.
  */
-export const getPageConfig = <
-    T = any,
->(
-    scope: string,
-    key: string,
-    showAdvancedState?: boolean,
-    bakedDefault?: T,
-) => {
+export const getPageConfig = <T = any>(scope: string, key: string, showAdvancedState?: boolean, bakedDefault?: T) => {
     return {
         scope,
         key,
@@ -83,7 +76,9 @@ export const getPageConfig = <
 export const configsReducer = <T extends PageConfigs>(state: any, action: PageConfigReducerAction<any>) => {
     const typedState = state as Record<string, any>;
     const newValue =
-        typeof action.configValue === 'function' ? action.configValue(typedState[action.configName]) : action.configValue;
+        typeof action.configValue === 'function'
+            ? action.configValue(typedState[action.configName])
+            : action.configValue;
     return { ...typedState, [action.configName]: newValue } as any;
 };
 

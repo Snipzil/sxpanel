@@ -4,7 +4,7 @@ import consoleFactory from '@lib/console';
 const console = consoleFactory(modulename);
 
 //Separate permissions in general perms and menu perms, and mark the dangerous ones
-const dangerousPerms = ['all_permissions', 'manage.admins', 'console.write', 'settings.write'];
+const dangerousPerms = ['all_permissions', 'manage.admins', 'manage_tickets', 'console.write', 'settings.write'];
 const getPerms = (checkPerms: string[], allPermissions: [string, string][]) => {
     type PermType = {
         id: string;
