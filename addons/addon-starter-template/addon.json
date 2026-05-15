@@ -1,0 +1,46 @@
+{
+    "id": "addon-starter-template",
+    "name": "Starter Template",
+    "description": "A minimal fxPanel addon template with examples of routes, storage, events, panel pages, and widgets.",
+    "version": "1.0.0",
+    "author": "fxPanel Community",
+    "license": "MIT",
+    "fxpanel": {
+        "minVersion": "0.2.1-Beta"
+    },
+    "permissions": {
+        "required": ["storage"],
+        "optional": ["ws.push", "players.read"]
+    },
+    "server": {
+        "entry": "server/index.js"
+    },
+    "discordBot": {
+        "commands": "discord-bot/commands",
+        "rateLimit": {
+            "max": 5,
+            "windowMs": 15000
+        }
+    },
+    "panel": {
+        "entry": "panel/index.js",
+        "pages": [
+            {
+                "path": "/home",
+                "title": "Starter Home",
+                "icon": "Sparkles",
+                "sidebar": true,
+                "sidebarGroup": "Addons",
+                "component": "StarterPage"
+            }
+        ],
+        "widgets": [
+            {
+                "slot": "dashboard.main",
+                "component": "StarterWidget",
+                "title": "Starter Widget",
+                "defaultSize": "half"
+            }
+        ]
+    }
+}
