@@ -1,6 +1,7 @@
 import { DatabaseTicketType } from '@shared/ticketApiTypes';
 import type { BotCommandEvent } from '@shared/discordBotAnalyticsTypes';
 import type { License, ActionId } from '@shared/brandedTypes';
+import type { WhitelistApplicationStatus, WhitelistEntrySource, WhitelistEventType } from '@shared/whitelistTypes';
 
 export type DatabasePlayerType = {
     license: License;
@@ -11,6 +12,7 @@ export type DatabasePlayerType = {
     playTime: number;
     tsLastConnection: number;
     tsJoined: number;
+    /** @deprecated Cleared after v9 migration — use whitelistEntries */
     tsWhitelisted?: number;
     notes?: {
         text: string;
@@ -49,22 +51,65 @@ export type DatabaseActionKickType = {
 } & DatabaseActionBaseType;
 export type DatabaseActionType = DatabaseActionBanType | DatabaseActionWarnType | DatabaseActionKickType;
 
+export type DatabaseWhitelistEntryType = {
+    identifier: string;
+    tsGranted: number;
+    grantedBy: string;
+    source: WhitelistEntrySource;
+    playerName: string;
+    playerAvatar: string | null;
+    license?: string;
+    tsFirstConnect?: number;
+};
+
+export type DatabaseWhitelistApplicationType = {
+    id: string;
+    license: string;
+    status: WhitelistApplicationStatus;
+    workflowId: string;
+    answers?: Record<string, string>;
+    playerDisplayName: string;
+    playerPureName: string;
+    discordTag?: string;
+    discordAvatar?: string;
+    tsCreated: number;
+    tsLastAttempt: number;
+    tsDecided?: number;
+    decidedBy?: string;
+    discordThreadId?: string;
+};
+
+export type DatabaseWhitelistEventType = {
+    id: string;
+    type: WhitelistEventType;
+    ts: number;
+    license?: string;
+    applicationId?: string;
+    identifier?: string;
+    adminName?: string;
+    meta?: Record<string, unknown>;
+};
+
+/** @deprecated Panel API compat — mapped from whitelistEntries without tsFirstConnect */
 export type DatabaseWhitelistApprovalsType = {
     identifier: string;
-    playerName: string; //always filled, even with `unknown` or license `xxxxxx...xxxxxx`
+    playerName: string;
     playerAvatar: string | null;
     tsApproved: number;
     approvedBy: string;
 };
 
+/** @deprecated Panel API compat — mapped from pending whitelistApplications */
 export type DatabaseWhitelistRequestsType = {
-    id: string; //R####
+    id: string;
     license: string;
     playerDisplayName: string;
     playerPureName: string;
     discordTag?: string;
-    discordAvatar?: string; //first try to get from GuildMember, then client.users.fetch()
+    discordAvatar?: string;
     tsLastAttempt: number;
+    workflowId?: string;
+    status?: WhitelistApplicationStatus;
 };
 
 export type DatabaseBotCommandEventType = BotCommandEvent;
@@ -73,10 +118,15 @@ export type DatabaseDataType = {
     version: number;
     players: DatabasePlayerType[];
     actions: DatabaseActionType[];
-    whitelistApprovals: DatabaseWhitelistApprovalsType[];
-    whitelistRequests: DatabaseWhitelistRequestsType[];
+    whitelistEntries: DatabaseWhitelistEntryType[];
+    whitelistApplications: DatabaseWhitelistApplicationType[];
+    whitelistEvents: DatabaseWhitelistEventType[];
     tickets: DatabaseTicketType[];
     botCommandEvents: DatabaseBotCommandEventType[];
     /** @deprecated Retained for migration path only — use tickets */
     reports?: any[];
+    /** @deprecated Retained for v8→v9 migration only */
+    whitelistApprovals?: DatabaseWhitelistApprovalsType[];
+    /** @deprecated Retained for v8→v9 migration only */
+    whitelistRequests?: DatabaseWhitelistRequestsType[];
 };

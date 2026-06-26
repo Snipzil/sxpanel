@@ -1,5 +1,6 @@
 const modulename = 'WebServer:FxArtifactDownload';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
+import { txHostConfig } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import { ApiToastResp } from '@shared/genericApiTypes';
 const console = consoleFactory(modulename);
@@ -42,6 +43,12 @@ export default async function FxArtifactDownload(ctx: AuthedCtx) {
         return ctx.send<ApiToastResp>({
             type: 'error',
             msg: 'A version identifier is required.',
+        });
+    }
+    if (!txHostConfig.artifactCustomDownloadEnabled && version === 'custom') {
+        return ctx.send<ApiToastResp>({
+            type: 'error',
+            msg: 'Custom artifact download URLs are disabled by the host.',
         });
     }
 

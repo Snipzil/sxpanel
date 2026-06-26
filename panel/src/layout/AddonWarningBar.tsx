@@ -7,6 +7,7 @@ import { BellOffIcon, PackageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { navigate } from 'wouter/use-browser-location';
 import type { AddonListItem } from '@shared/addonTypes';
+import { useLocale } from '@/hooks/locale';
 
 const LOCALSTORAGE_KEY = 'addonApprovalDismissed';
 
@@ -54,6 +55,7 @@ export default function AddonWarningBar() {
 }
 
 function AddonWarningBarInner() {
+    const { t } = useLocale();
     const fetcher = useAuthedFetcher();
     const [dismissed, setDismissed] = useState(false);
     const { data } = useSWR<AddonsListResponse>('/addons/list', (url: string) => fetcher(url), {
@@ -74,11 +76,14 @@ function AddonWarningBarInner() {
 
     let message: string;
     if (reapprovalCount > 0 && newCount > 0) {
-        message = `${newCount} addon${newCount > 1 ? 's' : ''} awaiting approval and ${reapprovalCount} needing re-approval.`;
+        message = t('panel.shell.addon_warning.awaiting_and_reapproval', {
+            newCount,
+            reapprovalCount,
+        });
     } else if (reapprovalCount > 0) {
-        message = `${reapprovalCount} addon${reapprovalCount > 1 ? 's' : ''} updated with new permissions — re-approval required.`;
+        message = t('panel.shell.addon_warning.reapproval_only', { count: reapprovalCount });
     } else {
-        message = `${newCount} addon${newCount > 1 ? 's' : ''} awaiting approval.`;
+        message = t('panel.shell.addon_warning.awaiting_only', { count: newCount });
     }
 
     const handleDismiss = () => {
@@ -98,7 +103,7 @@ function AddonWarningBarInner() {
             >
                 <h2 className="text-md group-hover:font-medium">
                     <PackageIcon className="-mt-1 mr-1 inline h-[1.2rem]" />
-                    Addons need attention
+                    {t('panel.shell.addon_warning.title')}
                 </h2>
 
                 <span className="hidden text-center text-sm group-hover:block">
@@ -110,7 +115,7 @@ function AddonWarningBarInner() {
                             className="border-current hover:bg-white/10"
                             onClick={handleDismiss}
                         >
-                            <BellOffIcon className="mr-1 h-[0.9rem]" /> Dismiss
+                            <BellOffIcon className="mr-1 h-[0.9rem]" /> {t('panel.shell.addon_warning.dismiss')}
                         </Button>
                         <Button
                             size="xs"
@@ -121,7 +126,7 @@ function AddonWarningBarInner() {
                                 navigate('/addons');
                             }}
                         >
-                            <PackageIcon className="mr-1 h-[0.9rem]" /> Go to Addons
+                            <PackageIcon className="mr-1 h-[0.9rem]" /> {t('panel.shell.addon_warning.go_to_addons')}
                         </Button>
                     </div>
                 </span>

@@ -1,34 +1,29 @@
 import DebouncedResizeContainer from '@/components/DebouncedResizeContainer';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { DoorOpenIcon } from 'lucide-react';
+import { DoorOpenIcon, MousePointerIcon, ZapIcon } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 import type { PlayerDropsSummaryHour } from '@shared/otherTypes';
-import { PlayerDropsLoadingSpinner } from './PlayerDropsGenericSubcards';
-import TimelineDropsChart, { TimelineDropsChartData } from './TimelineDropsChart';
-import { processDropsSummary } from './chartingUtils';
-import { DisplayLodType, DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
+import { PlayerDropsLoadingSpinner } from '@/pages/PlayerDropsPage/PlayerDropsGenericSubcards';
+import TimelineDropsChart, { TimelineDropsChartData } from '@/pages/PlayerDropsPage/TimelineDropsChart';
+import { processDropsSummary } from '@/pages/PlayerDropsPage/chartingUtils';
+import type { DisplayLodType, DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/playerDropsTypes';
 
-type PlayerDropsTimelineChartsProps = {
+type TimelineCardProps = {
     isError?: boolean;
     dataTs?: number;
     summaryData?: PlayerDropsSummaryHour[];
     rangeSelected: DrilldownRangeSelectionType;
     rangeSetter: (range: DrilldownRangeSelectionType) => void;
     displayLod: DisplayLodType;
-    setDisplayLod: (range: DisplayLodType) => void;
 };
 
+/**
+ * V2 timeline card — taller charts (V1 cramped the expected chart into
+ * 128px), the lens select moved up into the header band, and an explicit
+ * hint that the charts support drag-to-select range zooming.
+ */
 const TimelineCard = memo(
-    ({
-        isError,
-        dataTs,
-        summaryData,
-        rangeSelected,
-        rangeSetter,
-        displayLod,
-        setDisplayLod,
-    }: PlayerDropsTimelineChartsProps) => {
+    ({ isError, dataTs, summaryData, rangeSelected, rangeSetter, displayLod }: TimelineCardProps) => {
         const [expectedDropsChartSize, setExpectedDropsChartSize] = useState({ width: 0, height: 0 });
         const [unexpectedDropsChartSize, setUnexpectedDropsChartSize] = useState({ width: 0, height: 0 });
 
@@ -82,23 +77,12 @@ const TimelineCard = memo(
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 pl-12 sm:ml-auto sm:pl-0">
-                        <Select defaultValue={displayLod} onValueChange={setDisplayLod}>
-                            <SelectTrigger className="h-7 w-32 px-3 py-1 text-xs">
-                                <SelectValue placeholder="Resolution" />
-                            </SelectTrigger>
-                            <SelectContent className="px-0">
-                                <SelectItem value={'day'} className="cursor-pointer">
-                                    Days
-                                </SelectItem>
-                                <SelectItem value={'hour'} className="cursor-pointer">
-                                    Hours
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                    <div className="text-muted-foreground/60 flex items-center gap-1.5 pl-12 text-xs sm:ml-auto sm:pl-0">
+                        <MousePointerIcon className="size-3 shrink-0" />
+                        <span>Drag across a chart to drill into a window</span>
                     </div>
                 </div>
-                <div className="h-32 max-h-32">
+                <div className="h-44 max-h-44">
                     <DebouncedResizeContainer onDebouncedResize={setExpectedDropsChartSize}>
                         {chartsData ? (
                             <TimelineDropsChart
@@ -117,7 +101,7 @@ const TimelineCard = memo(
 
                 <div className="border-border/40 flex items-center gap-3 border-t border-b px-3 py-3 sm:px-4">
                     <div className="bg-secondary/40 border-border/50 text-accent/80 flex size-9 shrink-0 items-center justify-center rounded-lg border [&>svg]:size-4">
-                        <DoorOpenIcon />
+                        <ZapIcon />
                     </div>
                     <div className="min-w-0 flex-1">
                         <h3 className="text-sm leading-tight font-semibold tracking-tight">Unexpected Player Drops</h3>
@@ -126,7 +110,7 @@ const TimelineCard = memo(
                         </p>
                     </div>
                 </div>
-                <div className="h-52 max-h-52">
+                <div className="h-64 max-h-64">
                     <DebouncedResizeContainer onDebouncedResize={setUnexpectedDropsChartSize}>
                         {chartsData ? (
                             <TimelineDropsChart

@@ -21,7 +21,7 @@ const totpAdmin = new StoredAdmin({
 });
 
 vi.stubGlobal('txEnv', {
-    txaVersion: '0.3.0-Beta',
+    txaVersion: '0.3.1-Alpha-01',
 });
 
 vi.stubGlobal('txCore', {
@@ -33,6 +33,10 @@ vi.stubGlobal('txCore', {
             return null;
         }),
         genCsrfToken: vi.fn(() => 'csrf-token-gen'),
+        updatePasswordHash: vi.fn(async (_name: string, hash: string) => ({
+            passwordHash: hash,
+            passwordRevision: 1,
+        })),
     },
     cacheStore: { get: vi.fn(() => undefined) },
     logger: {

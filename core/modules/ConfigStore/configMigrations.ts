@@ -5,8 +5,10 @@ import { txEnv } from '@core/globalData';
 import fatalError from '@lib/fatalError';
 import { CONFIG_VERSION } from './consts';
 import { migrateOldConfig } from './schema/oldConfig';
+import { migrateLegacyWhitelistConfig } from './schema/whitelist';
 import consoleFactory from '@lib/console';
 import { chalkInversePad } from '@lib/misc';
+import { DEFAULT_QUEUE_CONFIG, migrateQueueConfig, QueueRuleSchema } from '@shared/queueTypes';
 const console = consoleFactory(modulename);
 
 /**
@@ -23,8 +25,8 @@ const saveBackupFile = (version: number) => {
  */
 export const migrateConfigFile = (fileData: any): ConfigFileData => {
     const oldConfig = structuredClone(fileData);
-    let newConfig: ConfigFileData | undefined;
     let oldVersion: number | undefined;
+    let workingConfig: any = fileData;
 
     //Sanity check
     if ('version' in fileData && typeof fileData.version !== 'number') {
@@ -43,34 +45,123 @@ export const migrateConfigFile = (fileData: any): ConfigFileData => {
             ['File Path', txEnv.profileSubPath('config.json')],
         ]);
     }
-    //The v1 is implicit, if explicit then it's a problem
     if (fileData.version === 1) {
         throw new Error(`File with explicit version '1' should not exist.`);
     }
 
-    //Migrate from v1 (no version) to v2
-    //- remapping the old config to the new structure
-    //- applying some default changes and migrations
-    //- extracting just the non-default values
-    //- truncating the serverName to 18 chars
-    //- generating new banlist template IDs
-    if (!('version' in fileData) && 'global' in fileData && 'fxRunner' in fileData) {
+    if (!('version' in workingConfig) && 'global' in workingConfig && 'fxRunner' in workingConfig) {
         console.warn('Updating your txAdmin config.json from v1 to v2.');
         oldVersion ??= 1;
-
-        //Final object
         const justNonDefaults = migrateOldConfig(oldConfig) as PartialTxConfigs;
-        newConfig = {
+        workingConfig = {
             version: 2,
             ...justNonDefaults,
         };
     }
 
-    //Final check
-    if (oldVersion && newConfig && newConfig.version === CONFIG_VERSION) {
-        saveBackupFile(oldVersion);
-        return newConfig;
-    } else {
-        throw new Error(`Unknown file version: ${fileData.version}`);
+    if (workingConfig.version === 2) {
+        console.warn('Updating your txAdmin config.json from v2 to v3.');
+        console.warn('This process will migrate whitelist mode to workflows/tiers.');
+        oldVersion ??= 2;
+        const { whitelist: legacyWhitelist, version: _legacyVersion, ...rest } = workingConfig;
+        const migratedWhitelist = migrateLegacyWhitelistConfig(legacyWhitelist ?? {});
+        workingConfig = {
+            ...rest,
+            version: 3,
+            whitelist: migratedWhitelist,
+        };
     }
+
+    if (workingConfig.version === 3) {
+        console.warn('Updating your txAdmin config.json from v3 to v4.');
+        console.warn('This process will migrate whitelist tiers to the queue system.');
+        oldVersion ??= 3;
+
+        const {
+            whitelist,
+            queue: _legacyQueue,
+            version: _legacyVersion,
+            ...rest
+        } = workingConfig as {
+            whitelist?: any;
+            queue?: any;
+            version?: any;
+            [key: string]: any;
+        };
+
+        const tierList = Array.isArray(whitelist?.tiers) ? whitelist.tiers : [];
+        const rules = tierList
+            .map((tier: any) => ({
+                id: typeof tier?.id === 'string' && tier.id.length ? tier.id : 'default',
+                label: typeof tier?.name === 'string' && tier.name.trim().length ? tier.name.trim() : 'Default',
+                discordRoleIds: Array.isArray(tier?.discordRoleIds)
+                    ? tier.discordRoleIds.filter((v: unknown): v is string => typeof v === 'string' && v.length > 0)
+                    : [],
+                priority: typeof tier?.priority === 'number' && Number.isInteger(tier.priority) ? tier.priority : 0,
+            }))
+            .filter((rule: unknown) => QueueRuleSchema.safeParse(rule).success);
+
+        workingConfig = {
+            ...rest,
+            version: 4,
+            whitelist: whitelist
+                ? Object.fromEntries(Object.entries(whitelist).filter(([key]) => key !== 'tiers'))
+                : whitelist,
+            queue: {
+                ...DEFAULT_QUEUE_CONFIG,
+                rules,
+            },
+        };
+    }
+
+    if (workingConfig.version === 4) {
+        console.warn('Updating your txAdmin config.json from v4 to v5.');
+        console.warn('This process will migrate queue reserved access to per-rule settings.');
+        oldVersion ??= 4;
+
+        const {
+            queue,
+            version: _legacyVersion,
+            ...rest
+        } = workingConfig as {
+            queue?: unknown;
+            version?: unknown;
+            [key: string]: unknown;
+        };
+
+        workingConfig = {
+            ...rest,
+            version: 5,
+            queue: migrateQueueConfig(queue ?? {}),
+        };
+    }
+
+    if (workingConfig.version === 5) {
+        console.warn('Updating your txAdmin config.json from v5 to v6.');
+        console.warn('This process will migrate queue reserved settings to slot pools.');
+        oldVersion ??= 5;
+
+        const {
+            queue,
+            version: _legacyVersion,
+            ...rest
+        } = workingConfig as {
+            queue?: unknown;
+            version?: unknown;
+            [key: string]: unknown;
+        };
+
+        workingConfig = {
+            ...rest,
+            version: 6,
+            queue: migrateQueueConfig(queue ?? {}),
+        };
+    }
+
+    if (workingConfig.version === CONFIG_VERSION) {
+        if (oldVersion) saveBackupFile(oldVersion);
+        return workingConfig;
+    }
+
+    throw new Error(`Unknown file version: ${workingConfig.version}`);
 };

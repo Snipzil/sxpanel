@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { styled } from '@mui/material/styles';
+import { alpha, styled } from '@mui/material/styles';
 import { Box, Paper, Theme, Tooltip, Typography } from '@mui/material';
 import { DirectionsBoat, DirectionsWalk, DriveEta, LiveHelp, TwoWheeler, Flight } from '@mui/icons-material';
 import { useSetAssociatedPlayer } from '../../state/playerDetails.state';
@@ -8,7 +8,7 @@ import { useTranslate } from 'react-polyglot';
 import { PlayerData, VehicleStatus } from '../../hooks/usePlayerListListener';
 import { useSetPlayerModalVisibility } from '@nui/src/state/playerModal.state';
 import { useServerCtxValue } from '@nui/src/state/server.state';
-import { AUTO_TAG_DEFINITIONS, type PlayerTag, type TagDefinition } from '@shared/socketioTypes';
+import { AUTO_TAG_DEFINITIONS, getPrimaryPlayerTag, type PlayerTag, type TagDefinition } from '@shared/socketioTypes';
 
 const PREFIX = 'PlayerCard';
 
@@ -46,46 +46,35 @@ const deriveTagColors = (hex: string) => {
     };
 };
 
-const buildPlayerTagDisplay = (tags: PlayerTag[], definitions: TagDefinition[], isAdmin?: boolean) => {
-    const lookup = { ...FALLBACK_TAG_LOOKUP };
+const buildPlayerTagDisplay = (tags: PlayerTag[], definitions: TagDefinition[]) => {
+    const lookup: Record<string, TagDefinition> = { ...FALLBACK_TAG_LOOKUP };
     for (const definition of definitions) {
-        lookup[definition.id] = definition;
+        if (definition.enabled === false) {
+            delete lookup[definition.id];
+        } else {
+            lookup[definition.id] = definition;
+        }
     }
 
-    // Only fall back to adding 'staff' if the staff tag is not disabled
-    const staffDef = definitions.find((d) => d.id === 'staff');
-    const staffEnabled = staffDef ? staffDef.enabled !== false : true;
-    const resolvedTags = tags.length ? tags : isAdmin && staffEnabled ? ['staff'] : [];
+    const primaryId = getPrimaryPlayerTag(tags, lookup);
+    if (!primaryId) return [];
 
-    return [...resolvedTags]
-        .map((tagId) => lookup[tagId] ?? { id: tagId, label: tagId, color: '#9ea4bd', priority: 999 })
-        .sort((a, b) => a.priority - b.priority)
-        .map((tag) => ({
-            ...tag,
-            styles: deriveTagColors(tag.color),
-        }));
+    const tag = lookup[primaryId] ?? { id: primaryId, label: primaryId, color: '#9ea4bd', priority: 999 };
+    return [{ ...tag, styles: deriveTagColors(tag.color) }];
 };
 
 const StyledBox = styled(Box)(({ theme }) => ({
     [`& .${classes.paper}`]: {
         padding: 20,
-        borderRadius: 10,
+        borderRadius: theme.tokens.radiusRow,
+        border: `1px solid ${theme.tokens.border}`,
+        backgroundColor: theme.tokens.surfaceRaised,
         cursor: 'pointer',
+        transition: 'background-color 120ms ease, border-color 120ms ease',
         '&:hover': {
-            backgroundColor: theme.palette.action.selected,
+            backgroundColor: theme.tokens.surfaceHover,
+            borderColor: theme.tokens.borderStrong,
         },
-    },
-
-    [`& .${classes.barBackground}`]: {
-        background: theme.palette.primary.dark,
-        height: 5,
-        borderRadius: 10,
-        overflow: 'hidden',
-    },
-
-    [`& .${classes.barInner}`]: {
-        height: '100%',
-        background: theme.palette.primary.main,
     },
 
     [`& .${classes.icon}`]: {
@@ -113,24 +102,24 @@ const StyledBox = styled(Box)(({ theme }) => ({
     },
 }));
 
-const determineHealthBGColor = (val: number) => {
-    if (val === -1) return '#4A4243';
-    else if (val <= 20) return '#4a151b';
-    else if (val <= 60) return '#624d18';
-    else return '#097052';
+const determineHealthBGColor = (val: number, theme: Theme) => {
+    if (val === -1) return theme.tokens.surfaceHover;
+    else if (val <= 20) return alpha(theme.palette.error.main, 0.28);
+    else if (val <= 60) return alpha(theme.palette.warning.main, 0.28);
+    else return alpha(theme.palette.success.main, 0.28);
 };
 
 const determineHealthColor = (val: number, theme: Theme) => {
-    if (val === -1) return '#4A4243';
-    else if (val <= 20) return theme.palette.error.light;
-    else if (val <= 60) return theme.palette.warning.light;
-    else return theme.palette.success.light;
+    if (val === -1) return theme.tokens.textMuted;
+    else if (val <= 20) return theme.palette.error.main;
+    else if (val <= 60) return theme.palette.warning.main;
+    else return theme.palette.success.main;
 };
 
 const HealthBarBackground = styled(Box, {
     shouldForwardProp: (prop) => prop !== 'healthVal',
-})<{ healthVal: number }>(({ healthVal }) => ({
-    background: determineHealthBGColor(healthVal),
+})<{ healthVal: number }>(({ theme, healthVal }) => ({
+    background: determineHealthBGColor(healthVal, theme),
     height: 5,
     borderRadius: 10,
     overflow: 'hidden',
@@ -151,7 +140,7 @@ const PlayerCard: React.FC<{ playerData: PlayerData }> = ({ playerData }) => {
     const t = useTranslate();
     const serverCtx = useServerCtxValue();
 
-    const statusIcon: { [K in VehicleStatus]: JSX.Element } = {
+    const statusIcon: { [K in VehicleStatus]: React.ReactElement } = {
         unknown: <LiveHelp color="inherit" />,
         walking: <DirectionsWalk color="inherit" />,
         driving: <DriveEta color="inherit" />,
@@ -167,11 +156,10 @@ const PlayerCard: React.FC<{ playerData: PlayerData }> = ({ playerData }) => {
 
     const upperCaseStatus = playerData.vType.charAt(0).toUpperCase() + playerData.vType.slice(1);
     const healthBarSize = Math.max(0, playerData.health);
-    const primaryTag = buildPlayerTagDisplay(
-        playerData.tags ?? [],
-        serverCtx.tagDefinitions ?? [],
-        playerData.admin,
-    )[0];
+    let primaryTag = buildPlayerTagDisplay(playerData.tags ?? [], serverCtx.tagDefinitions ?? [])[0];
+    if (!primaryTag && playerData.admin) {
+        primaryTag = buildPlayerTagDisplay(['staff'], serverCtx.tagDefinitions ?? [])[0];
+    }
     const cardStyles = primaryTag?.styles;
 
     return (

@@ -46,16 +46,16 @@ interface SheetContentProps
     extends React.ComponentPropsWithRef<typeof SheetPrimitive.Content>, VariantProps<typeof sheetVariants> {}
 
 const SheetContent = ({ side = 'right', className, children, ref, ...props }: SheetContentProps) => (
-        <SheetPortal>
-            <SheetOverlay />
-            <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-                {children}
-                <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-                    <X className="size-8 sm:h-6 sm:w-6 md:h-4 md:w-4" />
-                    <span className="sr-only">Close</span>
-                </SheetPrimitive.Close>
-            </SheetPrimitive.Content>
-        </SheetPortal>
+    <SheetPortal>
+        <SheetOverlay />
+        <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+            {children}
+            <SheetPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
+                <X className="size-8 sm:h-6 sm:w-6 md:h-4 md:w-4" />
+                <span className="sr-only">Close</span>
+            </SheetPrimitive.Close>
+        </SheetPrimitive.Content>
+    </SheetPortal>
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
@@ -83,9 +83,4 @@ const SheetDescription = ({
 );
 SheetDescription.displayName = SheetPrimitive.Description.displayName;
 
-export {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-};
+export { Sheet, SheetContent, SheetHeader, SheetTitle };

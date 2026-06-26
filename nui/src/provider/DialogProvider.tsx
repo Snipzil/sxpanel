@@ -142,11 +142,6 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
                 TransitionProps={{
                     onExited: handleOnExited,
                 }}
-                PaperProps={{
-                    style: {
-                        backgroundColor: theme.palette.background.default,
-                    },
-                }}
             >
                 <form
                     onSubmit={(e) => {

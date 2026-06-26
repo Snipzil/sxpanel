@@ -108,7 +108,14 @@ suite('diagnostics/sendReport', () => {
                         token: 'super-secret-token',
                     },
                     server: {
-                        startupArgs: ['+set', 'sv_licenseKey', 'cfxk_test_abcdefghijklmnop', '+set', 'rcon_password', 'secret'],
+                        startupArgs: [
+                            '+set',
+                            'sv_licenseKey',
+                            'cfxk_test_abcdefghijklmnop',
+                            '+set',
+                            'rcon_password',
+                            'secret',
+                        ],
                     },
                 })),
             },
@@ -246,7 +253,12 @@ suite('diagnostics/sendReport', () => {
         );
         expect(payload.settings.discordBot.token).toBe('[REDACTED]');
         expect(payload.settings.server.startupArgs).toEqual(
-            expect.arrayContaining(['sv_licenseKey', '[REDACTED cfxk...abcdefghijklmnop]', 'rcon_password', '[REDACTED]']),
+            expect.arrayContaining([
+                'sv_licenseKey',
+                '[REDACTED cfxk...abcdefghijklmnop]',
+                'rcon_password',
+                '[REDACTED]',
+            ]),
         );
         expect(payload.txSystemLog).toContain('x.x.x.x');
         expect(payload.txSystemLog).not.toContain('127.0.0.1');

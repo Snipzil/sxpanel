@@ -138,6 +138,14 @@ RegisterNetEvent('txsv:webpipe:req', function(callbackId, method, path, headers,
         --https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors
         resultHeaders['Content-Security-Policy'] =
             'frame-ancestors https://monitor/ https://cfx-nui-monitor/ nui://game/'
+        -- Strip X-Frame-Options so the NUI Panel tab can frame piped responses.
+        -- Per spec, browsers ignore XFO when CSP frame-ancestors is present, but
+        -- CEF behavior is not guaranteed across versions — strip it explicitly.
+        for headerName in pairs(resultHeaders) do
+            if type(headerName) == 'string' and headerName:lower() == 'x-frame-options' then
+                resultHeaders[headerName] = nil
+            end
+        end
 
         -- fixing redirects
         if resultHeaders.Location then

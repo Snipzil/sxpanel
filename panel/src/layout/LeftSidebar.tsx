@@ -3,35 +3,17 @@ import { createContext, use, useState } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import MainPageLink from '@/components/MainPageLink';
 import { useAdminPerms, useAuth } from '@/hooks/auth';
-import { useShellBreakpoints } from '@/hooks/useShellBreakpoints';
 import { serverNameAtom, fxRunnerStateAtom, txConfigStateAtom, useGlobalStatus } from '@/hooks/status';
 import { playerCountAtom } from '@/hooks/playerlist';
 import { useAtomValue } from 'jotai';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-    LayoutDashboardIcon,
-    UsersIcon,
-    TerminalIcon,
-    BoxIcon,
-    ActivityIcon,
-    TrendingDownIcon,
-    BarChart3Icon,
-    ClockIcon,
-    FlagIcon,
-    ShieldIcon,
-    ClipboardListIcon,
-    FileTextIcon,
     SlidersHorizontalIcon,
     PowerIcon,
     PowerOffIcon,
     RotateCcwIcon,
     KeyRoundIcon,
     LogOutIcon,
-    Settings2Icon,
-    ShieldCheckIcon,
-    FileCodeIcon,
-    PackageIcon,
-    ScrollTextIcon,
     ChevronDownIcon,
     ChevronLeftIcon,
     ChevronUpIcon,
@@ -41,12 +23,15 @@ import {
     XCircleIcon,
 } from 'lucide-react';
 import { LogoFullSquareGreen } from '@/components/Logos';
+import { resolvePanelAssetUrl } from '@/lib/nuiEmbed';
 import { NavLink } from '@/components/MainPageLink';
 import { TxConfigState } from '@shared/enums';
 import { useOpenConfirmDialog, useOpenPromptDialog, useAccountModal } from '@/hooks/dialogs';
 import { ApiTimeout, useBackendApi } from '@/hooks/fetch';
 import { useCloseAllSheets } from '@/hooks/sheets';
 import { useAddonLoader } from '@/hooks/addons';
+import { useLocale } from '@/hooks/locale';
+import { SIDEBAR_SECTIONS } from './sidebarConfig';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -54,7 +39,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FaDiscord } from 'react-icons/fa';
+import { DiscordIcon } from '@/components/icons/discord-icon';
 import { openExternalLink } from '@/lib/navigation';
 import Avatar from '@/components/Avatar';
 import { txToast } from '@/components/TxToaster';
@@ -194,13 +179,18 @@ function SidebarServerControls() {
     const closeAllSheets = useCloseAllSheets();
     const { hasPerm } = useAdminPerms();
     const collapsed = useCollapsed();
+    const { t } = useLocale();
     const fxsControlApi = useBackendApi({
         method: 'POST',
         path: '/fxserver/controls',
     });
 
     const handleControl = (action: 'start' | 'stop' | 'restart') => {
-        const labels = { start: 'Starting server', stop: 'Stopping server', restart: 'Restarting server' };
+        const labels = {
+            start: t('panel.sidebar.starting_server'),
+            stop: t('panel.sidebar.stopping_server'),
+            restart: t('panel.sidebar.restarting_server'),
+        };
         const callApi = () => {
             closeAllSheets();
             fxsControlApi({ data: { action }, toastLoadingMessage: `${labels[action]}...`, timeout: ApiTimeout.LONG });
@@ -210,7 +200,7 @@ function SidebarServerControls() {
         } else {
             openConfirmDialog({
                 title: labels[action],
-                message: `Are you sure you want to ${action} the server?`,
+                message: action === 'stop' ? t('panel.sidebar.confirm_stop') : t('panel.sidebar.confirm_restart'),
                 onConfirm: callApi,
             });
         }
@@ -220,7 +210,9 @@ function SidebarServerControls() {
 
     if (txConfigState !== TxConfigState.Ready) {
         if (collapsed) return null;
-        return <p className="text-muted-foreground/50 text-center text-xs">Server not configured</p>;
+        return (
+            <p className="text-muted-foreground/50 text-center text-xs">{t('panel.sidebar.server_not_configured')}</p>
+        );
     }
 
     const isRunning = !fxRunnerState.isIdle;
@@ -243,7 +235,9 @@ function SidebarServerControls() {
                     >
                         {isRunning ? <PowerOffIcon className="size-3.5" /> : <PowerIcon className="size-3.5" />}
                     </TooltipTrigger>
-                    <TooltipContent side="right">{isRunning ? 'Stop server' : 'Start server'}</TooltipContent>
+                    <TooltipContent side="right">
+                        {isRunning ? t('panel.sidebar.stop_server') : t('panel.sidebar.start_server')}
+                    </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                     <TooltipTrigger
@@ -254,7 +248,7 @@ function SidebarServerControls() {
                     >
                         <RotateCcwIcon className="size-3.5" />
                     </TooltipTrigger>
-                    <TooltipContent side="right">Restart server</TooltipContent>
+                    <TooltipContent side="right">{t('panel.sidebar.restart_server')}</TooltipContent>
                 </Tooltip>
             </div>
         );
@@ -271,20 +265,20 @@ function SidebarServerControls() {
                         ? 'border-destructive/40 bg-destructive/10 text-destructive-inline hover:bg-destructive/20'
                         : 'border-success/40 bg-success/10 text-success-inline hover:bg-success/20',
                 )}
-                title={isRunning ? 'Stop server' : 'Start server'}
+                title={isRunning ? t('panel.sidebar.stop_server') : t('panel.sidebar.start_server')}
             >
                 {isRunning ? <PowerOffIcon className="size-3.5" /> : <PowerIcon className="size-3.5" />}
-                {isRunning ? 'Stop' : 'Start'}
+                {isRunning ? t('panel.common.stop') : t('panel.common.start')}
             </button>
 
             <button
                 onClick={() => handleControl('restart')}
                 disabled={!hasControlPerm || !isAlive}
                 className="border-info/40 bg-info/10 text-info-inline hover:bg-info/20 flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
-                title="Restart server"
+                title={t('panel.sidebar.restart_server')}
             >
                 <RotateCcwIcon className="size-3.5" />
-                Restart
+                {t('panel.common.restart')}
             </button>
         </div>
     );
@@ -296,6 +290,7 @@ function SidebarServerExtraActions() {
     const { hasPerm } = useAdminPerms();
     const openPromptDialog = useOpenPromptDialog();
     const closeAllSheets = useCloseAllSheets();
+    const { t } = useLocale();
     const schedulerApi = useBackendApi({
         method: 'POST',
         path: '/fxserver/schedule',
@@ -305,7 +300,7 @@ function SidebarServerExtraActions() {
         path: '/fxserver/commands',
     });
 
-    let nextScheduledText = 'none';
+    let nextScheduledText = t('panel.common.none');
     let nextScheduledClasses = 'text-muted-foreground/75';
     let disableAddEditBtn = false;
     let isRestartSkipped = false;
@@ -317,11 +312,11 @@ function SidebarServerExtraActions() {
         if (status.scheduler.nextSkip) {
             nextScheduledClasses = 'text-muted-foreground line-through';
             isRestartSkipped = true;
-            nextScheduledText = 'skipped';
+            nextScheduledText = t('panel.common.skipped');
         } else {
             if (isLessThanMinute) {
                 disableAddEditBtn = true;
-                nextScheduledText = 'now';
+                nextScheduledText = t('panel.common.now');
             } else {
                 nextScheduledText = relativeTime;
             }
@@ -334,31 +329,31 @@ function SidebarServerExtraActions() {
         if (input.includes(',')) {
             txToast.error(
                 {
-                    title: 'Invalid scheduled restart time.',
-                    msg: 'This field only accepts one restart time (for example +15 or 23:30).',
+                    title: t('panel.sidebar.invalid_schedule_title'),
+                    msg: t('panel.sidebar.invalid_schedule_msg'),
                 },
                 { duration: 9000 },
             );
             return;
         }
         if (!validateSidebarScheduleInput(input)) {
-            txToast.error(`Invalid schedule time: ${input}`);
+            txToast.error(t('panel.sidebar.invalid_schedule_time', { input }));
             return;
         }
         schedulerApi({
             data: { action: 'setNextTempSchedule', parameter: input },
-            toastLoadingMessage: 'Scheduling server restart...',
+            toastLoadingMessage: t('panel.sidebar.scheduling_restart'),
         });
     };
 
     const handleSchedule = () => {
         openPromptDialog({
             suggestions: ['+5', '+10', '+15', '+30'],
-            title: 'When should the server restart?',
-            message: 'Use +MM for relative minutes, or HH:MM for absolute server time.',
-            placeholder: '+15',
+            title: t('panel.sidebar.schedule_restart_title'),
+            message: t('panel.sidebar.schedule_restart_message'),
+            placeholder: t('panel.sidebar.schedule_restart_placeholder'),
             required: true,
-            submitLabel: hasScheduledRestart ? 'Edit' : 'Schedule',
+            submitLabel: hasScheduledRestart ? t('panel.common.edit') : t('panel.common.schedule'),
             onSubmit: onScheduleSubmit,
         });
     };
@@ -367,23 +362,23 @@ function SidebarServerExtraActions() {
         closeAllSheets();
         schedulerApi({
             data: { action: 'setNextSkip', parameter: true },
-            toastLoadingMessage: 'Cancelling next server restart...',
+            toastLoadingMessage: t('panel.sidebar.cancelling_restart'),
         });
     };
 
     const handleAnnounce = () => {
         if (!fxRunnerState.isChildAlive) return;
         openPromptDialog({
-            title: 'Send Announcement',
-            message: 'Type the message to broadcast to all players.',
-            placeholder: 'announcement message',
-            submitLabel: 'Send',
+            title: t('panel.sidebar.send_announcement_title'),
+            message: t('panel.sidebar.send_announcement_message'),
+            placeholder: t('panel.sidebar.announcement_placeholder'),
+            submitLabel: t('panel.common.send'),
             required: true,
             onSubmit: (input) => {
                 closeAllSheets();
                 fxsCommandsApi({
                     data: { action: 'admin_broadcast', parameter: input },
-                    toastLoadingMessage: 'Sending announcement...',
+                    toastLoadingMessage: t('panel.sidebar.sending_announcement'),
                 });
             },
         });
@@ -392,15 +387,15 @@ function SidebarServerExtraActions() {
     const handleKickAll = () => {
         if (!fxRunnerState.isChildAlive) return;
         openPromptDialog({
-            title: 'Kick All Players',
-            message: 'Type the kick reason or leave it blank (press enter).',
-            placeholder: 'kick reason',
-            submitLabel: 'Send',
+            title: t('panel.sidebar.kick_all_title'),
+            message: t('panel.sidebar.kick_all_message'),
+            placeholder: t('panel.sidebar.kick_reason_placeholder'),
+            submitLabel: t('panel.common.send'),
             onSubmit: (input) => {
                 closeAllSheets();
                 fxsCommandsApi({
                     data: { action: 'kick_all', parameter: input },
-                    toastLoadingMessage: 'Kicking players...',
+                    toastLoadingMessage: t('panel.sidebar.kicking_players'),
                 });
             },
         });
@@ -411,21 +406,25 @@ function SidebarServerExtraActions() {
     const canAdjustRestart = hasControlPerm && !disableAddEditBtn;
     const canCancelRestart = hasControlPerm && hasScheduledRestart && !disableAddEditBtn && !isRestartSkipped;
     const cancelLabel = !hasScheduledRestart
-        ? 'No restart to cancel'
+        ? t('panel.shell.sidebar.no_restart_to_cancel')
         : isRestartSkipped
-            ? 'Restart already cancelled'
-            : 'Cancel next restart';
+          ? t('panel.shell.sidebar.restart_already_cancelled')
+          : t('panel.shell.sidebar.cancel_next_restart');
     const iconBtnClass =
         'flex size-8 items-center justify-center rounded-md border border-border/50 bg-background/35 text-muted-foreground transition-colors hover:bg-secondary/55 hover:text-foreground disabled:pointer-events-none disabled:opacity-40';
-    const adjustLabel = hasScheduledRestart ? 'Adjust restart time' : 'Set restart time';
+    const adjustLabel = hasScheduledRestart
+        ? t('panel.shell.sidebar.adjust_restart_time')
+        : t('panel.shell.sidebar.set_restart_time');
 
     return (
-        <div className="mt-2 rounded-lg border border-border/40 bg-black/10 p-2.5">
+        <div className="border-border/40 mt-2 rounded-lg border bg-black/10 p-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold whitespace-nowrap text-muted-foreground/75">Quick actions</p>
+                <p className="text-muted-foreground/75 text-[10px] font-semibold whitespace-nowrap">
+                    {t('panel.shell.sidebar.quick_actions')}
+                </p>
                 <span
                     className={cn(
-                        'flex h-7 items-center justify-center rounded-md border border-border/50 bg-background/30 px-1.5 text-[10px] font-semibold whitespace-nowrap',
+                        'border-border/50 bg-background/30 flex h-7 items-center justify-center rounded-md border px-1.5 text-[10px] font-semibold whitespace-nowrap',
                         nextScheduledClasses,
                     )}
                 >
@@ -439,11 +438,11 @@ function SidebarServerExtraActions() {
                         onClick={handleAnnounce}
                         className={cn(iconBtnClass, 'border-primary/35 text-primary')}
                         disabled={!hasAnnouncementPerm || !fxRunnerState.isChildAlive}
-                        aria-label="Send announcement"
+                        aria-label={t('panel.shell.sidebar.send_announcement')}
                     >
                         <MegaphoneIcon className="size-3.5" />
                     </TooltipTrigger>
-                    <TooltipContent side="top">Send announcement</TooltipContent>
+                    <TooltipContent side="top">{t('panel.shell.sidebar.send_announcement')}</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -452,11 +451,11 @@ function SidebarServerExtraActions() {
                         onClick={handleKickAll}
                         className={cn(iconBtnClass, 'border-warning/35 text-warning-inline')}
                         disabled={!hasControlPerm || !fxRunnerState.isChildAlive}
-                        aria-label="Kick all players"
+                        aria-label={t('panel.shell.sidebar.kick_all_players')}
                     >
                         <KickAllIcon style={{ height: '0.9rem', width: '0.9rem', fill: 'currentcolor' }} />
                     </TooltipTrigger>
-                    <TooltipContent side="top">Kick all players</TooltipContent>
+                    <TooltipContent side="top">{t('panel.shell.sidebar.kick_all_players')}</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -476,7 +475,10 @@ function SidebarServerExtraActions() {
                     <TooltipTrigger
                         type="button"
                         onClick={handleCancelRestart}
-                        className={cn(iconBtnClass, 'border-destructive/35 text-destructive-inline hover:bg-destructive/10')}
+                        className={cn(
+                            iconBtnClass,
+                            'border-destructive/35 text-destructive-inline hover:bg-destructive/10',
+                        )}
                         disabled={!canCancelRestart}
                         aria-label={cancelLabel}
                     >
@@ -546,11 +548,15 @@ function ServerStatusCard() {
                     <button
                         type="button"
                         onClick={() => setShowExtraActions((v) => !v)}
-                        className="mt-2 flex w-full items-center justify-between rounded-md border border-border/40 bg-background/30 px-2 py-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-secondary/40 hover:text-foreground"
+                        className="border-border/40 bg-background/30 text-muted-foreground hover:bg-secondary/40 hover:text-foreground mt-2 flex w-full items-center justify-between rounded-md border px-2 py-1.5 text-[11px] transition-colors"
                         aria-expanded={showExtraActions}
                     >
                         <span>{showExtraActions ? 'Hide extra actions' : 'More actions'}</span>
-                        {showExtraActions ? <ChevronUpIcon className="size-3.5" /> : <ChevronDownIcon className="size-3.5" />}
+                        {showExtraActions ? (
+                            <ChevronUpIcon className="size-3.5" />
+                        ) : (
+                            <ChevronDownIcon className="size-3.5" />
+                        )}
                     </button>
                     {showExtraActions && <SidebarServerExtraActions />}
                 </>
@@ -594,7 +600,7 @@ function SidebarUserButton() {
                     className="cursor-pointer"
                     onClick={() => openExternalLink('https://discord.gg/6FcqBYwxH5')}
                 >
-                    <FaDiscord size="14" className="mr-2" />
+                    <DiscordIcon className="mr-2 size-3.5" />
                     Support
                 </DropdownMenuItem>
                 {window.txConsts.isWebInterface && (
@@ -613,7 +619,7 @@ function SidebarUserButton() {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export default function LeftSidebar() {
-    const { isLg } = useShellBreakpoints();
+    const { t } = useLocale();
     const [collapsed, setCollapsed] = useState(() => {
         try {
             return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -634,9 +640,8 @@ export default function LeftSidebar() {
         <SidebarCollapsedCtx.Provider value={collapsed}>
             <aside
                 className={cn(
-                    'border-border/40 h-screen shrink-0 flex-col overflow-hidden border-r bg-[#0c0e16] transition-[width] duration-200',
-                    isLg ? 'flex' : 'hidden',
-                    collapsed ? 'w-14' : 'w-60',
+                    'tx-shell-desktop-sidebar border-border/40 h-full shrink-0 flex-col overflow-hidden border-r bg-[#0c0e16] transition-[width] duration-200',
+                    collapsed ? 'w-14' : 'w-[var(--tx-sidebar-width)]',
                 )}
             >
                 {/* Logo + collapse toggle */}
@@ -650,9 +655,9 @@ export default function LeftSidebar() {
                         <button
                             onClick={toggle}
                             className="flex size-8 items-center justify-center rounded-md opacity-90 transition-opacity hover:opacity-100"
-                            title="Expand sidebar"
+                            title={t('panel.shell.sidebar.expand_sidebar')}
                         >
-                            <img src="/logo2.svg" alt="fxPanel" className="size-8 rounded-lg" />
+                            <img src={resolvePanelAssetUrl('/logo2.svg')} alt="fxPanel" className="size-8 rounded-lg" />
                         </button>
                     ) : (
                         <>
@@ -665,7 +670,7 @@ export default function LeftSidebar() {
                             <button
                                 onClick={toggle}
                                 className="text-muted-foreground/50 hover:bg-secondary/40 hover:text-foreground flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
-                                title="Collapse sidebar"
+                                title={t('panel.shell.sidebar.collapse_sidebar')}
                             >
                                 <ChevronLeftIcon className="size-4" />
                             </button>
@@ -696,6 +701,7 @@ export function SidebarNavContent() {
     const { hasPerm } = useAdminPerms();
     const { pages: addonPages } = useAddonLoader();
     const collapsed = useCollapsed();
+    const { t } = useLocale();
 
     return (
         <nav
@@ -704,109 +710,39 @@ export function SidebarNavContent() {
                 collapsed ? 'px-1' : 'px-2',
             )}
         >
-            <SidebarSection label="Overview">
-                <SidebarNavItem href="/" icon={LayoutDashboardIcon} label="Dashboard" />
-            </SidebarSection>
-
-            <SidebarSection label="Players">
-                <SidebarNavItem href="/players" icon={UsersIcon} label="Players" />
-                <SidebarNavItem href="/whitelist" icon={ShieldCheckIcon} label="Whitelist" />
-                <SidebarNavItem href="/history" icon={ClockIcon} label="History" />
-                <SidebarNavItem
-                    href="/reports"
-                    icon={FlagIcon}
-                    label="Reports"
-                    disabled={!hasPerm('players.reports')}
-                />
-            </SidebarSection>
-
-            <SidebarSection label="Server">
-                <SidebarNavItem
-                    href="/server/console"
-                    icon={TerminalIcon}
-                    label="Live Console"
-                    disabled={!hasPerm('console.view')}
-                />
-                <SidebarNavItem href="/server/resources" icon={BoxIcon} label="Resources" />
-                <SidebarNavItem
-                    href="/server/cfg-editor"
-                    icon={FileCodeIcon}
-                    label="CFG Editor"
-                    disabled={!hasPerm('server.cfg.editor')}
-                />
-                <SidebarNavItem
-                    href="/server/server-log"
-                    icon={FileTextIcon}
-                    label="Server Log"
-                    disabled={!hasPerm('server.log.view')}
-                />
-                <SidebarNavItem href="/admins" icon={ShieldIcon} label="Admins" disabled={!hasPerm('manage.admins')} />
-            </SidebarSection>
-
-            <SidebarSection label="Analytics">
-                <SidebarNavItem href="/insights" icon={ActivityIcon} label="Insights" />
-                <SidebarNavItem href="/server/player-drops" icon={TrendingDownIcon} label="Player Drops" />
-                <SidebarNavItem
-                    href="/reports/analytics"
-                    icon={BarChart3Icon}
-                    label="Report Analytics"
-                    disabled={!hasPerm('players.reports')}
-                />
-            </SidebarSection>
-
-            <SidebarSection label="Addons">
-                <SidebarNavItem
-                    href="/addons"
-                    icon={BlocksIcon}
-                    label="Addon Manager"
-                    disabled={!hasPerm('all_permissions')}
-                />
-                {addonPages.map((page) => (
-                    <SidebarNavItem
-                        key={page.path}
-                        href={page.path}
-                        icon={BlocksIcon}
-                        label={page.title}
-                        disabled={page.permission ? !hasPerm(page.permission) : false}
-                    />
-                ))}
-            </SidebarSection>
-
-            <SidebarSection label="System">
-                <SidebarNavItem
-                    href="/system/action-log"
-                    icon={ClipboardListIcon}
-                    label="Action Log"
-                    disabled={!hasPerm('txadmin.log.view')}
-                />
-                <SidebarNavItem
-                    href="/system/console-log"
-                    icon={ScrollTextIcon}
-                    label="Console Log"
-                    disabled={!hasPerm('txadmin.log.view')}
-                />
-                <SidebarNavItem href="/system/diagnostics" icon={SlidersHorizontalIcon} label="Diagnostics" />
-                <SidebarNavItem
-                    href="/system/artifacts"
-                    icon={PackageIcon}
-                    label="Artifacts"
-                    disabled={!hasPerm('all_permissions')}
-                />
-                <SidebarNavItem
-                    href="/settings"
-                    icon={Settings2Icon}
-                    label="Settings"
-                    disabled={!hasPerm('settings.view')}
-                />
-                {import.meta.env.DEV && (
-                    <SidebarNavItem
-                        href="/advanced"
-                        icon={WrenchIcon}
-                        label="Advanced"
-                        disabled={!hasPerm('all_permissions')}
-                    />
-                )}
-            </SidebarSection>
+            {SIDEBAR_SECTIONS.map((section) => (
+                <SidebarSection key={section.sectionKey} label={t(section.sectionKey)}>
+                    {section.items
+                        .filter((item) => !(window.txConsts.hideReportsNav && item.href.startsWith('/reports')))
+                        .map((item) => (
+                            <SidebarNavItem
+                                key={item.href}
+                                href={item.href}
+                                icon={item.icon}
+                                label={t(item.labelKey)}
+                                disabled={item.permission ? !hasPerm(item.permission) : false}
+                            />
+                        ))}
+                    {section.sectionKey === 'panel.sidebar.section.addons' &&
+                        addonPages.map((page) => (
+                            <SidebarNavItem
+                                key={page.path}
+                                href={page.path}
+                                icon={BlocksIcon}
+                                label={page.title}
+                                disabled={page.permission ? !hasPerm(page.permission) : false}
+                            />
+                        ))}
+                    {import.meta.env.DEV && section.sectionKey === 'panel.sidebar.section.system' && (
+                        <SidebarNavItem
+                            href="/advanced"
+                            icon={WrenchIcon}
+                            label={t('panel.sidebar.item.advanced')}
+                            disabled={!hasPerm('all_permissions')}
+                        />
+                    )}
+                </SidebarSection>
+            ))}
         </nav>
     );
 }

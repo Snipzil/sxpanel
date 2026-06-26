@@ -1,11 +1,15 @@
+import { lazy, Suspense } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useGlobalMenuSheet, usePlayerlistSheet } from '@/hooks/sheets';
 import { NavLink } from '@/components/MainPageLink';
-import { PlayerlistSidebar } from './PlayerlistSidebar/PlayerlistSidebar';
 import { LogoFullSquareGreen } from '@/components/Logos';
 import { useSwipeGestures } from '@/hooks/useSwipeGestures';
 import { SidebarNavContent, ServerStatusCard, SidebarUserButton, SidebarCollapsedCtx } from './LeftSidebar';
+
+const PlayerlistSidebar = lazy(() =>
+    import('./PlayerlistSidebar/PlayerlistSidebar').then((module) => ({ default: module.PlayerlistSidebar })),
+);
 
 /**
  * Mobile global menu — mirrors the desktop LeftSidebar (sectioned navigation,
@@ -57,7 +61,9 @@ function PlayersSidebarSheet() {
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetContent side="right" className="xs:w-80 w-full p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <ScrollArea className="h-full">
-                    <PlayerlistSidebar isSheet />
+                    <Suspense fallback={null}>
+                        <PlayerlistSidebar isSheet />
+                    </Suspense>
                 </ScrollArea>
             </SheetContent>
         </Sheet>

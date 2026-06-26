@@ -99,18 +99,21 @@ export const useHudListenersService = () => {
         }
     });
 
-    useNuiEvent<SnackbarPersistentAlert>('setPersistentAlert', ({ level, message, key, isTranslationKey }) => {
-        if (alertMap.has(key)) return;
-        const snackbarItem = enqueueSnackbar(isTranslationKey ? t(message) : message, {
-            variant: level,
-            persist: true,
-            anchorOrigin: {
-                horizontal: 'center',
-                vertical: 'bottom',
-            },
-        });
-        alertMap.set(key, snackbarItem);
-    });
+    useNuiEvent<SnackbarPersistentAlert>(
+        'setPersistentAlert',
+        ({ level, message, key, isTranslationKey, tOptions }) => {
+            if (alertMap.has(key)) return;
+            const snackbarItem = enqueueSnackbar(isTranslationKey ? t(message, tOptions) : message, {
+                variant: level,
+                persist: true,
+                anchorOrigin: {
+                    horizontal: 'center',
+                    vertical: 'bottom',
+                },
+            });
+            alertMap.set(key, snackbarItem);
+        },
+    );
 
     useNuiEvent('clearPersistentAlert', ({ key }) => {
         const snackbarItem = alertMap.get(key);

@@ -9,11 +9,7 @@ const RadioGroup = ({ className, ref, ...props }: React.ComponentPropsWithRef<ty
 };
 RadioGroup.displayName = RadioGroupPrimitive.Root.displayName;
 
-const RadioGroupItem = ({
-    className,
-    ref,
-    ...props
-}: React.ComponentPropsWithRef<typeof RadioGroupPrimitive.Item>) => {
+const RadioGroupItem = ({ className, ref, ...props }: React.ComponentPropsWithRef<typeof RadioGroupPrimitive.Item>) => {
     return (
         <RadioGroupPrimitive.Item
             ref={ref}

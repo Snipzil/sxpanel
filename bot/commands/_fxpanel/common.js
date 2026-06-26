@@ -35,18 +35,15 @@ const resolveBridgeReply = async (interaction, response) => {
 const sendBridgeError = async (interaction, action, error) => {
     const message = error instanceof Error ? error.message : String(error);
     await interaction.reply(
-        buildReply(
-            'danger',
-            translateBot(interaction, 'common.command_failed', { action, message }),
-            true,
-        ),
+        buildReply('danger', translateBot(interaction, 'common.command_failed', { action, message }), true),
     );
 };
 
 const getRequesterPayload = (interaction) => {
-    const memberRoles = interaction.inGuild() && interaction.member?.roles?.cache
-        ? [...interaction.member.roles.cache.keys()].filter((roleId) => roleId !== interaction.guildId)
-        : [];
+    const memberRoles =
+        interaction.inGuild() && interaction.member?.roles?.cache
+            ? [...interaction.member.roles.cache.keys()].filter((roleId) => roleId !== interaction.guildId)
+            : [];
 
     return {
         requesterId: interaction.user.id,

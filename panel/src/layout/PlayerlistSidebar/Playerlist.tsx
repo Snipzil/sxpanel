@@ -1,6 +1,12 @@
 import { playerlistAtom, serverMutexAtom, tagDefinitionsAtom } from '@/hooks/playerlist';
 import cleanPlayerName from '@shared/cleanPlayerName';
-import { PlayerTag, PlayerlistPlayerType, TagDefinition } from '@shared/socketioTypes';
+import {
+    AUTO_TAG_DEFINITIONS,
+    getPrimaryPlayerTag,
+    PlayerTag,
+    PlayerlistPlayerType,
+    TagDefinition,
+} from '@shared/socketioTypes';
 import { useAtomValue } from 'jotai';
 import { VirtualItem, useVirtualizer } from '@tanstack/react-virtual';
 import { memo, useMemo, useRef, useState } from 'react';
@@ -23,6 +29,7 @@ import { useOpenPlayerModal } from '@/hooks/playerModal';
 import InlineCode from '@/components/InlineCode';
 import { useEventListener } from 'usehooks-ts';
 import Fuse from 'fuse.js';
+import { useLocale } from '@/hooks/locale';
 
 //NOTE: Move the styles (except color) to global.css since this component is rendered often
 function TagColor({ color }: { color: string }) {
@@ -41,18 +48,15 @@ function TagColor({ color }: { color: string }) {
     );
 }
 
-const TAG_CONFIG: Record<PlayerTag, { label: string; color: string; priority: number }> = {
-    staff: { label: 'Staff', color: '#EF4444', priority: 1 },
-    newplayer: { label: 'Newcomer', color: '#A3E635', priority: 3 },
-    problematic: { label: 'Problematic', color: '#FB923C', priority: 2 },
-};
-
 /**
  * Builds a lookup map from tag definitions array, with auto-tag fallbacks.
  * Disabled tags are excluded.
  */
 const buildTagLookup = (defs: TagDefinition[]): Record<string, { label: string; color: string; priority: number }> => {
-    const lookup: Record<string, { label: string; color: string; priority: number }> = { ...TAG_CONFIG };
+    const lookup: Record<string, { label: string; color: string; priority: number }> = {};
+    for (const auto of AUTO_TAG_DEFINITIONS) {
+        lookup[auto.id] = { label: auto.label, color: auto.color, priority: auto.priority };
+    }
     for (const d of defs) {
         if (d.enabled === false) {
             delete lookup[d.id];
@@ -61,21 +65,6 @@ const buildTagLookup = (defs: TagDefinition[]): Record<string, { label: string; 
         }
     }
     return lookup;
-};
-
-/**
- * Returns the highest-priority tag from an array of tags.
- */
-const getTopTag = (
-    tags: PlayerTag[],
-    lookup: Record<string, { label: string; color: string; priority: number }>,
-): PlayerTag | null => {
-    if (!tags.length) return null;
-    return tags.reduce((top, tag) => {
-        const topP = lookup[top]?.priority ?? 999;
-        const tagP = lookup[tag]?.priority ?? 999;
-        return tagP < topP ? tag : top;
-    });
 };
 
 type SortMode = 'id' | 'tag';
@@ -98,6 +87,7 @@ function PlayerlistFilter({
     setSortMode,
     tagLookup,
 }: PlayerlistFilterProps) {
+    const { t } = useLocale();
     const inputRef = useRef<HTMLInputElement>(null);
     useEventListener('message', (e: TxMessageEvent) => {
         if (e.data.type === 'globalHotkey' && e.data.action === 'focusPlayerlistFilter') {
@@ -125,7 +115,7 @@ function PlayerlistFilter({
                 <Input
                     ref={inputRef}
                     className="h-8"
-                    placeholder="Filter by Name or ID"
+                    placeholder={t('panel.playerlist.filter_placeholder')}
                     value={filterString}
                     onChange={(e) => setFilterString(e.target.value)}
                     onKeyDown={(e) => {
@@ -162,7 +152,7 @@ function PlayerlistFilter({
                     <SlidersHorizontalIcon className="h-5" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                    <DropdownMenuLabel>Filter by Tag</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('panel.playerlist.filter_by_tag')}</DropdownMenuLabel>
                     {Object.keys(tagLookup)
                         .sort((a, b) => (tagLookup[a].priority ?? 999) - (tagLookup[b].priority ?? 999))
                         .map((tag) => (
@@ -183,24 +173,24 @@ function PlayerlistFilter({
                         className="hover:bg-secondary! focus:bg-secondary! cursor-pointer hover:text-current! focus:text-current!"
                     >
                         <FilterXIcon className="mr-2 size-4" />
-                        Clear Filter
+                        {t('panel.playerlist.clear_filter')}
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 
-                    <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('panel.playerlist.sort_by')}</DropdownMenuLabel>
                     <DropdownMenuRadioGroup value={sortMode} onValueChange={(v) => setSortMode(v as SortMode)}>
                         <DropdownMenuRadioItem
                             value="id"
                             className="hover:bg-secondary! focus:bg-secondary! cursor-pointer hover:text-current! focus:text-current!"
                         >
-                            Join Order
+                            {t('panel.playerlist.join_order')}
                         </DropdownMenuRadioItem>
                         <DropdownMenuRadioItem
                             value="tag"
                             className="hover:bg-secondary! focus:bg-secondary! cursor-pointer hover:text-current! focus:text-current!"
                         >
-                            Tag Priority
+                            {t('panel.playerlist.tag_priority')}
                         </DropdownMenuRadioItem>
                     </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
@@ -218,7 +208,7 @@ type PlayerlistPlayerProps = {
 };
 //NOTE: the styles have been added to global.css since this component is rendered A LOT
 function PlayerlistPlayer({ virtualItem, player, modalOpener, tagLookup }: PlayerlistPlayerProps) {
-    const topTag = getTopTag(player.tags ?? [], tagLookup);
+    const topTag = getPrimaryPlayerTag(player.tags ?? [], tagLookup);
     const topTagData = topTag ? tagLookup[topTag] : undefined;
     const tagColor = topTagData?.color;
     const tagStyles = tagColor
@@ -269,6 +259,7 @@ function PlayerlistPlayer({ virtualItem, player, modalOpener, tagLookup }: Playe
 }
 
 export default function Playerlist() {
+    const { t } = useLocale();
     const playerlist = useAtomValue(playerlistAtom);
     const serverMutex = useAtomValue(serverMutexAtom);
     const tagDefinitions = useAtomValue(tagDefinitionsAtom);
@@ -326,8 +317,8 @@ export default function Playerlist() {
         // Sorting
         if (sortMode === 'tag' && !debouncedFilter.trim()) {
             result.sort((a, b) => {
-                const aTag = getTopTag(a.tags ?? [], tagLookup);
-                const bTag = getTopTag(b.tags ?? [], tagLookup);
+                const aTag = getPrimaryPlayerTag(a.tags ?? [], tagLookup);
+                const bTag = getPrimaryPlayerTag(b.tags ?? [], tagLookup);
                 const aPriority = aTag ? (tagLookup[aTag]?.priority ?? 999) : 999;
                 const bPriority = bTag ? (tagLookup[bTag]?.priority ?? 999) : 999;
                 if (aPriority !== bPriority) return aPriority - bPriority;
@@ -381,7 +372,10 @@ export default function Playerlist() {
                     isFiltered && virtualItems.length ? 'block' : 'hidden',
                 )}
             >
-                Showing {filteredPlayerlist.length} of {playerlist.length} players.
+                {t('panel.playerlist.showing_count', {
+                    shown: filteredPlayerlist.length,
+                    total: playerlist.length,
+                })}
             </div>
             <div
                 className={cn(
@@ -391,13 +385,13 @@ export default function Playerlist() {
             >
                 {playerlist.length && (filterString || tagFilters.size) ? (
                     <p>
-                        No players to show.
-                        <span className="block text-xs opacity-75">Clear the filter to show all players.</span>
+                        {t('panel.playerlist.no_players_filtered')}
+                        <span className="block text-xs opacity-75">{t('panel.playerlist.clear_filter_hint')}</span>
                     </p>
                 ) : (
                     <p>
-                        No players online.
-                        <span className="block text-xs opacity-75">Invite some friends to join in!</span>
+                        {t('panel.playerlist.no_players_online')}
+                        <span className="block text-xs opacity-75">{t('panel.playerlist.invite_friends_hint')}</span>
                     </p>
                 )}
             </div>

@@ -85,10 +85,7 @@ export const normalizeTicketCommandTicketId = (value: unknown) => {
     return normalized.length ? normalized : null;
 };
 
-export const buildTicketSummaryEmbed = (
-    ticket: DatabaseTicketType,
-    options?: TicketSummaryEmbedOptions,
-) => {
+export const buildTicketSummaryEmbed = (ticket: DatabaseTicketType, options?: TicketSummaryEmbedOptions) => {
     const descriptionParts = [] as string[];
     if (options?.note) {
         descriptionParts.push(options.note);
@@ -142,12 +139,7 @@ export const buildTicketSummaryEmbed = (
     };
 };
 
-const buildTicketActionButton = (
-    customId: string,
-    label: string,
-    style: number,
-    disabled = false,
-) => {
+const buildTicketActionButton = (customId: string, label: string, style: number, disabled = false) => {
     return {
         type: discordComponentType.button,
         custom_id: customId,
@@ -196,10 +188,7 @@ export const buildTicketActionRows = (ticketId: string, status: TicketStatus) =>
     ];
 };
 
-export const buildTicketSummaryMessagePayload = (
-    ticket: DatabaseTicketType,
-    options?: TicketSummaryEmbedOptions,
-) => {
+export const buildTicketSummaryMessagePayload = (ticket: DatabaseTicketType, options?: TicketSummaryEmbedOptions) => {
     return buildDiscordCardMessageFromEmbed(buildTicketSummaryEmbed(ticket, options), {
         actionRows: buildTicketActionRows(ticket.id, ticket.status),
     });
@@ -225,9 +214,10 @@ export const buildTicketQueueSummaryEmbed = (
     },
 ) => {
     const priorityMap = new Map(analytics.byPriority.map((entry) => [entry.priority, entry.count]));
-    const avgResolution = analytics.overview.avgResolutionMs > 0
-        ? msToShortishDuration(analytics.overview.avgResolutionMs)
-        : t('queue.not_available');
+    const avgResolution =
+        analytics.overview.avgResolutionMs > 0
+            ? msToShortishDuration(analytics.overview.avgResolutionMs)
+            : t('queue.not_available');
 
     const activeTicketLines = activeTickets.slice(0, 6).map((ticket) => {
         const priorityPrefix = ticket.priority ? `${formatPriorityLabel(ticket.priority)} • ` : '';
@@ -241,10 +231,13 @@ export const buildTicketQueueSummaryEmbed = (
     });
 
     const priorityLines = (['critical', 'high', 'medium', 'low'] as const)
-        .map((priority) => `• ${t('queue.priority_line', {
-            priority: formatPriorityLabel(priority),
-            count: priorityMap.get(priority) ?? 0,
-        })}`)
+        .map(
+            (priority) =>
+                `• ${t('queue.priority_line', {
+                    priority: formatPriorityLabel(priority),
+                    count: priorityMap.get(priority) ?? 0,
+                })}`,
+        )
         .join('\n');
 
     return {

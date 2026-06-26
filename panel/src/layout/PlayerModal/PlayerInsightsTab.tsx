@@ -3,6 +3,7 @@ import { AlertTriangleIcon, ClockIcon, ExternalLinkIcon, ShieldAlertIcon, UserIc
 import { ClientDateText } from '@/components/ClientDateText';
 import { cn, createDuplicateKeyResolver } from '@/lib/utils';
 import { PlayerModalPlayerData } from '@shared/playerApiTypes';
+import { useLocale } from '@/hooks/locale';
 
 /**
  * Extracts the creation timestamp from a Discord snowflake ID.
@@ -32,18 +33,29 @@ const getSteamProfileUrl = (ids: string[]) => {
 /**
  * Formats a duration between two dates as a human-readable string.
  */
-const formatAge = (from: Date, to: Date = new Date()) => {
+const formatAge = (from: Date, t: ReturnType<typeof useLocale>['t'], to: Date = new Date()) => {
     const diffMs = to.getTime() - from.getTime();
-    if (diffMs < 0) return 'Unknown';
+    if (diffMs < 0) return t('panel.player_modal.insights.unknown_age');
     const days = Math.floor(diffMs / 86_400_000);
-    if (days < 1) return 'Less than a day';
-    if (days < 30) return `${days} day${days !== 1 ? 's' : ''}`;
+    if (days < 1) return t('panel.player_modal.insights.less_than_day');
+    if (days < 30)
+        return days === 1
+            ? t('panel.player_modal.insights.days_one')
+            : t('panel.player_modal.insights.days_other', { count: days });
     const months = Math.floor(days / 30);
-    if (months < 12) return `${months} month${months !== 1 ? 's' : ''}`;
+    if (months < 12) {
+        return months === 1
+            ? t('panel.player_modal.insights.months_one')
+            : t('panel.player_modal.insights.months_other', { count: months });
+    }
     const years = Math.floor(months / 12);
     const remMonths = months % 12;
-    if (remMonths === 0) return `${years} year${years !== 1 ? 's' : ''}`;
-    return `${years}y ${remMonths}mo`;
+    if (remMonths === 0) {
+        return years === 1
+            ? t('panel.player_modal.insights.years_one')
+            : t('panel.player_modal.insights.years_other', { count: years });
+    }
+    return t('panel.player_modal.insights.years_months', { years, months: remMonths });
 };
 
 /**
@@ -83,6 +95,7 @@ const computeRiskFactor = (
     player: PlayerModalPlayerData,
     idChanges: { type: string; oldId: string }[],
     discordAge: Date | null,
+    t: ReturnType<typeof useLocale>['t'],
 ): RiskFactor => {
     let score = 0;
     const reasons: string[] = [];
@@ -99,31 +112,55 @@ const computeRiskFactor = (
 
     if (activeBans > 0) {
         score += activeBans * 30;
-        reasons.push(`${activeBans} active ban${activeBans !== 1 ? 's' : ''}`);
+        reasons.push(
+            activeBans === 1
+                ? t('panel.player_modal.insights.risk.active_bans_one')
+                : t('panel.player_modal.insights.risk.active_bans_other', { count: activeBans }),
+        );
     }
     if (totalBans > activeBans) {
         const revokedBans = totalBans - activeBans;
         score += revokedBans * 10;
-        reasons.push(`${revokedBans} past ban${revokedBans !== 1 ? 's' : ''} (revoked)`);
+        reasons.push(
+            revokedBans === 1
+                ? t('panel.player_modal.insights.risk.past_bans_one')
+                : t('panel.player_modal.insights.risk.past_bans_other', { count: revokedBans }),
+        );
     }
     if (activeWarns > 0) {
         score += activeWarns * 10;
-        reasons.push(`${activeWarns} active warning${activeWarns !== 1 ? 's' : ''}`);
+        reasons.push(
+            activeWarns === 1
+                ? t('panel.player_modal.insights.risk.active_warns_one')
+                : t('panel.player_modal.insights.risk.active_warns_other', { count: activeWarns }),
+        );
     }
     if (totalWarns > activeWarns) {
         const revokedWarns = totalWarns - activeWarns;
         score += revokedWarns * 3;
-        reasons.push(`${revokedWarns} past warning${revokedWarns !== 1 ? 's' : ''} (revoked)`);
+        reasons.push(
+            revokedWarns === 1
+                ? t('panel.player_modal.insights.risk.past_warns_one')
+                : t('panel.player_modal.insights.risk.past_warns_other', { count: revokedWarns }),
+        );
     }
     if (kicks > 0) {
         score += kicks * 5;
-        reasons.push(`${kicks} kick${kicks !== 1 ? 's' : ''}`);
+        reasons.push(
+            kicks === 1
+                ? t('panel.player_modal.insights.risk.kicks_one')
+                : t('panel.player_modal.insights.risk.kicks_other', { count: kicks }),
+        );
     }
 
     //Identifier changes as risk signal
     if (idChanges.length > 0) {
         score += idChanges.length * 15;
-        reasons.push(`${idChanges.length} identifier change${idChanges.length !== 1 ? 's' : ''}`);
+        reasons.push(
+            idChanges.length === 1
+                ? t('panel.player_modal.insights.risk.id_changes_one')
+                : t('panel.player_modal.insights.risk.id_changes_other', { count: idChanges.length }),
+        );
     }
 
     //New Discord account
@@ -132,17 +169,17 @@ const computeRiskFactor = (
         const ageDays = ageMs / 86_400_000;
         if (ageDays < 30) {
             score += 20;
-            reasons.push('Discord account < 30 days old');
+            reasons.push(t('panel.player_modal.insights.risk.discord_under_30'));
         } else if (ageDays < 90) {
             score += 10;
-            reasons.push('Discord account < 90 days old');
+            reasons.push(t('panel.player_modal.insights.risk.discord_under_90'));
         }
     }
 
     //Low playtime + actions = suspicious
     if (player.playTime !== undefined && player.playTime < 60 && activeBans + activeWarns > 0) {
         score += 10;
-        reasons.push('Low playtime with active sanctions');
+        reasons.push(t('panel.player_modal.insights.risk.low_playtime_sanctions'));
     }
 
     let level: RiskLevel;
@@ -173,10 +210,11 @@ type PlayerInsightsTabProps = {
 };
 
 export default function PlayerInsightsTab({ player, serverTime }: PlayerInsightsTabProps) {
+    const { t } = useLocale();
     const discordAge = useMemo(() => getDiscordAccountAge(player.ids), [player.ids]);
     const steamProfileUrl = useMemo(() => getSteamProfileUrl(player.ids), [player.ids]);
     const idChanges = useMemo(() => detectIdChanges(player.ids, player.oldIds), [player.ids, player.oldIds]);
-    const risk = useMemo(() => computeRiskFactor(player, idChanges, discordAge), [player, idChanges, discordAge]);
+    const risk = useMemo(() => computeRiskFactor(player, idChanges, discordAge, t), [player, idChanges, discordAge, t]);
     const getRiskReasonKey = createDuplicateKeyResolver();
     const getIdChangeKey = createDuplicateKeyResolver();
     const getNameHistoryKey = createDuplicateKeyResolver();
@@ -184,7 +222,7 @@ export default function PlayerInsightsTab({ player, serverTime }: PlayerInsights
     if (!player.isRegistered) {
         return (
             <div className="text-muted-foreground flex items-center justify-center py-8 text-sm">
-                Player is not registered in the database yet.
+                {t('panel.player_modal.insights.not_registered')}
             </div>
         );
     }
@@ -195,7 +233,7 @@ export default function PlayerInsightsTab({ player, serverTime }: PlayerInsights
             <div className={cn('rounded-lg border p-3', riskBgColors[risk.level])}>
                 <div className="mb-2 flex items-center gap-2">
                     <ShieldAlertIcon className={cn('size-5', riskColors[risk.level])} />
-                    <span className="font-medium">Risk Assessment</span>
+                    <span className="font-medium">{t('panel.player_modal.insights.risk_assessment')}</span>
                     <span className={cn('ml-auto text-sm font-bold uppercase', riskColors[risk.level])}>
                         {risk.level}
                     </span>
@@ -209,27 +247,33 @@ export default function PlayerInsightsTab({ player, serverTime }: PlayerInsights
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-muted-foreground ml-7 text-sm">No risk signals detected.</p>
+                    <p className="text-muted-foreground ml-7 text-sm">
+                        {t('panel.player_modal.insights.no_risk_signals')}
+                    </p>
                 )}
             </div>
 
             {/* Account Ages */}
             <div>
                 <h4 className="text-muted-foreground mb-2 flex items-center gap-1.5 text-sm font-medium">
-                    <ClockIcon className="size-4" /> Account Ages
+                    <ClockIcon className="size-4" /> {t('panel.player_modal.insights.account_ages')}
                 </h4>
                 <div className="grid grid-cols-3 gap-2">
                     <div className="bg-muted/50 rounded-md p-2.5 text-sm">
-                        <span className="text-muted-foreground">Discord</span>
-                        <div className="font-medium">{discordAge ? formatAge(discordAge) : 'N/A'}</div>
+                        <span className="text-muted-foreground">{t('panel.player_modal.insights.discord')}</span>
+                        <div className="font-medium">
+                            {discordAge ? formatAge(discordAge, t) : t('panel.player_modal.insights.na')}
+                        </div>
                         {discordAge && (
                             <div className="text-muted-foreground text-xs">
-                                Created {discordAge.toLocaleDateString()}
+                                {t('panel.player_modal.insights.created', {
+                                    date: discordAge.toLocaleDateString(),
+                                })}
                             </div>
                         )}
                     </div>
                     <div className="bg-muted/50 rounded-md p-2.5 text-sm">
-                        <span className="text-muted-foreground">Steam</span>
+                        <span className="text-muted-foreground">{t('panel.player_modal.insights.steam')}</span>
                         <div className="font-medium">
                             {steamProfileUrl ? (
                                 <a
@@ -238,28 +282,31 @@ export default function PlayerInsightsTab({ player, serverTime }: PlayerInsights
                                     rel="noopener noreferrer"
                                     className="text-accent inline-flex items-center gap-1 hover:underline"
                                 >
-                                    Profile <ExternalLinkIcon className="size-3" />
+                                    {t('panel.player_modal.insights.profile')} <ExternalLinkIcon className="size-3" />
                                 </a>
                             ) : (
-                                'N/A'
+                                t('panel.player_modal.insights.na')
                             )}
                         </div>
                     </div>
                     <div className="bg-muted/50 rounded-md p-2.5 text-sm">
-                        <span className="text-muted-foreground">Server</span>
+                        <span className="text-muted-foreground">{t('panel.player_modal.insights.server')}</span>
                         <ClientDateText
                             as="div"
                             className="font-medium"
                             timestamp={player.tsJoined ? player.tsJoined * 1000 : null}
-                            formatter={formatAge}
-                            fallback="N/A"
+                            formatter={(date) => formatAge(date, t)}
+                            fallback={t('panel.player_modal.insights.na')}
                         />
                         {player.tsJoined && (
                             <div className="text-muted-foreground text-xs">
-                                Joined{' '}
                                 <ClientDateText
                                     timestamp={player.tsJoined * 1000}
-                                    formatter={(date) => date.toLocaleDateString()}
+                                    formatter={(date) =>
+                                        t('panel.player_modal.insights.joined', {
+                                            date: date.toLocaleDateString(),
+                                        })
+                                    }
                                 />
                             </div>
                         )}
@@ -271,7 +318,8 @@ export default function PlayerInsightsTab({ player, serverTime }: PlayerInsights
             {idChanges.length > 0 && (
                 <div>
                     <h4 className="text-muted-foreground mb-2 flex items-center gap-1.5 text-sm font-medium">
-                        <AlertTriangleIcon className="text-warning size-4" /> Identifier Changes
+                        <AlertTriangleIcon className="text-warning size-4" />{' '}
+                        {t('panel.player_modal.insights.identifier_changes')}
                     </h4>
                     <div className="space-y-1">
                         {idChanges.map((change) => (
@@ -281,7 +329,9 @@ export default function PlayerInsightsTab({ player, serverTime }: PlayerInsights
                             >
                                 <span className="text-warning font-mono text-xs">{change.type}</span>
                                 <span className="text-muted-foreground truncate font-mono text-xs">{change.oldId}</span>
-                                <span className="text-warning ml-auto shrink-0 text-xs">changed</span>
+                                <span className="text-warning ml-auto shrink-0 text-xs">
+                                    {t('panel.player_modal.insights.changed')}
+                                </span>
                             </div>
                         ))}
                     </div>
@@ -292,8 +342,12 @@ export default function PlayerInsightsTab({ player, serverTime }: PlayerInsights
             {player.nameHistory && player.nameHistory.length > 1 && (
                 <div>
                     <h4 className="text-muted-foreground mb-2 flex items-center gap-1.5 text-sm font-medium">
-                        <UserIcon className="size-4" /> Name History
-                        <span className="text-xs">({player.nameHistory.length} names)</span>
+                        <UserIcon className="size-4" /> {t('panel.player_modal.insights.name_history')}
+                        <span className="text-xs">
+                            {t('panel.player_modal.insights.names_count', {
+                                count: player.nameHistory.length,
+                            })}
+                        </span>
                     </h4>
                     <div className="flex flex-wrap gap-1.5">
                         {player.nameHistory.map((name, i) => (

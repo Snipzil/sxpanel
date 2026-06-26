@@ -42,7 +42,7 @@ RegisterNetEvent('txsv:req:sendAnnouncement', function(message)
         PrintStructuredTrace(json.encode({
             type = 'txAdminCommandBridge',
             command = 'announcement',
-            author = TX_ADMINS[tostring(src)].username,
+            author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
             message = message,
         }))
     end
@@ -67,7 +67,7 @@ RegisterNetEvent('txsv:req:healEveryone', function()
         -- 'revive state' standalone from health (esx-ambulancejob, qb-ambulancejob, etc)
         TriggerEvent('txAdmin:events:playerHealed', {
             target = -1,
-            author = TX_ADMINS[tostring(src)].username,
+            author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
         })
     end
 end)
@@ -82,7 +82,7 @@ RegisterNetEvent('txsv:req:healMyself', function()
         -- 'revive state' standalone from health (esx-ambulancejob, qb-ambulancejob, etc)
         TriggerEvent('txAdmin:events:playerHealed', {
             target = src,
-            author = TX_ADMINS[tostring(src)].username,
+            author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
         })
     end
 end)
@@ -117,7 +117,7 @@ RegisterNetEvent('txsv:req:healRadius', function(radius)
                     TriggerClientEvent('txcl:heal', tonumber(playerId))
                     TriggerEvent('txAdmin:events:playerHealed', {
                         target = tonumber(playerId),
-                        author = TX_ADMINS[tostring(src)].username,
+                        author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
                     })
                     healed = healed + 1
                 end
@@ -141,7 +141,7 @@ RegisterNetEvent('txsv:req:healPlayer', function(id)
             -- 'revive state' standalone from health (esx-ambulancejob, qb-ambulancejob, etc)
             TriggerEvent('txAdmin:events:playerHealed', {
                 target = id,
-                author = TX_ADMINS[tostring(src)].username,
+                author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
             })
         end
     end
@@ -154,6 +154,15 @@ RegisterNetEvent('txsv:req:showPlayerIDs', function(enabled)
     TriggerEvent('txsv:logger:menuEvent', src, 'showPlayerIDs', allow, enabled)
     if allow then
         TriggerClientEvent('txcl:showPlayerIDs', src, enabled)
+    end
+end)
+
+RegisterNetEvent('txsv:req:showMapBlips', function(enabled)
+    local src = source
+    local allow = PlayerHasTxPermission(src, 'menu.mapblips')
+    TriggerEvent('txsv:logger:menuEvent', src, 'showMapBlips', allow, enabled)
+    if allow then
+        TriggerClientEvent('txcl:showMapBlips', src, enabled)
     end
 end)
 

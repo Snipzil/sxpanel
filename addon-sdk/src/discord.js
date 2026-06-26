@@ -244,7 +244,10 @@ export const respondWithAutocompleteChoices = async (interaction, choices = []) 
     }
 
     const normalizedChoices = Array.isArray(choices)
-        ? choices.map((choice) => normalizeAutocompleteChoice(choice)).filter(Boolean).slice(0, maxAutocompleteChoices)
+        ? choices
+              .map((choice) => normalizeAutocompleteChoice(choice))
+              .filter(Boolean)
+              .slice(0, maxAutocompleteChoices)
         : [];
 
     return await interaction.respond(normalizedChoices);
@@ -254,7 +257,8 @@ export const createAddonDiscordInteractionHelpers = ({ addonId }) => {
     const normalizedAddonId = assertAddonId(addonId);
 
     return Object.freeze({
-        createId: (kind, action, state) => createAddonInteractionId({ addonId: normalizedAddonId, kind, action, state }),
+        createId: (kind, action, state) =>
+            createAddonInteractionId({ addonId: normalizedAddonId, kind, action, state }),
         parse: (customId) => parseAddonInteractionId(customId, normalizedAddonId),
         apply: (builder, kind, action, state) =>
             applyAddonInteractionCustomId(builder, { addonId: normalizedAddonId, kind, action, state }),
@@ -322,9 +326,7 @@ export const validateAddonDiscordManifest = (manifest) => {
     }
 
     if (!('discordBot' in manifest) || manifest.discordBot == null) {
-        return issues.length > 0
-            ? { success: false, issues }
-            : { success: true, data: result };
+        return issues.length > 0 ? { success: false, issues } : { success: true, data: result };
     }
 
     const discordBot = manifest.discordBot;
@@ -362,9 +364,7 @@ export const validateAddonDiscordManifest = (manifest) => {
         result.discordBot = validatedDiscordBot;
     }
 
-    return issues.length > 0
-        ? { success: false, issues }
-        : { success: true, data: result };
+    return issues.length > 0 ? { success: false, issues } : { success: true, data: result };
 };
 
 export const parseAddonDiscordManifest = (manifest) => {
@@ -505,7 +505,8 @@ export const createAddonDiscordSdk = ({ addonId, bridge }) => {
         send,
         interactions,
         getRequesterPayload: (interaction, overrides) => getDiscordRequesterPayload(interaction, overrides),
-        addonRoute: (route, timeoutMs) => request('addonRoute', buildAddonRoutePayload(normalizedAddonId, route), timeoutMs),
+        addonRoute: (route, timeoutMs) =>
+            request('addonRoute', buildAddonRoutePayload(normalizedAddonId, route), timeoutMs),
         getConfigSnapshot: (timeoutMs) => request('configSnapshot', {}, timeoutMs),
         resolveMemberRoles: (uid, timeoutMs) => {
             const normalizedUid = toNonEmptyString(uid);

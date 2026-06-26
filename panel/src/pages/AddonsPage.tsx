@@ -659,15 +659,8 @@ export default function AddonsPage() {
     );
 
     const [state, dispatch] = useReducer(reduceAddonsPageState, initialAddonsPageState);
-    const {
-        approvalTarget,
-        selectedPerms,
-        reloadingIds,
-        settingsAddonId,
-        logsAddonId,
-        revokeTarget,
-        isScanning,
-    } = state;
+    const { approvalTarget, selectedPerms, reloadingIds, settingsAddonId, logsAddonId, revokeTarget, isScanning } =
+        state;
 
     const handleOpenApproval = useCallback((addon: AddonListItem) => {
         dispatch({ type: 'openApproval', addon });
@@ -693,75 +686,84 @@ export default function AddonsPage() {
         dispatch({ type: 'patch', state: { approvalTarget: null } });
     }, [approvalTarget, selectedPerms, fetcher, mutate]);
 
-    const handleRevoke = useCallback(async (addonId: string) => {
-        try {
-            const resp = await fetcher(`/addons/${addonId}/revoke`, { method: 'POST' });
-            if (resp.error) {
-                txToast.error(resp.error);
-            } else if (resp.warning) {
-                txToast.warning(resp.warning);
-                resetAddonCache();
-                mutate();
-            } else if (resp.stoppedNow === false) {
-                txToast.warning('Addon revoked. Restart FXServer to fully unload the running instance.');
-                resetAddonCache();
-                mutate();
-            } else {
-                txToast.success('Addon revoked.');
-                resetAddonCache();
-                mutate();
+    const handleRevoke = useCallback(
+        async (addonId: string) => {
+            try {
+                const resp = await fetcher(`/addons/${addonId}/revoke`, { method: 'POST' });
+                if (resp.error) {
+                    txToast.error(resp.error);
+                } else if (resp.warning) {
+                    txToast.warning(resp.warning);
+                    resetAddonCache();
+                    mutate();
+                } else if (resp.stoppedNow === false) {
+                    txToast.warning('Addon revoked. Restart FXServer to fully unload the running instance.');
+                    resetAddonCache();
+                    mutate();
+                } else {
+                    txToast.success('Addon revoked.');
+                    resetAddonCache();
+                    mutate();
+                }
+            } catch (err) {
+                txToast.error(`Failed to revoke addon: ${(err as Error).message}`);
+            } finally {
+                dispatch({ type: 'patch', state: { revokeTarget: null } });
             }
-        } catch (err) {
-            txToast.error(`Failed to revoke addon: ${(err as Error).message}`);
-        } finally {
-            dispatch({ type: 'patch', state: { revokeTarget: null } });
-        }
-    }, [fetcher, mutate]);
+        },
+        [fetcher, mutate],
+    );
 
-    const handleReload = useCallback(async (addonId: string) => {
-        dispatch({ type: 'startReload', addonId });
-        try {
-            const resp = await fetcher(`/addons/${addonId}/reload`, { method: 'POST' });
-            if (resp.error) {
-                txToast.error(`Reload failed: ${resp.error}`);
-            } else if (resp.warning) {
-                txToast.warning(resp.warning);
-                resetAddonCache();
-                mutate();
-            } else {
-                txToast.success(`Addon "${addonId}" reloaded.`);
-                resetAddonCache();
-                mutate();
+    const handleReload = useCallback(
+        async (addonId: string) => {
+            dispatch({ type: 'startReload', addonId });
+            try {
+                const resp = await fetcher(`/addons/${addonId}/reload`, { method: 'POST' });
+                if (resp.error) {
+                    txToast.error(`Reload failed: ${resp.error}`);
+                } else if (resp.warning) {
+                    txToast.warning(resp.warning);
+                    resetAddonCache();
+                    mutate();
+                } else {
+                    txToast.success(`Addon "${addonId}" reloaded.`);
+                    resetAddonCache();
+                    mutate();
+                }
+            } catch (err) {
+                txToast.error(`Failed to reload addon: ${(err as Error).message}`);
+            } finally {
+                dispatch({ type: 'finishReload', addonId });
             }
-        } catch (err) {
-            txToast.error(`Failed to reload addon: ${(err as Error).message}`);
-        } finally {
-            dispatch({ type: 'finishReload', addonId });
-        }
-    }, [fetcher, mutate]);
+        },
+        [fetcher, mutate],
+    );
 
-    const handleStop = useCallback(async (addonId: string) => {
-        try {
-            const resp = await fetcher(`/addons/${addonId}/stop`, { method: 'POST' });
-            if (resp.error) {
-                txToast.error(`Stop failed: ${resp.error}`);
-            } else if (resp.warning) {
-                txToast.warning(resp.warning);
-                resetAddonCache();
-                mutate();
-            } else if (resp.stoppedNow === false) {
-                txToast.warning(`Addon "${addonId}" stop is pending restart.`);
-                resetAddonCache();
-                mutate();
-            } else {
-                txToast.success(`Addon "${addonId}" stopped.`);
-                resetAddonCache();
-                mutate();
+    const handleStop = useCallback(
+        async (addonId: string) => {
+            try {
+                const resp = await fetcher(`/addons/${addonId}/stop`, { method: 'POST' });
+                if (resp.error) {
+                    txToast.error(`Stop failed: ${resp.error}`);
+                } else if (resp.warning) {
+                    txToast.warning(resp.warning);
+                    resetAddonCache();
+                    mutate();
+                } else if (resp.stoppedNow === false) {
+                    txToast.warning(`Addon "${addonId}" stop is pending restart.`);
+                    resetAddonCache();
+                    mutate();
+                } else {
+                    txToast.success(`Addon "${addonId}" stopped.`);
+                    resetAddonCache();
+                    mutate();
+                }
+            } catch (err) {
+                txToast.error(`Failed to stop addon: ${(err as Error).message}`);
             }
-        } catch (err) {
-            txToast.error(`Failed to stop addon: ${(err as Error).message}`);
-        }
-    }, [fetcher, mutate]);
+        },
+        [fetcher, mutate],
+    );
 
     const handleStart = useCallback(
         async (addonId: string) => {

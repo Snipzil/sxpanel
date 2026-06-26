@@ -19,7 +19,7 @@ type AuthErrorProps = {
  * Display OAuth errors in a user-friendly way.
  */
 export function AuthError({ error }: AuthErrorProps) {
-    error.returnTo = error.returnTo ?? '/login';
+    const returnTo = error.returnTo ?? '/login';
     let titleNode: React.ReactNode = null;
     let bodyNode: React.ReactNode = null;
     if ('errorTitle' in error) {
@@ -91,8 +91,8 @@ export function AuthError({ error }: AuthErrorProps) {
             <h3 className="text-destructive-inline mb-4 text-2xl font-semibold">{titleNode}</h3>
             {bodyNode}
             <CardFooter className="mt-4 flex w-full justify-center pb-0">
-                <Link href={error.returnTo} asChild>
-                    <Button className="x">
+                <Link href={returnTo} asChild>
+                    <Button>
                         <ArrowLeftIcon className="mr-2 inline size-4" />
                         Try Again
                     </Button>
@@ -105,16 +105,18 @@ export function AuthError({ error }: AuthErrorProps) {
 /**
  * Check the URL search params for common OAuth errors and return them.
  */
-const checkCommonOauthErrors = () => {
+export function getCommonOauthCallbackError(): AuthErrorData | undefined {
     const params = new URLSearchParams(window.location.search);
     const errorCode = params.get('error');
     const errorDescription = params.get('error_description');
     if (errorCode === 'access_denied' && errorDescription === 'End-User aborted interaction') {
-        return { errorCode: 'end_user_aborted' };
-    } else if (errorCode === 'access_denied' && errorDescription === 'End-User aborted interaction (logout)') {
-        return { errorCode: 'end_user_logout' };
+        return { errorCode: 'end_user_aborted', returnTo: '/login' };
     }
-};
+    if (errorCode === 'access_denied' && errorDescription === 'End-User aborted interaction (logout)') {
+        return { errorCode: 'end_user_logout', returnTo: '/login' };
+    }
+    return undefined;
+}
 
 /**
  * Process fetch errors and return a common error object.

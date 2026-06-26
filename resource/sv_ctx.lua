@@ -15,11 +15,13 @@ local ServerCtxObj = {
     maxClients = 30,
     locale = nil,
     localeData = nil,
+    instructionalLabels = nil,
     switchPageKey = '',
     fxPanelVersion = '',
     alignRight = false,
     announceNotiPos = '', -- top-center, top-right, top-left, bottom-center, bottom-right, bottom-left
     tagDefinitions = {},
+    reportsEnabled = false,
 }
 
 local function getCustomLocaleData()
@@ -43,10 +45,32 @@ local function getCustomLocaleData()
 
     -- Build response
     DebugPrint('^2Loaded custom locale file.')
-    return {
+    local out = {
         ['$meta'] = locale['$meta'],
         ['nui_warning'] = locale['nui_warning'],
         ['nui_menu'] = locale['nui_menu'],
+    }
+    return out
+end
+
+local function extractInstructionalLabels(locale)
+    if type(locale) ~= 'table' then return nil end
+    local nuiMenu = locale['nui_menu']
+    if type(nuiMenu) ~= 'table' then return nil end
+    local instructional = nuiMenu['instructional']
+    if type(instructional) ~= 'table' then return nil end
+    return {
+        exit_spectate = instructional['exit_spectate'],
+        previous_player = instructional['previous_player'],
+        next_player = instructional['next_player'],
+        spectate_title = instructional['spectate_title'],
+        noclip_slower = instructional['noclip_slower'],
+        noclip_faster = instructional['noclip_faster'],
+        noclip_fwd_back = instructional['noclip_fwd_back'],
+        noclip_left_right = instructional['noclip_left_right'],
+        noclip_title = instructional['noclip_title'],
+        noclip_down = instructional['noclip_down'],
+        noclip_up = instructional['noclip_up'],
     }
 end
 
@@ -86,6 +110,13 @@ local function syncServerCtx()
     ServerCtxObj.locale = txAdminLocale
     if txAdminLocale == 'custom' then
         ServerCtxObj.localeData = getCustomLocaleData()
+        if ServerCtxObj.localeData then
+            local customFile = LoadResourceFile('monitor', '.runtime/locale.json')
+            if type(customFile) == 'string' then
+                local customLocale = json.decode(customFile)
+                ServerCtxObj.instructionalLabels = extractInstructionalLabels(customLocale)
+            end
+        end
     else
         -- Load the built-in locale file and send only NUI sections
         local localeFile = LoadResourceFile('monitor', 'locale/' .. txAdminLocale .. '.json')
@@ -97,6 +128,7 @@ local function syncServerCtx()
                     ['nui_warning'] = locale['nui_warning'],
                     ['nui_menu'] = locale['nui_menu'],
                 }
+                ServerCtxObj.instructionalLabels = extractInstructionalLabels(locale)
             else
                 TxPrint('^1WARNING: failed to parse locale file for: ' .. txAdminLocale)
                 ServerCtxObj.localeData = false

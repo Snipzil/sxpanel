@@ -1,10 +1,6 @@
 const modulename = 'Player';
 import cleanPlayerName from '@shared/cleanPlayerName';
-import {
-    DatabaseActionWarnType,
-    DatabasePlayerType,
-    DatabaseWhitelistApprovalsType,
-} from '@modules/Database/databaseTypes';
+import { DatabaseActionWarnType, DatabasePlayerType } from '@modules/Database/databaseTypes';
 import { union } from 'lodash-es';
 import { now } from '@lib/misc';
 import { parsePlayerIds } from '@lib/player/idUtils';
@@ -92,16 +88,39 @@ export class BasePlayer {
      */
     setWhitelist(enabled: boolean) {
         if (!this.license) throw new Error(`cannot set whitelist status for a player that has no license`);
-        this.mutateDbData({
-            tsWhitelisted: enabled ? now() : undefined,
-        });
+        const ts = now();
+        const identifier = `license:${this.license}`;
 
-        //Remove entries from whitelistApprovals & whitelistRequests
-        const allIdsFilter = (x: DatabaseWhitelistApprovalsType) => {
-            return this.ids.includes(x.identifier);
-        };
-        txCore.database.whitelist.removeManyApprovals(allIdsFilter);
-        txCore.database.whitelist.removeManyRequests({ license: this.license });
+        this.mutateDbData({ tsWhitelisted: undefined });
+
+        if (enabled) {
+            const existing = txCore.database.whitelist.findEntryByIdentifier(identifier);
+            if (existing) {
+                if (typeof existing.tsFirstConnect !== 'number') {
+                    txCore.database.whitelist.consumeEntry(identifier, ts);
+                }
+            } else {
+                txCore.database.whitelist.registerEntry({
+                    identifier,
+                    tsGranted: ts,
+                    grantedBy: 'panel',
+                    source: 'manual',
+                    playerName: this.displayName,
+                    playerAvatar: null,
+                    license: this.license,
+                    tsFirstConnect: ts,
+                });
+            }
+            txCore.database.whitelist.removeManyApplications({ license: this.license, status: 'pending' });
+            const allIdsFilter = (entry) => this.getAllIdentifiers().includes(entry.identifier);
+            txCore.database.whitelist.removeManyEntries(
+                (entry) => allIdsFilter(entry) && typeof entry.tsFirstConnect !== 'number',
+            );
+        } else {
+            txCore.database.whitelist.removeManyEntries({ license: this.license });
+            txCore.database.whitelist.removeManyEntries({ identifier });
+            txCore.database.whitelist.removeManyApplications({ license: this.license });
+        }
     }
 
     /**
@@ -136,7 +155,6 @@ export class ServerPlayer extends BasePlayer {
     readonly netid: number;
     readonly tsConnected = now();
     readonly isRegistered: boolean;
-    readonly #minuteCronInterval?: ReturnType<typeof setInterval>;
     // #offlineDbDataCacheTimeout?: ReturnType<typeof setTimeout>;
 
     constructor(
@@ -165,7 +183,7 @@ export class ServerPlayer extends BasePlayer {
         //NOTE: ignoring IP completely
         const { validIdsArray, validIdsObject } = parsePlayerIds(playerData.ids);
         this.license = validIdsObject.license;
-        this.ids = validIdsArray;
+        this.ids = validIdsArray.map((id) => id.toLowerCase());
         this.hwids = playerData.hwids.filter((x) => {
             return typeof x === 'string' && consts.regexValidHwidToken.test(x);
         });
@@ -179,7 +197,6 @@ export class ServerPlayer extends BasePlayer {
         if (this.license) {
             this.#setupDatabaseData();
             this.isRegistered = !!this.dbData;
-            this.#minuteCronInterval = setInterval(this.#minuteCron.bind(this), 60_000);
         } else {
             this.isRegistered = false;
         }
@@ -247,16 +264,17 @@ export class ServerPlayer extends BasePlayer {
      * Prepares the initial player data and reports to FxPlayerlist, which will dispatch to the server via command.
      */
     #sendInitialData() {
-        if (!this.isRegistered) return;
-        if (!this.dbData) throw new Error(`cannot send initial data for a player that has no dbData`);
+        if (!this.isConnected) return;
 
         let oldestPendingWarn: undefined | DatabaseActionWarnType;
-        const actionHistory = this.getHistory();
-        for (const action of actionHistory) {
-            if (action.type !== 'warn' || action.revocation) continue;
-            if (!action.acked) {
-                oldestPendingWarn = action;
-                break;
+        if (this.isRegistered && this.dbData) {
+            const actionHistory = this.getHistory();
+            for (const action of actionHistory) {
+                if (action.type !== 'warn' || action.revocation) continue;
+                if (!action.acked) {
+                    oldestPendingWarn = action;
+                    break;
+                }
             }
         }
 
@@ -297,9 +315,10 @@ export class ServerPlayer extends BasePlayer {
     }
 
     /**
-     * Updates dbData play time every minute and tracks per-hour session history
+     * Updates dbData play time every minute and tracks per-hour session history.
+     * Called from FxPlayerlist global playtime tick.
      */
-    #minuteCron() {
+    tickPlaytimeMinute() {
         if (!this.dbData || !this.isConnected) return;
         try {
             const today = new Date();
@@ -333,12 +352,50 @@ export class ServerPlayer extends BasePlayer {
     }
 
     /**
-     * Marks this player as disconnected, clears dbData (mem optimization) and clears minute cron
+     * Marks this player as disconnected and clears dbData (mem optimization).
      */
     disconnect() {
         this.isConnected = false;
         // this.dbData = false;
-        clearInterval(this.#minuteCronInterval);
+    }
+}
+
+/**
+ * HTTP-reported roster row without a live FXServer slot (poll bypass only).
+ */
+export class ReportedPlayer extends BasePlayer {
+    readonly netid: number;
+    readonly hasLiveSlot = false;
+
+    constructor(netid: number, name: string, identifiers: string[]) {
+        super(Symbol(`reported${netid}`));
+        this.netid = netid;
+        this.isConnected = true;
+
+        const { validIdsArray, validIdsObject } = parsePlayerIds(identifiers);
+        this.ids = validIdsArray.map((id) => id.toLowerCase());
+        this.license = validIdsObject.license;
+        this.hwids = [];
+
+        const { displayName, pureName } = cleanPlayerName(name);
+        this.displayName = displayName;
+        this.pureName = pureName;
+
+        if (this.license) {
+            const foundData = txCore.database.players.findOne(this.license);
+            if (foundData) {
+                this.dbData = foundData;
+                this.isRegistered = true;
+            } else {
+                this.isRegistered = false;
+            }
+        } else {
+            this.isRegistered = false;
+        }
+    }
+
+    getDbData() {
+        return this.dbData ? structuredClone(this.dbData) : false;
     }
 }
 
@@ -382,4 +439,4 @@ export class DatabasePlayer extends BasePlayer {
     }
 }
 
-export type PlayerClass = ServerPlayer | DatabasePlayer;
+export type PlayerClass = ServerPlayer | DatabasePlayer | ReportedPlayer;

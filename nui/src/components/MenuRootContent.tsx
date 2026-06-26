@@ -1,34 +1,38 @@
 import React from 'react';
-import { Box, Collapse, styled, Typography } from '@mui/material';
-import { PageTabs } from '@nui/src/components/misc/PageTabs';
+import { Box, Collapse, styled, Typography, useTheme } from '@mui/material';
 import { txAdminMenuPage, usePageValue } from '@nui/src/state/page.state';
 import { MainPageList } from '@nui/src/components/MainPage/MainPageList';
 import { useServerCtxValue } from '@nui/src/state/server.state';
 import { useDebounce } from '@nui/src/hooks/useDebouce';
 
-const FxPanelLogo: React.FC = () => {
-    return (
-        <Box mt={1} mb={0.25} display="flex" justifyContent="center">
-            <img src="images/fxPanel.png" alt="fxPanel logo" />
-        </Box>
-    );
-};
-
 const StyledRoot = styled(Box)(({ theme }) => ({
     height: 'fit-content',
-    background: theme.palette.background.default,
-    width: 325,
-    borderRadius: 15,
+    backgroundColor: theme.tokens.surface,
+    width: '100%',
+    boxSizing: 'border-box',
+    borderRadius: theme.tokens.radiusCard,
+    border: `1px solid ${theme.tokens.border}`,
     display: 'flex',
     flexDirection: 'column',
     userSelect: 'none',
 }));
 
+const HeaderRow = styled(Box)({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 24,
+});
+
+/**
+ * The menu card: slim wordmark header + Main page list. The page tab bar
+ * lives outside this card as a detached pill bar (see MenuRoot). The whole
+ * card is only shown on the Main page.
+ */
 export const MenuRootContent: React.FC = React.memo(() => {
     const serverCtx = useServerCtxValue();
     const curPage = usePageValue();
-    const padSize = Math.max(0, 9 - serverCtx.fxPanelVersion.length);
-    const versionPad = '\u0020\u205F'.repeat(padSize);
+    const theme = useTheme();
 
     // Hack to prevent collapse transition from breaking
     // In some cases, i.e, when setting target player from playerModal
@@ -37,24 +41,26 @@ export const MenuRootContent: React.FC = React.memo(() => {
     const debouncedCurPage = useDebounce(curPage, 50);
 
     return (
-        <StyledRoot p={2} pb={1}>
-            <FxPanelLogo />
-            <Typography
-                color="textSecondary"
-                style={{
-                    fontWeight: 500,
-                    marginTop: -28,
-                    textAlign: 'right',
-                    fontSize: 12,
-                }}
-            >
-                v{serverCtx.fxPanelVersion}
-                {versionPad}
-            </Typography>
-            <PageTabs />
-            <Collapse in={debouncedCurPage === txAdminMenuPage.Main} unmountOnExit mountOnEnter>
+        <Collapse in={debouncedCurPage === txAdminMenuPage.Main} mountOnEnter>
+            <StyledRoot px={1.5} pt={1.25} pb={1}>
+                <HeaderRow mb={0.25}>
+                    <img
+                        src="images/fxPanel.png"
+                        alt="fxPanel"
+                        style={{ height: 16, width: 'auto', display: 'block' }}
+                    />
+                    <Typography
+                        style={{
+                            fontWeight: 500,
+                            fontSize: 11,
+                            color: theme.tokens.textMuted,
+                        }}
+                    >
+                        v{serverCtx.fxPanelVersion}
+                    </Typography>
+                </HeaderRow>
                 <MainPageList />
-            </Collapse>
-        </StyledRoot>
+            </StyledRoot>
+        </Collapse>
     );
 });

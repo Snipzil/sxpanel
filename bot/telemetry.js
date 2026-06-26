@@ -64,7 +64,7 @@ const updateCommandOutcome = (context, outcome, denialReason) => {
     const shouldReplace = outcomePriority[outcome] >= outcomePriority[context.outcome];
     if (shouldReplace) {
         context.outcome = outcome;
-        context.denialReason = outcome === 'denied' ? denialReason ?? context.denialReason ?? 'unknown' : undefined;
+        context.denialReason = outcome === 'denied' ? (denialReason ?? context.denialReason ?? 'unknown') : undefined;
         return;
     }
 
@@ -127,7 +127,9 @@ const buildCommandTelemetryEvent = (context) => {
         ...(context.bridgeRequestCount > 0
             ? { bridgeRoundtripMs: Math.max(0, Math.round(context.bridgeRoundtripMs)) }
             : {}),
-        ...(context.handlerDurationMs > 0 ? { handlerDurationMs: Math.max(0, Math.round(context.handlerDurationMs)) } : {}),
+        ...(context.handlerDurationMs > 0
+            ? { handlerDurationMs: Math.max(0, Math.round(context.handlerDurationMs)) }
+            : {}),
     };
 };
 

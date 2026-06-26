@@ -137,7 +137,7 @@ const ServerLogEntry = memo(function ServerLogEntry({ event, onPlayerClick }: Se
 
     const handleCopy = () => {
         const text = `[${fullTime}] [${cfg.label}] ${event.src.name}: ${event.msg}`;
-        copyToClipboard(text, surrogateRef.current ?? document.body as unknown as HTMLDivElement).then(() => {
+        copyToClipboard(text, surrogateRef.current ?? (document.body as unknown as HTMLDivElement)).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         });

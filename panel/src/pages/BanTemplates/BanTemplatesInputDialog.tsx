@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AutosizeTextAreaRef, AutosizeTextarea } from '@/components/ui/autosize-textarea';
-import { BanTemplatesInputData } from '@/pages/BanTemplates/BanTemplatesPage';
+import type { BanTemplatesInputData } from '@/pages/BanTemplates/banTemplatesTypes';
 import { BanDurationType } from '@shared/otherTypes';
 import { banDurationToString } from '@/lib/utils';
 import { txToast } from '@/components/TxToaster';
@@ -132,7 +132,7 @@ export default function BanTemplatesInputDialog({
                                 required
                                 onChangeCapture={(e) => {
                                     //prevent breaking line
-                                    const target = e.target as HTMLInputElement;
+                                    const target = e.target as HTMLTextAreaElement;
                                     if (target.value.includes('\n')) {
                                         target.value = target.value.replace(/\s*\r*\n+\s*/g, ' ');
                                     }

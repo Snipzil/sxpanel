@@ -3,6 +3,7 @@ import { PassSessAuthType, Pending2faSessAuthType, resolveEffectiveAuthedAdmin }
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import { txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
+import { migrateLegacyPasswordHash, verifyAdminPassword } from '@lib/adminPassword';
 import { ApiVerifyPasswordResp, ReactAuthDataType } from '@shared/authApiTypes';
 import { verifyPasswordBodySchema as bodySchema } from '@shared/authApiSchemas';
 const console = consoleFactory(modulename);
@@ -39,11 +40,19 @@ export default async function AuthVerifyPassword(ctx: InitializedCtx) {
                 error: 'Wrong username or password!',
             });
         }
-        if (!VerifyPasswordHash(postBody.password, vaultAdmin.passwordHash)) {
+        if (!(await verifyAdminPassword(postBody.password, vaultAdmin.passwordHash))) {
             console.warn(`Wrong password from: ${ctx.ip}`);
             return ctx.send<ApiVerifyPasswordResp>({
                 error: 'Wrong username or password!',
             });
+        }
+
+        let passwordRevision = vaultAdmin.passwordRevision;
+        const migratedHash = await migrateLegacyPasswordHash(postBody.password, vaultAdmin.passwordHash);
+        if (migratedHash) {
+            const updated = await txCore.adminStore.updatePasswordHash(vaultAdmin.name, migratedHash);
+            passwordRevision = updated.passwordRevision;
+            console.verbose.ok(`Migrated password hash to Argon2 for admin '${vaultAdmin.name}'.`);
         }
 
         // 2FA check: if admin has TOTP enabled, set pending session and require code
@@ -51,7 +60,7 @@ export default async function AuthVerifyPassword(ctx: InitializedCtx) {
             const pendingSess = {
                 type: 'pending_2fa',
                 username: vaultAdmin.name,
-                password_hash: vaultAdmin.passwordHash,
+                password_revision: passwordRevision,
             } satisfies Pending2faSessAuthType;
             ctx.sessTools.regenerate({ auth: pendingSess });
             return ctx.send<ApiVerifyPasswordResp>({ totp_required: true });
@@ -61,7 +70,7 @@ export default async function AuthVerifyPassword(ctx: InitializedCtx) {
         const sessData = {
             type: 'password',
             username: vaultAdmin.name,
-            password_hash: vaultAdmin.passwordHash,
+            password_revision: passwordRevision,
             expiresAt: false,
             csrfToken: txCore.adminStore.genCsrfToken(),
         } satisfies PassSessAuthType;

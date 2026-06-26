@@ -276,13 +276,8 @@ export default function useServerLog() {
     // ── Jump to time ──
     const jumpToTime = useCallback(
         async (timestamp: number) => {
-            // Disconnect live, load history around the target time
             setIsLive(false);
-            pageSocket.current?.removeAllListeners();
-            pageSocket.current?.disconnect();
-            pageSocket.current = null;
-            dispatchSocketState({ type: 'setConnected', isConnected: false });
-
+            setActiveSession(null);
             dispatchSocketState({ type: 'clearEvents' });
             setHasOlderData(true);
             setIsLoadingOlder(true);

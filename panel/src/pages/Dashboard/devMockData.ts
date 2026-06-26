@@ -147,6 +147,7 @@ export const createMockGlobalStatus = (now = Date.now(), baseStatus?: GlobalStat
 
     return {
         serverTime: Math.floor(now / 1000),
+        language: baseStatus?.language ?? 'en',
         configState: TxConfigState.Ready,
         discord: DiscordBotStatus.Ready,
         runner: {
@@ -162,6 +163,7 @@ export const createMockGlobalStatus = (now = Date.now(), baseStatus?: GlobalStat
             health: FxMonitorHealth.ONLINE,
             healthReason: 'All monitored resources are running and accepting connections.',
             whitelist: baseStatus?.server.whitelist || 'disabled',
+            playerCount: baseStatus?.server.playerCount ?? 0,
         },
         scheduler: {
             nextRelativeMs: Math.round(nextRestartMs),

@@ -1,37 +1,45 @@
+import { useEffect, useState } from 'react';
+import { GavelIcon, InfoIcon, Loader2Icon, PlusIcon } from 'lucide-react';
+import useSWR from 'swr';
+import { customAlphabet } from 'nanoid';
+import { alphanumeric } from 'nanoid-dictionary';
+import { DragEndEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import InlineCode from '@/components/InlineCode';
+import { DndSortableGroup, DndSortableItem } from '@/components/dndSortable';
+import { Button } from '@/components/ui/button';
 import { useAdminPerms } from '@/hooks/auth';
 import { useOpenConfirmDialog } from '@/hooks/dialogs';
-import { useEffect, useState } from 'react';
-import BanTemplatesInputDialog from './BanTemplatesInputDialog';
-import BanTemplatesListItem from './BanTemplatesListItem';
-import BanTemplatesListAddButton from './BanTemplatesListAddButton';
+import { BackendApiError, useBackendApi } from '@/hooks/fetch';
+import { useLocale } from '@/hooks/locale';
+import { cn } from '@/lib/utils';
+import BanTemplatesInputDialog from '@/pages/BanTemplates/BanTemplatesInputDialog';
+import type { BanTemplatesInputData } from '@/pages/BanTemplates/banTemplatesTypes';
 import {
-    BanDurationType,
     BanTemplatesDataType,
     GetBanTemplatesSuccessResp,
     SaveBanTemplatesReq,
     SaveBanTemplatesResp,
 } from '@shared/otherTypes';
-import { DndSortableGroup, DndSortableItem } from '@/components/dndSortable';
-import { DragEndEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
-import { BackendApiError, useBackendApi } from '@/hooks/fetch';
-import { Loader2Icon, Settings2Icon } from 'lucide-react';
-import useSWR from 'swr';
-import { alphanumeric } from 'nanoid-dictionary';
-import { customAlphabet } from 'nanoid';
-import { PageHeader } from '@/components/page-header';
-const nanoid = customAlphabet(alphanumeric, 21);
+import { BanTemplatesHeaderBand, type BanTemplatesSaveStatus } from './BanTemplatesHeaderBand';
+import BanTemplatesListItem from './BanTemplatesListItem';
 
-export type BanTemplatesInputData = {
-    id: string | null;
-    reason: string;
-    duration: BanDurationType;
-};
+const nanoid = customAlphabet(alphanumeric, 21);
 
 type DataUpdaterFunc = (prev: BanTemplatesDataType[]) => BanTemplatesDataType[];
 
-function BanTemplatesPageInner() {
+/**
+ * Ban Templates V2 — redesign goals over V1:
+ * - V2 header band with breadcrumb, description, stat pills (total /
+ *   permanent / timed), and a live save-status pill.
+ * - List inside a `rounded-xl bg-card` shell instead of a flat bordered box.
+ * - Error banners with retry buttons instead of inline underlined links.
+ * - Token-based duration chips and labeled icon actions (fixes the
+ *   `bg-black/40` light-mode chip and the `text-success-inlinex` typo).
+ * - Structured empty/loading states matching the V2 design language.
+ */
+export default function BanTemplatesPage() {
+    const { t } = useLocale();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [reasonInputDialogData, setReasonInputDialogData] = useState<BanTemplatesInputData | undefined>();
     const openConfirmDialog = useOpenConfirmDialog();
@@ -123,7 +131,7 @@ function BanTemplatesPageInner() {
         setReasonInputDialogData(undefined);
     };
 
-    //Handler for list actions
+    //Handlers for list actions
     const handleRemoveItem = (id: string) => {
         if (!id || !swr.data) return;
         const toBeRemoved = swr.data.find((item: BanTemplatesDataType) => item.id === id);
@@ -152,58 +160,69 @@ function BanTemplatesPageInner() {
         setReasonInputDialogData(undefined);
         setIsDialogOpen(true);
     };
+    const handleRetryLoad = () => swr.mutate();
+    const handleRetrySave = () => {
+        if (!swr.data) return;
+        updateBackend(() => swr.data!);
+    };
 
-    //Status display
-    let statusNode: React.ReactNode;
-    if (swr.error) {
-        const retryFunc = () => swr.mutate();
-        const errMsg = swr?.error?.message ?? 'unknown error';
-        statusNode = (
-            <div className="inline-flex flex-wrap gap-1">
-                <span className="text-destructive-inline">Error loading: {errMsg}</span>
-                <br />
-                <button className="hover:text-accent underline" onClick={retryFunc}>
-                    Try again?
-                </button>
-            </div>
-        );
-    } else if (isSaving) {
-        statusNode = <span className="text-success-inlinex animate-pulse">Saving...</span>;
-    } else if (saveError) {
-        const retryFunc = () => {
-            if (!swr.data) return;
-            updateBackend(() => swr.data!);
-        };
-        const errMsg = saveError ?? 'unknown error';
-        statusNode = (
-            <div className="inline-flex flex-wrap gap-1">
-                <span className="text-destructive-inline">Error saving: {errMsg}</span>
-                <br />
-                <button className="hover:text-accent underline" onClick={retryFunc}>
-                    Try again?
-                </button>
-            </div>
-        );
-    } else if (isSaveSuccessful) {
-        statusNode = <span className="text-success-inline">Saved.</span>;
-    } else if (swr.isLoading || swr.isValidating) {
-        statusNode = <span className="text-muted-foreground">Loading...</span>;
-    }
-
-    //Rendering
+    //Derived state
     const canEdit = hasPerm('settings.write');
+    const permanentCount = swr.data?.filter((item) => item.duration === 'permanent').length;
+    const timedCount =
+        swr.data !== undefined && permanentCount !== undefined ? swr.data.length - permanentCount : undefined;
+
+    let saveStatus: BanTemplatesSaveStatus = 'idle';
+    if (isSaving) saveStatus = 'saving';
+    else if (saveError || swr.error) saveStatus = 'error';
+    else if (isSaveSuccessful) saveStatus = 'saved';
+    else if (swr.isLoading || swr.isValidating) saveStatus = 'loading';
+
     return (
-        <>
-            <div className="mx-auto w-full max-w-(--breakpoint-lg) space-y-4">
-                <p className="px-2 md:px-0">
-                    Here you can configure ban reasons and durations that will appear as dropdown options when banning a
-                    player. <br />
-                    This is useful for common reasons that happen frequently, like violation of your server rules.{' '}
-                    <br />
+        <div className="mx-auto mb-10 flex w-full max-w-(--breakpoint-lg) min-w-96 flex-col px-2 md:px-0">
+            <BanTemplatesHeaderBand
+                title={t('panel.routes.ban_templates')}
+                parentName={t('panel.routes.settings')}
+                totalCount={swr.data?.length}
+                permanentCount={permanentCount}
+                timedCount={timedCount}
+                saveStatus={saveStatus}
+            />
+
+            {/* Error banners with retry */}
+            {swr.error && (
+                <div
+                    className="border-destructive/40 bg-destructive/10 mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border p-4"
+                    role="alert"
+                >
+                    <p className="text-destructive-inline text-sm">
+                        Error loading templates: {swr.error?.message ?? 'unknown error'}
+                    </p>
+                    <Button variant="outline" size="sm" onClick={handleRetryLoad}>
+                        Try again
+                    </Button>
+                </div>
+            )}
+            {saveError && (
+                <div
+                    className="border-destructive/40 bg-destructive/10 mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border p-4"
+                    role="alert"
+                >
+                    <p className="text-destructive-inline text-sm">Error saving: {saveError}</p>
+                    <Button variant="outline" size="sm" onClick={handleRetrySave}>
+                        Try again
+                    </Button>
+                </div>
+            )}
+
+            {/* Permission / usage hint */}
+            <div className="border-border/50 bg-muted/15 mb-4 flex gap-3 rounded-xl border p-3">
+                <InfoIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                    These reasons appear as dropdown options when banning a player — useful for frequent cases like rule
+                    violations.{' '}
                     {canEdit ? (
-                        <span className="text-muted-foreground italic">
-                            TIP: You can also drag and drop to reorder the list. <br />
-                        </span>
+                        <span className="italic">Drag the handle to reorder the list.</span>
                     ) : (
                         <span className="text-warning-inline">
                             You need the <InlineCode className="text-warning-inline">Settings: Change</InlineCode>{' '}
@@ -211,45 +230,63 @@ function BanTemplatesPageInner() {
                         </span>
                     )}
                 </p>
-                <div className="space-y-2">
-                    <div className="text-muted-foreground flex flex-wrap justify-between px-2 md:px-0">
-                        <span className="shrink-0">Configured reasons: {swr.data?.length ?? 0}</span>
-                        {statusNode}
-                    </div>
-
-                    {!swr.data && !saveError && (
-                        <div className="text-muted-foreground my-4 px-2 text-center text-lg md:px-0 md:text-2xl">
-                            <Loader2Icon className="inline h-8 animate-spin" />
-                            Loading...
-                        </div>
-                    )}
-                    {swr.data && (
-                        <DndSortableGroup
-                            className="xs:rounded-lg space-y-2 border p-2"
-                            ids={swr.data.map((item: BanTemplatesDataType) => item.id)}
-                            onDragEnd={handleDragEnd}
-                        >
-                            {!swr.data.length ? (
-                                <div className="text-muted-foreground my-4 px-2 text-center text-lg md:px-0 md:text-2xl">
-                                    No reasons configured yet.
-                                </div>
-                            ) : (
-                                swr.data.map((item: BanTemplatesDataType) => (
-                                    <DndSortableItem key={item.id} id={item.id} disabled={!canEdit}>
-                                        <BanTemplatesListItem
-                                            onEdit={handleEditItem}
-                                            onRemove={handleRemoveItem}
-                                            disabled={!canEdit}
-                                            {...item}
-                                        />
-                                    </DndSortableItem>
-                                ))
-                            )}
-                            <BanTemplatesListAddButton onClick={handleAddNewItem} disabled={!canEdit} />
-                        </DndSortableGroup>
-                    )}
-                </div>
             </div>
+
+            {/* List card */}
+            <div className="border-border/60 bg-card rounded-xl border p-3 shadow-sm">
+                {!swr.data && !saveError ? (
+                    <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12">
+                        <Loader2Icon className="size-6 animate-spin" />
+                        <p className="text-sm">Loading templates…</p>
+                    </div>
+                ) : swr.data ? (
+                    <DndSortableGroup
+                        className="space-y-2"
+                        ids={swr.data.map((item: BanTemplatesDataType) => item.id)}
+                        onDragEnd={handleDragEnd}
+                    >
+                        {!swr.data.length ? (
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12">
+                                <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                    <GavelIcon className="size-6" />
+                                </div>
+                                <p className="text-sm font-medium">No reasons configured yet</p>
+                                <p className="text-muted-foreground/70 max-w-xs text-center text-xs">
+                                    Add your first ban template to speed up moderation actions.
+                                </p>
+                            </div>
+                        ) : (
+                            swr.data.map((item: BanTemplatesDataType) => (
+                                <DndSortableItem key={item.id} id={item.id} disabled={!canEdit}>
+                                    <BanTemplatesListItem
+                                        onEdit={handleEditItem}
+                                        onRemove={handleRemoveItem}
+                                        disabled={!canEdit}
+                                        {...item}
+                                    />
+                                </DndSortableItem>
+                            ))
+                        )}
+                        <li>
+                            <button
+                                type="button"
+                                disabled={!canEdit}
+                                onClick={handleAddNewItem}
+                                className={cn(
+                                    'border-border/60 text-muted-foreground flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-2 py-3 text-sm font-medium transition-colors',
+                                    !canEdit
+                                        ? 'cursor-not-allowed opacity-50'
+                                        : 'hover:border-primary/50 hover:bg-muted/40 hover:text-foreground cursor-pointer',
+                                )}
+                            >
+                                <PlusIcon className="size-4" />
+                                Add new reason
+                            </button>
+                        </li>
+                    </DndSortableGroup>
+                ) : null}
+            </div>
+
             <BanTemplatesInputDialog
                 key={reasonInputDialogData?.id}
                 reasonData={reasonInputDialogData}
@@ -257,17 +294,6 @@ function BanTemplatesPageInner() {
                 isDialogOpen={isDialogOpen}
                 setIsDialogOpen={setIsDialogOpen}
             />
-        </>
-    );
-}
-
-export default function BanTemplatesPage() {
-    return (
-        <div className="mb-10 w-full">
-            <PageHeader icon={<Settings2Icon />} title="Ban Templates" parentName="Settings" parentLink="/settings" />
-            <div className="xs:px-3 flex w-full flex-row gap-2 px-0 md:px-0">
-                <BanTemplatesPageInner />
-            </div>
         </div>
     );
 }

@@ -20,6 +20,8 @@ import { PlayerModalPlayerData } from '@shared/playerApiTypes';
 import { PlayerTag, TagDefinition, AUTO_TAG_DEFINITIONS } from '@shared/socketioTypes';
 import { ShieldAlertIcon, TagIcon } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { useLocale } from '@/hooks/locale';
+import { translateApiError } from '@/lib/translateApiError';
 
 const FALLBACK_TAG_DISPLAY: Record<string, { label: string; color: string; bg: string }> = {
     staff: { label: 'Staff', color: '#FCA5A5', bg: '#7F1D1D' },
@@ -54,32 +56,34 @@ const buildTagDisplay = (defs: TagDefinition[]): Record<string, { label: string;
 };
 
 function LogActionCounter({ type, count }: { type: 'Ban' | 'Warn'; count: number }) {
-    const pluralLabel = count > 1 ? `${type}s` : type;
-    if (count === 0) {
-        return (
-            <span
-                className={cn(
-                    'inline-block h-max rounded-sm px-1 py-0.5 text-center text-xs font-semibold tracking-widest',
-                    'bg-secondary text-secondary-foreground',
-                )}
-            >
-                0 {type}s
-            </span>
-        );
-    } else {
-        return (
-            <span
-                className={cn(
-                    'inline-block h-max rounded-sm px-1 py-0.5 text-center text-xs font-semibold tracking-widest',
-                    type === 'Ban'
-                        ? 'bg-destructive text-destructive-foreground'
-                        : 'bg-warning text-warning-foreground',
-                )}
-            >
-                {count} {pluralLabel}
-            </span>
-        );
-    }
+    const { t } = useLocale();
+    const label =
+        type === 'Ban'
+            ? count === 0
+                ? t('panel.player_modal.info.bans_count_zero')
+                : count === 1
+                  ? t('panel.player_modal.info.bans_count_one')
+                  : t('panel.player_modal.info.bans_count_other', { count })
+            : count === 0
+              ? t('panel.player_modal.info.warns_count_zero')
+              : count === 1
+                ? t('panel.player_modal.info.warns_count_one')
+                : t('panel.player_modal.info.warns_count_other', { count });
+
+    return (
+        <span
+            className={cn(
+                'inline-block h-max rounded-sm px-1 py-0.5 text-center text-xs font-semibold tracking-widest',
+                count === 0
+                    ? 'bg-secondary text-secondary-foreground'
+                    : type === 'Ban'
+                      ? 'bg-destructive text-destructive-foreground'
+                      : 'bg-warning text-warning-foreground',
+            )}
+        >
+            {label}
+        </span>
+    );
 }
 
 type PlayerNotesBoxProps = {
@@ -95,6 +99,7 @@ const calcTextAreaLines = (text?: string) => {
 };
 
 function PlayerNotesBox({ playerRef, player, refreshModalData }: PlayerNotesBoxProps) {
+    const { t } = useLocale();
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
     const [notesLogText, setNotesLogText] = useState(player.notesLog ?? '');
     const [textAreaLines, setTextAreaLines] = useState(() => calcTextAreaLines(player.notes));
@@ -104,7 +109,7 @@ function PlayerNotesBox({ playerRef, player, refreshModalData }: PlayerNotesBoxP
     });
 
     const doSaveNotes = () => {
-        setNotesLogText('Saving...');
+        setNotesLogText(t('panel.player_modal.toasts.notes_saving'));
         playerNotesApi({
             queryParams: playerRef,
             data: {
@@ -112,7 +117,7 @@ function PlayerNotesBox({ playerRef, player, refreshModalData }: PlayerNotesBoxP
             },
             success: (data) => {
                 if ('error' in data) {
-                    setNotesLogText(data.error);
+                    setNotesLogText(translateApiError(t, data.errorCode, data.error));
                 } else {
                     refreshModalData();
                 }
@@ -132,7 +137,7 @@ function PlayerNotesBox({ playerRef, player, refreshModalData }: PlayerNotesBoxP
     return (
         <>
             <Label htmlFor="playerNotes">
-                Notes: <span className="text-muted-foreground">{notesLogText}</span>
+                {t('panel.player_modal.info.notes_label')} <span className="text-muted-foreground">{notesLogText}</span>
             </Label>
             <Textarea
                 ref={textAreaRef}
@@ -140,14 +145,14 @@ function PlayerNotesBox({ playerRef, player, refreshModalData }: PlayerNotesBoxP
                 className="mt-1 w-full"
                 disabled={!player.isRegistered}
                 defaultValue={player.notes}
-                onChange={() => setNotesLogText('Press enter to save.')}
+                onChange={() => setNotesLogText(t('panel.player_modal.toasts.notes_save_hint'))}
                 onKeyDown={handleKeyDown}
                 //1rem of padding + 1.25rem per line
                 style={{ height: `${1 + 1.25 * textAreaLines}rem` }}
                 placeholder={
                     player.isRegistered
-                        ? 'Type your notes about the player.'
-                        : 'Cannot set notes for players that are not registered.'
+                        ? t('panel.player_modal.info.notes_placeholder')
+                        : t('panel.player_modal.info.notes_unregistered')
                 }
             />
             {window.txIsMobile && (
@@ -159,7 +164,7 @@ function PlayerNotesBox({ playerRef, player, refreshModalData }: PlayerNotesBoxP
                         disabled={!player.isRegistered}
                         className="w-full"
                     >
-                        Save Note
+                        {t('panel.player_modal.info.save_note')}
                     </Button>
                 </div>
             )}
@@ -186,12 +191,26 @@ export default function PlayerInfoTab({
     refreshModalData,
     tagDefinitions,
 }: PlayerInfoTabProps) {
+    const { t } = useLocale();
     const { hasPerm } = useAdminPerms();
     const tagDisplay = useMemo(() => buildTagDisplay(tagDefinitions ?? []), [tagDefinitions]);
     const autoTagIds = useMemo(() => new Set(AUTO_TAG_DEFINITIONS.map((t) => t.id)), []);
     const customTagDefs = useMemo(
         () => (tagDefinitions ?? []).filter((t) => !autoTagIds.has(t.id)),
         [tagDefinitions, autoTagIds],
+    );
+    const discordManagedTagIds = useMemo(
+        () =>
+            new Set(
+                (tagDefinitions ?? [])
+                    .filter((def) => !autoTagIds.has(def.id) && (def.discordRoleIds?.length ?? 0) > 0)
+                    .map((def) => def.id),
+            ),
+        [tagDefinitions, autoTagIds],
+    );
+    const manualCustomTagDefs = useMemo(
+        () => customTagDefs.filter((def) => !discordManagedTagIds.has(def.id)),
+        [customTagDefs, discordManagedTagIds],
     );
     const playerWhitelistApi = useBackendApi<GenericApiOkResp>({
         method: 'POST',
@@ -206,8 +225,8 @@ export default function PlayerInfoTab({
         playerTagApi({
             queryParams: playerRef,
             data: { tagId, status: !currentlyHas },
-            toastLoadingMessage: 'Updating tag...',
-            genericHandler: { successMsg: 'Tag updated.' },
+            toastLoadingMessage: t('panel.player_modal.toasts.tag_updating'),
+            genericHandler: { successMsg: t('panel.player_modal.toasts.tag_updated') },
             success: (data) => {
                 if ('success' in data) {
                     refreshModalData();
@@ -243,7 +262,7 @@ export default function PlayerInfoTab({
         />
     );
     const whitelistedText = !player.tsWhitelisted ? (
-        'not yet'
+        t('panel.player_modal.info.not_yet')
     ) : (
         <DateTimeCorrected
             className="cursor-help opacity-75"
@@ -262,9 +281,9 @@ export default function PlayerInfoTab({
             data: {
                 status: !player.tsWhitelisted,
             },
-            toastLoadingMessage: 'Updating whitelist...',
+            toastLoadingMessage: t('panel.player_modal.toasts.whitelist_updating'),
             genericHandler: {
-                successMsg: 'Whitelist changed.',
+                successMsg: t('panel.player_modal.toasts.whitelist_changed'),
             },
             success: (data, toastId) => {
                 if ('success' in data) {
@@ -284,15 +303,15 @@ export default function PlayerInfoTab({
                     banExpiration = Math.max(banExpiration ?? 0, action.exp);
                 }
             } else {
-                return 'This player is permanently banned.';
+                return t('panel.player_modal.info.banned_permanent');
             }
         }
 
         if (banExpiration !== undefined) {
             const str = tsToLocaleDateTimeString(banExpiration, 'short', 'short');
-            return `This player is banned until ${str}`;
+            return t('panel.player_modal.info.banned_until', { date: str });
         }
-    }, [player, serverTime]);
+    }, [player, serverTime, t]);
 
     return (
         <div className="p-1">
@@ -319,6 +338,11 @@ export default function PlayerInfoTab({
                                 }}
                             >
                                 {cfg.label}
+                                {discordManagedTagIds.has(tag) ? (
+                                    <span className="text-muted-foreground ml-1 text-[10px] font-normal uppercase">
+                                        Discord
+                                    </span>
+                                ) : null}
                             </span>
                         );
                     })}
@@ -327,27 +351,37 @@ export default function PlayerInfoTab({
             <dl className="pb-2">
                 {player.isConnected && (
                     <div className="grid grid-cols-3 gap-4 px-0 py-0.5">
-                        <dt className="text-muted-foreground text-sm leading-6 font-medium">Session Time</dt>
+                        <dt className="text-muted-foreground text-sm leading-6 font-medium">
+                            {t('panel.player_modal.info.session_time')}
+                        </dt>
                         <dd className="col-span-2 mt-0 text-sm leading-6">{sessionTimeText}</dd>
                     </div>
                 )}
                 <div className="grid grid-cols-3 gap-4 px-0 py-0.5">
-                    <dt className="text-muted-foreground text-sm leading-6 font-medium">Play Time</dt>
+                    <dt className="text-muted-foreground text-sm leading-6 font-medium">
+                        {t('panel.player_modal.info.play_time')}
+                    </dt>
                     <dd className="col-span-2 mt-0 text-sm leading-6">{playTimeText}</dd>
                 </div>
                 <div className="grid grid-cols-3 gap-4 px-0 py-0.5">
-                    <dt className="text-muted-foreground text-sm leading-6 font-medium">Join Date</dt>
+                    <dt className="text-muted-foreground text-sm leading-6 font-medium">
+                        {t('panel.player_modal.info.join_date')}
+                    </dt>
                     <dd className="col-span-2 mt-0 text-sm leading-6">{joinDateText}</dd>
                 </div>
                 {!player.isConnected && (
                     <div className="grid grid-cols-3 gap-4 px-0 py-0.5">
-                        <dt className="text-muted-foreground text-sm leading-6 font-medium">Last Connection</dt>
+                        <dt className="text-muted-foreground text-sm leading-6 font-medium">
+                            {t('panel.player_modal.info.last_connection')}
+                        </dt>
                         <dd className="col-span-2 mt-0 text-sm leading-6">{lastConnectionText}</dd>
                     </div>
                 )}
 
                 <div className="grid grid-cols-3 gap-4 px-0 py-0.5">
-                    <dt className="text-muted-foreground text-sm leading-6 font-medium">ID Whitelisted</dt>
+                    <dt className="text-muted-foreground text-sm leading-6 font-medium">
+                        {t('panel.player_modal.info.id_whitelisted')}
+                    </dt>
                     <dd className="mt-0 text-sm leading-6">{whitelistedText}</dd>
                     <dd className="text-right">
                         <Button
@@ -357,12 +391,14 @@ export default function PlayerInfoTab({
                             onClick={handleWhitelistClick}
                             disabled={!hasPerm('players.whitelist')}
                         >
-                            {player.tsWhitelisted ? 'Remove' : 'Add WL'}
+                            {player.tsWhitelisted ? t('panel.common.remove') : t('panel.player_modal.info.add_wl')}
                         </Button>
                     </dd>
                 </div>
                 <div className="grid grid-cols-3 gap-4 px-0 py-0.5">
-                    <dt className="text-muted-foreground text-sm leading-6 font-medium">Sanctions</dt>
+                    <dt className="text-muted-foreground text-sm leading-6 font-medium">
+                        {t('panel.player_modal.info.sanctions')}
+                    </dt>
                     <dd className="mt-0 flex flex-wrap gap-2 text-sm leading-6">
                         <LogActionCounter type="Ban" count={banCount} />
                         <LogActionCounter type="Warn" count={warnCount} />
@@ -376,24 +412,28 @@ export default function PlayerInfoTab({
                                 setSelectedTab('History');
                             }}
                         >
-                            View
+                            {t('panel.common.view')}
                         </Button>
                     </dd>
                 </div>
-                {customTagDefs.length > 0 && hasPerm('players.whitelist') && (
+                {customTagDefs.length > 0 && hasPerm('players.write') && manualCustomTagDefs.length > 0 && (
                     <div className="grid grid-cols-3 gap-4 px-0 py-0.5">
-                        <dt className="text-muted-foreground text-sm leading-6 font-medium">Custom Tags</dt>
+                        <dt className="text-muted-foreground text-sm leading-6 font-medium">
+                            {t('panel.player_modal.info.custom_tags')}
+                        </dt>
                         <dd className="col-span-2 mt-0 text-right text-sm leading-6">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="inline" style={{ minWidth: '8.25ch' }}>
-                                        Edit
+                                        {t('panel.common.edit')}
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel className="text-xs">Custom Tags</DropdownMenuLabel>
+                                    <DropdownMenuLabel className="text-xs">
+                                        {t('panel.player_modal.info.custom_tags')}
+                                    </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    {customTagDefs.map((def) => {
+                                    {manualCustomTagDefs.map((def) => {
                                         const hasTag = player.tags?.includes(def.id) ?? false;
                                         return (
                                             <DropdownMenuCheckboxItem

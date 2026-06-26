@@ -33,7 +33,24 @@ function hasLastSeenImmuneUuid(ids: string[] = [], hwids: string[] = []): boolea
  * Data access object for the database "players" collection.
  */
 export default class PlayersDao {
+    /** License → player object index; invalidated on writes. */
+    private licenseIndex: Map<string, DatabasePlayerType> | null = null;
+
     constructor(private readonly db: DbInstance) {}
+
+    private invalidateLicenseIndex() {
+        this.licenseIndex = null;
+    }
+
+    private getLicenseIndex(): Map<string, DatabasePlayerType> {
+        if (!this.licenseIndex) {
+            this.licenseIndex = new Map();
+            for (const player of this.dbo.data!.players) {
+                this.licenseIndex.set(player.license, player);
+            }
+        }
+        return this.licenseIndex;
+    }
 
     private get dbo() {
         if (!this.db.obj || !this.db.isReady) throw new Error(`database not ready yet`);
@@ -54,8 +71,8 @@ export default class PlayersDao {
         }
 
         //Performing search
-        const p = this.chain.get('players').find({ license }).cloneDeep().value();
-        return typeof p === 'undefined' ? null : p;
+        const p = this.getLicenseIndex().get(license);
+        return p ? structuredClone(p) : null;
     }
 
     /**
@@ -82,6 +99,7 @@ export default class PlayersDao {
 
         this.db.writeFlag(SavePriority.LOW);
         this.chain.get('players').push(player).value();
+        this.invalidateLicenseIndex();
     }
 
     /**
@@ -97,11 +115,10 @@ export default class PlayersDao {
             throw new Error(`cannot modify license field`);
         }
 
-        const playerDbObj = this.chain.get('players').find({ license });
-        const playerVal = playerDbObj.value();
+        const playerVal = this.getLicenseIndex().get(license);
         if (!playerVal) throw new Error('Player not found in database');
 
-        const currentPlayer = playerVal as DatabasePlayerType;
+        const currentPlayer = playerVal;
         const nextIds = 'ids' in srcData && srcData.ids !== undefined ? srcData.ids : currentPlayer.ids;
         const nextHwids = 'hwids' in srcData && srcData.hwids !== undefined ? srcData.hwids : currentPlayer.hwids;
         const isLastSeenImmune = hasLastSeenImmuneUuid(nextIds, nextHwids);
@@ -112,7 +129,8 @@ export default class PlayersDao {
         }
 
         this.db.writeFlag(SavePriority.LOW);
-        const newData = playerDbObj.assign(safeSrcData).cloneDeep().value();
+        Object.assign(currentPlayer, safeSrcData);
+        const newData = structuredClone(currentPlayer);
         txCore.fxPlayerlist.handleDbDataSync(newData, srcUniqueId);
         return newData;
     }
@@ -147,6 +165,7 @@ export default class PlayersDao {
         }
         const removed = this.chain.get('players').remove({ license }).value();
         if (!removed.length) throw new Error('Player not found in database');
+        this.invalidateLicenseIndex();
         this.db.writeFlag(SavePriority.HIGH);
     }
 

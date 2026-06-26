@@ -21,9 +21,7 @@ function reduceTmpSocketState(state: TmpSocketState, action: TmpSocketAction): T
             console.log(state.consoleData.length, action.incomingData.length);
             let consoleData = state.consoleData + action.incomingData;
             consoleData =
-                consoleData.length > BUFFER_TRIM_SIZE
-                    ? consoleData.slice(-0.5 * BUFFER_TRIM_SIZE)
-                    : consoleData;
+                consoleData.length > BUFFER_TRIM_SIZE ? consoleData.slice(-0.5 * BUFFER_TRIM_SIZE) : consoleData;
             consoleData = consoleData.substring(consoleData.indexOf('\n'));
             return {
                 ...state,

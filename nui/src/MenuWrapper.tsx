@@ -20,6 +20,7 @@ import { Box } from '@mui/material';
 import { fetchNui } from './utils/fetchNui';
 import { useLocale } from './hooks/useLocale';
 import { TooltipProvider } from './provider/TooltipProvider';
+import { BrowserDevToolbar } from './components/misc/BrowserDevToolbar';
 
 //Mock events for browser development
 debugData<any>(
@@ -99,6 +100,7 @@ const MenuWrapper: React.FC = () => {
                     </DialogProvider>
                     <WarnPage />
                     <ReportPage />
+                    <BrowserDevToolbar />
                 </>
             </I18n>
         </TopLevelErrorBoundary>

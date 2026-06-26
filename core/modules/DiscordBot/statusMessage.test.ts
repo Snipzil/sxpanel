@@ -25,6 +25,9 @@ suite('generatePlayerListMessage', () => {
             general: {
                 serverName: 'Example Server',
             },
+            restarter: {
+                disableHealthCheck: false,
+            },
             discordBot: {
                 embedJson: '{}',
                 embedConfigJson: '{}',

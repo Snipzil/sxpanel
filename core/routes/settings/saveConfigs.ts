@@ -46,7 +46,11 @@ const cardNamesMap = {
     general: 'General',
     fxserver: 'FXServer',
     bans: 'Bans',
+    'deferral-cards': 'Deferral Cards',
     whitelist: 'Whitelist',
+    queue: 'Queue',
+    discord: 'Discord',
+    game: 'Game',
     'discord-bot': 'Discord Bot',
     'discord-oauth': 'Discord OAuth',
     'game-menu': 'Game Menu',
@@ -110,10 +114,28 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
                     msg: 'Only the master admin can change the "Allow Self Identifier Edit" setting.',
                 });
             }
+            if ((inputConfig as any).general?.requireAdminTwoFactor !== undefined && !ctx.admin.isMaster) {
+                return sendTypedResp({
+                    type: 'error',
+                    msg: 'Only the master admin can change the "Require Two-Factor Authentication" setting.',
+                });
+            }
+            if ((inputConfig as any).general?.requireAdminTwoFactor === true && !ctx.admin.totpEnabled) {
+                return sendTypedResp({
+                    type: 'error',
+                    msg: 'Enable two-factor authentication on your account before requiring it for all admins.',
+                });
+            }
+            if ((inputConfig as any).general?.enableTelemetry !== undefined && !ctx.admin.isMaster) {
+                return sendTypedResp({
+                    type: 'error',
+                    msg: 'Only the master admin can change anonymous telemetry collection.',
+                });
+            }
             handlerResp = await handleGeneralCard(inputConfig, sendTypedResp);
         } else if (cardId === 'fxserver') {
             handlerResp = await handleFxserverCard(inputConfig, sendTypedResp);
-        } else if (cardId === 'discord-bot') {
+        } else if (cardId === 'discord-bot' || cardId === 'discord') {
             handlerResp = await handleDiscordCard(inputConfig, sendTypedResp);
         }
     } catch (error) {
@@ -130,6 +152,9 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
     const configChanges = handlerResp.processedConfig;
     try {
         for (const config of resetKeys) {
+            if (typeof config !== 'string' || !config.includes('.')) {
+                throw new Error(`Invalid reset key: \`${String(config)}\``);
+            }
             const [scope, key] = config.split('.');
             if (!scope || !key) throw new Error(`Invalid reset key: \`${config}\``);
             confx(configChanges).set(scope, key, SYM_RESET_CONFIG);
@@ -171,9 +196,19 @@ export default async function SaveSettingsConfigs(ctx: AuthedCtx) {
  * General card handler
  */
 const handleGeneralCard: CardHandler = async (inputConfig, sendTypedResp) => {
-    //Validates custom language file
-    if (inputConfig.general?.language === undefined) throw new Error(`Unexpected data for the 'general' card.`);
-    if (inputConfig.general.language === 'custom') {
+    const general = inputConfig.general;
+    if (!general || typeof general !== 'object') {
+        throw new Error(`Unexpected data for the 'general' card.`);
+    }
+
+    const touchedKeys = Object.keys(general).filter((key) => (general as Record<string, unknown>)[key] !== undefined);
+    const isTelemetryOnly = touchedKeys.length === 1 && touchedKeys[0] === 'enableTelemetry';
+
+    //Validates custom language file (full general card saves only)
+    if (!isTelemetryOnly && general.language === undefined) {
+        throw new Error(`Unexpected data for the 'general' card.`);
+    }
+    if (!isTelemetryOnly && general.language === 'custom') {
         try {
             const raw = await fsp.readFile(txCore.translator.customLocalePath, 'utf8');
             if (!raw.length) throw new Error('The \`locale.json\` file is empty.');
@@ -351,8 +386,10 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
 
     const nextEnabled =
         inputConfig.discordBot.enabled === undefined ? txConfig.discordBot.enabled : inputConfig.discordBot.enabled;
-    const nextToken = inputConfig.discordBot.token === undefined ? txConfig.discordBot.token : inputConfig.discordBot.token;
-    const nextGuild = inputConfig.discordBot.guild === undefined ? txConfig.discordBot.guild : inputConfig.discordBot.guild;
+    const nextToken =
+        inputConfig.discordBot.token === undefined ? txConfig.discordBot.token : inputConfig.discordBot.token;
+    const nextGuild =
+        inputConfig.discordBot.guild === undefined ? txConfig.discordBot.guild : inputConfig.discordBot.guild;
     const nextWarningsChannel =
         inputConfig.discordBot.warningsChannel === undefined
             ? txConfig.discordBot.warningsChannel

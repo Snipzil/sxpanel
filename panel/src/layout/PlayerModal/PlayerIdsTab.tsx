@@ -1,10 +1,10 @@
 import { PlayerModalPlayerData } from '@shared/playerApiTypes';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import MultiIdsList from '@/components/MultiIdsList';
-import { txToast } from '@/components/TxToaster';
 import { useBackendApi } from '@/hooks/fetch';
 import { useAdminPerms } from '@/hooks/auth';
 import { GenericApiResp } from '@shared/genericApiTypes';
+import { useLocale } from '@/hooks/locale';
 
 type PlayerIdsTabProps = {
     player: PlayerModalPlayerData;
@@ -12,6 +12,7 @@ type PlayerIdsTabProps = {
 };
 
 export default function PlayerIdsTab({ player, refreshModalData }: PlayerIdsTabProps) {
+    const { t } = useLocale();
     const { hasPerm } = useAdminPerms();
     const hasDeletePerm = hasPerm('players.delete');
 
@@ -30,9 +31,9 @@ export default function PlayerIdsTab({ player, refreshModalData }: PlayerIdsTabP
         ? () => {
               wipeIdsApi({
                   queryParams,
-                  toastLoadingMessage: 'Wiping IDs...',
+                  toastLoadingMessage: t('panel.player_modal.toasts.wipe_ids'),
                   genericHandler: {
-                      successMsg: 'IDs wiped successfully.',
+                      successMsg: t('panel.player_modal.toasts.wipe_ids_success'),
                   },
                   success: (data) => {
                       if ('success' in data) {
@@ -47,9 +48,9 @@ export default function PlayerIdsTab({ player, refreshModalData }: PlayerIdsTabP
         ? () => {
               wipeHwidsApi({
                   queryParams,
-                  toastLoadingMessage: 'Wiping HWIDs...',
+                  toastLoadingMessage: t('panel.player_modal.toasts.wipe_hwids'),
                   genericHandler: {
-                      successMsg: 'HWIDs wiped successfully.',
+                      successMsg: t('panel.player_modal.toasts.wipe_hwids_success'),
                   },
                   success: (data) => {
                       if ('success' in data) {

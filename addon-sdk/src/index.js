@@ -35,20 +35,25 @@ export function createAddon() {
     // Abstract IPC: in-process uses the channel; otherwise process.send/on.
     const transport = channel
         ? {
-            send: (m) => channel.sendToCore(m),
-            onMessage: (fn) => channel.onCoreMessage(fn),
-            isInProcess: true,
-        }
+              send: (m) => channel.sendToCore(m),
+              onMessage: (fn) => channel.onCoreMessage(fn),
+              isInProcess: true,
+          }
         : {
-            send: (m) => { if (process.send) process.send(m); },
-            onMessage: (fn) => process.on('message', fn),
-            isInProcess: false,
-        };
+              send: (m) => {
+                  if (process.send) process.send(m);
+              },
+              onMessage: (fn) => process.on('message', fn),
+              isInProcess: false,
+          };
 
     let permissions = [];
     let isReady = false;
     const routes = [];
     const publicRoutes = [];
+    const deferralScenarios = [];
+    const deferralTokenKeys = new Set();
+    const deferralTokenResolvers = new Map();
     const eventHandlers = new Map();
     const pendingStorage = new Map();
     const pendingApiCalls = new Map();
@@ -65,7 +70,11 @@ export function createAddon() {
      * Send an IPC message to the core.
      */
     function send(message) {
-        try { transport.send(message); } catch { /* channel closed */ }
+        try {
+            transport.send(message);
+        } catch {
+            /* channel closed */
+        }
     }
 
     // ============================================
@@ -211,17 +220,64 @@ export function createAddon() {
         },
     };
 
+    function registerDeferralScenario({ id, label, description, group }) {
+        const scenarioKey = String(id ?? '').trim();
+        if (!scenarioKey) throw new Error('registerDeferralScenario: id is required');
+        deferralScenarios.push({
+            id: `${addonId}:${scenarioKey}`,
+            label: String(label ?? scenarioKey),
+            description: description ? String(description) : '',
+            group: group ? String(group) : 'addon',
+        });
+    }
+
+    function registerDeferralToken({ key, label, resolve }) {
+        const tokenKey = String(key ?? '').trim();
+        if (!tokenKey) throw new Error('registerDeferralToken: key is required');
+        if (typeof resolve !== 'function') throw new Error('registerDeferralToken: resolve function is required');
+        deferralTokenKeys.add(tokenKey);
+        deferralTokenResolvers.set(tokenKey, resolve);
+    }
+
+    function deferPresent({ license, scenarioId, customMessage, playerName }) {
+        const lic = String(license ?? '').trim();
+        let scenario = String(scenarioId ?? '').trim();
+        if (!lic || !scenario) {
+            throw new Error('deferPresent: license and scenarioId are required');
+        }
+        if (!scenario.includes(':')) {
+            scenario = `${addonId}:${scenario}`;
+        }
+        send({
+            type: 'deferral-present',
+            payload: {
+                license: lic,
+                scenarioId: scenario,
+                customMessage: customMessage != null ? String(customMessage) : undefined,
+                playerName: playerName != null ? String(playerName) : undefined,
+            },
+        });
+    }
+
     // ============================================
     // Signal Ready
     // ============================================
     function ready() {
         if (isReady) return;
         isReady = true;
+        const deferralPayload =
+            deferralScenarios.length || deferralTokenKeys.size
+                ? {
+                      scenarios: deferralScenarios,
+                      tokens: [...deferralTokenKeys],
+                  }
+                : undefined;
         send({
             type: 'ready',
             payload: {
                 routes,
                 publicRoutes: publicRoutes.length > 0 ? publicRoutes : undefined,
+                deferral: deferralPayload,
             },
         });
     }
@@ -450,6 +506,31 @@ export function createAddon() {
                 }
                 break;
             }
+
+            case 'deferral-resolve-tokens': {
+                const { scenarioId, tokens, player } = msg.payload ?? {};
+                const values = {};
+                let error;
+                try {
+                    for (const key of tokens ?? []) {
+                        const resolver = deferralTokenResolvers.get(key);
+                        if (!resolver) {
+                            values[key] = '';
+                            continue;
+                        }
+                        const raw = await resolver({ scenarioId, player: player ?? {}, tokens: tokens ?? [] });
+                        values[key] = raw == null ? '' : String(raw);
+                    }
+                } catch (err) {
+                    error = err?.message ?? String(err);
+                }
+                send({
+                    type: 'deferral-token-response',
+                    id: msg.id,
+                    payload: { values, error },
+                });
+                break;
+            }
         }
     });
 
@@ -490,6 +571,9 @@ export function createAddon() {
         on,
         off,
         log,
+        registerDeferralScenario,
+        registerDeferralToken,
+        deferPresent,
         ready,
     };
 }

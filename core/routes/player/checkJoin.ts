@@ -1,59 +1,20 @@
 const modulename = 'WebServer:PlayerCheckJoin';
-import cleanPlayerName from '@shared/cleanPlayerName';
 import { GenericApiErrorResp } from '@shared/genericApiTypes';
-import {
-    DatabaseActionBanType,
-    DatabaseActionType,
-    DatabaseWhitelistApprovalsType,
-} from '@modules/Database/databaseTypes';
+import { DatabaseActionBanType, DatabaseActionType } from '@modules/Database/databaseTypes';
 import { anyUndefined, now } from '@lib/misc';
 import { filterPlayerHwids, parsePlayerIds, shortenId, summarizeIdsArray } from '@lib/player/idUtils';
 import type { PlayerIdsObjectType } from '@shared/otherTypes';
 import xssInstancer from '@lib/xss';
-import playerResolver from '@lib/player/playerResolver';
 import humanizeDuration, { Unit } from 'humanize-duration';
 import consoleFactory from '@lib/console';
 import { TimeCounter } from '@modules/Metrics/statsUtils';
+import { evaluateJoin } from '@modules/Whitelist/WhitelistService';
+import { getDeferralScenarioTemplate, renderDeferralCard } from '@modules/Whitelist/deferralCard';
+import { templateHasVisualLayout } from '@shared/deferralCardLayout';
+import { emsg } from '@shared/emsg';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 const console = consoleFactory(modulename);
 const xss = xssInstancer();
-
-//Helper
-const htmlCodeTag = '<code style="background-color: hsl(202deg 40% 66% / 35%); padding: 2px 2px; border-radius: 4px;">';
-const htmlCodeIdTag =
-    '<code style="letter-spacing: 2px; background-color: #ff7f5059; padding: 2px 4px; border-radius: 6px;">';
-const htmlGuildNameTag = '<strong style="color: cornflowerblue">';
-const rejectMessageTemplate = (title: string, content: string) => {
-    content = content.replaceAll('<code>', htmlCodeTag);
-    content = content.replaceAll('<codeid>', htmlCodeIdTag).replaceAll('</codeid>', '</code>');
-    content = content.replaceAll('<guildname>', htmlGuildNameTag).replaceAll('</guildname>', '</strong>');
-    return `
-    <div style="
-        background-color: rgba(30, 30, 30, 0.5);
-        padding: 20px;
-        border: solid 2px var(--color-modal-border);
-        border-radius: var(--border-radius-normal);
-        margin-top: 25px;
-        position: relative;
-    ">
-        <h2>${title}</h2>
-        <br>
-        <p style="font-size: 1.25rem; padding: 0px">
-            ${content}
-        </p>
-        <img src="https://forum-cfx-re.akamaized.net/original/5X/c/3/8/e/c38e8346a39c6483385c0727bee5c2abc705156a.png" style="
-            position: absolute;
-            right: 15px;
-            bottom: 15px;
-            opacity: 25%;
-        ">
-    </div>`.replaceAll(/[\r\n]/g, '');
-};
-
-const prepCustomMessage = (msg: string) => {
-    if (!msg) return '';
-    return '<br>' + msg.trim().replaceAll(/\n/g, '<br>');
-};
 
 //Resp Type
 type AllowRespType = {
@@ -72,7 +33,7 @@ export default async function PlayerCheckJoin(ctx: InitializedCtx) {
     const sendTypedResp = (data: PlayerCheckJoinApiRespType) => ctx.send(data);
 
     //If checking not required at all
-    if (!txConfig.banlist.enabled && txConfig.whitelist.mode === 'disabled') {
+    if (!txConfig.banlist.enabled && !txConfig.whitelist.enabled) {
         return sendTypedResp({ allow: true });
     }
 
@@ -102,30 +63,32 @@ export default async function PlayerCheckJoin(ctx: InitializedCtx) {
         // If ban checking enabled
         if (txConfig.banlist.enabled) {
             const checkTime = new TimeCounter();
-            const result = checkBan(validIdsArray, validIdsObject, validHwidsArray);
+            const result = await checkBan(validIdsArray, validIdsObject, validHwidsArray, playerName);
             txManager.txRuntime.banCheckTime.count(checkTime.stop().milliseconds);
             if (!result.allow) return sendTypedResp(result);
         }
 
-        //Checking whitelist
-        if (txConfig.whitelist.mode === 'adminOnly') {
+        const pendingDeferral = txCore.addonManager?.consumePendingAddonDeferral(validIdsObject.license);
+        if (pendingDeferral) {
+            const reason = await renderDeferralCard({
+                scenario: pendingDeferral.scenarioId,
+                body: pendingDeferral.customMessage ?? '',
+                playerName: pendingDeferral.playerName ?? playerName,
+                license: validIdsObject.license,
+                discordId: validIdsObject.discord,
+                identifiers: validIdsArray,
+            });
+            return sendTypedResp({ allow: false, reason });
+        }
+
+        if (txConfig.whitelist.enabled) {
             const checkTime = new TimeCounter();
-            const result = await checkAdminOnlyMode(validIdsArray, validIdsObject, playerName);
-            txManager.txRuntime.whitelistCheckTime.count(checkTime.stop().milliseconds);
-            if (!result.allow) return sendTypedResp(result);
-        } else if (txConfig.whitelist.mode === 'approvedLicense') {
-            const checkTime = new TimeCounter();
-            const result = await checkApprovedLicense(validIdsArray, validIdsObject, validHwidsArray, playerName);
-            txManager.txRuntime.whitelistCheckTime.count(checkTime.stop().milliseconds);
-            if (!result.allow) return sendTypedResp(result);
-        } else if (txConfig.whitelist.mode === 'discordMember') {
-            const checkTime = new TimeCounter();
-            const result = await checkDiscordMember(validIdsArray, validIdsObject, playerName);
-            txManager.txRuntime.whitelistCheckTime.count(checkTime.stop().milliseconds);
-            if (!result.allow) return sendTypedResp(result);
-        } else if (txConfig.whitelist.mode === 'discordRoles') {
-            const checkTime = new TimeCounter();
-            const result = await checkDiscordRoles(validIdsArray, validIdsObject, playerName);
+            const result = await evaluateJoin({
+                validIdsArray,
+                validIdsObject,
+                validHwidsArray,
+                playerName,
+            });
             txManager.txRuntime.whitelistCheckTime.count(checkTime.stop().milliseconds);
             if (!result.allow) return sendTypedResp(result);
         }
@@ -144,11 +107,12 @@ export default async function PlayerCheckJoin(ctx: InitializedCtx) {
 /**
  * Checks if the player is banned
  */
-function checkBan(
+async function checkBan(
     validIdsArray: string[],
     validIdsObject: PlayerIdsObjectType,
     validHwidsArray: string[],
-): AllowRespType | DenyRespType {
+    playerName: string,
+): Promise<AllowRespType | DenyRespType> {
     // Check active bans on matching identifiers
     const ts = now();
     const filter = (action: DatabaseActionType): action is DatabaseActionBanType => {
@@ -205,17 +169,44 @@ function checkBan(
             note += `<br>${textKeys.note_diff_license}`;
         }
 
-        //Prepare rejection message
-        const reason = rejectMessageTemplate(
-            title,
-            `${expLine}
+        const banScenario = ban.expiration ? 'ban_temporary' : 'ban_permanent';
+        const banExpires = ban.expiration
+            ? txCore.translator.tDuration((ban.expiration - ts) * 1000, {
+                  largest: 2,
+                  units: ['d', 'h', 'm'] as Unit[],
+              })
+            : undefined;
+        const banTemplate = getDeferralScenarioTemplate(banScenario);
+        const supplementalBody = [
+            authorLine,
+            txConfig.banlist.rejectionMessage
+                ? `${txConfig.banlist.rejectionMessage.trim().replaceAll(/\n/g, '<br>')}`
+                : '',
+            note ? `<span style="font-style: italic;">${note}</span>` : '',
+        ]
+            .join('')
+            .trim();
+        const legacyBody = `${expLine}
             <strong>${textKeys.label_date}:</strong> ${banDate} <br>
             <strong>${textKeys.label_reason}:</strong> ${xss(ban.reason)} <br>
             <strong>${textKeys.label_id}:</strong> <codeid>${ban.id}</codeid> <br>
             ${authorLine}
-            ${prepCustomMessage(txConfig.banlist.rejectionMessage)}
-            <span style="font-style: italic;">${note}</span>`,
-        );
+            ${txConfig.banlist.rejectionMessage ? `<br>${txConfig.banlist.rejectionMessage.trim().replaceAll(/\n/g, '<br>')}` : ''}
+            <span style="font-style: italic;">${note}</span>`;
+        const reason = await renderDeferralCard({
+            scenario: banScenario,
+            title,
+            body: templateHasVisualLayout(banTemplate) ? supplementalBody : legacyBody,
+            banReason: ban.reason,
+            banExpires,
+            banId: ban.id,
+            banDate,
+            banAuthor: txConfig.gameFeatures.hideAdminInPunishments ? undefined : ban.author,
+            license: validIdsObject.license,
+            discordId: validIdsObject.discord,
+            identifiers: validIdsArray,
+            playerName,
+        });
 
         //Send serverlog message
         const matchingIds = ban.ids.filter((id) => validIdsArray.includes(id));
@@ -236,271 +227,4 @@ function checkBan(
     } else {
         return { allow: true };
     }
-}
-
-/**
- * Checks if the player is an admin
- */
-async function checkAdminOnlyMode(
-    validIdsArray: string[],
-    validIdsObject: PlayerIdsObjectType,
-    playerName: string,
-): Promise<AllowRespType | DenyRespType> {
-    const textKeys = {
-        mode_title: txCore.translator.t('whitelist_messages.admin_only.mode_title'),
-        insufficient_ids: txCore.translator.t('whitelist_messages.admin_only.insufficient_ids'),
-        deny_message: txCore.translator.t('whitelist_messages.admin_only.deny_message'),
-    };
-
-    //Check if fivem/discord ids are available
-    if (!validIdsObject.license && !validIdsObject.discord) {
-        return {
-            allow: false,
-            reason: rejectMessageTemplate(textKeys.mode_title, textKeys.insufficient_ids),
-        };
-    }
-
-    //Looking for admin
-    const admin = txCore.adminStore.getAdminByIdentifiers(validIdsArray);
-    if (admin) return { allow: true };
-
-    //Prepare rejection message
-    const reason = rejectMessageTemplate(
-        textKeys.mode_title,
-        `${textKeys.deny_message} <br>
-        ${prepCustomMessage(txConfig.whitelist.rejectionMessage)}`,
-    );
-    return { allow: false, reason };
-}
-
-/**
- * Checks if the player is a discord guild member
- */
-async function checkDiscordMember(
-    validIdsArray: string[],
-    validIdsObject: PlayerIdsObjectType,
-    playerName: string,
-): Promise<AllowRespType | DenyRespType> {
-    const guildname = `<guildname>${txCore.discordBot.guildName}</guildname>`;
-    const textKeys = {
-        mode_title: txCore.translator.t('whitelist_messages.guild_member.mode_title'),
-        insufficient_ids: txCore.translator.t('whitelist_messages.guild_member.insufficient_ids'),
-        deny_title: txCore.translator.t('whitelist_messages.guild_member.deny_title'),
-        deny_message: txCore.translator.t('whitelist_messages.guild_member.deny_message', { guildname }),
-    };
-
-    //Check if discord id is available
-    if (!validIdsObject.discord) {
-        return {
-            allow: false,
-            reason: rejectMessageTemplate(textKeys.mode_title, textKeys.insufficient_ids),
-        };
-    }
-
-    //Resolving member
-    let errorTitle, errorMessage;
-    try {
-        const { isMember, memberRoles } = await txCore.discordBot.resolveMemberRoles(validIdsObject.discord);
-        if (isMember) {
-            return { allow: true };
-        } else {
-            errorTitle = textKeys.deny_title;
-            errorMessage = textKeys.deny_message;
-        }
-    } catch (error) {
-        errorTitle = `Error validating Discord Server Member Whitelist:`;
-        errorMessage = `<code>${emsg(error)}</code>`;
-    }
-
-    //Prepare rejection message
-    const reason = rejectMessageTemplate(
-        errorTitle,
-        `${errorMessage} <br>
-        ${prepCustomMessage(txConfig.whitelist.rejectionMessage)}`,
-    );
-    return { allow: false, reason };
-}
-
-/**
- * Checks if the player has specific discord guild roles
- */
-async function checkDiscordRoles(
-    validIdsArray: string[],
-    validIdsObject: PlayerIdsObjectType,
-    playerName: string,
-): Promise<AllowRespType | DenyRespType> {
-    const guildname = `<guildname>${txCore.discordBot.guildName}</guildname>`;
-    const textKeys = {
-        mode_title: txCore.translator.t('whitelist_messages.guild_roles.mode_title'),
-        insufficient_ids: txCore.translator.t('whitelist_messages.guild_roles.insufficient_ids'),
-        deny_notmember_title: txCore.translator.t('whitelist_messages.guild_roles.deny_notmember_title'),
-        deny_notmember_message: txCore.translator.t('whitelist_messages.guild_roles.deny_notmember_message', {
-            guildname,
-        }),
-        deny_noroles_title: txCore.translator.t('whitelist_messages.guild_roles.deny_noroles_title'),
-        deny_noroles_message: txCore.translator.t('whitelist_messages.guild_roles.deny_noroles_message', { guildname }),
-    };
-
-    //Check if discord id is available
-    if (!validIdsObject.discord) {
-        return {
-            allow: false,
-            reason: rejectMessageTemplate(textKeys.mode_title, textKeys.insufficient_ids),
-        };
-    }
-
-    //Resolving member
-    let errorTitle, errorMessage;
-    try {
-        const { isMember, memberRoles } = await txCore.discordBot.resolveMemberRoles(validIdsObject.discord);
-        if (isMember) {
-            const matchingRole = txConfig.whitelist.discordRoles.find((requiredRole) =>
-                memberRoles?.includes(requiredRole),
-            );
-            if (matchingRole) {
-                return { allow: true };
-            } else {
-                errorTitle = textKeys.deny_noroles_title;
-                errorMessage = textKeys.deny_noroles_message;
-            }
-        } else {
-            errorTitle = textKeys.deny_notmember_title;
-            errorMessage = textKeys.deny_notmember_message;
-        }
-    } catch (error) {
-        errorTitle = `Error validating Discord Role Whitelist:`;
-        errorMessage = `<code>${emsg(error)}</code>`;
-    }
-
-    //Prepare rejection message
-    const reason = rejectMessageTemplate(
-        errorTitle,
-        `${errorMessage} <br>
-        ${prepCustomMessage(txConfig.whitelist.rejectionMessage)}`,
-    );
-    return { allow: false, reason };
-}
-
-/**
- * Checks if the player has a whitelisted license
- */
-async function checkApprovedLicense(
-    validIdsArray: string[],
-    validIdsObject: PlayerIdsObjectType,
-    validHwidsArray: string[],
-    playerName: string,
-): Promise<AllowRespType | DenyRespType> {
-    const textKeys = {
-        mode_title: txCore.translator.t('whitelist_messages.approved_license.mode_title'),
-        insufficient_ids: txCore.translator.t('whitelist_messages.approved_license.insufficient_ids'),
-        deny_title: txCore.translator.t('whitelist_messages.approved_license.deny_title'),
-        request_id_label: txCore.translator.t('whitelist_messages.approved_license.request_id_label'),
-    };
-
-    //Check if license is available
-    if (!validIdsObject.license) {
-        return {
-            allow: false,
-            reason: rejectMessageTemplate(textKeys.mode_title, textKeys.insufficient_ids),
-        };
-    }
-
-    //Finding the player and checking if already whitelisted
-    let player;
-    try {
-        player = playerResolver(null, null, validIdsObject.license);
-        const dbData = player.getDbData();
-        if (dbData && dbData.tsWhitelisted) {
-            return { allow: true };
-        }
-    } catch (error) {
-        /* player not found, check whitelist approvals */
-    }
-
-    //Common vars
-    const { displayName, pureName } = cleanPlayerName(playerName);
-    const ts = now();
-
-    //Searching for the license/discord on whitelistApprovals
-    const allIdsFilter = (x: DatabaseWhitelistApprovalsType) => {
-        return validIdsArray.includes(x.identifier);
-    };
-    const approvals = txCore.database.whitelist.findManyApprovals(allIdsFilter);
-    if (approvals.length) {
-        //update or register player
-        if (typeof player !== 'undefined' && player.license) {
-            player.setWhitelist(true);
-        } else {
-            txCore.database.players.register({
-                license: validIdsObject.license,
-                ids: validIdsArray,
-                hwids: validHwidsArray,
-                displayName,
-                pureName,
-                playTime: 0,
-                tsLastConnection: ts,
-                tsJoined: ts,
-                tsWhitelisted: ts,
-            });
-        }
-
-        //Remove entries from whitelistApprovals & whitelistRequests
-        txCore.database.whitelist.removeManyApprovals(allIdsFilter);
-        txCore.database.whitelist.removeManyRequests({ license: validIdsObject.license });
-
-        //return allow join
-        return { allow: true };
-    }
-
-    //Player is not whitelisted
-    //Resolve player discord
-    let discordTag, discordAvatar;
-    if (validIdsObject.discord && txCore.discordBot.isClientReady) {
-        try {
-            const { tag, avatar } = await txCore.discordBot.resolveMemberProfile(validIdsObject.discord);
-            discordTag = tag;
-            discordAvatar = avatar;
-        } catch (error) {
-            /* discord member info unavailable */
-        }
-    }
-
-    //Check if this player has an active wl request
-    //NOTE: it could return multiple, but we are not dealing with it
-    let wlRequestId: string;
-    const requests = txCore.database.whitelist.findManyRequests({ license: validIdsObject.license });
-    if (requests.length) {
-        wlRequestId = requests[0].id; //just getting the first
-        txCore.database.whitelist.updateRequest(validIdsObject.license, {
-            playerDisplayName: displayName,
-            playerPureName: pureName,
-            discordTag,
-            discordAvatar,
-            tsLastAttempt: ts,
-        });
-    } else {
-        wlRequestId = txCore.database.whitelist.registerRequest({
-            license: validIdsObject.license,
-            playerDisplayName: displayName,
-            playerPureName: pureName,
-            discordTag,
-            discordAvatar,
-            tsLastAttempt: ts,
-        });
-        txCore.fxRunner.sendEvent('whitelistRequest', {
-            action: 'requested',
-            playerName: displayName,
-            requestId: wlRequestId,
-            license: validIdsObject.license,
-        });
-    }
-
-    //Prepare rejection message
-    const reason = rejectMessageTemplate(
-        textKeys.deny_title,
-        `<strong>${textKeys.request_id_label}:</strong>
-        <codeid>${wlRequestId}</codeid> <br>
-        ${prepCustomMessage(txConfig.whitelist.rejectionMessage)}`,
-    );
-    return { allow: false, reason };
 }

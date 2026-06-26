@@ -4,7 +4,7 @@ import { useSetDisableTab, useSetListenForExit } from '../state/keys.state';
 import { useIsMenuVisible } from '../state/visibility.state';
 import { fetchNui } from '../utils/fetchNui';
 import { useSnackbar } from 'notistack';
-import { Box, CircularProgress, Dialog, useTheme } from '@mui/material';
+import { Box, CircularProgress, Dialog } from '@mui/material';
 import { usePlayerModalVisibility, useSetPlayerModalTab } from '@nui/src/state/playerModal.state';
 import { txAdminMenuPage, usePageValue } from '../state/page.state';
 
@@ -32,7 +32,6 @@ export const PlayerModalProvider: React.FC<PlayerModalProviderProps> = ({ childr
     const { enqueueSnackbar } = useSnackbar();
     const [menuVisible, setMenuVisible] = useIsMenuVisible();
     const setTab = useSetPlayerModalTab();
-    const theme = useTheme();
     const curPage = usePageValue();
 
     useEffect(() => {
@@ -83,11 +82,10 @@ export const PlayerModalProvider: React.FC<PlayerModalProviderProps> = ({ childr
                 onClose={handleClose}
                 maxWidth="md"
                 PaperProps={{
+                    //surface/border/radius come from the MuiDialog theme override
                     style: {
-                        backgroundColor: theme.palette.background.default,
                         minHeight: 455,
                         maxHeight: 650,
-                        borderRadius: 15,
                     },
                     id: 'player-modal-container',
                 }}

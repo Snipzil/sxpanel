@@ -235,9 +235,7 @@ export function respondWithAutocompleteChoices(
     choices?: AddonAutocompleteChoice[],
 ): Promise<unknown>;
 
-export function createAddonDiscordInteractionHelpers(options: {
-    addonId: string;
-}): AddonDiscordInteractionHelpers;
+export function createAddonDiscordInteractionHelpers(options: { addonId: string }): AddonDiscordInteractionHelpers;
 
 export function getDiscordInteractionRoleIds(
     interaction?: ChatInputCommandInteraction<CacheType> | Record<string, unknown>,
@@ -252,24 +250,15 @@ export function validateAddonDiscordManifest(
     manifest: AddonDiscordManifestLike | Record<string, unknown>,
 ): AddonDiscordManifestValidationResult;
 
-export function parseAddonDiscordManifest(
-    manifest: AddonDiscordManifestLike | Record<string, unknown>,
-): {
+export function parseAddonDiscordManifest(manifest: AddonDiscordManifestLike | Record<string, unknown>): {
     id?: string;
     discordBot?: AddonDiscordManifestSection;
 };
 
 export function createMockDiscordBridge(options?: {
     handlers?: Record<string, unknown>;
-    onRequest?: (
-        type: string,
-        payload: unknown,
-        context: MockDiscordBridgeContext,
-    ) => unknown | Promise<unknown>;
+    onRequest?: (type: string, payload: unknown, context: MockDiscordBridgeContext) => unknown | Promise<unknown>;
     onSend?: (message: Record<string, unknown>, context: Omit<MockDiscordBridgeContext, 'type' | 'timeoutMs'>) => void;
 }): MockDiscordBridge;
 
-export function createAddonDiscordSdk(options: {
-    addonId: string;
-    bridge: AddonDiscordBridge;
-}): AddonDiscordSdk;
+export function createAddonDiscordSdk(options: { addonId: string; bridge: AddonDiscordBridge }): AddonDiscordSdk;

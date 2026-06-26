@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/auth';
 import { ApiOauthCallbackErrorResp, ApiOauthCallbackResp } from '@shared/authApiTypes';
 import { useEffect, useRef, useState } from 'react';
-import { AuthError, processFetchError } from './errors';
+import { AuthError, getCommonOauthCallbackError, processFetchError } from './errors';
 import GenericSpinner from '@/components/GenericSpinner';
 import { fetchWithTimeout } from '@/hooks/fetch';
 
@@ -42,8 +42,21 @@ export default function DiscourseCallback() {
     useEffect(() => {
         if (authData || hasPendingMutation.current) return;
         hasPendingMutation.current = true;
+
+        const oauthError = getCommonOauthCallbackError();
+        if (oauthError) {
+            setErrorData(oauthError);
+            return;
+        }
+
         submitCallback();
     }, []);
 
-    return errorData ? <AuthError error={errorData} /> : isFetching ? <GenericSpinner msg="Logging in..." /> : <GenericSpinner />;
+    return errorData ? (
+        <AuthError error={errorData} />
+    ) : isFetching ? (
+        <GenericSpinner msg="Logging in..." />
+    ) : (
+        <GenericSpinner />
+    );
 }

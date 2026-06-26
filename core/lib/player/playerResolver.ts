@@ -1,5 +1,6 @@
 import { SYM_CURRENT_MUTEX } from '@lib/symbols.js';
-import { DatabasePlayer, ServerPlayer } from './playerClasses.js';
+import { resolveReportedPlayerByNetId } from '@lib/fxserver/httpHealthCheck';
+import { DatabasePlayer, ReportedPlayer, ServerPlayer } from './playerClasses.js';
 
 /**
  * Resolves a ServerPlayer or DatabasePlayer based on mutex, netid and license.
@@ -30,9 +31,12 @@ export default (mutex: any, netid: any, license: any) => {
             const player = txCore.fxPlayerlist.getPlayerById(netid);
             if (player instanceof ServerPlayer) {
                 return player;
-            } else {
-                throw new Error(`player not found in current server playerlist`);
             }
+            const reported = resolveReportedPlayerByNetId(netid);
+            if (reported instanceof ReportedPlayer) {
+                return reported;
+            }
+            throw new Error(`player not found in current server playerlist`);
         } else {
             // If mutex is from previous server, search licenseCache
             // The psid stored in licenseCache may have a rollover suffix (e.g. "mutex#netidrN")

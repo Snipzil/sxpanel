@@ -1,23 +1,15 @@
 import { memo, useCallback, useMemo, useState } from 'react';
-import { UsersIcon, UserRoundPlusIcon, CalendarPlusIcon } from 'lucide-react';
-import { PageHeader } from '@/components/page-header';
-import PageCalloutRow, { PageCalloutProps } from '@/components/PageCalloutRow';
-import {
-    PlayerSearchBox,
-    PlayersSearchBoxReturnStateType,
-    availableFilters,
-    availableSearchTypes,
-} from './PlayersSearchBox';
-import PlayersTable from './PlayersTable';
-import { PlayersStatsResp, PlayersTableFiltersType, PlayersTableSearchType } from '@shared/playerApiTypes';
-import { usePlayersStats } from './usePlayersStats';
+import { PlayersSearchBar } from './PlayersSearchBar';
+import type { PlayersSearchBoxReturnStateType } from '@/pages/Players/players-search-config';
+import { PlayersList } from './PlayersList';
+import { PlayersHeaderBand } from './PlayersHeaderBand';
+import { PlayersTableFiltersType, PlayersTableSearchType } from '@shared/playerApiTypes';
+import { usePlayersStats } from '@/pages/Players/usePlayersStats';
+import { availableFilters, availableSearchTypes } from '@/pages/Players/players-search-config';
 
-//Memoized components
-const PlayerSearchBoxMemo = memo(PlayerSearchBox);
-const PlayersTableMemo = memo(PlayersTable);
-const PageCalloutRowMemo = memo(PageCalloutRow);
+const PlayersSearchBarMemo = memo(PlayersSearchBar);
+const PlayersListMemo = memo(PlayersList);
 
-//Get/Set localStorage search type
 const LOCALSTORAGE_KEY = 'playerSearchRememberType';
 const getStoredSearchType = () => {
     const stored = localStorage.getItem(LOCALSTORAGE_KEY);
@@ -33,7 +25,6 @@ const setStoredSearchType = (searchType: string | false) => {
     }
 };
 
-//Helpers for storing search and filters in URL
 const updateUrlSearchParams = (search: PlayersTableSearchType, filters: PlayersTableFiltersType) => {
     const newUrl = new URL(window.location.toString());
     if (search && search.value && search.type) {
@@ -50,6 +41,7 @@ const updateUrlSearchParams = (search: PlayersTableSearchType, filters: PlayersT
     }
     window.history.replaceState({}, '', newUrl);
 };
+
 const getInitialState = () => {
     const params = new URLSearchParams(window.location.search);
     const validTypes = availableSearchTypes.map((f) => f.value) as string[];
@@ -90,10 +82,9 @@ const getInitialState = () => {
 };
 
 export default function PlayersPage() {
-    const { stats: calloutData } = usePlayersStats();
+    const { stats: calloutData, isLoading: statsLoading } = usePlayersStats();
     const [searchBoxReturn, setSearchBoxReturn] = useState<PlayersSearchBoxReturnStateType | undefined>(undefined);
 
-    //PlayerSearchBox handlers
     const doSearch = useCallback(
         (search: PlayersTableSearchType, filters: PlayersTableFiltersType, rememberSearchType: boolean) => {
             setSearchBoxReturn({ search, filters });
@@ -106,46 +97,22 @@ export default function PlayersPage() {
         },
         [],
     );
-    const initialState = useMemo(getInitialState, []);
-
-    const calloutRowData = useMemo(() => {
-        const hasCalloutData = !!calloutData;
-        return [
-            {
-                label: 'Total Players',
-                value: hasCalloutData ? calloutData.total : false,
-                icon: <UsersIcon />,
-            },
-            {
-                label: 'Players Last 24h',
-                value: hasCalloutData ? calloutData.playedLast24h : false,
-                icon: <CalendarPlusIcon />,
-            },
-            {
-                label: 'New Players Last 24h',
-                value: hasCalloutData ? calloutData.joinedLast24h : false,
-                icon: <UserRoundPlusIcon />,
-                prefix: '+',
-            },
-            {
-                label: 'New Players Last 7d',
-                value: hasCalloutData ? calloutData.joinedLast7d : false,
-                icon: <UserRoundPlusIcon />,
-                prefix: '+',
-            },
-        ] satisfies PageCalloutProps[];
-    }, [calloutData]);
+    const initialState = useMemo(() => getInitialState(), []);
 
     return (
         <div className="h-contentvh flex w-full min-w-96 flex-col">
-            <PageHeader title="Players" icon={<UsersIcon className="size-5" />} />
+            <PlayersHeaderBand
+                total={calloutData?.total}
+                playedLast24h={calloutData?.playedLast24h}
+                joinedLast24h={calloutData?.joinedLast24h}
+                joinedLast7d={calloutData?.joinedLast7d}
+                statsLoading={statsLoading}
+            />
 
-            <PageCalloutRowMemo callouts={calloutRowData} />
-
-            <PlayerSearchBoxMemo doSearch={doSearch} initialState={initialState} />
+            <PlayersSearchBarMemo doSearch={doSearch} initialState={initialState} />
 
             {searchBoxReturn ? (
-                <PlayersTableMemo search={searchBoxReturn.search} filters={searchBoxReturn.filters} />
+                <PlayersListMemo search={searchBoxReturn.search} filters={searchBoxReturn.filters} />
             ) : null}
         </div>
     );

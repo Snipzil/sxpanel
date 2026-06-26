@@ -28,6 +28,7 @@ import fatalError from '@lib/fatalError';
 import { isProxy } from 'node:util/types';
 import serveStaticMw from './middlewares/serveStaticMw';
 import serveRuntimeMw from './middlewares/serveRuntimeMw';
+import { PANEL_STATIC_CACHE_LIMITS } from '@shared/panelStaticCacheLimits';
 const console = consoleFactory(modulename);
 const nanoid = customAlphabet(nolookalikes, 32);
 
@@ -122,13 +123,9 @@ export default class WebServer {
             serveStaticMw({
                 noCaching: txDevEnv.ENABLED,
                 cacheMaxAge: 30 * 60, //30 minutes
-                //Scan Limits: (v8-dev prod build: 56 files, 11.25MB)
-                limits: {
-                    MAX_BYTES: 75 * 1024 * 1024, //75MB
-                    MAX_FILES: 300,
-                    MAX_DEPTH: 10,
-                    MAX_TIME: 2 * 60 * 1000, //2 minutes
-                },
+                // Scan limits guard in-memory cache size (raw+gzip+brotli per file).
+                // Current prod build: ~309 files, ~5.6MB raw — see panel/scripts/verify-static-cache-limit.mjs
+                limits: PANEL_STATIC_CACHE_LIMITS,
                 roots: [
                     txDevEnv.ENABLED ? path.join(txDevEnv.SRC_PATH, 'panel/public') : path.join(txEnv.txaPath, 'panel'),
                 ],
@@ -141,9 +138,8 @@ export default class WebServer {
         this.app.use(
             KoaBodyParser({
                 // Heavy bodies can cause v8 mem exhaustion during a POST DDoS.
-                // The heaviest JSON payloads are /intercom/resources and /intercom/screenshotResult.
-                // Conservative estimate: 2mb covers screenshot data URLs at higher resolutions.
-                jsonLimit: '2mb',
+                // Deferral card configs with rasterized custom_image data URLs can exceed 2mb.
+                jsonLimit: '8mb',
             }),
         );
 
@@ -182,7 +178,12 @@ export default class WebServer {
         // ===================
         this.io = new SocketIO(HttpClass.createServer(), { serveClient: false });
         this.io.use(
-            socketioSessMw(this.sessionCookieName, this.sessionStore, this.app.keys as string[], this.legacySessionCookieName),
+            socketioSessMw(
+                this.sessionCookieName,
+                this.sessionStore,
+                this.app.keys as string[],
+                this.legacySessionCookieName,
+            ),
         );
         this.webSocket = new WebSocket(this.io);
         //@ts-expect-error handleConnection expects extended socket type

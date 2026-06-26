@@ -8,13 +8,21 @@ import { msToShortishDuration, now } from '@lib/misc';
 import { findPlayersByIdentifier } from '@lib/player/playerFinder';
 import type { DatabaseBotCommandEventType } from '@modules/Database/databaseTypes';
 import { DiscordBotStatus } from '@shared/enums';
+import type { DiscordGuildRoleOption } from '@shared/discordGuildRoles';
 import type { BotCommandDenialReason, BotCommandResponseTelemetry } from '@shared/discordBotAnalyticsTypes';
 import type { SystemLogActionId, SystemLogEntry } from '@shared/systemLogTypes';
 import type { DatabaseTicketType } from '@shared/ticketApiTypes';
 import { mergePermissions, resolveEffectiveAdminPermissions, resolveMappedRolePermissions } from './rolePermissions';
+import { discordTagMappingsTouchRoles, refreshPlayerDiscordTags } from '@lib/player/playerTags';
+import {
+    formatFxChildNodeResolutionDiagnostics,
+    getFxChildNodeRuntimeResolution,
+    isHostProcessExecPathNodeLike,
+} from '@lib/resolveFxChildNode';
 import BotProcess from './botProcess';
 import BridgeServer, { BridgeMessage } from './bridgeServer';
 import { buildDiscordCardMessageFromEmbed, buildDiscordCardMessageFromEmbeds } from './componentsV2';
+import { getDisplayPlayerCount } from '@lib/fxserver/httpHealthCheck';
 import { generatePlayerListMessage, generateStatusMessage } from './statusMessage';
 import {
     buildTicketQueueSummaryEmbed,
@@ -27,7 +35,10 @@ import {
     buildSystemLogDiscordPayload,
     type DiscordLogMessagePayload,
 } from './logRouting';
+import { shouldDropPlayerServerLog, skipSessionAuditAuthor } from '@lib/routineAuditGate';
 import { handleModerationCommand } from './moderationCommands';
+import { getActiveWorkflow } from '@modules/Whitelist/WhitelistService';
+import { approveWhitelistRequest, handleWhitelistThreadReaction } from '@modules/Whitelist/requestActions';
 import { getDiscordLocaleSnapshot, translateDiscord } from './discordLocale';
 
 const console = consoleFactory(modulename);
@@ -263,6 +274,7 @@ const normalizeBotCommandEvent = (message: BridgeMessage): DatabaseBotCommandEve
 };
 
 const logDiscordAdminAction = (adminName: string, message: string, actionId?: SystemLogActionId) => {
+    if (skipSessionAuditAuthor(adminName)) return;
     txCore.logger.system.write(adminName, message, 'action', { actionId });
 };
 
@@ -545,11 +557,7 @@ const resolveTicketFromMessage = (message: BridgeMessage) => {
         return { ticket };
     }
 
-    return buildDeniedReply(
-        'danger',
-        translateTicketCommand('provide_ticket_or_thread'),
-        'invalid_target',
-    );
+    return buildDeniedReply('danger', translateTicketCommand('provide_ticket_or_thread'), 'invalid_target');
 };
 
 const buildTicketCommandSummaryReply = (
@@ -557,10 +565,10 @@ const buildTicketCommandSummaryReply = (
     options?: { title?: string; note?: string; color?: number },
 ) => {
     const messagePayload = buildTicketSummaryMessagePayload(ticket, {
-            title: options?.title,
-            note: options?.note,
-            color: options?.color,
-            footer: commandFooter,
+        title: options?.title,
+        note: options?.note,
+        color: options?.color,
+        footer: commandFooter,
     });
 
     return buildSuccessResponse({
@@ -586,6 +594,7 @@ export default class DiscordBot {
         'discordBot.customCommands',
         'discordBot.rolePermissions',
         'discordBot.logRoutes',
+        'gameFeatures.reportsEnabled',
     ];
 
     readonly cooldowns = new Map();
@@ -644,6 +653,8 @@ export default class DiscordBot {
             },
         });
 
+        this.#logNodeRuntimePreflight();
+
         setImmediate(() => {
             if (txConfig.discordBot.enabled) {
                 this.startBot().catch((error) => {
@@ -667,9 +678,16 @@ export default class DiscordBot {
         if (!this.#isBotEnabled()) return false;
 
         const shouldReloadCommands = updatedConfigs.hasMatch('discordBot.customCommands');
+        const shouldReloadReportsCommands = updatedConfigs.hasMatch('gameFeatures.reportsEnabled');
         const shouldRefreshAdminAuths = updatedConfigs.hasMatch('discordBot.rolePermissions');
+        if (updatedConfigs.hasMatch(['discordBot.guild', 'discordBot.enabled'])) {
+            this.#guildRolesCache = null;
+        }
 
-        if (shouldReloadCommands && this.#bridgeServer?.isReady) {
+        if (this.#bridgeServer?.isReady && (shouldReloadCommands || shouldReloadReportsCommands)) {
+            if (shouldReloadReportsCommands) {
+                this.#bridgeServer.send({ type: 'configSnapshot', payload: this.#buildConfigSnapshot() });
+            }
             this.#bridgeServer.send({ type: 'reloadCommands' });
         }
         if (shouldRefreshAdminAuths) {
@@ -726,6 +744,49 @@ export default class DiscordBot {
         return this.#lastExplicitStatus;
     }
 
+    #buildNodeRuntimeDiagnostics() {
+        if (isHostProcessExecPathNodeLike()) {
+            return {
+                hostExecPath: process.execPath,
+                resolved: true,
+                resolvedChildLabel: process.execPath,
+                resolvedViaMuslLoader: false,
+                candidateCount: 0,
+                candidateSample: [] as string[],
+                cfxRoot: null as string | null,
+                suggestedBotNodePath: null as string | null,
+            };
+        }
+
+        const resolution = getFxChildNodeRuntimeResolution();
+        return {
+            hostExecPath: resolution.hostExecPath,
+            resolved: Boolean(resolution.childExecPath),
+            resolvedChildLabel: resolution.resolvedChildLabel ?? resolution.childExecPath ?? null,
+            resolvedViaMuslLoader: resolution.resolvedViaMuslLoader,
+            candidateCount: resolution.candidateCount,
+            candidateSample: resolution.candidateSample,
+            cfxRoot: resolution.cfxRoot ?? null,
+            suggestedBotNodePath: resolution.suggestedBotNodePath ?? null,
+        };
+    }
+
+    #logNodeRuntimePreflight() {
+        if (isHostProcessExecPathNodeLike()) {
+            console.ok('Discord bot child runtime: using host Node process (process.execPath).');
+            return;
+        }
+
+        const resolution = getFxChildNodeRuntimeResolution();
+        const diagnostics = formatFxChildNodeResolutionDiagnostics(resolution);
+        if (resolution.childExecPath) {
+            console.ok(`Discord bot child runtime: ${diagnostics}`);
+            return;
+        }
+
+        console.warn(`Discord bot child runtime: ${diagnostics}`);
+    }
+
     getDiagnostics() {
         const currentTs = Date.now();
 
@@ -760,6 +821,7 @@ export default class DiscordBot {
                 addonRuntimeIssues: this.#runtimeDiagnostics.addonRuntimeIssues,
                 updatedAt: this.#runtimeDiagnostics.updatedAt ?? null,
             },
+            nodeRuntime: this.#buildNodeRuntimeDiagnostics(),
         };
     }
 
@@ -836,8 +898,7 @@ export default class DiscordBot {
             }));
         }
 
-        this.#runtimeDiagnostics.updatedAt =
-            typeof payload.updatedAt === 'number' ? payload.updatedAt : Date.now();
+        this.#runtimeDiagnostics.updatedAt = typeof payload.updatedAt === 'number' ? payload.updatedAt : Date.now();
     }
 
     refreshWsStatus() {
@@ -894,13 +955,23 @@ export default class DiscordBot {
     }
 
     async handleSystemLogEntry(entry: SystemLogEntry) {
+        if (skipSessionAuditAuthor(entry.author)) return false;
+
         const payload = buildSystemLogDiscordPayload(txConfig.discordBot.logRoutes, entry);
         if (!payload) return false;
 
         return await this.postLogMessage(payload);
     }
 
-    async handleServerLogEvent(rawEvent: { type?: unknown; data?: unknown }, logEntry: { ts: number; src: { id: string | false; name: string }; msg: string; type: string }) {
+    async handleServerLogEvent(
+        rawEvent: { type?: unknown; data?: unknown },
+        logEntry: { ts: number; src: { id: string | false; name: string }; msg: string; type: string },
+    ) {
+        if (typeof logEntry.src?.id === 'number' && logEntry.src.id > 0) {
+            const player = txCore.fxPlayerlist.getPlayerById(logEntry.src.id);
+            if (player && shouldDropPlayerServerLog(player.ids)) return false;
+        }
+
         const payload = buildServerMenuDiscordPayload(txConfig.discordBot.logRoutes, rawEvent, logEntry);
         if (!payload) return false;
 
@@ -1069,6 +1140,26 @@ export default class DiscordBot {
         };
     }
 
+    #guildRolesCache: { fetchedAt: number; roles: DiscordGuildRoleOption[] } | null = null;
+
+    async listGuildRoles(options?: { forceRefresh?: boolean }) {
+        if (!this.#isBotEnabled()) throw new Error('discord bot is disabled');
+        if (!this.#bridgeServer?.isReady) throw new Error('discord bot not ready yet');
+
+        const cacheTtlMs = 60_000;
+        const nowMs = Date.now();
+        if (!options?.forceRefresh && this.#guildRolesCache && nowMs - this.#guildRolesCache.fetchedAt < cacheTtlMs) {
+            return { roles: this.#guildRolesCache.roles };
+        }
+
+        const response = (await this.#bridgeServer.request('listGuildRoles', {})) as {
+            roles?: DiscordGuildRoleOption[];
+        };
+        const roles = Array.isArray(response?.roles) ? response.roles : [];
+        this.#guildRolesCache = { fetchedAt: nowMs, roles };
+        return { roles };
+    }
+
     async resolveMemberProfile(uid: string) {
         if (!this.#bridgeServer?.isReady) throw new Error('discord bot not ready yet');
 
@@ -1085,11 +1176,13 @@ export default class DiscordBot {
                 return;
             }
             case 'botDiagnostics': {
-                this.applyRuntimeDiagnostics((message.payload ?? message.diagnostics ?? {}) as {
-                    addonLoadFailures?: DiscordBotAddonLoadFailure[];
-                    addonRuntimeIssues?: DiscordBotAddonRuntimeIssue[];
-                    updatedAt?: number;
-                });
+                this.applyRuntimeDiagnostics(
+                    (message.payload ?? message.diagnostics ?? {}) as {
+                        addonLoadFailures?: DiscordBotAddonLoadFailure[];
+                        addonRuntimeIssues?: DiscordBotAddonRuntimeIssue[];
+                        updatedAt?: number;
+                    },
+                );
                 return;
             }
             case 'botCommandUsage': {
@@ -1123,41 +1216,57 @@ export default class DiscordBot {
         const discordId = typeof message.uid === 'string' ? message.uid.trim() : '';
         if (!discordId.length) return false;
 
-        const linkedAdmin = txCore.adminStore.getAdminByProviderUID(discordId);
-        if (!linkedAdmin?.providers.discord) return false;
-
         const addedRoleIds = Array.isArray(message.addedRoleIds)
             ? message.addedRoleIds.filter((roleId): roleId is string => typeof roleId === 'string' && roleId.length > 0)
             : [];
         const removedRoleIds = Array.isArray(message.removedRoleIds)
-            ? message.removedRoleIds.filter((roleId): roleId is string => typeof roleId === 'string' && roleId.length > 0)
+            ? message.removedRoleIds.filter(
+                  (roleId): roleId is string => typeof roleId === 'string' && roleId.length > 0,
+              )
             : [];
         const changedRoleIds = [...new Set([...addedRoleIds, ...removedRoleIds])];
         if (!changedRoleIds.length) return false;
 
+        let handled = false;
+
         const touchesMappedRole = txConfig.discordBot.rolePermissions.some((mapping) => {
             return mapping.discordRoleIds.some((roleId) => changedRoleIds.includes(roleId));
         });
-        if (!touchesMappedRole) return false;
+        const linkedAdmin = txCore.adminStore.getAdminByProviderUID(discordId);
+        if (touchesMappedRole && linkedAdmin?.providers.discord) {
+            const roleLookup = await this.resolveMemberRoles(discordId).catch(() => ({
+                isMember: false,
+                memberRoles: [],
+            }));
+            const memberRoles =
+                roleLookup.isMember === true && Array.isArray(roleLookup.memberRoles) ? roleLookup.memberRoles : [];
+            const mappedRolePermissions = resolveMappedRolePermissions(memberRoles);
 
-        const roleLookup = await this.resolveMemberRoles(discordId).catch(() => ({ isMember: false, memberRoles: [] }));
-        const memberRoles = roleLookup.isMember === true && Array.isArray(roleLookup.memberRoles)
-            ? roleLookup.memberRoles
-            : [];
-        const mappedRolePermissions = resolveMappedRolePermissions(memberRoles);
+            await txCore.adminStore.syncAdminDiscordRolePermissions(
+                discordId,
+                mappedRolePermissions
+                    ? {
+                          permissions: mappedRolePermissions.permissions,
+                          presetIds: mappedRolePermissions.presetIds,
+                          roleIds: memberRoles,
+                      }
+                    : false,
+            );
+            handled = true;
+        }
 
-        await txCore.adminStore.syncAdminDiscordRolePermissions(
-            discordId,
-            mappedRolePermissions
-                ? {
-                      permissions: mappedRolePermissions.permissions,
-                      presetIds: mappedRolePermissions.presetIds,
-                      roleIds: memberRoles,
-                  }
-                : false,
-        );
+        if (discordTagMappingsTouchRoles(changedRoleIds)) {
+            for (const player of txCore.fxPlayerlist.getConnectedPlayersByDiscordId(discordId)) {
+                if (!player.isRegistered) continue;
+                const changed = await refreshPlayerDiscordTags(player);
+                if (changed) {
+                    txCore.fxPlayerlist.syncPlayerTags(player.netid);
+                }
+            }
+            handled = true;
+        }
 
-        return true;
+        return handled;
     }
 
     #attachBridgeRequestTelemetry(message: BridgeMessage, response: unknown, handlerStartedAt: number) {
@@ -1207,7 +1316,10 @@ export default class DiscordBot {
                     String(message.requiredPermission ?? ''),
                 );
                 if ('reply' in permissionResult) {
-                    response = withTelemetry({ granted: false }, permissionResult.telemetry ?? { outcome: 'denied', denialReason: 'missing_permissions' });
+                    response = withTelemetry(
+                        { granted: false },
+                        permissionResult.telemetry ?? { outcome: 'denied', denialReason: 'missing_permissions' },
+                    );
                     break;
                 }
 
@@ -1220,6 +1332,10 @@ export default class DiscordBot {
             }
             case 'whitelistCommand': {
                 response = this.#handleWhitelistCommand(message);
+                break;
+            }
+            case 'whitelistReviewReaction': {
+                response = this.#handleWhitelistReviewReaction(message);
                 break;
             }
             case 'ticketCommand': {
@@ -1368,8 +1484,11 @@ export default class DiscordBot {
             discordBot: publicDiscordConfig,
             discordBotLocale: getDiscordLocaleSnapshot(),
             discordBotAddons: txCore.addonManager?.getDiscordBotManifest() ?? [],
+            gameFeatures: {
+                reportsEnabled: txConfig.gameFeatures.reportsEnabled,
+            },
             locale: txConfig.general.language,
-            playerCount: txCore.fxPlayerlist.onlineCount,
+            playerCount: getDisplayPlayerCount(),
             maxPlayers: txCore.cacheStore.get('fxsRuntime:maxClients') ?? '??',
             serverName: txConfig.general.serverName,
             uptime: txCore.fxMonitor.status.uptime,
@@ -1379,7 +1498,9 @@ export default class DiscordBot {
     #buildPersistentEmbedMessagePayload(target: PersistentEmbedTarget, options?: { page?: number }) {
         const messagePayload =
             target === 'playerList'
-                ? generatePlayerListMessage(undefined, undefined, { page: options?.page ?? this.#getPersistentEmbedPage() })
+                ? generatePlayerListMessage(undefined, undefined, {
+                      page: options?.page ?? this.#getPersistentEmbedPage(),
+                  })
                 : generateStatusMessage();
 
         return messagePayload as {
@@ -1435,9 +1556,8 @@ export default class DiscordBot {
             throw new Error(`Addon ${addonId} does not expose a server entry.`);
         }
 
-        const method = typeof message.method === 'string' && message.method.trim().length
-            ? message.method.toUpperCase()
-            : 'POST';
+        const method =
+            typeof message.method === 'string' && message.method.trim().length ? message.method.toUpperCase() : 'POST';
 
         return await addon.process.handleHttpRequest({
             method,
@@ -1474,8 +1594,10 @@ export default class DiscordBot {
             this.refreshWsStatus();
             this.#botProcess.stop();
 
-            const errorMessage = typeof message.message === 'string' ? message.message : 'Discord bot reported an error.';
-            const errorCode = typeof message.code === 'string' || typeof message.code === 'number' ? message.code : 'unknown';
+            const errorMessage =
+                typeof message.message === 'string' ? message.message : 'Discord bot reported an error.';
+            const errorCode =
+                typeof message.code === 'string' || typeof message.code === 'number' ? message.code : 'unknown';
             this.#lastBotError = {
                 code: String(errorCode),
                 message: errorMessage,
@@ -1483,10 +1605,7 @@ export default class DiscordBot {
             };
             console.error(`Discord bot reported an error (${String(errorCode)}): ${errorMessage}`);
 
-            const error = this.#buildError(
-                errorMessage,
-                message.code,
-            );
+            const error = this.#buildError(errorMessage, message.code);
             if (message.clientId) {
                 Object.assign(error, { clientId: message.clientId });
             }
@@ -1543,6 +1662,45 @@ export default class DiscordBot {
         }
     }
 
+    /**
+     * Creates a Discord review thread for a new whitelist application when configured.
+     */
+    async createWhitelistReviewThread(
+        channelId: string,
+        applicationId: string,
+        license: string,
+        playerName: string,
+    ): Promise<string | undefined> {
+        if (!this.#bridgeServer?.isReady) return undefined;
+
+        const response = (await this.#bridgeServer.request('createWhitelistReviewThread', {
+            channelId,
+            applicationId,
+            license,
+            playerName,
+        })) as { threadId?: string };
+
+        return response?.threadId;
+    }
+
+    /**
+     * Optional hook when a whitelist application is created (review channel thread support).
+     */
+    notifyWhitelistApplicationCreated(applicationId: string, license: string, playerName: string) {
+        const workflow = getActiveWorkflow();
+        const channelId = workflow?.discordReviewChannelId;
+        if (!channelId || !this.isClientReady) return;
+
+        this.createWhitelistReviewThread(channelId, applicationId, license, playerName)
+            .then((threadId) => {
+                if (!threadId) return;
+                txCore.database.whitelist.updateApplication(license, { discordThreadId: threadId });
+            })
+            .catch((error) => {
+                console.error(`Failed to create whitelist review thread: ${emsg(error)}`);
+            });
+    }
+
     #handleWhitelistCommand(message: BridgeMessage) {
         const permissionResult = resolveAdminPermission(message.requesterId, message.memberRoles, 'players.whitelist');
         if ('reply' in permissionResult) return permissionResult;
@@ -1580,8 +1738,12 @@ export default class DiscordBot {
             return buildSuccessResponse({ reply: buildReply('success', replyMessage) });
         }
 
-        if (message.subcommand === 'request') {
-            if (typeof message.requestId !== 'string' || message.requestId.length !== 5 || message.requestId[0] !== 'R') {
+        if (message.subcommand === 'request' || message.subcommand === 'application') {
+            if (
+                typeof message.requestId !== 'string' ||
+                message.requestId.length !== 5 ||
+                message.requestId[0] !== 'R'
+            ) {
                 return buildDeniedReply('danger', translateWhitelist('invalid_request_id'), 'invalid_request');
             }
 
@@ -1597,37 +1759,11 @@ export default class DiscordBot {
 
             const request = requests[0];
             const playerName = request.discordTag ?? request.playerDisplayName;
-            try {
-                txCore.database.whitelist.registerApproval({
-                    identifier: `license:${request.license}`,
-                    playerName,
-                    playerAvatar: request.discordAvatar ? request.discordAvatar : null,
-                    tsApproved: now(),
-                    approvedBy: adminName,
-                });
-                txCore.fxRunner.sendEvent('whitelistRequest', {
-                    action: 'approved',
-                    playerName,
-                    requestId: request.id,
-                    license: request.license,
-                    adminName,
-                });
-            } catch (error) {
-                if (!(error instanceof DuplicateKeyError)) {
-                    return buildFailedReply(
-                        'danger',
-                        translateWhitelist('save_request_approval_failed', { message: emsg(error) }),
-                        false,
-                    );
-                }
-            }
-
-            try {
-                txCore.database.whitelist.removeManyRequests({ id: message.requestId });
-            } catch (error) {
+            const result = approveWhitelistRequest(message.requestId, adminName);
+            if ('error' in result) {
                 return buildFailedReply(
                     'danger',
-                    translateWhitelist('remove_request_failed', { message: emsg(error) }),
+                    translateWhitelist('save_request_approval_failed', { message: result.error }),
                     false,
                 );
             }
@@ -1645,6 +1781,30 @@ export default class DiscordBot {
             translateWhitelist('subcommand_not_found', { subcommand: String(message.subcommand) }),
             'invalid_request',
         );
+    }
+
+    #handleWhitelistReviewReaction(message: BridgeMessage) {
+        const permissionResult = resolveAdminPermission(message.requesterId, message.memberRoles, 'players.whitelist');
+        if ('reply' in permissionResult) return permissionResult;
+        const adminName = permissionResult.actorName;
+
+        const threadId = typeof message.threadId === 'string' ? message.threadId : '';
+        const action = message.action === 'deny' ? 'deny' : message.action === 'approve' ? 'approve' : null;
+        if (!threadId || !action) {
+            return buildDeniedReply('danger', translateWhitelist('invalid_request'), 'invalid_request');
+        }
+
+        const result = handleWhitelistThreadReaction(threadId, action, adminName);
+        if ('error' in result) {
+            return buildDeniedReply('warning', result.error, 'invalid_target', false);
+        }
+
+        const replyMessage =
+            action === 'approve'
+                ? `Whitelist application approved via reaction.`
+                : `Whitelist application denied via reaction.`;
+        logDiscordAdminAction(adminName, replyMessage, `whitelist.thread.${action}`);
+        return buildSuccessResponse({ reply: buildReply('success', replyMessage) });
     }
 
     #handleTicketCommand(message: BridgeMessage) {
@@ -1734,18 +1894,15 @@ export default class DiscordBot {
         }
 
         if (subcommand === 'assign') {
-            const assigneeDiscordId = typeof message.assigneeDiscordId === 'string' ? message.assigneeDiscordId.trim() : '';
+            const assigneeDiscordId =
+                typeof message.assigneeDiscordId === 'string' ? message.assigneeDiscordId.trim() : '';
             if (!assigneeDiscordId.length) {
                 return buildDeniedReply('danger', translateTicketCommand('assign_missing_member'), 'invalid_request');
             }
 
             const assignee = txCore.adminStore.getAdminByProviderUID(assigneeDiscordId);
             if (!assignee) {
-                return buildDeniedReply(
-                    'warning',
-                    translateTicketCommand('assign_unlinked_member'),
-                    'invalid_target',
-                );
+                return buildDeniedReply('warning', translateTicketCommand('assign_unlinked_member'), 'invalid_target');
             }
 
             if (ticket.claimedBy === assignee.name) {
@@ -2044,7 +2201,9 @@ export default class DiscordBot {
             if (this.#bridgeServer?.isReady || !this.#isBotEnabled()) return;
 
             this.restartRuntime('automatic').catch((error) => {
-                console.error(`Discord bot bridge auto-heal failed: ${error instanceof Error ? error.message : String(error)}`);
+                console.error(
+                    `Discord bot bridge auto-heal failed: ${error instanceof Error ? error.message : String(error)}`,
+                );
             });
         }, BRIDGE_AUTO_HEAL_DELAY_MS);
     }

@@ -28,7 +28,7 @@ export default {
     },
 
     // Database stuff
-    adminPasswordMinLength: 6,
+    adminPasswordMinLength: 12,
     adminPasswordMaxLength: 128,
     regexValidFivemUsername: /^\w[\w.-]{1,18}\w$/, //also cant have repeated non-alphanum chars
     regexActionID: new RegExp(`^[${actionIdAlphabet}]{4}-[${actionIdAlphabet}]{4}$`),
@@ -41,5 +41,7 @@ export default {
     regexValidIP: /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/,
     actionIdAlphabet,
     nuiWebpipePath: 'https://monitor/WebPipe/',
+    /** Built panel JS/CSS/fonts — loaded directly from the resource, not WebPipe. */
+    nuiPanelAssetBase: 'https://cfx-nui-monitor/panel/',
     regexCustomThemeName: /^[a-z0-9]+(-[a-z0-9]+)*$/,
 } as const;

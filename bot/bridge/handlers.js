@@ -1,8 +1,4 @@
-const {
-    ActivityType,
-    AttachmentBuilder,
-    ChannelType,
-} = require('discord.js');
+const { ActivityType, AttachmentBuilder, ChannelType } = require('discord.js');
 const { buildCardMessage, normalizeMessageEditPayload, normalizeMessagePayload } = require('../componentsV2');
 const { translateDiscord } = require('../discordLocale');
 
@@ -35,11 +31,7 @@ const transientDiscordNetworkErrorCodes = new Set([
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const isTransientDiscordNetworkError = (error) => {
-    const codes = [
-        error?.code,
-        error?.cause?.code,
-        error?.cause?.cause?.code,
-    ];
+    const codes = [error?.code, error?.cause?.code, error?.cause?.cause?.code];
 
     return codes.some((code) => transientDiscordNetworkErrorCodes.has(code));
 };
@@ -72,7 +64,9 @@ const formatTicketStatus = (source, status) => {
 };
 
 const formatTicketPriority = (source, priority) => {
-    return priority ? translateBot(source, `tickets.priority_labels.${priority}`) : translateBot(source, 'tickets.priority_labels.none');
+    return priority
+        ? translateBot(source, `tickets.priority_labels.${priority}`)
+        : translateBot(source, 'tickets.priority_labels.none');
 };
 
 const sendBridgeMessage = (message) => {
@@ -161,11 +155,13 @@ const sendAnnouncement = async (msg, client) => {
 
     if (payload.embeds || payload.files) {
         await runDiscordOperation(`Failed to send announcement to ${channelId}`, () =>
-            channel.send(normalizeMessagePayload({
-                content: payload.content,
-                embeds: payload.embeds,
-                files: payload.files,
-            })),
+            channel.send(
+                normalizeMessagePayload({
+                    content: payload.content,
+                    embeds: payload.embeds,
+                    files: payload.files,
+                }),
+            ),
         );
         return;
     }
@@ -174,11 +170,14 @@ const sendAnnouncement = async (msg, client) => {
     if (!description) return;
 
     await runDiscordOperation(`Failed to send announcement to ${channelId}`, () =>
-        channel.send(buildCardMessage({
-            accentColor: announcementType && embedColors[announcementType] ? embedColors[announcementType] : undefined,
-            title: typeof payload.title === 'string' ? payload.title : undefined,
-            body: description,
-        })),
+        channel.send(
+            buildCardMessage({
+                accentColor:
+                    announcementType && embedColors[announcementType] ? embedColors[announcementType] : undefined,
+                title: typeof payload.title === 'string' ? payload.title : undefined,
+                body: description,
+            }),
+        ),
     );
 };
 
@@ -198,19 +197,22 @@ const postLogMessage = async (msg, client) => {
     const components = Array.isArray(payload.components) ? payload.components : [];
     const content = typeof payload.content === 'string' ? payload.content : undefined;
     const flags = typeof payload.flags === 'number' ? payload.flags : undefined;
-    const allowedMentions = payload.allowedMentions && typeof payload.allowedMentions === 'object'
-        ? payload.allowedMentions
-        : { parse: [] };
+    const allowedMentions =
+        payload.allowedMentions && typeof payload.allowedMentions === 'object'
+            ? payload.allowedMentions
+            : { parse: [] };
     if (!content && embeds.length === 0 && components.length === 0) return;
 
     await runDiscordOperation(`Failed to send routed log message to ${channelId}`, () =>
-        channel.send(normalizeMessagePayload({
-            ...(content ? { content } : {}),
-            ...(embeds.length ? { embeds } : {}),
-            ...(components.length ? { components } : {}),
-            ...(flags ? { flags } : {}),
-            allowedMentions,
-        })),
+        channel.send(
+            normalizeMessagePayload({
+                ...(content ? { content } : {}),
+                ...(embeds.length ? { embeds } : {}),
+                ...(components.length ? { components } : {}),
+                ...(flags ? { flags } : {}),
+                allowedMentions,
+            }),
+        ),
     );
 };
 
@@ -243,28 +245,30 @@ const createTicketThread = async (msg, client) => {
         high: embedColors.danger,
         medium: embedColors.warning,
     };
-    const priorityColor = ticket.priority
-        ? (priorityColorMap[ticket.priority] ?? embedColors.info)
-        : embedColors.info;
+    const priorityColor = ticket.priority ? (priorityColorMap[ticket.priority] ?? embedColors.info) : embedColors.info;
 
-    const messagePayload = normalizeTicketMessagePayload(msg.messagePayload) ?? buildCardMessage({
-        accentColor: priorityColor,
-        title: `[${ticket.id}] ${ticket.category}`,
-        body: String(ticket.description ?? '').slice(0, 2048),
-        sections: [
-            `### ${translateBot(client, 'tickets.summary.fields.reporter')}\n${ticket.reporter.name} (#${ticket.reporter.netid})`,
-            `### ${translateBot(client, 'tickets.summary.fields.status')}\n${formatTicketStatus(client, ticket.status)}`,
-            ...(ticket.priority
-                ? [`### ${translateBot(client, 'tickets.summary.fields.priority')}\n${formatTicketPriority(client, ticket.priority)}`]
-                : []),
-            ...(ticket.targets.length > 0
-                ? [
-                      `### ${translateBot(client, 'tickets.summary.fields.targets')}\n${ticket.targets.map((target) => `${target.name} (#${target.netid})`).join(', ')}`,
-                  ]
-                : []),
-        ],
-        footer: `<t:${ticket.tsCreated}:F>`,
-    });
+    const messagePayload =
+        normalizeTicketMessagePayload(msg.messagePayload) ??
+        buildCardMessage({
+            accentColor: priorityColor,
+            title: `[${ticket.id}] ${ticket.category}`,
+            body: String(ticket.description ?? '').slice(0, 2048),
+            sections: [
+                `### ${translateBot(client, 'tickets.summary.fields.reporter')}\n${ticket.reporter.name} (#${ticket.reporter.netid})`,
+                `### ${translateBot(client, 'tickets.summary.fields.status')}\n${formatTicketStatus(client, ticket.status)}`,
+                ...(ticket.priority
+                    ? [
+                          `### ${translateBot(client, 'tickets.summary.fields.priority')}\n${formatTicketPriority(client, ticket.priority)}`,
+                      ]
+                    : []),
+                ...(ticket.targets.length > 0
+                    ? [
+                          `### ${translateBot(client, 'tickets.summary.fields.targets')}\n${ticket.targets.map((target) => `${target.name} (#${target.netid})`).join(', ')}`,
+                      ]
+                    : []),
+            ],
+            footer: `<t:${ticket.tsCreated}:F>`,
+        });
 
     let thread;
     if (channel.type === ChannelType.GuildForum) {
@@ -284,6 +288,48 @@ const createTicketThread = async (msg, client) => {
             name: 'screenshot.png',
         });
         await thread.send({ content: translateBot(client, 'bridge.ticket.screenshot_attached'), files: [attachment] });
+    }
+
+    return { threadId: thread.id };
+};
+
+const createWhitelistReviewThread = async (msg, client) => {
+    const channel = await fetchChannel(
+        client,
+        msg.channelId,
+        `Failed to resolve whitelist review channel ${msg.channelId}`,
+    );
+    const messagePayload = buildCardMessage({
+        accentColor: embedColors.info,
+        title: `[${msg.applicationId}] Whitelist application`,
+        body: `**Player:** ${msg.playerName}\n**License:** \`${msg.license}\``,
+        sections: [`Use \`/whitelist application ${msg.applicationId}\` to approve.`],
+        footer: 'fxPanel Whitelist',
+    });
+
+    let thread;
+    if (channel.type === ChannelType.GuildForum) {
+        thread = await channel.threads.create({
+            name: `wl-${msg.applicationId}-${msg.playerName}`.slice(0, 100),
+            message: messagePayload,
+        });
+    } else if (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement) {
+        const entryMessage = await channel.send(messagePayload);
+        await entryMessage.react('✅').catch(() => {});
+        await entryMessage.react('❌').catch(() => {});
+        thread = await entryMessage.startThread({
+            name: `wl-${msg.applicationId}`.slice(0, 100),
+        });
+    } else {
+        throw new Error(`Channel type ${channel.type} is not supported for whitelist review threads.`);
+    }
+
+    if (channel.type === ChannelType.GuildForum) {
+        const starter = await thread.fetchStarterMessage().catch(() => null);
+        if (starter) {
+            await starter.react('✅').catch(() => {});
+            await starter.react('❌').catch(() => {});
+        }
     }
 
     return { threadId: thread.id };
@@ -334,6 +380,21 @@ const resolveMemberRoles = async (client, uid) => {
     };
 };
 
+const listGuildRoles = async (client) => {
+    const guild = await resolveGuild(client);
+    await guild.roles.fetch();
+    const roles = [...guild.roles.cache.values()]
+        .filter((role) => role.id !== guild.id)
+        .sort((a, b) => b.position - a.position)
+        .map((role) => ({
+            id: role.id,
+            name: role.name,
+            color: role.hexColor === '#000000' ? null : role.hexColor,
+            position: role.position,
+        }));
+    return { roles };
+};
+
 const resolveMemberProfile = async (client, uid) => {
     const avatarOptions = { size: 64, forceStatic: true };
     const { member } = await resolveMember(client, uid);
@@ -369,12 +430,20 @@ const handleRequest = async (msg, client) => {
             sendResponse(msg.requestId, await createTicketThread(msg, client));
             return;
         }
+        case 'createWhitelistReviewThread': {
+            sendResponse(msg.requestId, await createWhitelistReviewThread(msg, client));
+            return;
+        }
         case 'refreshMemberCache': {
             sendResponse(msg.requestId, await refreshMemberCache(client));
             return;
         }
         case 'resolveMemberRoles': {
             sendResponse(msg.requestId, await resolveMemberRoles(client, msg.uid));
+            return;
+        }
+        case 'listGuildRoles': {
+            sendResponse(msg.requestId, await listGuildRoles(client));
             return;
         }
         case 'resolveMemberProfile': {
@@ -401,6 +470,10 @@ const handle = async (msg, client) => {
         case 'configSnapshot': {
             const snapshot = resolveSnapshot(client, msg);
             await applyPresence(client, snapshot?.discordBot?.presence);
+            const guildId = resolveGuildId(client) ?? undefined;
+            if (guildId) {
+                await client.fxpanel.registerCommands(guildId);
+            }
             return;
         }
         case 'updatePresence': {

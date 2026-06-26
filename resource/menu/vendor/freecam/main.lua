@@ -74,22 +74,24 @@ local function UpdateCamera()
 end
 
 -------------------------------------------------------------------------------
-local keysTable = {
-  {'Slower', CONTROLS.MOVE_SLOW},
-  {'Faster', CONTROLS.MOVE_FAST},
-  {'Down', CONTROLS.MOVE_Z[2]},
-  {'Up', CONTROLS.MOVE_Z[1]},
-  {'Left/Right', CONTROLS.MOVE_X},
-  {'Fwd/Back', CONTROLS.MOVE_Y},
-}
+local function buildFreecamKeysTable()
+  return {
+    {GetInstructionalLabel('noclip_slower', 'Slower'), CONTROLS.MOVE_SLOW},
+    {GetInstructionalLabel('noclip_faster', 'Faster'), CONTROLS.MOVE_FAST},
+    {GetInstructionalLabel('noclip_down', 'Down'), CONTROLS.MOVE_Z[2]},
+    {GetInstructionalLabel('noclip_up', 'Up'), CONTROLS.MOVE_Z[1]},
+    {GetInstructionalLabel('noclip_left_right', 'Left/Right'), CONTROLS.MOVE_X},
+    {GetInstructionalLabel('noclip_fwd_back', 'Fwd/Back'), CONTROLS.MOVE_Y},
+  }
+end
 local redmInstructionGroup, redmPromptTitle
 
 
 function StartFreecamThread()
   if IS_REDM then
     ---@diagnostic disable-next-line: undefined-global
-    redmPromptTitle = CreateVarString(10, 'LITERAL_STRING', 'NoClip')
-    redmInstructionGroup = makeRedmInstructionalGroup(keysTable)
+    redmPromptTitle = CreateVarString(10, 'LITERAL_STRING', GetInstructionalLabel('noclip_title', 'NoClip'))
+    redmInstructionGroup = makeRedmInstructionalGroup(buildFreecamKeysTable())
   end
   -- Camera/Pos updating thread
   Citizen.CreateThread(function()
@@ -132,7 +134,7 @@ function StartFreecamThread()
 
   -- Start instructional thread
   CreateThread(function()
-    local fivemScaleform = IS_FIVEM and makeFivemInstructionalScaleform(keysTable)
+    local fivemScaleform = IS_FIVEM and makeFivemInstructionalScaleform(buildFreecamKeysTable())
     while IsFreecamActive() do
       if IS_FIVEM then
         ---@diagnostic disable-next-line: param-type-mismatch

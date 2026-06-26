@@ -324,7 +324,7 @@ export const fetchDynamicJson = async (
 };
 
 const dynamicJsonSchema = z.object({
-    clients: z.number().int().nonnegative(),
+    clients: z.preprocess((v) => (v === undefined || v === null ? 0 : v), z.coerce.number().int().nonnegative()),
     // hostname: z.string().optional(),
     // gametype: z.string().optional(),
     // mapname: z.string().optional(),

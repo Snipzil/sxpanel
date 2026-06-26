@@ -74,13 +74,28 @@ const checkUniqueness = (storage: IdStorageTypes, id: string, lowdbTable: string
  * @param storage set or lowdb instance
  * @returns id
  */
+export const genWhitelistEventID = (storage: IdStorageTypes) => {
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+        attempts++;
+        const randFunc = attempts <= 5 ? nanoidSecure : nanoidNonSecure;
+        const id = 'E' + randFunc.customAlphabet(consts.actionIdAlphabet, 4)();
+        if (checkUniqueness(storage, id, 'whitelistEvents')) {
+            return id;
+        }
+    }
+
+    printDiagnostics().catch((e) => {});
+    throw new Error(noIdErrorMessage);
+};
+
 export const genWhitelistRequestID = (storage: IdStorageTypes) => {
     let attempts = 0;
     while (attempts < maxAttempts) {
         attempts++;
         const randFunc = attempts <= 5 ? nanoidSecure : nanoidNonSecure;
         const id = 'R' + randFunc.customAlphabet(consts.actionIdAlphabet, 4)();
-        if (checkUniqueness(storage, id, 'whitelistRequests')) {
+        if (checkUniqueness(storage, id, 'whitelistApplications')) {
             return id;
         }
     }

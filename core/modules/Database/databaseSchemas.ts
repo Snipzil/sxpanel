@@ -54,6 +54,52 @@ export const DatabaseActionSchema = z.discriminatedUnion('type', [
 ]);
 
 //Whitelist
+import {
+    WhitelistApplicationStatusSchema,
+    WhitelistEntrySourceSchema,
+    WhitelistEventTypeSchema,
+} from '@shared/whitelistTypes';
+
+export const DatabaseWhitelistEntrySchema = z.object({
+    identifier: z.string().min(1),
+    tsGranted: z.number(),
+    grantedBy: z.string(),
+    source: WhitelistEntrySourceSchema,
+    playerName: z.string(),
+    playerAvatar: z.string().nullable(),
+    license: z.string().optional(),
+    tsFirstConnect: z.number().optional(),
+});
+
+export const DatabaseWhitelistApplicationSchema = z.object({
+    id: z.string().min(1),
+    license: z.string().min(1),
+    status: WhitelistApplicationStatusSchema,
+    workflowId: z.string().min(1),
+    answers: z.record(z.string()).optional(),
+    playerDisplayName: z.string(),
+    playerPureName: z.string(),
+    discordTag: z.string().optional(),
+    discordAvatar: z.string().optional(),
+    tsCreated: z.number(),
+    tsLastAttempt: z.number(),
+    tsDecided: z.number().optional(),
+    decidedBy: z.string().optional(),
+    discordThreadId: z.string().optional(),
+});
+
+export const DatabaseWhitelistEventSchema = z.object({
+    id: z.string().min(1),
+    type: WhitelistEventTypeSchema,
+    ts: z.number(),
+    license: z.string().optional(),
+    applicationId: z.string().optional(),
+    identifier: z.string().optional(),
+    adminName: z.string().optional(),
+    meta: z.record(z.unknown()).optional(),
+});
+
+/** @deprecated v8 compat */
 export const DatabaseWhitelistApprovalSchema = z.object({
     identifier: z.string().min(1),
     playerName: z.string(),
@@ -62,6 +108,7 @@ export const DatabaseWhitelistApprovalSchema = z.object({
     approvedBy: z.string(),
 });
 
+/** @deprecated v8 compat */
 export const DatabaseWhitelistRequestSchema = z.object({
     id: z.string().min(1),
     license: z.string().min(1),

@@ -4,7 +4,10 @@ export default function TmpFiller({ count = 96, maxWidth = 48 }: { count?: numbe
         const hue = Math.floor((lineNumber / 50) * 180);
 
         return (
-            <div key={`${count}-${maxWidth}-${lineNumber}`} style={{ backgroundColor: `hsl(${hue}deg 75% 65%)`, height: '1.5rem' }}>
+            <div
+                key={`${count}-${maxWidth}-${lineNumber}`}
+                style={{ backgroundColor: `hsl(${hue}deg 75% 65%)`, height: '1.5rem' }}
+            >
                 {text}
             </div>
         );

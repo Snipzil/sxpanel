@@ -8,6 +8,7 @@ import { LoggerBase } from '../LoggerBase';
 import { getBootDivider } from '../loggerUtils';
 import consoleFactory from '@lib/console';
 import bytes from 'bytes';
+import { shouldDropPlayerServerLog } from '@lib/routineAuditGate';
 import { summarizeIdsArray } from '@lib/player/idUtils';
 import { getTimeFilename } from '@lib/misc';
 const console = consoleFactory(modulename);
@@ -242,8 +243,13 @@ export default class ServerLogger extends LoggerBase {
         } else if (typeof eventData.src === 'number' && eventData.src > 0) {
             const player = txCore.fxPlayerlist.getPlayerById(eventData.src);
             if (player) {
-                srcObject = { id: player.psid, name: player.displayName };
-                srcString = `[${player.psid}] ${player.displayName}`;
+                if (shouldDropPlayerServerLog(player.ids)) {
+                    return { eventObject: null, eventString: null };
+                }
+
+                const logName = player.displayName;
+                srcObject = { id: player.psid, name: logName };
+                srcString = `[${player.psid}] ${logName}`;
             } else {
                 srcObject = { id: false, name: 'UNKNOWN PLAYER' };
                 srcString = 'UNKNOWN PLAYER';

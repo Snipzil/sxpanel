@@ -50,7 +50,7 @@ module.exports = {
                 navbarvh: 'var(--navbar-vh)', //navbar height (including border)
                 contentoffset: 'var(--content-offset)', // screen - navbar - pt
                 contentvh: 'var(--content-vh)', // screen - navbar - pt - pb
-                sidebar: '16rem', //256px
+                sidebar: 'var(--tx-playerlist-width)',
             },
             screens: {
                 xs: '480px',

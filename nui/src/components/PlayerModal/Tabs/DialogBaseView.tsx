@@ -1,11 +1,18 @@
-import React from 'react';
-import DialogActionView from './DialogActionView';
-import DialogInfoView from './DialogInfoView';
-import DialogIdView from './DialogIdView';
-import DialogHistoryView from './DialogHistoryView';
-import DialogBanView from './DialogBanView';
-import { Box } from '@mui/material';
+import React, { lazy, Suspense } from 'react';
+import { Box, CircularProgress } from '@mui/material';
 import { PlayerModalTabs, usePlayerModalTabValue } from '@nui/src/state/playerModal.state';
+
+const DialogActionView = lazy(() => import('./DialogActionView'));
+const DialogInfoView = lazy(() => import('./DialogInfoView'));
+const DialogIdView = lazy(() => import('./DialogIdView'));
+const DialogHistoryView = lazy(() => import('./DialogHistoryView'));
+const DialogBanView = lazy(() => import('./DialogBanView'));
+
+const TabFallback = () => (
+    <Box display="flex" flexGrow={1} width="100%" justifyContent="center" alignItems="center">
+        <CircularProgress size={28} />
+    </Box>
+);
 
 const tabToRender = (tab: PlayerModalTabs) => {
     switch (tab) {
@@ -27,7 +34,7 @@ export const DialogBaseView: React.FC = () => {
 
     return (
         <Box flexGrow={1} mt={-2} overflow="hidden">
-            {tabToRender(curTab)}
+            <Suspense fallback={<TabFallback />}>{tabToRender(curTab)}</Suspense>
         </Box>
     );
 };

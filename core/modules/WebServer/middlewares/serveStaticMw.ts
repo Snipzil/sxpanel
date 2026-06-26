@@ -151,7 +151,8 @@ export const scanStaticFolder = async ({ rootPath, state, limits }: ScanFolderOp
             if (limits.MAX_FILES && state.files.length > limits.MAX_FILES) {
                 console.error(
                     'MAX_FILES ERROR',
-                    'This likely means you did not erase the previous artifact files before adding new ones.',
+                    'Panel static cache exceeded its file limit. If this is a fresh build, raise PANEL_STATIC_CACHE_LIMITS.MAX_FILES.',
+                    'Stale hashed artifacts in the panel folder can also cause this after partial updates.',
                 );
                 throw new ScanLimitError('MAX_FILES', limits.MAX_FILES, state.files.length);
             } else if (limits.MAX_BYTES && state.bytes > limits.MAX_BYTES) {

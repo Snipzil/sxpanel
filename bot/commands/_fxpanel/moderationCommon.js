@@ -9,7 +9,9 @@ const addTargetSubcommands = (
     if (includeSelf) {
         container.addSubcommand((subcommand) => {
             return configureSubcommand(
-                subcommand.setName('self').setDescription(descriptions.self ?? 'Targets your linked Discord identifier.'),
+                subcommand
+                    .setName('self')
+                    .setDescription(descriptions.self ?? 'Targets your linked Discord identifier.'),
             );
         });
     }
@@ -20,10 +22,7 @@ const addTargetSubcommands = (
                 .setName('member')
                 .setDescription(descriptions.member)
                 .addUserOption((option) => {
-                    return option
-                        .setName('member')
-                        .setDescription('Discord member to target.')
-                        .setRequired(true);
+                    return option.setName('member').setDescription('Discord member to target.').setRequired(true);
                 }),
         );
     });

@@ -1,9 +1,12 @@
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DiscordRoleMultiSelect } from '@/components/DiscordRoleMultiSelect';
 import TxAnchor from '@/components/TxAnchor';
 import InlineCode from '@/components/InlineCode';
 import { SettingItem, SettingItemDesc } from '../settingsItems';
 import { RadioGroup } from '@/components/ui/radio-group';
 import BigRadioItem from '@/components/BigRadioItem';
+import SwitchText from '@/components/SwitchText';
 import { useEffect, useRef, useMemo, useReducer } from 'react';
 import {
     getConfigEmptyState,
@@ -11,21 +14,125 @@ import {
     SettingsCardProps,
     getPageConfig,
     configsReducer,
-    getConfigDiff,
     reconcileCardPendingSave,
 } from '../utils';
+import { dequal } from 'dequal/lite';
 import { AutosizeTextarea, AutosizeTextAreaRef } from '@/components/ui/autosize-textarea';
 import SettingsCardShell from '../SettingsCardShell';
 import { txToast } from '@/components/TxToaster';
 import consts from '@shared/consts';
+import type { WhitelistSchedule, WhitelistWorkflow, WhitelistWorkflowType } from '@shared/whitelistTypes';
+import { WHITELIST_DEFAULT_WORKFLOW_ID } from '@shared/whitelistTypes';
+import { WhitelistScheduleEditor } from './whitelist-schedule-editor';
+import { useLocale } from '@/hooks/locale';
 
 export const pageConfigs = {
-    whitelistMode: getPageConfig('whitelist', 'mode'),
-    rejectionMessage: getPageConfig('whitelist', 'rejectionMessage'),
-    discordRoles: getPageConfig('whitelist', 'discordRoles'),
+    enabled: getPageConfig('whitelist', 'enabled', undefined, false),
+    workflows: getPageConfig('whitelist', 'workflows'),
+    activeWorkflowId: getPageConfig('whitelist', 'activeWorkflowId'),
+    schedule: getPageConfig('whitelist', 'schedule'),
+    serverBrowserInstructions: getPageConfig('whitelist', 'serverBrowserInstructions'),
 } as const;
 
+const WORKFLOW_OPTION_VALUES: WhitelistWorkflowType[] = [
+    'disabled',
+    'auto_admin',
+    'auto_discord_member',
+    'auto_discord_role',
+    'manual_review',
+    'external_whitelist',
+];
+
+function getActiveWorkflow(workflows: WhitelistWorkflow[] | undefined, activeWorkflowId: string | undefined) {
+    const list = workflows ?? [];
+    return list.find((w) => w.id === activeWorkflowId) ?? list[0];
+}
+
+function syncWorkflowType(
+    workflows: WhitelistWorkflow[] | undefined,
+    activeWorkflowId: string | undefined,
+    type: WhitelistWorkflowType,
+    discordRoleIds: string[],
+    discordReviewChannelId?: string,
+): WhitelistWorkflow[] {
+    const defaultWorkflows: WhitelistWorkflow[] = [
+        { id: WHITELIST_DEFAULT_WORKFLOW_ID, name: 'Default', type: 'manual_review' },
+    ];
+    const list = structuredClone(workflows?.length ? workflows : defaultWorkflows);
+    const idx = list.findIndex((w) => w.id === (activeWorkflowId ?? WHITELIST_DEFAULT_WORKFLOW_ID));
+    const target = idx >= 0 ? idx : 0;
+    const prev = list[target];
+    const next: WhitelistWorkflow = {
+        id: prev.id,
+        name: prev.name,
+        type,
+    };
+    if (type === 'auto_discord_role') {
+        next.discordRoleIds = discordRoleIds;
+    }
+    const channel = discordReviewChannelId?.trim();
+    if (channel) {
+        next.discordReviewChannelId = channel;
+    }
+    list[target] = next;
+    return list;
+}
+
+type WhitelistSavePatch = {
+    enabled: boolean;
+    workflows: WhitelistWorkflow[];
+    activeWorkflowId: string;
+    schedule: WhitelistSchedule;
+    serverBrowserInstructions: string;
+};
+
+function buildWhitelistSavePatch(input: {
+    workflows: WhitelistWorkflow[] | undefined;
+    activeWorkflowId: string | undefined;
+    schedule: WhitelistSchedule | undefined;
+    serverBrowserInstructions: string | undefined;
+    workflowType: WhitelistWorkflowType;
+    activeWorkflow: WhitelistWorkflow | undefined;
+    discordRoleIds: string[];
+    discordReviewChannelId: string;
+    closedMessage: string;
+}): WhitelistSavePatch {
+    const schedule: WhitelistSchedule = {
+        enabled: input.schedule?.enabled === true,
+        timezone: input.schedule?.timezone ?? 'UTC',
+        windows: input.schedule?.windows ?? [],
+        closedMessage: input.closedMessage,
+    };
+
+    return {
+        enabled: input.workflowType !== 'disabled',
+        workflows: syncWorkflowType(
+            input.workflows,
+            input.activeWorkflowId,
+            input.workflowType,
+            input.discordRoleIds,
+            input.discordReviewChannelId,
+        ),
+        activeWorkflowId: input.activeWorkflowId ?? WHITELIST_DEFAULT_WORKFLOW_ID,
+        schedule,
+        serverBrowserInstructions: input.serverBrowserInstructions ?? '',
+    };
+}
+
 export default function ConfigCardWhitelist({ cardCtx, pageCtx }: SettingsCardProps) {
+    const { t } = useLocale();
+
+    const workflowOptions = useMemo(
+        () =>
+            WORKFLOW_OPTION_VALUES.map((value) => ({
+                value,
+                title: t(`panel.settings.whitelist.workflow.${value}.title`),
+                desc: t(`panel.settings.whitelist.workflow.${value}.desc`),
+            })),
+        [t],
+    );
+
+    const defaultClosedMessage = t('panel.settings.whitelist.schedule_closed_default');
     const [states, dispatch] = useReducer(configsReducer<typeof pageConfigs>, null, () =>
         getConfigEmptyState(pageConfigs),
     );
@@ -33,188 +140,307 @@ export default function ConfigCardWhitelist({ cardCtx, pageCtx }: SettingsCardPr
         return getConfigAccessors(cardCtx.cardId, pageConfigs, pageCtx.apiData, dispatch);
     }, [pageCtx.apiData, dispatch]);
 
-    //Effects - handle changes and reset advanced settings
+    const scheduleClosedRef = useRef<HTMLInputElement | null>(null);
+    const serverBrowserInstructionsRef = useRef<AutosizeTextAreaRef | null>(null);
+    const discordReviewChannelRef = useRef<HTMLInputElement | null>(null);
+
+    const activeWorkflow = getActiveWorkflow(states.workflows, states.activeWorkflowId);
+    const workflowType: WhitelistWorkflowType = activeWorkflow?.type ?? 'disabled';
+    const isWhitelistActive = workflowType !== 'disabled';
+    const isExternalWhitelist = workflowType === 'external_whitelist';
+
     useEffect(() => {
         updatePageState();
     }, [states]);
 
-    //Refs for configs that don't use state
-    const rejectionMessageRef = useRef<AutosizeTextAreaRef | null>(null);
-    const discordRolesRef = useRef<HTMLInputElement | null>(null);
-
-    //Marshalling Utils
-    const inputArrayUtil = {
-        toUi: (args?: string[]) => (args ? args.join(', ') : ''),
-        toCfg: (str?: string) =>
-            str
-                ? str.split(/[,;]\s*/).reduce<string[]>((values, value) => {
-                      const trimmedValue = value.trim();
-                      if (trimmedValue.length) {
-                          values.push(trimmedValue);
-                      }
-                      return values;
-                  }, [])
-                : [],
-    };
-
-    //Processes the state of the page and sets the card as pending save if needed
     const updatePageState = () => {
-        let currDiscordRoles;
-        if (discordRolesRef.current) {
-            currDiscordRoles = inputArrayUtil.toCfg(discordRolesRef.current.value);
-        }
-        const overwrites = {
-            rejectionMessage: rejectionMessageRef.current?.textArea.value,
-            discordRoles: currDiscordRoles,
-        };
+        const scheduleState = states.schedule as WhitelistSchedule | undefined;
+        const closedFromRef = scheduleClosedRef.current?.value;
+        const closedMessage =
+            closedFromRef !== undefined && closedFromRef !== ''
+                ? closedFromRef
+                : (scheduleState?.closedMessage ?? defaultClosedMessage);
 
-        const res = getConfigDiff(cfg, states, overwrites, false);
-        pageCtx.setCardPendingSave(reconcileCardPendingSave(cardCtx, res.hasChanges));
-        return res;
+        const instructionsFromRef = serverBrowserInstructionsRef.current?.textArea.value;
+        const serverBrowserInstructions =
+            instructionsFromRef !== undefined && instructionsFromRef !== ''
+                ? instructionsFromRef
+                : ((states.serverBrowserInstructions as string | undefined) ?? '');
+
+        const discordRoles = activeWorkflow?.discordRoleIds ?? [];
+
+        const discordReviewChannelId =
+            discordReviewChannelRef.current?.value ?? activeWorkflow?.discordReviewChannelId ?? '';
+
+        const patch = buildWhitelistSavePatch({
+            workflows: states.workflows as WhitelistWorkflow[],
+            activeWorkflowId: states.activeWorkflowId as string | undefined,
+            schedule: scheduleState,
+            serverBrowserInstructions,
+            workflowType,
+            activeWorkflow,
+            discordRoleIds: discordRoles,
+            discordReviewChannelId,
+            closedMessage,
+        });
+
+        const storedWorkflows = cfg.workflows.initialValue as WhitelistWorkflow[] | undefined;
+        const storedActiveId = cfg.activeWorkflowId.initialValue as string | undefined;
+        const storedActive = getActiveWorkflow(storedWorkflows, storedActiveId);
+        const storedType = storedActive?.type ?? 'disabled';
+
+        const storedPatch = buildWhitelistSavePatch({
+            workflows: storedWorkflows,
+            activeWorkflowId: storedActiveId,
+            schedule: cfg.schedule.initialValue as WhitelistSchedule | undefined,
+            serverBrowserInstructions: cfg.serverBrowserInstructions.initialValue as string | undefined,
+            workflowType: storedType,
+            activeWorkflow: storedActive,
+            discordRoleIds: storedActive?.discordRoleIds ?? [],
+            discordReviewChannelId: storedActive?.discordReviewChannelId ?? '',
+            closedMessage:
+                (cfg.schedule.initialValue as WhitelistSchedule | undefined)?.closedMessage ?? defaultClosedMessage,
+        });
+
+        const hasChanges = !dequal(patch, storedPatch);
+        pageCtx.setCardPendingSave(reconcileCardPendingSave(cardCtx, hasChanges));
+
+        return {
+            hasChanges,
+            localConfigs: { whitelist: patch },
+        };
     };
 
-    //Validate changes (for UX only) and trigger the save API
+    const handleDiscordRoleIdsChange = (roleIds: string[]) => {
+        const workflows = syncWorkflowType(
+            states.workflows as WhitelistWorkflow[],
+            states.activeWorkflowId as string | undefined,
+            workflowType,
+            roleIds,
+            activeWorkflow?.discordReviewChannelId,
+        );
+        cfg.workflows.state.set(workflows);
+    };
+
+    const handleWorkflowTypeChange = (type: WhitelistWorkflowType) => {
+        const discordRoles = activeWorkflow?.discordRoleIds ?? [];
+        const workflows = syncWorkflowType(
+            states.workflows as WhitelistWorkflow[],
+            states.activeWorkflowId,
+            type,
+            discordRoles,
+        );
+        cfg.workflows.state.set(workflows);
+        cfg.enabled.state.set(type !== 'disabled');
+    };
+
     const handleOnSave = () => {
         const { hasChanges, localConfigs } = updatePageState();
         if (!hasChanges) return;
 
-        if (localConfigs.whitelist?.rejectionMessage && localConfigs.whitelist.rejectionMessage.length > 512) {
-            return txToast.error({
-                title: 'The Whitelist Rejection Message is too big.',
-                md: true,
-                msg: 'The message must be 512 characters or less.',
-            });
-        }
-        if (localConfigs.whitelist?.mode === 'discordMember' || localConfigs.whitelist?.mode === 'discordRoles') {
+        const wl = localConfigs.whitelist;
+
+        const type = getActiveWorkflow(wl?.workflows, wl?.activeWorkflowId)?.type;
+        if (type === 'auto_discord_member' || type === 'auto_discord_role') {
             if (pageCtx.apiData?.storedConfigs.discordBot?.enabled !== true) {
                 return txToast.warning({
-                    title: 'Discord Bot is required.',
-                    msg: 'You need to enable the Discord Bot in the Discord tab to use Discord-based whitelist modes.',
-                });
-            }
-            if (
-                localConfigs.whitelist?.mode === 'discordRoles' &&
-                (!Array.isArray(localConfigs.whitelist?.discordRoles) || !localConfigs.whitelist?.discordRoles.length)
-            ) {
-                return txToast.warning({
-                    title: 'Discord Roles are required.',
-                    msg: 'You need to specify at least one Discord Role ID to use the "Discord Server Roles" whitelist mode.',
+                    title: t('panel.settings.whitelist.toast_discord_bot_required_title'),
+                    msg: t('panel.settings.whitelist.toast_discord_bot_required_msg'),
                 });
             }
         }
-        if (Array.isArray(localConfigs.whitelist?.discordRoles)) {
-            const invalidRoles: string[] = [];
-            for (const roleId of localConfigs.whitelist.discordRoles) {
+        if (type === 'auto_discord_role') {
+            const roles = getActiveWorkflow(wl?.workflows, wl?.activeWorkflowId)?.discordRoleIds ?? [];
+            if (!roles.length) {
+                return txToast.warning({
+                    title: t('panel.settings.whitelist.toast_discord_roles_required_title'),
+                    msg: t('panel.settings.whitelist.toast_discord_roles_required_msg'),
+                });
+            }
+            for (const roleId of roles) {
                 if (!consts.regexDiscordSnowflake.test(roleId)) {
-                    invalidRoles.push(`- \`${roleId.slice(0, 20)}\``);
+                    return txToast.error({
+                        title: t('panel.settings.whitelist.toast_invalid_role_title'),
+                        msg: t('panel.settings.whitelist.toast_invalid_role_msg', { roleId }),
+                    });
                 }
             }
-            if (invalidRoles.length) {
-                return txToast.error({
-                    title: 'Invalid Discord Role ID(s).',
-                    md: true,
-                    msg: 'The following Discord Role ID(s) are invalid: \n' + invalidRoles.join('\n'),
-                });
-            }
         }
+
+        if (wl?.enabled && !wl.serverBrowserInstructions?.trim()) {
+            return txToast.error({
+                title: t('panel.settings.whitelist.toast_instructions_required_title'),
+                msg: t('panel.settings.whitelist.toast_instructions_required_msg'),
+            });
+        }
+
+        if (wl?.serverBrowserInstructions && wl.serverBrowserInstructions.length > 512) {
+            return txToast.error({
+                title: t('panel.settings.whitelist.toast_instructions_too_long_title'),
+                msg: t('panel.settings.whitelist.toast_instructions_too_long_msg'),
+            });
+        }
+
+        if (wl?.schedule?.enabled && !wl.schedule.windows?.length) {
+            return txToast.error({
+                title: t('panel.settings.whitelist.toast_schedule_windows_title'),
+                msg: t('panel.settings.whitelist.toast_schedule_windows_msg'),
+            });
+        }
+
+        const reviewChannel = getActiveWorkflow(wl?.workflows, wl?.activeWorkflowId)?.discordReviewChannelId;
+        if (reviewChannel && !consts.regexDiscordSnowflake.test(reviewChannel)) {
+            return txToast.error({
+                title: t('panel.settings.whitelist.toast_invalid_review_channel_title'),
+                msg: t('panel.settings.whitelist.toast_invalid_review_channel_msg'),
+            });
+        }
+
         pageCtx.saveChanges(cardCtx, localConfigs);
     };
 
     return (
         <SettingsCardShell cardCtx={cardCtx} pageCtx={pageCtx} onClickSave={handleOnSave}>
-            <SettingItem label="Whitelist Mode">
+            <SettingItem label={t('panel.settings.whitelist.enabled_label')}>
+                <SwitchText
+                    id={cfg.enabled.eid}
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
+                    checked={states.enabled === true}
+                    onCheckedChange={(checked) => {
+                        cfg.enabled.state.set(checked);
+                        if (!checked) handleWorkflowTypeChange('disabled');
+                    }}
+                    disabled={pageCtx.isReadOnly}
+                />
+                <SettingItemDesc>{t('panel.settings.whitelist.enabled_desc')}</SettingItemDesc>
+            </SettingItem>
+
+            <SettingItem label={t('panel.settings.whitelist.workflow_label')}>
                 <RadioGroup
-                    value={states.whitelistMode}
-                    onValueChange={cfg.whitelistMode.state.set as any}
+                    value={workflowType}
+                    onValueChange={(v) => handleWorkflowTypeChange(v as WhitelistWorkflowType)}
                     disabled={pageCtx.isReadOnly}
                 >
-                    <BigRadioItem
-                        groupValue={states.whitelistMode}
-                        value="disabled"
-                        title="Disabled"
-                        desc="No whitelist status will be checked by fxPanel."
-                    />
-                    <BigRadioItem
-                        groupValue={states.whitelistMode}
-                        value="adminOnly"
-                        title="Admin-only (maintenance mode)"
-                        desc={
-                            <>
-                                Will only allow server join if your <InlineCode>fivem:</InlineCode> or{' '}
-                                <InlineCode>discord:</InlineCode> identifiers are attached to a fxPanel administrator.
-                                Also known as maintenance mode.
-                            </>
-                        }
-                    />
-                    <BigRadioItem
-                        groupValue={states.whitelistMode}
-                        value="discordMember"
-                        title="Discord Server Member"
-                        desc={
-                            <>
-                                Checks if the player joining has a <InlineCode>discord:</InlineCode> identifier and is
-                                present in the Discord server configured in the Discord Tab.
-                            </>
-                        }
-                    />
-                    <BigRadioItem
-                        groupValue={states.whitelistMode}
-                        value="discordRoles"
-                        title="Discord Server Roles"
-                        desc={
-                            <>
-                                Checks if the player joining has a <InlineCode>discord:</InlineCode> identifier and is
-                                present in the Discord server configured in the Discord Tab and has at least one of the
-                                roles specified below.
-                            </>
-                        }
-                    />
-                    <BigRadioItem
-                        groupValue={states.whitelistMode}
-                        value="approvedLicense"
-                        title="Approved License"
-                        desc={
-                            <>
-                                The player <InlineCode>license:</InlineCode> identifier must be whitelisted by a fxPanel
-                                administrator. This can be done through the{' '}
-                                <TxAnchor href="/whitelist">Whitelist page</TxAnchor>, or the{' '}
-                                <InlineCode>/whitelist</InlineCode> Discord bot slash command.
-                            </>
-                        }
-                    />
+                    {workflowOptions.map((opt) => (
+                        <BigRadioItem
+                            key={opt.value}
+                            groupValue={workflowType}
+                            value={opt.value}
+                            title={opt.title}
+                            desc={opt.desc}
+                        />
+                    ))}
                 </RadioGroup>
             </SettingItem>
-            <SettingItem label="Whitelist Rejection Message" htmlFor={cfg.rejectionMessage.eid} showOptional>
-                <AutosizeTextarea
-                    id={cfg.rejectionMessage.eid}
-                    ref={rejectionMessageRef}
-                    placeholder="Please join http://discord.gg/example and request to be whitelisted."
-                    defaultValue={cfg.rejectionMessage.initialValue}
-                    onInput={updatePageState}
-                    autoComplete="off"
-                    minHeight={60}
-                    maxHeight={180}
-                    disabled={pageCtx.isReadOnly}
-                />
+
+            {!isExternalWhitelist ? null : null}
+
+            {isWhitelistActive ? (
+                <SettingItem
+                    label={t('panel.settings.whitelist.browser_instructions_label')}
+                    htmlFor="wl-browser-instructions"
+                >
+                    <AutosizeTextarea
+                        id="wl-browser-instructions"
+                        ref={serverBrowserInstructionsRef}
+                        defaultValue={(states.serverBrowserInstructions as string) ?? ''}
+                        onInput={updatePageState}
+                        minHeight={60}
+                        maxHeight={160}
+                        disabled={pageCtx.isReadOnly}
+                        placeholder={t('panel.settings.whitelist.browser_instructions_placeholder')}
+                    />
+                    <SettingItemDesc>{t('panel.settings.whitelist.browser_instructions_desc')}</SettingItemDesc>
+                </SettingItem>
+            ) : null}
+
+            {workflowType === 'manual_review' ? (
+                <SettingItem
+                    label={t('panel.settings.whitelist.discord_review_channel_label')}
+                    htmlFor="wl-discord-review-channel"
+                    showOptional
+                >
+                    <Input
+                        id="wl-discord-review-channel"
+                        ref={discordReviewChannelRef}
+                        defaultValue={activeWorkflow?.discordReviewChannelId ?? ''}
+                        placeholder={t('panel.settings.whitelist.discord_review_channel_placeholder')}
+                        onInput={updatePageState}
+                        disabled={pageCtx.isReadOnly}
+                    />
+                    <SettingItemDesc>{t('panel.settings.whitelist.discord_review_channel_desc')}</SettingItemDesc>
+                </SettingItem>
+            ) : null}
+
+            {workflowType === 'auto_discord_role' ? (
+                <SettingItem label={t('panel.settings.whitelist.discord_roles_label')} htmlFor="wl-discord-roles">
+                    <DiscordRoleMultiSelect
+                        id="wl-discord-roles"
+                        value={activeWorkflow?.discordRoleIds ?? []}
+                        onChange={handleDiscordRoleIdsChange}
+                        disabled={pageCtx.isReadOnly || pageCtx.apiData?.storedConfigs.discordBot?.enabled !== true}
+                    />
+                    <SettingItemDesc>{t('panel.settings.whitelist.discord_roles_desc')}</SettingItemDesc>
+                </SettingItem>
+            ) : null}
+
+            {!isExternalWhitelist ? (
+                <>
+                    <SettingItem label={t('panel.settings.whitelist.deferral_cards_label')}>
+                        <SettingItemDesc>
+                            {t('panel.settings.whitelist.deferral_cards_desc_prefix')}{' '}
+                            <TxAnchor href="/settings#deferral-cards">
+                                {t('panel.settings.tabs.deferral_cards')}
+                            </TxAnchor>{' '}
+                            {t('panel.settings.whitelist.deferral_cards_desc_suffix')}
+                        </SettingItemDesc>
+                    </SettingItem>
+
+                    <SettingItem label={t('panel.settings.whitelist.schedule_label')}>
+                        <SwitchText
+                            checkedLabel={t('panel.settings.whitelist.schedule_on')}
+                            uncheckedLabel={t('panel.settings.whitelist.schedule_off')}
+                            checked={(states.schedule as WhitelistSchedule)?.enabled === true}
+                            onCheckedChange={(checked) => {
+                                cfg.schedule.state.set({
+                                    ...(states.schedule as WhitelistSchedule),
+                                    enabled: checked,
+                                });
+                            }}
+                            disabled={pageCtx.isReadOnly}
+                        />
+                        <Input
+                            ref={scheduleClosedRef}
+                            className="mt-3"
+                            defaultValue={(states.schedule as WhitelistSchedule)?.closedMessage}
+                            placeholder={t('panel.settings.whitelist.schedule_closed_placeholder')}
+                            onInput={updatePageState}
+                            disabled={pageCtx.isReadOnly}
+                        />
+                        {(states.schedule as WhitelistSchedule)?.enabled ? (
+                            <WhitelistScheduleEditor
+                                schedule={
+                                    (states.schedule as WhitelistSchedule) ?? {
+                                        enabled: false,
+                                        timezone: 'UTC',
+                                        windows: [],
+                                        closedMessage: '',
+                                    }
+                                }
+                                disabled={pageCtx.isReadOnly}
+                                onChange={(schedule) => cfg.schedule.state.set(schedule)}
+                            />
+                        ) : null}
+                        <SettingItemDesc>{t('panel.settings.whitelist.schedule_desc')}</SettingItemDesc>
+                    </SettingItem>
+                </>
+            ) : null}
+
+            <SettingItem label={t('panel.settings.whitelist.manage_label')}>
                 <SettingItemDesc>
-                    Optional message to display to a player on the rejection message that shows when they try to connect
-                    while not being whitelisted. <br />
-                    If you have a Discord whitelisting process, include here a invite link.
-                </SettingItemDesc>
-            </SettingItem>
-            <SettingItem label="Whitelisted Discord Roles" htmlFor={cfg.discordRoles.eid}>
-                <Input
-                    id={cfg.discordRoles.eid}
-                    ref={discordRolesRef}
-                    defaultValue={inputArrayUtil.toUi(cfg.discordRoles.initialValue)}
-                    placeholder="000000000000000000, 000000000000000000"
-                    onInput={updatePageState}
-                    disabled={pageCtx.isReadOnly}
-                />
-                <SettingItemDesc>
-                    The ID of the Discord roles that are whitelisted to join the server. <br />
-                    This field supports multiple roles, separated by comma. <br />
-                    <strong>Note:</strong> Requires the whitelist mode to be set to "Discord Server Roles".
+                    {t('panel.settings.whitelist.manage_desc')}{' '}
+                    <TxAnchor href="/whitelist">{t('panel.routes.whitelist')}</TxAnchor>
                 </SettingItemDesc>
             </SettingItem>
         </SettingsCardShell>

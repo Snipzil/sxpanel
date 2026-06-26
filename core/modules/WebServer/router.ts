@@ -103,10 +103,14 @@ export default () => {
     //router.get('/legacy/setup', webAuthMw, routes.setup_get);
     //router.get('/legacy/deployer', webAuthMw, routes.deployer_stepper);
 
+    // Deferral card SVG assets (public — loaded by FiveM client during connection, no session cookie)
+    router.get('/deferral-card-assets/:scenarioId/:elementId', routes.deferral_card_asset);
+    router.get('/deferral-card-logo.png', routes.deferral_card_logo);
+
     //Authentication
     router.get('/auth/self', apiAuthMw, wrapRoute('AuthSelf', routes.auth_self));
     router.post('/auth/password', authLimiter, routes.auth_verifyPassword);
-    router.post('/auth/logout', authLimiter, wrapRoute('AuthLogout', routes.auth_logout));
+    router.post('/auth/logout', authLimiter, apiAuthMw, wrapRoute('AuthLogout', routes.auth_logout));
     router.post('/auth/addMaster/pin', authLimiter, wrapRoute('AddMasterPin', routes.auth_addMasterPin));
     router.post('/auth/addMaster/callback', authLimiter, routes.auth_addMasterCallback);
     router.post('/auth/addMaster/save', authLimiter, routes.auth_addMasterSave);
@@ -132,7 +136,7 @@ export default () => {
     router.post('/adminManager/presets', apiAuthMw, routes.adminManager_savePresets);
     router.post(
         '/adminManager/getModal/:modalType',
-        webAuthMw,
+        apiAuthMw,
         wrapRoute('AdminGetModal', routes.adminManager_getModal),
     );
     router.post('/adminManager/:action', apiAuthMw, routes.adminManager_actions);
@@ -144,13 +148,17 @@ export default () => {
     router.get('/deployer/status', apiAuthMw, routes.deployer_status);
     router.post('/deployer/recipe/:action', apiAuthMw, routes.deployer_actions);
     router.get('/settings/configs', apiAuthMw, wrapRoute('GetConfigs', routes.settings_getConfigs));
+    router.get('/deferral/addon-meta', apiAuthMw, wrapRoute('DeferralAddonMeta', routes.deferral_addon_meta));
+    router.get('/settings/localePhrases', apiAuthMw, wrapRoute('GetLocalePhrases', routes.settings_getLocalePhrases));
     router.post('/settings/configs/:card', apiAuthMw, mutationLimiter, routes.settings_saveConfigs);
     router.get('/settings/banTemplates', apiAuthMw, routes.settings_getBanTemplates);
     router.post('/settings/banTemplates', apiAuthMw, mutationLimiter, routes.settings_saveBanTemplates);
     router.post('/settings/resetServerDataPath', apiAuthMw, mutationLimiter, routes.settings_resetServerDataPath);
+    router.get('/discord/guild-roles', apiAuthMw, wrapRoute('DiscordGuildRoles', routes.discord_guildRoles));
 
     //Master Actions
-    router.get('/masterActions/backupDatabase', webAuthMw, routes.masterActions_getBackup);
+    router.get('/masterActions/backupDatabase', apiAuthMw, routes.masterActions_getBackup);
+    router.post('/masterActions/backupDatabase', apiAuthMw, routes.masterActions_getBackup);
     router.post('/masterActions/:action', apiAuthMw, mutationLimiter, routes.masterActions_actions);
 
     //FXServer
@@ -172,6 +180,8 @@ export default () => {
 
     //Resources
     router.get('/resources/list', apiAuthMw, wrapRoute('ResourcesList', routes.resources_list));
+    router.get('/resources/download', apiAuthMw, wrapRoute('ResourcesDownload', routes.resources_download));
+    router.post('/resources/download', apiAuthMw, wrapRoute('ResourcesDownload', routes.resources_download));
 
     //Control routes
     router.post('/intercom/:scope', intercomAuthMw, routes.intercom);
@@ -197,7 +207,8 @@ export default () => {
         readLimiter,
         wrapRoute('ServerLogSession', routes.serverLogSessionFile),
     );
-    router.get('/logs/server/download', webAuthMw, wrapRoute('ServerLogDownload', routes.downloadServerLog));
+    router.get('/logs/server/download', apiAuthMw, wrapRoute('ServerLogDownload', routes.downloadServerLog));
+    router.post('/logs/server/download', apiAuthMw, wrapRoute('ServerLogDownload', routes.downloadServerLog));
     router.get('/logs/system/partial', apiAuthMw, readLimiter, wrapRoute('SystemLogPartial', routes.systemLogPartial));
     router.get(
         '/logs/system/sessions',
@@ -211,9 +222,11 @@ export default () => {
         readLimiter,
         wrapRoute('SystemLogSession', routes.systemLogSessionFile),
     );
-    router.get('/logs/system/download', webAuthMw, wrapRoute('SystemLogDownload', routes.downloadSystemLog));
+    router.get('/logs/system/download', apiAuthMw, wrapRoute('SystemLogDownload', routes.downloadSystemLog));
+    router.post('/logs/system/download', apiAuthMw, wrapRoute('SystemLogDownload', routes.downloadSystemLog));
     router.get('/logs/system/:scope', apiAuthMw, wrapRoute('SystemLogScoped', routes.systemLogScoped));
-    router.get('/logs/fxserver/download', webAuthMw, wrapRoute('FxLogDownload', routes.downloadFxserverLog));
+    router.get('/logs/fxserver/download', apiAuthMw, wrapRoute('FxLogDownload', routes.downloadFxserverLog));
+    router.post('/logs/fxserver/download', apiAuthMw, wrapRoute('FxLogDownload', routes.downloadFxserverLog));
 
     router.get('/perfChartData/:thread', apiAuthMw, routes.perfChart);
     router.get('/playerDropsData', apiAuthMw, routes.playerDrops);
@@ -241,6 +254,9 @@ export default () => {
     router.get('/player/stats', apiAuthMw, readLimiter, routes.player_stats);
     router.get('/player/search', apiAuthMw, readLimiter, wrapRoute('PlayerSearch', routes.player_search));
     router.post('/player/checkJoin', intercomAuthMw, routes.player_checkJoin);
+    router.post('/player/queue/join', intercomAuthMw, routes.player_queueJoin);
+    router.post('/player/queue/poll', intercomAuthMw, routes.player_queuePoll);
+    router.post('/player/queue/leave', intercomAuthMw, routes.player_queueLeave);
     router.post('/player/screenshot', apiAuthMw, mutationLimiter, routes.player_screenshot);
     router.post(
         '/player/liveSpectate/start',
@@ -257,6 +273,30 @@ export default () => {
     router.post('/player/:action', apiAuthMw, mutationLimiter, routes.player_actions);
     router.get('/whitelist/:table', apiAuthMw, readLimiter, wrapRoute('WhitelistList', routes.whitelist_list));
     router.post('/whitelist/:table/:action', apiAuthMw, mutationLimiter, routes.whitelist_actions);
+    router.get(
+        '/whitelist/config/summary',
+        apiAuthMw,
+        readLimiter,
+        wrapRoute('WhitelistConfig', routes.whitelist_config),
+    );
+    router.get(
+        '/whitelist/analytics/summary',
+        apiAuthMw,
+        readLimiter,
+        wrapRoute('WhitelistAnalytics', routes.whitelist_analytics),
+    );
+    router.get(
+        '/whitelist/bulk/export',
+        apiAuthMw,
+        readLimiter,
+        wrapRoute('WhitelistBulkExport', routes.whitelist_bulk),
+    );
+    router.post(
+        '/whitelist/bulk/import',
+        apiAuthMw,
+        mutationLimiter,
+        wrapRoute('WhitelistBulkImport', routes.whitelist_bulk),
+    );
 
     //Report routes
     router.get('/reports/list', apiAuthMw, readLimiter, routes.reports_list);
@@ -302,6 +342,9 @@ export default () => {
 
     //Host routes
     router.get('/host/status', hostAuthMw, routes.host_status);
+
+    // CFXBOT push-mode player roster (localhost only, no auth — matches patched txAdmin)
+    router.post('/dev/addPlayers', wrapRoute('DevAddPlayers', routes.dev_addPlayers));
 
     // DevDebug routes — require session + master (privileged playerlist injection, etc.)
     if (txDevEnv.ENABLED) {

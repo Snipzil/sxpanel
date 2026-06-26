@@ -1,5 +1,7 @@
-import MarkdownProse from '@/components/MarkdownProse';
-import { cn } from '@/lib/utils';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import toast, { Toast, Toaster } from 'react-hot-toast';
+import { ApiToastResp } from '@shared/genericApiTypes';
+import { cn } from '@/lib/cn';
 import { handleExternalLinkClick } from '@/lib/navigation';
 import { cva } from 'class-variance-authority';
 import {
@@ -11,13 +13,10 @@ import {
     Loader2Icon,
     XIcon,
 } from 'lucide-react';
-import toast, { Toast, Toaster } from 'react-hot-toast';
-import { useEffect, useState } from 'react';
-import { ApiToastResp } from '@shared/genericApiTypes';
 
-//MARK: Types
-export const validToastTypes = ['default', 'loading', 'info', 'success', 'warning', 'error'] as const;
-type TxToastType = (typeof validToastTypes)[number];
+const MarkdownProse = lazy(() => import('@/components/MarkdownProse'));
+
+import { validToastTypes, type TxToastType } from '@/components/toastTypes';
 
 type TxToastData =
     | string
@@ -100,10 +99,17 @@ export const CustomToast = ({ t, type, data }: CustomToastProps) => {
                 {typeof data === 'string' ? (
                     <span className="block whitespace-pre-line">{data}</span>
                 ) : data.md ? (
-                    <>
+                    <Suspense
+                        fallback={
+                            <>
+                                {data.title ? <span className="mb-1 block font-semibold">{data.title}</span> : null}
+                                <span className="block whitespace-pre-line">{data.msg}</span>
+                            </>
+                        }
+                    >
                         {data.title ? <MarkdownProse md={`**${data.title}**`} isSmall isTitle isToast /> : null}
                         <MarkdownProse md={data.msg} isSmall isToast />
-                    </>
+                    </Suspense>
                 ) : (
                     <>
                         <span className="mb-1 font-semibold">{data.title}</span>
@@ -152,7 +158,14 @@ export default function TxToaster() {
  * Returns a toast with the given type
  */
 const callToast = (type: TxToastType, data: TxToastData, options: TxToastOptions = {}) => {
-    const msg = typeof data === 'string' ? data : data.msg;
+    const msg =
+        typeof data === 'string'
+            ? data
+            : typeof data.msg === 'string'
+              ? data.msg
+              : data.title
+                ? String(data.title)
+                : 'Unknown error';
     const msgWords = msg.split(/\s+/).length;
     let defaultDuration: number;
     if (msgWords < 15) {

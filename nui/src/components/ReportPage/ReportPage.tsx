@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { styled } from '@mui/material/styles';
+import { alpha, styled } from '@mui/material/styles';
 import {
     Box,
     Button,
@@ -13,12 +13,15 @@ import {
     Select,
     TextField,
     Typography,
+    useTheme,
 } from '@mui/material';
 import { Chat, Close, Image, Send, Star } from '@mui/icons-material';
 import { useNuiEvent } from '../../hooks/useNuiEvent';
 import { fetchNui } from '../../utils/fetchNui';
 import { useSetListenForExit } from '../../state/keys.state';
-import { theme } from '../../styles/theme';
+import type { MenuTokens } from '../../styles/theme';
+import { useTranslate } from 'react-polyglot';
+import { translateTicketError } from '../../utils/translateTicketError';
 
 // =============================================
 // Types
@@ -57,39 +60,26 @@ type View = 'menu' | 'create' | 'list' | 'detail' | 'feedback';
 // Styles
 // =============================================
 
-const Overlay = styled(Box)({
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-    zIndex: 1200,
-    color: theme.fg,
-});
-
-const Panel = styled(Box)({
+const Panel = styled(Box)(({ theme }) => ({
     width: '100%',
     maxWidth: 480,
     maxHeight: '80vh',
-    background: theme.bg,
-    borderRadius: 12,
-    border: `1px solid ${theme.border}`,
+    background: theme.tokens.surface,
+    borderRadius: theme.tokens.radiusCard,
+    border: `1px solid ${theme.tokens.border}`,
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'hidden',
-});
+    // Content scrolls internally; panel stays visible so non-portaled Select menus aren't clipped.
+    overflow: 'visible',
+}));
 
-const Header = styled(Box)({
+const Header = styled(Box)(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '14px 18px',
-    borderBottom: `1px solid ${theme.border}`,
-});
+    borderBottom: `1px solid ${theme.tokens.border}`,
+}));
 
 const Content = styled(Box)({
     flex: 1,
@@ -97,59 +87,71 @@ const Content = styled(Box)({
     padding: '16px 18px',
 });
 
-const Footer = styled(Box)({
+const Footer = styled(Box)(({ theme }) => ({
     padding: '12px 18px',
-    borderTop: `1px solid ${theme.border}`,
+    borderTop: `1px solid ${theme.tokens.border}`,
     display: 'flex',
     gap: 8,
-});
+}));
 
 // =============================================
 // Helpers
 // =============================================
 
-const STATUS_MAP: Record<TicketStatus, { label: string; color: string }> = {
-    open: { label: 'Open', color: theme.warning },
-    inReview: { label: 'In Review', color: theme.info },
-    resolved: { label: 'Resolved', color: theme.success },
-    closed: { label: 'Closed', color: theme.muted },
+const useStatusMap = (): Record<TicketStatus, { label: string; color: string }> => {
+    const t = useTranslate();
+    const { tokens } = useTheme();
+    return {
+        open: { label: t('discord_bot.tickets.status_labels.open'), color: tokens.warning },
+        inReview: { label: t('discord_bot.tickets.status_labels.in_review'), color: tokens.info },
+        resolved: { label: t('discord_bot.tickets.status_labels.resolved'), color: tokens.success },
+        closed: { label: t('discord_bot.tickets.status_labels.closed'), color: tokens.textMuted },
+    };
 };
 
-function timeAgo(ts: number): string {
+function timeAgo(t: (key: string, options?: Record<string, unknown>) => string, ts: number): string {
     const tsSeconds = ts > 1e12 ? Math.floor(ts / 1000) : Math.floor(ts);
     const nowSeconds = Math.floor(Date.now() / 1000);
     const diff = Math.max(0, nowSeconds - tsSeconds);
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
+    if (diff < 60) return t('nui_reports.just_now');
+    if (diff < 3600) return t('nui_reports.time_minutes_ago', { count: Math.floor(diff / 60) });
+    if (diff < 86400) return t('nui_reports.time_hours_ago', { count: Math.floor(diff / 3600) });
+    return t('nui_reports.time_days_ago', { count: Math.floor(diff / 86400) });
 }
 
-const inputSx = {
+const getInputSx = (tokens: MenuTokens) => ({
     '& .MuiOutlinedInput-root': {
-        color: theme.fg,
-        '& fieldset': { borderColor: theme.border },
-        '&:hover fieldset': { borderColor: theme.muted },
-        '&.Mui-focused fieldset': { borderColor: theme.info },
+        color: tokens.textPrimary,
+        '& fieldset': { borderColor: tokens.border },
+        '&:hover fieldset': { borderColor: tokens.textMuted },
+        '&.Mui-focused fieldset': { borderColor: tokens.info },
     },
-    '& .MuiInputLabel-root': { color: theme.muted },
-    '& .MuiInputLabel-root.Mui-focused': { color: theme.info },
-    '& .MuiFormHelperText-root': { color: theme.muted },
-    '& .MuiSelect-icon': { color: theme.muted },
-};
+    '& .MuiInputLabel-root': { color: tokens.textMuted },
+    '& .MuiInputLabel-root.Mui-focused': { color: tokens.info },
+    '& .MuiFormHelperText-root': { color: tokens.textMuted },
+    '& .MuiSelect-icon': { color: tokens.textMuted },
+});
 
-const menuPaperSx = {
-    bgcolor: theme.card,
-    color: theme.fg,
-    border: `1px solid ${theme.border}`,
-};
+const getMenuPaperSx = (tokens: MenuTokens) => ({
+    bgcolor: tokens.surfaceRaised,
+    color: tokens.textPrimary,
+    border: `1px solid ${tokens.border}`,
+});
+
+/** Keep menus inside the overlay — portaled menus cause removeChild crashes on close. */
+const getSelectMenuProps = (tokens: MenuTokens) => ({
+    disablePortal: true,
+    PaperProps: { sx: getMenuPaperSx(tokens) },
+});
 
 // =============================================
 // Sub-components
 // =============================================
 
 const StatusChip: React.FC<{ status: TicketStatus; size?: 'small' | 'medium' }> = ({ status, size = 'small' }) => {
-    const { label, color } = STATUS_MAP[status] ?? { label: status, color: theme.muted };
+    const statusMap = useStatusMap();
+    const { tokens } = useTheme();
+    const { label, color } = statusMap[status] ?? { label: status, color: tokens.textMuted };
     return (
         <Chip
             label={label}
@@ -168,42 +170,48 @@ const StatusChip: React.FC<{ status: TicketStatus; size?: 'small' | 'medium' }> 
 const MenuView: React.FC<{
     onSelect: (view: View) => void;
     ticketCount: number;
-}> = ({ onSelect, ticketCount }) => (
-    <Box display="flex" flexDirection="column" gap={1.5}>
-        <Typography variant="body2" sx={{ color: theme.muted, mb: 1 }}>
-            What would you like to do?
-        </Typography>
-        <Button
-            variant="outlined"
-            onClick={() => onSelect('create')}
-            sx={{
-                justifyContent: 'flex-start',
-                textTransform: 'none',
-                py: 1.2,
-                color: theme.fg,
-                borderColor: theme.border,
-                '&:hover': { borderColor: theme.muted, bgcolor: 'rgba(255,255,255,0.04)' },
-            }}
-        >
-            Submit a New Ticket
-        </Button>
-        <Button
-            variant="outlined"
-            startIcon={<Chat />}
-            onClick={() => onSelect('list')}
-            sx={{
-                justifyContent: 'flex-start',
-                textTransform: 'none',
-                py: 1.2,
-                color: theme.fg,
-                borderColor: theme.border,
-                '&:hover': { borderColor: theme.muted, bgcolor: 'rgba(255,255,255,0.04)' },
-            }}
-        >
-            My Tickets {ticketCount > 0 && `(${ticketCount})`}
-        </Button>
-    </Box>
-);
+}> = ({ onSelect, ticketCount }) => {
+    const t = useTranslate();
+    const { tokens } = useTheme();
+    return (
+        <Box display="flex" flexDirection="column" gap={1.5}>
+            <Typography variant="body2" sx={{ color: tokens.textMuted, mb: 1 }}>
+                {t('nui_reports.menu_what')}
+            </Typography>
+            <Button
+                variant="outlined"
+                onClick={() => onSelect('create')}
+                sx={{
+                    justifyContent: 'flex-start',
+                    textTransform: 'none',
+                    py: 1.2,
+                    color: tokens.textPrimary,
+                    borderColor: tokens.border,
+                    '&:hover': { borderColor: tokens.textMuted, bgcolor: 'rgba(255,255,255,0.04)' },
+                }}
+            >
+                {t('nui_reports.submit_new_ticket')}
+            </Button>
+            <Button
+                variant="outlined"
+                startIcon={<Chat />}
+                onClick={() => onSelect('list')}
+                sx={{
+                    justifyContent: 'flex-start',
+                    textTransform: 'none',
+                    py: 1.2,
+                    color: tokens.textPrimary,
+                    borderColor: tokens.border,
+                    '&:hover': { borderColor: tokens.textMuted, bgcolor: 'rgba(255,255,255,0.04)' },
+                }}
+            >
+                {ticketCount > 0
+                    ? t('nui_reports.my_tickets_count', { count: ticketCount })
+                    : t('nui_reports.my_tickets')}
+            </Button>
+        </Box>
+    );
+};
 
 const CreateView: React.FC<{
     players: PlayerTarget[];
@@ -212,6 +220,10 @@ const CreateView: React.FC<{
     onSubmit: (category: string, description: string, targetIds: number[], priority?: string) => void;
     submitting: boolean;
 }> = ({ players, categories, priorityEnabled, onSubmit, submitting }) => {
+    const t = useTranslate();
+    const { tokens } = useTheme();
+    const inputSx = getInputSx(tokens);
+    const selectMenuProps = getSelectMenuProps(tokens);
     const defaultCategory = categories[0] ?? '';
     const [category, setCategory] = useState(defaultCategory);
     const [description, setDescription] = useState('');
@@ -235,18 +247,18 @@ const CreateView: React.FC<{
         <Box display="flex" flexDirection="column" gap={2}>
             {categories.length > 0 && (
                 <FormControl size="small" fullWidth sx={inputSx}>
-                    <InputLabel>Category</InputLabel>
+                    <InputLabel>{t('nui_reports.category')}</InputLabel>
                     <Select
                         value={category}
-                        label="Category"
+                        label={t('nui_reports.category')}
                         onChange={(e) => {
                             setCategory(e.target.value);
                             if (!/player/i.test(e.target.value)) setSelectedTargets([]);
                         }}
-                        MenuProps={{ PaperProps: { sx: menuPaperSx } }}
+                        MenuProps={selectMenuProps}
                     >
                         {categories.map((cat) => (
-                            <MenuItem key={cat} value={cat} sx={{ color: theme.fg }}>
+                            <MenuItem key={cat} value={cat} sx={{ color: tokens.textPrimary }}>
                                 {cat}
                             </MenuItem>
                         ))}
@@ -256,11 +268,11 @@ const CreateView: React.FC<{
 
             {isPlayerCategory && players.length > 0 && (
                 <FormControl size="small" fullWidth sx={inputSx}>
-                    <InputLabel>Target Player(s)</InputLabel>
+                    <InputLabel>{t('nui_reports.target_players')}</InputLabel>
                     <Select
                         multiple
                         value={selectedTargets}
-                        label="Target Player(s)"
+                        label={t('nui_reports.target_players')}
                         onChange={(e) => setSelectedTargets(e.target.value as number[])}
                         renderValue={(selected) =>
                             (selected as number[])
@@ -270,10 +282,10 @@ const CreateView: React.FC<{
                                 })
                                 .join(', ')
                         }
-                        MenuProps={{ PaperProps: { sx: menuPaperSx } }}
+                        MenuProps={selectMenuProps}
                     >
                         {players.map((p) => (
-                            <MenuItem key={p.id} value={p.id} sx={{ color: theme.fg }}>
+                            <MenuItem key={p.id} value={p.id} sx={{ color: tokens.textPrimary }}>
                                 [{p.id}] {p.name}
                             </MenuItem>
                         ))}
@@ -283,40 +295,40 @@ const CreateView: React.FC<{
 
             {priorityEnabled && (
                 <FormControl size="small" fullWidth sx={inputSx}>
-                    <InputLabel>Priority (Optional)</InputLabel>
+                    <InputLabel>{t('nui_reports.priority_optional')}</InputLabel>
                     <Select
                         value={priority}
-                        label="Priority (Optional)"
+                        label={t('nui_reports.priority_optional')}
                         onChange={(e) => setPriority(e.target.value)}
-                        MenuProps={{ PaperProps: { sx: menuPaperSx } }}
+                        MenuProps={selectMenuProps}
                     >
-                        <MenuItem value="" sx={{ color: theme.muted }}>
-                            None
+                        <MenuItem value="" sx={{ color: tokens.textMuted }}>
+                            {t('discord_bot.tickets.priority_labels.none')}
                         </MenuItem>
-                        <MenuItem value="low" sx={{ color: theme.fg }}>
-                            Low
+                        <MenuItem value="low" sx={{ color: tokens.textPrimary }}>
+                            {t('discord_bot.tickets.priority_labels.low')}
                         </MenuItem>
-                        <MenuItem value="medium" sx={{ color: theme.fg }}>
-                            Medium
+                        <MenuItem value="medium" sx={{ color: tokens.textPrimary }}>
+                            {t('discord_bot.tickets.priority_labels.medium')}
                         </MenuItem>
-                        <MenuItem value="high" sx={{ color: theme.fg }}>
-                            High
+                        <MenuItem value="high" sx={{ color: tokens.textPrimary }}>
+                            {t('discord_bot.tickets.priority_labels.high')}
                         </MenuItem>
-                        <MenuItem value="critical" sx={{ color: theme.destructive }}>
-                            Critical
+                        <MenuItem value="critical" sx={{ color: tokens.error }}>
+                            {t('discord_bot.tickets.priority_labels.critical')}
                         </MenuItem>
                     </Select>
                 </FormControl>
             )}
 
             <TextField
-                label="Description"
+                label={t('nui_reports.description')}
                 multiline
                 minRows={3}
                 maxRows={6}
                 value={description}
                 onChange={(e) => setDescription(e.target.value.slice(0, 2048))}
-                placeholder="Describe your issue in detail..."
+                placeholder={t('nui_reports.describe_issue')}
                 size="small"
                 fullWidth
                 helperText={`${description.length}/2048`}
@@ -329,13 +341,13 @@ const CreateView: React.FC<{
                 disabled={submitting || !description.trim()}
                 sx={{
                     textTransform: 'none',
-                    bgcolor: theme.accent,
-                    color: '#fff',
-                    '&:hover': { bgcolor: theme.accent, filter: 'brightness(1.15)' },
-                    '&.Mui-disabled': { bgcolor: theme.border, color: theme.muted },
+                    bgcolor: tokens.accent,
+                    color: tokens.accentContrast,
+                    '&:hover': { bgcolor: tokens.accent, filter: 'brightness(1.15)' },
+                    '&.Mui-disabled': { bgcolor: tokens.border, color: tokens.textMuted },
                 }}
             >
-                {submitting ? 'Submitting...' : 'Submit Ticket'}
+                {submitting ? t('nui_reports.submitting') : t('nui_reports.submit_ticket')}
             </Button>
         </Box>
     );
@@ -344,11 +356,13 @@ const ListView: React.FC<{
     tickets: PlayerTicketSummary[];
     onSelect: (ticket: PlayerTicketSummary) => void;
 }> = ({ tickets, onSelect }) => {
+    const t = useTranslate();
+    const { tokens } = useTheme();
     if (tickets.length === 0) {
         return (
             <Box textAlign="center" py={4}>
-                <Typography variant="body2" sx={{ color: theme.muted }}>
-                    You have no tickets.
+                <Typography variant="body2" sx={{ color: tokens.textMuted }}>
+                    {t('nui_reports.no_tickets_player')}
                 </Typography>
             </Box>
         );
@@ -356,15 +370,15 @@ const ListView: React.FC<{
 
     return (
         <Box display="flex" flexDirection="column" gap={1}>
-            {tickets.map((t) => (
+            {tickets.map((ticket) => (
                 <Box
-                    key={t.id}
-                    onClick={() => onSelect(t)}
+                    key={ticket.id}
+                    onClick={() => onSelect(ticket)}
                     sx={{
                         p: 1.5,
                         borderRadius: 1,
-                        border: `1px solid ${t.awaitingFeedback ? theme.warning : theme.border}`,
-                        bgcolor: theme.card,
+                        border: `1px solid ${ticket.awaitingFeedback ? tokens.warning : tokens.border}`,
+                        bgcolor: tokens.surfaceRaised,
                         cursor: 'pointer',
                         '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
                         display: 'flex',
@@ -373,27 +387,30 @@ const ListView: React.FC<{
                     }}
                 >
                     <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Typography variant="body2" fontWeight={600} sx={{ color: theme.fg }}>
-                            {t.category}
+                        <Typography variant="body2" fontWeight={600} sx={{ color: tokens.textPrimary }}>
+                            {ticket.category}
                         </Typography>
                         <Box display="flex" alignItems="center" gap={1}>
-                            {t.unreadCount > 0 && (
+                            {ticket.unreadCount > 0 && (
                                 <Chip
-                                    label={`${t.unreadCount} new`}
+                                    label={t('nui_reports.unread_new', { count: ticket.unreadCount })}
                                     size="small"
-                                    sx={{ height: 16, fontSize: '0.65rem', bgcolor: theme.info, color: '#fff' }}
+                                    sx={{ height: 16, fontSize: '0.65rem', bgcolor: tokens.info, color: '#fff' }}
                                 />
                             )}
-                            <StatusChip status={t.status} />
+                            <StatusChip status={ticket.status} />
                         </Box>
                     </Box>
-                    <Typography variant="body2" noWrap sx={{ color: theme.muted }}>
-                        {t.descriptionPreview}
+                    <Typography variant="body2" noWrap sx={{ color: tokens.textMuted }}>
+                        {ticket.descriptionPreview}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: t.awaitingFeedback ? theme.warning : theme.muted }}>
-                        {t.awaitingFeedback
-                            ? '⭐ Please rate your experience'
-                            : `${timeAgo(t.tsCreated)} · ${t.messageCount} message${t.messageCount !== 1 ? 's' : ''}`}
+                    <Typography
+                        variant="caption"
+                        sx={{ color: ticket.awaitingFeedback ? tokens.warning : tokens.textMuted }}
+                    >
+                        {ticket.awaitingFeedback
+                            ? t('nui_reports.rate_prompt')
+                            : `${timeAgo(t, ticket.tsCreated)} · ${t('nui_reports.message_count', { smart_count: ticket.messageCount })}`}
                     </Typography>
                 </Box>
             ))}
@@ -402,13 +419,14 @@ const ListView: React.FC<{
 };
 
 const ImageLightbox: React.FC<{ url: string | null; onClose: () => void }> = ({ url, onClose }) => {
+    const t = useTranslate();
     const [hasError, setHasError] = useState(false);
 
     // Reset error state when URL changes
     React.useEffect(() => setHasError(false), [url]);
 
     return (
-        <Modal open={!!url} onClose={onClose}>
+        <Modal open={!!url} onClose={onClose} disablePortal>
             <Box
                 onClick={onClose}
                 sx={{
@@ -436,15 +454,15 @@ const ImageLightbox: React.FC<{ url: string | null; onClose: () => void }> = ({ 
                                 cursor: 'default',
                             }}
                         >
-                            <Typography color="text.secondary">Image failed to load</Typography>
+                            <Typography color="text.secondary">{t('nui_reports.image_failed_load')}</Typography>
                             <Button variant="outlined" size="small" onClick={onClose}>
-                                Close
+                                {t('nui_reports.close')}
                             </Button>
                         </Box>
                     ) : (
                         <img
                             src={url}
-                            alt="enlarged attachment"
+                            alt={t('nui_reports.lightbox_alt')}
                             referrerPolicy="no-referrer"
                             onClick={(e) => e.stopPropagation()}
                             onError={() => setHasError(true)}
@@ -462,6 +480,10 @@ const DetailView: React.FC<{
     onSendMessage: (ticketId: string, content: string, imageUrls?: string[]) => void;
     sending: boolean;
 }> = ({ ticket, messages, onSendMessage, sending }) => {
+    const t = useTranslate();
+    const { tokens } = useTheme();
+    const inputSx = getInputSx(tokens);
+    const statusMap = useStatusMap();
     const [msg, setMsg] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -490,12 +512,12 @@ const DetailView: React.FC<{
         <Box display="flex" flexDirection="column" height="100%">
             <Box mb={2}>
                 <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                    <Typography variant="body2" fontWeight={600} sx={{ color: theme.fg }}>
+                    <Typography variant="body2" fontWeight={600} sx={{ color: tokens.textPrimary }}>
                         {ticket.category}
                     </Typography>
                     <StatusChip status={ticket.status} />
                 </Box>
-                <Typography variant="body2" sx={{ color: theme.muted, wordBreak: 'break-word' }}>
+                <Typography variant="body2" sx={{ color: tokens.textMuted, wordBreak: 'break-word' }}>
                     {ticket.descriptionPreview}
                 </Typography>
             </Box>
@@ -504,8 +526,8 @@ const DetailView: React.FC<{
 
             <Box flex={1} overflow="auto" display="flex" flexDirection="column" gap={1} mb={2} sx={{ maxHeight: 300 }}>
                 {messages.length === 0 ? (
-                    <Typography variant="body2" sx={{ color: theme.muted, textAlign: 'center', py: 2 }}>
-                        No messages yet. An admin will respond to your ticket.
+                    <Typography variant="body2" sx={{ color: tokens.textMuted, textAlign: 'center', py: 2 }}>
+                        {t('nui_reports.no_messages_player')}
                     </Typography>
                 ) : (
                     messages.map((m, i) => (
@@ -514,36 +536,36 @@ const DetailView: React.FC<{
                             sx={{
                                 p: 1,
                                 borderRadius: 1,
-                                bgcolor: m.authorType === 'admin' ? 'rgba(43,155,197,0.1)' : 'rgba(255,255,255,0.04)',
+                                bgcolor: m.authorType === 'admin' ? alpha(tokens.info, 0.1) : 'rgba(255,255,255,0.04)',
                                 borderLeft:
-                                    m.authorType === 'admin' ? `3px solid ${theme.info}` : '3px solid transparent',
+                                    m.authorType === 'admin' ? `3px solid ${tokens.info}` : '3px solid transparent',
                             }}
                         >
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.25}>
-                                <Typography variant="caption" fontWeight={600} sx={{ color: theme.fg }}>
+                                <Typography variant="caption" fontWeight={600} sx={{ color: tokens.textPrimary }}>
                                     {m.author}
                                     {m.authorType === 'admin' && (
                                         <Chip
-                                            label="Staff"
+                                            label={t('nui_reports.staff')}
                                             size="small"
                                             sx={{
                                                 ml: 0.5,
                                                 height: 16,
                                                 fontSize: '0.65rem',
-                                                color: theme.info,
-                                                borderColor: theme.info,
-                                                bgcolor: 'rgba(43,155,197,0.15)',
-                                                '& .MuiChip-label': { color: theme.info },
+                                                color: tokens.info,
+                                                borderColor: tokens.info,
+                                                bgcolor: alpha(tokens.info, 0.15),
+                                                '& .MuiChip-label': { color: tokens.info },
                                             }}
                                         />
                                     )}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: theme.muted }}>
-                                    {timeAgo(m.ts)}
+                                <Typography variant="caption" sx={{ color: tokens.textMuted }}>
+                                    {timeAgo(t, m.ts)}
                                 </Typography>
                             </Box>
                             {m.content && (
-                                <Typography variant="body2" sx={{ color: theme.fg, wordBreak: 'break-word' }}>
+                                <Typography variant="body2" sx={{ color: tokens.textPrimary, wordBreak: 'break-word' }}>
                                     {m.content}
                                 </Typography>
                             )}
@@ -553,14 +575,14 @@ const DetailView: React.FC<{
                                         <img
                                             key={j}
                                             src={url}
-                                            alt="attachment"
+                                            alt={t('nui_reports.attachment_alt')}
                                             loading="lazy"
                                             referrerPolicy="no-referrer"
                                             onClick={() => setLightboxUrl(url)}
                                             style={{
                                                 maxHeight: 80,
                                                 borderRadius: 4,
-                                                border: `1px solid ${theme.border}`,
+                                                border: `1px solid ${tokens.border}`,
                                                 cursor: 'zoom-in',
                                             }}
                                         />
@@ -578,7 +600,7 @@ const DetailView: React.FC<{
                         <TextField
                             size="small"
                             fullWidth
-                            placeholder="Type a message..."
+                            placeholder={t('nui_reports.type_message')}
                             value={msg}
                             onChange={(e) => setMsg(e.target.value.slice(0, 2048))}
                             onKeyDown={handleKeyDown}
@@ -589,17 +611,17 @@ const DetailView: React.FC<{
                             onClick={handleSend}
                             disabled={sending || !canSend}
                             size="small"
-                            sx={{ color: theme.info }}
+                            sx={{ color: tokens.info }}
                         >
                             <Send />
                         </IconButton>
                     </Box>
                     <Box display="flex" alignItems="center" gap={0.75}>
-                        <Image sx={{ fontSize: 16, color: theme.muted, flexShrink: 0 }} />
+                        <Image sx={{ fontSize: 16, color: tokens.textMuted, flexShrink: 0 }} />
                         <TextField
                             size="small"
                             fullWidth
-                            placeholder="Image URL (optional)"
+                            placeholder={t('nui_reports.image_url_optional')}
                             value={imageUrl}
                             onChange={(e) => setImageUrl(e.target.value.slice(0, URL_MAX))}
                             disabled={sending}
@@ -613,8 +635,8 @@ const DetailView: React.FC<{
                 </Box>
             )}
             {isClosed && (
-                <Typography variant="body2" sx={{ color: theme.success, textAlign: 'center' }}>
-                    This ticket has been {ticket.status}.
+                <Typography variant="body2" sx={{ color: tokens.success, textAlign: 'center' }}>
+                    {t('nui_reports.ticket_has_been', { status: statusMap[ticket.status]?.label ?? ticket.status })}
                 </Typography>
             )}
         </Box>
@@ -626,18 +648,21 @@ const FeedbackView: React.FC<{
     onSubmit: (ticketId: string, rating: number, comment?: string) => void;
     submitting: boolean;
 }> = ({ ticketId, onSubmit, submitting }) => {
+    const t = useTranslate();
+    const { tokens } = useTheme();
+    const inputSx = getInputSx(tokens);
     const [rating, setRating] = useState<number | null>(null);
     const [comment, setComment] = useState('');
 
     return (
         <Box display="flex" flexDirection="column" gap={2} alignItems="center" py={2}>
-            <Star sx={{ fontSize: 40, color: theme.warning }} />
-            <Typography variant="body1" fontWeight={600} sx={{ color: theme.fg, textAlign: 'center' }}>
-                How was your support experience?
+            <Star sx={{ fontSize: 40, color: tokens.warning }} />
+            <Typography variant="body1" fontWeight={600} sx={{ color: tokens.textPrimary, textAlign: 'center' }}>
+                {t('nui_reports.feedback_title')}
             </Typography>
-            <Rating size="large" value={rating} onChange={(_, val) => setRating(val)} sx={{ color: theme.warning }} />
+            <Rating size="large" value={rating} onChange={(_, val) => setRating(val)} sx={{ color: tokens.warning }} />
             <TextField
-                label="Comments (optional)"
+                label={t('nui_reports.comments_optional')}
                 multiline
                 rows={2}
                 value={comment}
@@ -652,13 +677,13 @@ const FeedbackView: React.FC<{
                 disabled={!rating || submitting}
                 sx={{
                     textTransform: 'none',
-                    bgcolor: theme.accent,
-                    color: '#fff',
-                    '&:hover': { bgcolor: theme.accent, filter: 'brightness(1.15)' },
-                    '&.Mui-disabled': { bgcolor: theme.border, color: theme.muted },
+                    bgcolor: tokens.accent,
+                    color: tokens.accentContrast,
+                    '&:hover': { bgcolor: tokens.accent, filter: 'brightness(1.15)' },
+                    '&.Mui-disabled': { bgcolor: tokens.border, color: tokens.textMuted },
                 }}
             >
-                {submitting ? 'Submitting...' : 'Submit Feedback'}
+                {submitting ? t('nui_reports.submitting') : t('nui_reports.submit_feedback')}
             </Button>
         </Box>
     );
@@ -669,6 +694,8 @@ const FeedbackView: React.FC<{
 // =============================================
 
 export const ReportPage: React.FC = () => {
+    const t = useTranslate();
+    const { tokens } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
     const [view, setView] = useState<View>('menu');
     const [players, setPlayers] = useState<PlayerTarget[]>([]);
@@ -683,6 +710,7 @@ export const ReportPage: React.FC = () => {
     const setListenForExit = useSetListenForExit();
 
     const handleClose = useCallback(() => {
+        (document.activeElement as HTMLElement | null)?.blur?.();
         setIsOpen(false);
         setView('menu');
         setSelectedTicket(null);
@@ -695,16 +723,24 @@ export const ReportPage: React.FC = () => {
     // Listen for open event from Lua
     useNuiEvent<{
         players: PlayerTarget[];
-        tickets: PlayerTicketSummary[];
+        tickets?: PlayerTicketSummary[];
         categories: string[];
         priorityEnabled: boolean;
+        /** Browser-dev only — Lua never sends this. */
+        initialView?: View;
     }>('openTicketUI', (data) => {
         setPlayers(data.players || []);
         setCategories(data.categories || []);
         setPriorityEnabled(data.priorityEnabled ?? false);
+        if (data.tickets) setTickets(data.tickets);
         setIsOpen(true);
-        setView('menu');
+        setView(data.initialView ?? 'menu');
         setListenForExit(false);
+    });
+
+    // Browser-dev helper (see window.menuDebug.closeReportUI)
+    useNuiEvent('closeTicketUI', () => {
+        handleClose();
     });
 
     // Listen for ticket list updates
@@ -726,7 +762,7 @@ export const ReportPage: React.FC = () => {
             fetchNui('ticketFetchMine').catch(() => {});
             setView('list');
         } else if (data.error) {
-            setErrorMessage(data.error);
+            setErrorMessage(translateTicketError(t, data.error) ?? data.error);
         }
     });
 
@@ -740,7 +776,7 @@ export const ReportPage: React.FC = () => {
                 fetchNui('ticketFetchMessages', { ticketId: selectedTicket.id }).catch(() => {});
             }
         } else if (data.error) {
-            setErrorMessage(data.error);
+            setErrorMessage(translateTicketError(t, data.error) ?? data.error);
         }
     });
 
@@ -784,7 +820,11 @@ export const ReportPage: React.FC = () => {
         setErrorMessage(null);
         fetchNui('ticketSubmit', { category, description, targetIds, priority }).catch((err) => {
             setSubmitting(false);
-            setErrorMessage(`Failed to submit ticket: ${(err as Error).message || 'Unknown error'}`);
+            setErrorMessage(
+                t('nui_reports.failed_submit_ticket', {
+                    message: (err as Error).message || t('nui_menu.misc.unknown_error'),
+                }),
+            );
         });
     };
 
@@ -793,7 +833,11 @@ export const ReportPage: React.FC = () => {
         setErrorMessage(null);
         fetchNui('ticketSendMessage', { ticketId, content, imageUrls }).catch((err) => {
             setSendingMessage(false);
-            setErrorMessage(`Failed to send message: ${(err as Error).message || 'Unknown error'}`);
+            setErrorMessage(
+                t('nui_reports.failed_send_message', {
+                    message: (err as Error).message || t('nui_menu.misc.unknown_error'),
+                }),
+            );
         });
     };
 
@@ -823,7 +867,7 @@ export const ReportPage: React.FC = () => {
             })
             .catch((err) => {
                 console.error('Failed to submit ticket feedback:', err);
-                setErrorMessage((err as Error)?.message || 'Failed to submit feedback');
+                setErrorMessage((err as Error)?.message || t('nui_reports.failed_submit_feedback'));
             })
             .finally(() => {
                 setSubmitting(false);
@@ -833,15 +877,15 @@ export const ReportPage: React.FC = () => {
     const getTitle = (): string => {
         switch (view) {
             case 'menu':
-                return 'Support Tickets';
+                return t('nui_reports.title_menu');
             case 'create':
-                return 'New Ticket';
+                return t('nui_reports.title_create');
             case 'list':
-                return 'My Tickets';
+                return t('nui_reports.title_list');
             case 'detail':
-                return 'Ticket Detail';
+                return t('nui_reports.title_detail');
             case 'feedback':
-                return 'Rate Your Experience';
+                return t('nui_reports.title_feedback');
         }
     };
 
@@ -856,8 +900,23 @@ export const ReportPage: React.FC = () => {
         }
     };
 
-    return isOpen ? (
-        <Overlay>
+    return (
+        <Modal
+            open={isOpen}
+            onClose={handleClose}
+            disablePortal
+            keepMounted
+            hideBackdrop
+            disableEscapeKeyDown
+            aria-labelledby="ticket-dialog-title"
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1200,
+                color: tokens.textPrimary,
+            }}
+        >
             <Panel role="dialog" aria-modal="true" aria-labelledby="ticket-dialog-title">
                 <Header>
                     <Box display="flex" alignItems="center" gap={1}>
@@ -865,21 +924,21 @@ export const ReportPage: React.FC = () => {
                             <Button
                                 size="small"
                                 onClick={handleBack}
-                                sx={{ minWidth: 0, textTransform: 'none', mr: 0.5, color: theme.muted }}
+                                sx={{ minWidth: 0, textTransform: 'none', mr: 0.5, color: tokens.textMuted }}
                             >
-                                Back
+                                {t('nui_reports.back')}
                             </Button>
                         )}
                         <Typography
                             id="ticket-dialog-title"
                             variant="subtitle1"
                             fontWeight={600}
-                            sx={{ color: theme.fg }}
+                            sx={{ color: tokens.textPrimary }}
                         >
                             {getTitle()}
                         </Typography>
                     </Box>
-                    <IconButton size="small" onClick={handleClose} sx={{ color: theme.muted }}>
+                    <IconButton size="small" onClick={handleClose} sx={{ color: tokens.textMuted }}>
                         <Close fontSize="small" />
                     </IconButton>
                 </Header>
@@ -888,9 +947,9 @@ export const ReportPage: React.FC = () => {
                     {errorMessage && (
                         <Box
                             role="alert"
-                            sx={{ px: 2, py: 1, mb: 1, bgcolor: `${theme.destructive}26`, borderRadius: 1 }}
+                            sx={{ px: 2, py: 1, mb: 1, bgcolor: alpha(tokens.error, 0.15), borderRadius: 1 }}
                         >
-                            <Typography variant="body2" sx={{ color: theme.destructive }}>
+                            <Typography variant="body2" sx={{ color: tokens.error }}>
                                 {errorMessage}
                             </Typography>
                         </Box>
@@ -931,6 +990,6 @@ export const ReportPage: React.FC = () => {
                     )}
                 </Content>
             </Panel>
-        </Overlay>
-    ) : null;
+        </Modal>
+    );
 };

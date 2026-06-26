@@ -26,8 +26,21 @@ module.exports = {
         })
         .addSubcommand((subcommand) => {
             return subcommand
+                .setName('application')
+                .setDescription('Approves a whitelist application ID (eg R1234).')
+                .addStringOption((option) => {
+                    return option
+                        .setName('id')
+                        .setDescription('The ID of the application (eg R1234).')
+                        .setRequired(true)
+                        .setMinLength(5)
+                        .setMaxLength(5);
+                });
+        })
+        .addSubcommand((subcommand) => {
+            return subcommand
                 .setName('request')
-                .setDescription('Approves a whitelist request ID (eg R1234).')
+                .setDescription('Approves a whitelist application ID (eg R1234). Alias for /application.')
                 .addStringOption((option) => {
                     return option
                         .setName('id')
@@ -57,7 +70,7 @@ module.exports = {
                     playerName,
                     playerAvatar,
                 });
-            } else if (subcommand === 'request') {
+            } else if (subcommand === 'request' || subcommand === 'application') {
                 const requestId = interaction.options.getString('id', true).trim().toUpperCase();
                 if (requestId.length !== 5 || requestId[0] !== 'R') {
                     await interaction.reply(

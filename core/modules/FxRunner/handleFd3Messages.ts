@@ -1,5 +1,7 @@
 import { anyUndefined, calcExpirationFromDuration } from '@lib/misc';
 import { ServerPlayer } from '@lib/player/playerClasses';
+import { applyPlayerTagChange } from '@lib/player/playerTags';
+import { shouldDropBridgedMenuAuthor } from '@lib/routineAuditGate';
 import consoleFactory from '@lib/console';
 const console = consoleFactory('FXProc:FD3');
 
@@ -16,38 +18,39 @@ type StructuredTraceType = {
 };
 
 /**
- * Handles custom tag add/remove from resource exports.
+ * FiveM may deliver structured-trace payload as a JSON string or object.
+ */
+const resolveMonitorTracePayload = (payload: unknown) => {
+    if (typeof payload === 'string') {
+        try {
+            return JSON.parse(payload);
+        } catch {
+            return null;
+        }
+    }
+    if (payload && typeof payload === 'object') {
+        return payload;
+    }
+    return null;
+};
+
+/**
+ * Handles custom tag add/remove from resource exports (FD3 fallback).
  */
 const handlePlayerTagChange = (payload: any) => {
     try {
-        const { action, netId, tagId } = payload;
-        if (typeof action !== 'string' || typeof netId !== 'number' || typeof tagId !== 'string') {
+        const { action, tagId } = payload;
+        const netId = typeof payload.netId === 'number' ? payload.netId : parseInt(payload.netId, 10);
+        if (typeof action !== 'string' || !Number.isFinite(netId) || typeof tagId !== 'string') {
             throw new Error('invalid payload');
         }
-        //Validate tagId exists in custom config
-        const validIds = new Set((txConfig.gameFeatures.customTags ?? []).map((t: any) => t.id));
-        if (!validIds.has(tagId)) {
-            throw new Error(`unknown custom tag id: ${tagId}`);
-        }
-        //Find player
-        const player = txCore.fxPlayerlist.getPlayerById(netId);
-        if (!(player instanceof ServerPlayer) || !player.isRegistered) {
-            throw new Error(`player netid ${netId} not found or not registered`);
-        }
-        const dbData = player.getDbData();
-        if (!dbData) throw new Error(`player has no DB data`);
-        const current = dbData.customTags ?? [];
-        let updated: string[];
         if (action === 'add') {
-            if (current.includes(tagId)) return;
-            updated = [...current, tagId];
+            applyPlayerTagChange(netId, tagId, true);
         } else if (action === 'remove') {
-            if (!current.includes(tagId)) return;
-            updated = current.filter((t) => t !== tagId);
+            applyPlayerTagChange(netId, tagId, false);
         } else {
             throw new Error(`invalid action: ${action}`);
         }
-        player.mutateDbData({ customTags: updated });
     } catch (error) {
         console.warn(`handlePlayerTagChange error: ${emsg(error)}`);
     }
@@ -66,16 +69,17 @@ const handleBridgedCommands = (payload: any) => {
             const message = (payload.message ?? '').trim();
             if (!message.length) throw new Error(`empty message`);
 
-            //Resolve admin
             const author = payload.author;
+            const omitAudit = shouldDropBridgedMenuAuthor(author);
+
+            txCore.fxRunner.sendEvent('announcement', { message, author });
+
+            if (omitAudit) return;
+
             txCore.logger.system.write(author, `Sending announcement: ${message}`, 'action', {
                 actionId: 'announcement.send',
             });
 
-            // Dispatch `txAdmin:events:announcement`
-            txCore.fxRunner.sendEvent('announcement', { message, author });
-
-            // Sending discord announcement
             const publicAuthor = txCore.adminStore.getAdminPublicName(payload.author, 'message');
             txCore.discordBot.sendAnnouncement({
                 type: 'info',
@@ -102,10 +106,14 @@ const handleBridgedCommands = (payload: any) => {
 
             const allIds = player.getAllIdentifiers();
             if (!allIds.length) throw new Error(`no identifiers found for player netid ${payload.targetNetId}`);
+            const omitAudit = shouldDropBridgedMenuAuthor(payload.author);
+
             txCore.database.actions.registerKick(allIds, payload.author, reason, player.displayName);
-            txCore.logger.system.write(payload.author, `Kicked "${player.displayName}": ${reason}`, 'action', {
-                actionId: 'player.kick',
-            });
+            if (!omitAudit) {
+                txCore.logger.system.write(payload.author, `Kicked "${player.displayName}": ${reason}`, 'action', {
+                    actionId: 'player.kick',
+                });
+            }
 
             const dropMessage = txCore.translator.t('kick_messages.player', { reason });
             txCore.fxRunner.sendEvent('playerKicked', {
@@ -136,6 +144,7 @@ const handleBridgedCommands = (payload: any) => {
             const allHwids = player.getAllHardwareIdentifiers();
             if (!allIds.length) throw new Error(`player has no identifiers`);
 
+            const omitAudit = shouldDropBridgedMenuAuthor(payload.author);
             const actionId = txCore.database.actions.registerBan(
                 allIds,
                 payload.author,
@@ -144,14 +153,18 @@ const handleBridgedCommands = (payload: any) => {
                 player.displayName,
                 allHwids,
             );
-            txCore.logger.system.write(payload.author, `Banned "${player.displayName}": ${reason}`, 'action', {
-                actionId: 'player.ban',
-            });
 
-            //Prepare kick message
+            if (!omitAudit) {
+                txCore.logger.system.write(payload.author, `Banned "${player.displayName}": ${reason}`, 'action', {
+                    actionId: 'player.ban',
+                });
+            }
+
             let kickMessage;
             let durationTranslated: string | null = null;
-            const publicAuthor = txCore.adminStore.getAdminPublicName(payload.author, 'punishment');
+            const publicAuthor = omitAudit
+                ? (txConfig.general.serverName ?? 'fxPanel')
+                : txCore.adminStore.getAdminPublicName(payload.author, 'punishment');
             const tOptions: any = { author: publicAuthor, reason };
             if (expiration !== false && duration) {
                 durationTranslated = txCore.translator.tDuration(duration * 1000, { units: ['d', 'h'] as any });
@@ -192,10 +205,14 @@ const handleBridgedCommands = (payload: any) => {
             const allIds = player.getAllIdentifiers();
             if (!allIds.length) throw new Error(`player has no identifiers`);
 
+            const omitAudit = shouldDropBridgedMenuAuthor(payload.author);
             const actionId = txCore.database.actions.registerWarn(allIds, payload.author, reason, player.displayName);
-            txCore.logger.system.write(payload.author, `Warned "${player.displayName}": ${reason}`, 'action', {
-                actionId: 'player.warn',
-            });
+
+            if (!omitAudit) {
+                txCore.logger.system.write(payload.author, `Warned "${player.displayName}": ${reason}`, 'action', {
+                    actionId: 'player.warn',
+                });
+            }
 
             txCore.fxRunner.sendEvent('playerWarned', {
                 author: payload.author,
@@ -281,26 +298,29 @@ const handleFd3Messages = (mutex: string, trace: StructuredTraceType) => {
 
     //Handle script traces
     if (channel === 'citizen-server-impl' && data.type === 'script_structured_trace' && data.resource === 'monitor') {
-        if (data.payload.type === 'txAdminHeartBeat') {
+        const tracePayload = resolveMonitorTracePayload(data.payload);
+        if (!tracePayload || typeof tracePayload.type !== 'string') return;
+
+        if (tracePayload.type === 'txAdminHeartBeat') {
             txCore.fxMonitor.handleHeartBeat('fd3');
-        } else if (data.payload.type === 'txAdminLogData') {
-            txCore.logger.server.write(data.payload.logs, mutex);
-        } else if (data.payload.type === 'txAdminLogNodeHeap') {
-            txCore.metrics.svRuntime.logServerNodeMemory(data.payload);
-        } else if (data.payload.type === 'txAdminResourceEvent') {
-            txCore.fxResources.handleServerEvents(data.payload, mutex);
-        } else if (data.payload.type === 'txAdminResourcePerf') {
-            txCore.fxResources.handlePerfData(data.payload);
-        } else if (data.payload.type === 'txAdminResourceRuntimes') {
-            txManager.txRuntime.handleResourceRuntimes(data.payload);
-        } else if (data.payload.type === 'txAdminPlayerlistEvent') {
-            txCore.fxPlayerlist.handleServerEvents(data.payload, mutex);
-        } else if (data.payload.type === 'txAdminCommandBridge') {
-            handleBridgedCommands(data.payload);
-        } else if (data.payload.type === 'txAdminAckWarning') {
-            txCore.database.actions.ackWarn(data.payload.actionId);
-        } else if (data.payload.type === 'txAdminPlayerTag') {
-            handlePlayerTagChange(data.payload);
+        } else if (tracePayload.type === 'txAdminLogData') {
+            txCore.logger.server.write(tracePayload.logs, mutex);
+        } else if (tracePayload.type === 'txAdminLogNodeHeap') {
+            txCore.metrics.svRuntime.logServerNodeMemory(tracePayload);
+        } else if (tracePayload.type === 'txAdminResourceEvent') {
+            txCore.fxResources.handleServerEvents(tracePayload, mutex);
+        } else if (tracePayload.type === 'txAdminResourcePerf') {
+            txCore.fxResources.handlePerfData(tracePayload);
+        } else if (tracePayload.type === 'txAdminResourceRuntimes') {
+            txManager.txRuntime.handleResourceRuntimes(tracePayload);
+        } else if (tracePayload.type === 'txAdminPlayerlistEvent') {
+            txCore.fxPlayerlist.handleServerEvents(tracePayload, mutex);
+        } else if (tracePayload.type === 'txAdminCommandBridge') {
+            handleBridgedCommands(tracePayload);
+        } else if (tracePayload.type === 'txAdminAckWarning') {
+            txCore.database.actions.ackWarn(tracePayload.actionId);
+        } else if (tracePayload.type === 'txAdminPlayerTag') {
+            handlePlayerTagChange(tracePayload);
         }
     }
 };

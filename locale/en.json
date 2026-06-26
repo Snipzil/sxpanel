@@ -16,6 +16,10 @@
         "player": "You have been kicked: %{reason}.",
         "unknown_reason": "for unknown reason"
     },
+    "screenshot_messages": {
+        "capture_failed": "Screenshot capture failed: %{detail}",
+        "no_data": "No screenshot data received."
+    },
     "ban_messages": {
         "kick_temporary": "(%{author}) You have been banned from this server for \"%{reason}\". Your ban will expire in: %{expiration}.",
         "kick_permanent": "(%{author}) You have been permanently banned from this server for \"%{reason}\".",
@@ -77,6 +81,8 @@
             "help_message": "fxPanel Menu enabled, type /tx to open it.\nYou can also configure a keybind at [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
             "menu_not_admin": "Your identifiers do not match any admin registered on fxPanel.\nIf you are registered on fxPanel, go to Admin Manager and make sure your identifiers are saved.",
             "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "two_factor_required": "Two-factor authentication is required. Enable 2FA in the web panel Account settings before using the in-game menu.",
+            "temp_password_required": "You must change your temporary password in the web panel before using the in-game menu.",
             "no_perms": "You do not have this permission.",
             "no_perms_action": "You do not have permission to %{action} players.",
             "usage_action": "Usage: /%{action} [playerID]",
@@ -86,7 +92,57 @@
             "directmessage_title": "DM from admin %{author}:",
             "dialog_empty_input": "You cannot have an empty input.",
             "onesync_error": "This option requires OneSync to be enabled.",
-            "redm_not_available": "This option is not yet available for RedM."
+            "redm_not_available": "This option is not yet available for RedM.",
+            "csrf_alert": "ATTENTION! txAdmin received a NUI message from the origin \"%{origin}\" which is not approved. This likely means that that resource is vulnerable to XSS which has been exploited to inject txAdmin commands. It is recommended that you fix the vulnerability or remove that resource completely. For more information: https://discord.gg/6FcqBYwxH5.",
+            "auth_retry": "Retrying menu authentication.",
+            "ctx_timeout": "Timed out loading server context after %{ms} ms"
+        },
+        "keybinds": {
+            "open_main": "Open Main Page",
+            "open_players": "Open Players page",
+            "clear_area": "Clear Area",
+            "heal_self": "Heal Yourself",
+            "teleport_back": "Teleport: go Back",
+            "teleport_coords": "Teleport: to Coords",
+            "teleport_waypoint": "Teleport: to Waypoint",
+            "toggle_noclip": "Toggle NoClip",
+            "toggle_player_ids": "Toggle Player IDs",
+            "toggle_map_blips": "Toggle Map Blips",
+            "vehicle_boost": "Vehicle: Boost",
+            "vehicle_delete": "Vehicle: Delete",
+            "vehicle_fix": "Vehicle: Fix",
+            "vehicle_spawn": "Vehicle: Spawn"
+        },
+        "chat": {
+            "tx_description": "Opens the main fxPanel Menu or specific page for a player.",
+            "tx_arg_help": "(Optional) Open player modal for specific ID or name.",
+            "tx_reauth": "Retries to authenticate the menu NUI.",
+            "goto_description": "Teleport to a player by their server ID.",
+            "goto_arg_help": "The server ID of the target player.",
+            "tpm_description": "Teleport to the waypoint set on the map.",
+            "ban_description": "Open the ban modal for a player.",
+            "ban_arg_help": "The server ID or name of the target player.",
+            "kick_description": "Open the kick dialog for a player.",
+            "kick_arg_help": "The server ID or name of the target player.",
+            "warn_description": "Open the warn dialog for a player.",
+            "warn_arg_help": "The server ID or name of the target player.",
+            "announce_description": "Send a server-wide announcement.",
+            "announce_arg_help": "The announcement message to broadcast.",
+            "ticket_description": "Open the support ticket UI.",
+            "report_description": "Open the support ticket UI (alias for /ticket)."
+        },
+        "instructional": {
+            "exit_spectate": "Exit Spectate",
+            "previous_player": "Previous Player",
+            "next_player": "Next Player",
+            "spectate_title": "Spectate",
+            "noclip_slower": "Slower",
+            "noclip_faster": "Faster",
+            "noclip_fwd_back": "Fwd/Back",
+            "noclip_left_right": "Left/Right",
+            "noclip_title": "NoClip",
+            "noclip_down": "Down",
+            "noclip_up": "Up"
         },
         "frozen": {
             "froze_player": "You have frozen the player!",
@@ -169,6 +225,7 @@
                     "dialog_info": "Trying to spawn %{modelName}.",
                     "load_failed": "Failed to spawn vehicle: model '%{modelName}' did not load in time."
                 },
+                "seat_failed": "Failed to seat into vehicle (net=%{netId})",
                 "fix": {
                     "title": "Fix",
                     "label": "Will repair the vehicle to its maximum health",
@@ -231,6 +288,18 @@
                 "label": "Toggle showing player IDs (and other info) above the head of all nearby players",
                 "alert_show": "Showing nearby player NetIDs.",
                 "alert_hide": "Hiding nearby player NetIDs."
+            },
+            "map_blips": {
+                "title": "Toggle Map Blips",
+                "label": "Show all online players on the in-game map and minimap",
+                "alert_show": "Showing player map blips.",
+                "alert_hide": "Hiding player map blips.",
+                "alert_onesync": "Map blips require OneSync to be enabled on the server."
+            },
+            "toggles": {
+                "title": "Toggle",
+                "player_ids": "Player IDs",
+                "map_blips": "Map Blips"
             }
         },
         "page_players": {
@@ -346,7 +415,13 @@
                 "log_warn_count": "%{smart_count} warn |||| %{smart_count} warns",
                 "log_btn": "DETAILS",
                 "notes_placeholder": "Notes about this player...",
-                "notes_changed": "Player note changed."
+                "notes_changed": "Player note changed.",
+                "tags_label": "Tags",
+                "custom_tags": "Custom Tags",
+                "edit_tags": "Edit",
+                "tag_updating": "Updating tag...",
+                "tag_updated": "Tag updated.",
+                "no_custom_tags": "No custom tags configured in settings."
             },
             "ids": {
                 "current_ids": "Current Identifiers",
@@ -723,6 +798,3280 @@
         "bridge": {
             "ticket": {
                 "screenshot_attached": "Screenshot attached"
+            }
+        }
+    },
+    "panel": {
+        "common": {
+            "cancel": "Cancel",
+            "save": "Save",
+            "close": "Close",
+            "enabled": "Enabled",
+            "disabled": "Disabled",
+            "select_placeholder": "Select...",
+            "none": "none",
+            "now": "now",
+            "skipped": "skipped",
+            "start": "Start",
+            "stop": "Stop",
+            "restart": "Restart",
+            "edit": "Edit",
+            "schedule": "Schedule",
+            "send": "Send",
+            "required": "Required",
+            "loading": "Loading...",
+            "loading_ellipsis": "loading...",
+            "saving": "Saving...",
+            "view": "View",
+            "remove": "Remove",
+            "optional": "optional",
+            "yes": "Yes",
+            "no": "No",
+            "hour": "Hour",
+            "minute": "Minute",
+            "select_hour": "Select hour",
+            "select_minute": "Select minute",
+            "add_time": "Add Time",
+            "never": "Never"
+        },
+        "sidebar": {
+            "section": {
+                "overview": "Overview",
+                "players": "Players",
+                "server": "Server",
+                "analytics": "Analytics",
+                "addons": "Addons",
+                "system": "System"
+            },
+            "item": {
+                "dashboard": "Dashboard",
+                "players": "Players",
+                "whitelist": "Whitelist",
+                "history": "History",
+                "reports": "Reports",
+                "live_console": "Live Console",
+                "resources": "Resources",
+                "cfg_editor": "CFG Editor",
+                "server_log": "Server Log",
+                "admins": "Admins",
+                "insights": "Insights",
+                "player_drops": "Player Drops",
+                "report_analytics": "Report Analytics",
+                "addon_manager": "Addon Manager",
+                "action_log": "Action Log",
+                "console_log": "Console Log",
+                "diagnostics": "Diagnostics",
+                "artifacts": "Artifacts",
+                "settings": "Settings",
+                "advanced": "Advanced"
+            },
+            "server_not_configured": "Server not configured",
+            "quick_actions": "Quick actions",
+            "next_restart": "Next restart",
+            "starting_server": "Starting server",
+            "stopping_server": "Stopping server",
+            "restarting_server": "Restarting server",
+            "start_server": "Start server",
+            "stop_server": "Stop server",
+            "restart_server": "Restart server",
+            "confirm_stop": "Are you sure you want to stop the server?",
+            "confirm_restart": "Are you sure you want to restart the server?",
+            "schedule_restart_title": "When should the server restart?",
+            "schedule_restart_message": "Use +MM for relative minutes, or HH:MM for absolute server time.",
+            "schedule_restart_placeholder": "+15",
+            "invalid_schedule_title": "Invalid scheduled restart time.",
+            "invalid_schedule_msg": "This field only accepts one restart time (for example +15 or 23:30).",
+            "invalid_schedule_time": "Invalid schedule time: %{input}",
+            "scheduling_restart": "Scheduling server restart...",
+            "cancelling_restart": "Cancelling next server restart...",
+            "send_announcement_title": "Send Announcement",
+            "send_announcement_message": "Type the message to broadcast to all players.",
+            "announcement_placeholder": "announcement message",
+            "sending_announcement": "Sending announcement...",
+            "kick_all_title": "Kick All Players",
+            "kick_all_message": "Type the kick reason or leave it blank (press enter).",
+            "kick_reason_placeholder": "kick reason",
+            "kicking_players": "Kicking players...",
+            "aria_send_announcement": "Send announcement",
+            "aria_kick_all": "Kick all players",
+            "aria_server_status": "Server status",
+            "no_perm_page": "You do not have permission to access this page."
+        },
+        "routes": {
+            "dashboard": "Dashboard",
+            "players": "Players",
+            "whitelist": "Whitelist",
+            "history": "History",
+            "reports": "Reports",
+            "live_console": "Live Console",
+            "resources": "Resources",
+            "cfg_editor": "CFG Editor",
+            "server_log": "Server Log",
+            "admins": "Admins",
+            "admin_manager": "Admin Manager",
+            "insights": "Insights",
+            "player_drops": "Player Drops",
+            "report_analytics": "Report Analytics",
+            "addons": "Addons",
+            "action_log": "Action Log",
+            "console_log": "Console Log",
+            "diagnostics": "Diagnostics",
+            "artifacts": "Artifacts",
+            "settings": "Settings",
+            "advanced": "Advanced",
+            "setup": "Setup",
+            "deployer": "Deployer",
+            "ban_templates": "Ban Templates",
+            "embed_editor": "Embed Editor",
+            "deferral_studio": "Deferral Card Studio",
+            "discord_logs": "Discord Log Routes",
+            "not_found": "Page Not Found",
+            "master_actions": "Master Actions",
+            "server_setup": "Server Setup",
+            "server_deployer": "Server Deployer",
+            "deferral_editor": "Deferral Card Editor",
+            "ban_identifiers": "Ban Identifiers"
+        },
+        "nui_embed": {
+            "blocked_route_title": "%{page} is not available in-game",
+            "blocked_route_desc": "This page can't run inside the in-game menu. Open the web panel in your browser to access it.",
+            "blocked_route_open_browser": "Open in browser"
+        },
+        "players": {
+            "status": {
+                "online": "ONLINE",
+                "offline": "OFFLINE"
+            },
+            "tags": {
+                "staff": "Staff",
+                "problematic": "Problematic",
+                "newcomer": "Newcomer"
+            },
+            "table": {
+                "display_name": "Display Name",
+                "play_time": "Play Time",
+                "first_joined": "First Joined",
+                "last_connection": "Last Connection"
+            },
+            "list": {
+                "end_reached": "You have reached the end of the list.",
+                "empty": "No players found.",
+                "error_prefix": "Error: %{error}",
+                "try_again": "Try again?",
+                "end_bug_line1": "You've found the end of the rainbow, but there's no pot of gold here.",
+                "end_bug_report": "(this is a bug, please report it in"
+            },
+            "errors": {
+                "request_failed": "Request failed.",
+                "request_failed_detail": "Request failed: %{error}",
+                "fetch_failed": "Failed to fetch more data: %{error}"
+            },
+            "search": {
+                "search_by": "Search by %{type}",
+                "search_type": "Search Type",
+                "remember_option": "Remember Option",
+                "search_filters": "Search Filters",
+                "no_filters": "No filters",
+                "filters_count_one": "1 Filter",
+                "filters_count_many": "%{count} Filters",
+                "clear_filters": "Clear Filters",
+                "more": "More",
+                "ban_identifiers": "Ban Identifiers",
+                "prune_players": "Prune Players/HWIDs",
+                "type": {
+                    "name": {
+                        "label": "Name",
+                        "placeholder": "Enter a player name",
+                        "description": "Search players by their last display name."
+                    },
+                    "notes": {
+                        "label": "Notes",
+                        "placeholder": "Enter part of the note to search for",
+                        "description": "Search players by their profile notes contents."
+                    },
+                    "ids": {
+                        "label": "Player IDs",
+                        "placeholder": "License, Discord, Steam, etc.",
+                        "description": "Search players by their IDs separated by a comma."
+                    }
+                },
+                "filter": {
+                    "is_admin": "Is Admin",
+                    "is_online": "Is Online",
+                    "is_banned": "Is Banned",
+                    "has_previous_ban": "Has Previous Ban",
+                    "is_whitelisted": "Has Whitelisted ID",
+                    "has_note": "Has Profile Notes"
+                }
+            }
+        },
+        "history": {
+            "player_unknown": "unknown",
+            "table": {
+                "action": "Action",
+                "player": "Player",
+                "reason": "Reason",
+                "author": "Author",
+                "date_time": "Date Time"
+            },
+            "list": {
+                "end_reached": "You have reached the end of the list.",
+                "empty": "No actions found.",
+                "error_prefix": "Error: %{error}",
+                "try_again": "Try again?",
+                "end_bug_line1": "You've found the end of the rainbow, but there's no pot of gold here.",
+                "end_bug_report": "(this is a bug, please report it in"
+            },
+            "errors": {
+                "request_failed": "Request failed.",
+                "request_failed_detail": "Request failed: %{error}",
+                "fetch_failed": "Failed to fetch more data: %{error}"
+            },
+            "search": {
+                "search_by": "Search by %{type}",
+                "search_type": "Search Type",
+                "filter_by_type": "Filter by type",
+                "filter_by_admin": "Filter by admin",
+                "any_type": "Any type",
+                "type_bans": "Bans",
+                "type_warns": "Warns",
+                "type_kicks": "Kicks",
+                "any_admin": "By any admin",
+                "more": "More",
+                "bulk_remove": "Bulk Remove",
+                "ban_templates": "Ban Templates",
+                "type": {
+                    "action_id": {
+                        "label": "Action ID",
+                        "placeholder": "XXXX-XXXX",
+                        "description": "Search actions by their ID."
+                    },
+                    "reason": {
+                        "label": "Reason",
+                        "placeholder": "Enter part of the reason to search for",
+                        "description": "Search actions by their reason contents."
+                    },
+                    "identifiers": {
+                        "label": "Player IDs",
+                        "placeholder": "License, Discord, Steam, etc.",
+                        "description": "Search actions by their player IDs separated by a comma."
+                    }
+                }
+            }
+        },
+        "live_console": {
+            "title": "Live Console",
+            "connected": "Connected",
+            "disconnected": "Disconnected",
+            "jump_last_start": "Jump to last server start",
+            "jump_prev_start": "Jump to previous server start",
+            "last_start": "Last Start",
+            "prev_start": "Prev Start",
+            "connecting": "Connecting…",
+            "load_older": "Load older output",
+            "loading": "Loading…",
+            "output_region": "Live server console output",
+            "waiting_output": "Waiting for server output…",
+            "console_cleared": "[console cleared]",
+            "copy_failed": "Failed to copy to clipboard :(",
+            "copy_failed_title": "Failed to copy to clipboard:",
+            "search": {
+                "placeholder": "Search string",
+                "no_results": "No results",
+                "case_sensitive": "Case Sensitive",
+                "whole_word": "Whole Word",
+                "regex": "Regex",
+                "previous": "Previous",
+                "next": "Next",
+                "close": "Close"
+            },
+            "footer": {
+                "saved": "Saved",
+                "search": "Search",
+                "clear": "Clear",
+                "download": "Download",
+                "options": "Options",
+                "command_placeholder": "Type a command...",
+                "no_write_perm": "You do not have permission to write to the console.",
+                "server_not_running": "The server is not running.",
+                "socket_lost": "Socket connection lost.",
+                "input_disabled": "Console input disabled: %{reason}",
+                "input_label": "Server console command input"
+            },
+            "options": {
+                "timestamp": "Timestamp",
+                "timestamp_auto": "Auto",
+                "timestamp_24h": "24-hour",
+                "timestamp_12h": "12-hour",
+                "timestamp_hidden": "Hidden",
+                "copy_options": "Copy Options",
+                "copy_timestamp": "Include timestamp",
+                "copy_tag": "Include tag"
+            },
+            "sheet": {
+                "close_aria": "Close command sheet",
+                "close": "Close",
+                "save_sr": "Save",
+                "remove_sr": "Remove",
+                "history_title": "History",
+                "saved_title": "Saved",
+                "clear_history": "Clear History",
+                "history_cleared": "History cleared",
+                "add_new": "Add New",
+                "history_empty": "The command history is empty.",
+                "saved_empty_line1": "There are no saved commands.",
+                "saved_empty_line2": "To save a command, click the star icon next to it.",
+                "save_command_title": "Save Command",
+                "save_command_message": "Enter the command to save:"
+            },
+            "markers": {
+                "rtl_short": "RTL",
+                "rtl_long": "VIEW RIGHT-TO-LEFT TEXT",
+                "rtl_toast_title": "Bidirectional Text Detected:",
+                "rtl_toast_msg": "Due to limitations, the terminal cannot display RTL text.\nThis is what the text is supposed to look like:\n\n%{text}",
+                "event_short": "EVENT",
+                "event_long": "VIEW EVENT",
+                "event_toast_title": "txAdmin:events:%{event}:",
+                "cmd_short": "CMD",
+                "cmd_long": "VIEW COMMAND",
+                "initial_data_title": "Initial Player Data:"
+            }
+        },
+        "not_found": {
+            "title": "404 | Not Found",
+            "path_before": "The page ",
+            "path_after": " does not seem to be correct.",
+            "return_dashboard": "Return to Dashboard?"
+        },
+        "unauthorized": {
+            "title": "Access Denied",
+            "permission_tooltip": "permission",
+            "master_before": "You need to be the Master account to view the ",
+            "master_after": " page.",
+            "perm_before": "You don't have the required ",
+            "perm_mid": " to view the ",
+            "perm_after": " page. ",
+            "contact_owner": "Please contact your server owner if you believe this is an error.",
+            "return_dashboard": "Return to Dashboard"
+        },
+        "auth": {
+            "login": {
+                "title": "Sign in",
+                "continue_hint": "Sign in to continue",
+                "subtitle": "Enter your credentials to continue",
+                "no_admins": "No admins set up.\nRedirecting...",
+                "username": "Username",
+                "password": "Password",
+                "username_placeholder": "your username",
+                "sign_in": "Sign in",
+                "or_continue_with": "or continue with",
+                "cfx_account": "Cfx.re Account",
+                "discord": "Discord",
+                "logged_out": "Logged out.",
+                "session_expired": "Session expired.",
+                "updated_relogin": "fxPanel updated — please sign in again.",
+                "master_already_set": "Master account already configured.",
+                "shutdown": "fxPanel server shut down.\nStart it again to sign in.",
+                "discord_id": "Discord ID",
+                "backup_password": "Backup Password",
+                "confirm_password": "Confirm Password"
+            },
+            "add_master": {
+                "pin": {
+                    "title": "No Cfx.re account linked",
+                    "description": "Type in the PIN from the terminal.",
+                    "auto_filled": "Auto-filled ✔",
+                    "link_account": "Link Account",
+                    "invalid_redirect": "Invalid redirect URL."
+                },
+                "callback": {
+                    "cfx_account": "Cfx.re account",
+                    "discord_id": "Discord ID",
+                    "discord_id_optional": "(optional)",
+                    "backup_password": "Backup Password",
+                    "password_requirements": "(see requirements below)",
+                    "confirm_password": "Confirm Password",
+                    "terms_prefix": "I have read and agree to the",
+                    "terms_creator_pla": "Creator PLA",
+                    "terms_and": "as well as the",
+                    "terms_fxpanel_license": "fxPanel License",
+                    "register": "Register",
+                    "first_time_setup": "First-time setup",
+                    "authenticating": "Authenticating...",
+                    "missing_payload_title": "Missing payload",
+                    "missing_payload_message": "The Discourse callback did not include the expected payload parameter.",
+                    "invalid_discord_id": "The Discord ID needs to be the numeric \"User ID\" instead of the username.\n You can also leave it blank.",
+                    "must_agree_terms": "You MUST agree to the terms.",
+                    "passwords_mismatch": "The passwords do not match."
+                }
+            }
+        },
+        "setup": {
+            "title": "Server Setup",
+            "subtitle": "Follow the steps below to set up your server.",
+            "error_title": "Setup Error",
+            "saving": "Saving…",
+            "save_failed": "Save failed.",
+            "server_saved_starting": "Server saved. Starting…",
+            "steps": {
+                "server_name": "Server Name",
+                "type": "Type",
+                "data_folder": "Data Folder",
+                "cfg_file": "CFG File",
+                "template": "Template",
+                "deploy_target": "Deploy Target"
+            },
+            "server_name": {
+                "title": "Server Name",
+                "description": "Choose a name for your server. This can be changed later in Settings.",
+                "placeholder": "Happy Server",
+                "next": "Next"
+            },
+            "deployment_type": {
+                "title": "Deployment Type",
+                "description": "How would you like to set up your server?",
+                "popular_title": "Popular Recipes",
+                "popular_desc": "Choose from a list of popular community recipes.",
+                "recommended": "RECOMMENDED",
+                "local_title": "Existing Server Data",
+                "local_desc": "Point to an existing server data folder with a server.cfg.",
+                "remote_title": "Remote URL Template",
+                "remote_desc": "Provide a URL to a recipe YAML file.",
+                "custom_title": "Custom Template",
+                "custom_desc": "Start with a blank recipe and paste your own in the deployer."
+            },
+            "popular": {
+                "title": "Select a Template",
+                "loading": "Loading recipes…",
+                "timeout": "Request timed out while loading recipes.",
+                "fetch_failed": "Failed to load recipes index: %{error}",
+                "by_author": "by %{author} · v%{version}",
+                "incompatible": "INCOMPATIBLE"
+            },
+            "remote": {
+                "title": "Remote Template URL",
+                "description": "Paste the URL of a recipe YAML file (must be a raw URL).",
+                "untrusted_title": "Untrusted recipes",
+                "untrusted_description": "A recipe is executable configuration (including SQL). Only load templates from sources you trust. Arbitrary URLs or third-party raw files can compromise your server or database if the YAML is malicious.",
+                "placeholder": "https://raw.githubusercontent.com/...",
+                "validate": "Validate",
+                "invalid_url": "Invalid recipe URL."
+            },
+            "local": {
+                "title": "Existing Server Data Folder",
+                "description": "Provide the path to your existing server data folder (containing server.cfg and resources/).",
+                "placeholder": "/path/to/server-data",
+                "suggestion": "Suggestion:",
+                "accept_fix": "Accept Fix",
+                "validate": "Validate",
+                "found_suggestion": "Found a suggestion.",
+                "invalid_folder": "Invalid folder."
+            },
+            "custom": {
+                "title": "Custom Template",
+                "description": "You will be able to paste or write your own recipe YAML in the deployer editor on the next page.",
+                "docs_prefix": "For recipe documentation and examples, check the",
+                "docs_link": "fxPanel docs",
+                "next": "Next"
+            },
+            "deploy_target": {
+                "title": "Deploy Target",
+                "description": "Where should the server data be deployed?",
+                "change_path": "Change Path",
+                "custom_path_hint": "This path is based on your custom data path configuration.",
+                "validate_continue": "Validate & Continue",
+                "invalid_path": "Invalid deploy path."
+            },
+            "server_cfg": {
+                "title": "Server CFG File",
+                "description": "Provide the server.cfg file name (relative to your data folder).",
+                "placeholder": "server.cfg",
+                "validate": "Validate",
+                "invalid_cfg": "Invalid CFG file."
+            },
+            "ready": {
+                "title": "Ready to Go",
+                "server_name": "Server Name:",
+                "type": "Type:",
+                "data_folder": "Data Folder:",
+                "cfg_file": "CFG File:",
+                "recipe": "Recipe:",
+                "deploy_path": "Deploy Path:",
+                "save_start": "Save & Start Server",
+                "go_deployer": "Go to Recipe Deployer"
+            }
+        },
+        "deployer": {
+            "title": "Recipe Deployer",
+            "deployment_id": "Deployment ID: %{id}",
+            "steps": {
+                "review": "Review",
+                "variables": "Variables",
+                "deploy": "Deploy",
+                "configure": "Configure"
+            },
+            "review": {
+                "title": "Review Recipe",
+                "untrusted_warning": "Warning:",
+                "untrusted_body": "This recipe is from an untrusted source. Review the contents carefully before proceeding.",
+                "name": "Name:",
+                "author": "Author:",
+                "description": "Description:",
+                "hide_source": "Hide",
+                "show_source": "Show",
+                "recipe_source": "Recipe Source",
+                "cancel": "Cancel",
+                "next": "Next"
+            },
+            "input": {
+                "title": "Recipe Variables",
+                "autofilled": "Some fields have been auto-filled from your host configuration.",
+                "license_label": "Server License Key (sv_licenseKey)",
+                "license_hint": "Get one at",
+                "license_portal": "portal.cfx.re",
+                "database_title": "Database Configuration",
+                "host": "Host",
+                "port": "Port",
+                "username": "Username",
+                "password": "Password",
+                "database_name": "Database Name",
+                "delete_existing": "Delete existing database if it exists (use with caution!)",
+                "github_token": "GitHub Token",
+                "github_hint": "Required to download private recipe resources.",
+                "custom_vars": "Custom Variables",
+                "back": "Back",
+                "cancel": "Cancel",
+                "run": "Run Recipe"
+            },
+            "run": {
+                "title": "Running Recipe",
+                "deploying_to": "Deploying to:",
+                "progress": "%{progress}% - %{status}",
+                "cancel": "Cancel",
+                "next": "Next",
+                "failed": "Deployment failed. Check the log above.",
+                "connection_lost": "Lost connection to the server after multiple retries."
+            },
+            "configure": {
+                "title": "Configure server.cfg",
+                "description": "Review your server.cfg below. Make any final adjustments before saving.",
+                "cancel": "Cancel",
+                "save_start": "Save & Start Server"
+            },
+            "processing": "Processing…",
+            "action_failed": "Action failed.",
+            "deploy_success": "Server deployed successfully!"
+        },
+        "cfg": {
+            "title": "CFG Editor",
+            "load_failed": "Failed to load file.",
+            "small_file_warning": "Your CFG file is very small - there is a good chance you deleted something you shouldn't. A backup file will be saved just in case.",
+            "errors_banner": "Server failed to start due to config error(s):",
+            "errors_hint": "Fix the issues above and save the file, then try starting the server again.",
+            "loading_files": "Loading…",
+            "hint_main": "(main server config - validated on save)",
+            "hint_aux": "(auxiliary config - saved without validation)",
+            "save_shortcut": "Save File (⌘+S/Ctrl+S)"
+        },
+        "diagnostics": {
+            "title": "Diagnostics",
+            "description": "Inspect runtime health, process state, and support data.",
+            "load_failed": "Failed to load diagnostics data.",
+            "unknown_error": "Unknown error",
+            "unknown_backend_error": "Unknown backend error.",
+            "sections": {
+                "overview": "Overview",
+                "discord": "Discord Bot",
+                "command_analytics": "Command Analytics",
+                "fxserver": "FXServer",
+                "processes": "Processes",
+                "report": "Support"
+            },
+            "bot_status": {
+                "disabled": "DISABLED",
+                "starting": "STARTING",
+                "ready": "READY",
+                "error": "ERROR",
+                "code": "CODE-%{code}"
+            },
+            "outcomes": {
+                "success": "Success",
+                "denied": "Denied",
+                "failed": "Failed",
+                "timed_out": "Timed Out"
+            },
+            "yes": "Yes",
+            "no": "No"
+        },
+        "system_log_page": {
+            "title": "Console Log",
+            "description": "Raw fxPanel process output, including startup and debug messages.",
+            "stream_title": "Captured terminal stream",
+            "loading": "Loading…",
+            "fetch_error": "Error fetching %{title}:",
+            "end_of_log": "[END OF LOG - REFRESH THE PAGE TO LOAD MORE]"
+        },
+        "toasts": {
+            "server_name_required": "The Server Name is required.",
+            "server_name_too_big": "The Server Name is too big.",
+            "import_failed": "Import failed",
+            "save_failed": "Save failed",
+            "discard_unsaved_title": "Discard unsaved changes?",
+            "card_exported": "Card exported"
+        },
+        "dialogs": {
+            "discard_changes_title": "Discard Changes"
+        },
+        "deferral_studio": {
+            "parent_deferral_cards": "Deferral cards",
+            "layers_heading": "Layers",
+            "select_element_hint": "Select an element on the card or in the layers list to edit it.",
+            "custom_placeholders_footer": "Custom placeholders are configured on the",
+            "custom_placeholders_footer_link": "Deferral Cards",
+            "custom_placeholders_footer_suffix": "settings tab.",
+            "coord_x": "X",
+            "coord_y": "Y",
+            "width": "Width",
+            "height": "Height",
+            "custom_text_placeholder": "Write anything — plain text or HTML. Use {requestId}, {customMessage}, or your placeholders.",
+            "image_upload_failed": "Image upload failed",
+            "image_preview_alt": "Uploaded image preview",
+            "no_image_yet": "No image yet. SVG up to %{svgKb} KB; PNG/GIF up to %{pngKb} KB each (GIF animates).",
+            "upload_image": "Upload image",
+            "logo_drag_hint": "Drag to reposition. Toggle visibility with the layer list or the global watermark switch.",
+            "discard_scenario_title": "Discard unsaved changes?",
+            "discard_scenario_message": "has unsaved edits. Discard them and continue?",
+            "discard_action": "Discard",
+            "leave_unsaved_title": "Leave without saving?",
+            "leave_unsaved_message": "Unsaved changes on:",
+            "leave_unsaved_suffix": "Leave anyway? Only saved cards are kept on the server.",
+            "leave_action": "Leave",
+            "restore_default_title": "Restore default card?",
+            "restore_default_message": "Replace this scenario with the built-in default layout and content. Your current edits are not saved until you click Save.",
+            "restore_action": "Restore",
+            "cannot_restore_title": "Cannot restore",
+            "cannot_restore_msg": "Addon scenarios use the addon default template — re-save from the addon manifest.",
+            "default_restored_title": "Default layout restored",
+            "default_restored_msg": "Save to persist.",
+            "save_failed_select_scenario": "Select a scenario first.",
+            "saving_scenario": "Saving %{label}…",
+            "save_failed_no_response": "No response from server (timeout or connection lost).",
+            "save_failed_rejected": "Server rejected the changes.",
+            "scenario_saved_title": "%{label} saved",
+            "scenario_saved_msg": "This card is saved on the server.",
+            "cards_exported_msg": "All scenarios",
+            "import_failed": "Import failed",
+            "addon_cards_skipped_title": "Some addon cards skipped",
+            "imported_title": "Imported",
+            "imported_scenarios_msg": "%{count} scenario(s)",
+            "invalid_json": "Invalid JSON",
+            "toolbar": {
+                "scenario_placeholder": "Scenario…",
+                "group_core": "Core",
+                "group_addons": "Addons",
+                "size_custom": "Custom",
+                "card_width_aria": "Card width",
+                "card_height_aria": "Card height",
+                "add": "Add",
+                "watermark_logo": "Watermark logo",
+                "snap_to_grid": "Snap to grid",
+                "show_grid": "Show grid",
+                "file": "File",
+                "export_all": "Export all",
+                "export_scenario": "Export scenario",
+                "restore_default": "Restore default",
+                "import": "Import",
+                "save_card": "Save card",
+                "saved": "Saved",
+                "back": "Back"
+            },
+            "layers": {
+                "empty": "No elements yet.",
+                "show_element": "Show element",
+                "hide_element": "Hide element"
+            },
+            "canvas": {
+                "preview_title": "FiveM connection preview",
+                "size_line": "%{width}×%{height}px",
+                "snap_free": "free placement",
+                "snap_grid": "snap %{grid}px",
+                "grid_visible": "grid %{grid}px",
+                "max_size": "max %{maxW}×%{maxH}",
+                "blank_hint": "Select a scenario to load its default layout"
+            },
+            "card": {
+                "drag_aria": "%{type}, drag to move",
+                "watermark_aria": "Watermark logo",
+                "default_heading": "Access Denied",
+                "ban_id_label": "Ban ID:",
+                "ban_reason_label": "Reason:",
+                "ban_expires_label": "Expires:",
+                "tier_label": "Tier:",
+                "button_url_invalid": "Set a valid https:// URL"
+            },
+            "button_editor": {
+                "label": "Button label",
+                "label_placeholder": "Join Discord",
+                "url": "Link URL",
+                "url_placeholder": "https://discord.gg/your-server or {discordInvite}",
+                "background": "Background",
+                "text_color": "Text",
+                "hint": "Opens in the player's browser when they click during connection. Use http/https only; placeholders like {discordInvite} work."
+            },
+            "placeholders_editor": {
+                "builtin_title": "Built-in tokens",
+                "addon_title": "Addon tokens (dynamic)",
+                "addon_desc": "Resolved at connect time by the owning addon. Use in any block as",
+                "custom_title": "Custom placeholders",
+                "add": "Add",
+                "empty": "Define extra static tokens and use {key} in any block.",
+                "key_aria": "Placeholder key",
+                "key_placeholder": "key",
+                "label_aria": "Placeholder label",
+                "label_placeholder": "Label",
+                "value_aria": "Placeholder value",
+                "value_placeholder": "Value at connect",
+                "remove_aria": "Remove placeholder",
+                "default_custom_label": "Custom"
+            },
+            "visual_editor": {
+                "layout_title": "Card layout",
+                "add_block": "Add block",
+                "switch_on": "On",
+                "switch_off": "Off",
+                "remove_block": "Remove",
+                "custom_text_placeholder": "Write anything…",
+                "title_placeholder": "Card title"
+            },
+            "size_presets": {
+                "wide": "Wide (640×220)",
+                "compact": "Compact (400×160)",
+                "tall": "Tall (520×320)"
+            },
+            "blocks": {
+                "heading": {
+                    "label": "Title",
+                    "description": "Card heading (defaults to scenario title)",
+                    "default_content": ""
+                },
+                "text": {
+                    "label": "Text line",
+                    "description": "Single line (use one per sentence or field)",
+                    "default_content": "Your message here"
+                },
+                "paragraph": {
+                    "label": "Paragraph",
+                    "description": "Rich text with tokens",
+                    "default_content": "Please join {guildName} and request to be whitelisted."
+                },
+                "rejection_message": {
+                    "label": "Rejection message",
+                    "description": "Shows the rejection message (the {customMessage} token)",
+                    "default_content": "{customMessage}"
+                },
+                "custom_text": {
+                    "label": "Custom text",
+                    "description": "Freeform text — write anything; supports placeholders and basic HTML",
+                    "default_content": ""
+                },
+                "request_id": {
+                    "label": "Request ID",
+                    "description": "Shows the player request ID when available",
+                    "default_content": ""
+                },
+                "ban_id": {
+                    "label": "Ban ID",
+                    "description": "Shows the active ban action ID",
+                    "default_content": ""
+                },
+                "ban_reason": {
+                    "label": "Ban reason",
+                    "description": "Shows the ban reason ({banReason}) when the player is banned",
+                    "default_content": ""
+                },
+                "ban_expires": {
+                    "label": "Ban expiry",
+                    "description": "Shows time until ban expires ({banExpires}); hidden for permanent bans",
+                    "default_content": ""
+                },
+                "tier_name": {
+                    "label": "Tier name",
+                    "description": "Shows whitelist tier when available",
+                    "default_content": ""
+                },
+                "spacer": {
+                    "label": "Spacer",
+                    "description": "Vertical gap",
+                    "default_content": ""
+                },
+                "divider": {
+                    "label": "Divider",
+                    "description": "Horizontal rule",
+                    "default_content": ""
+                },
+                "logo": {
+                    "label": "Watermark logo",
+                    "description": "fxPanel logo (respects global logo toggle)",
+                    "default_content": ""
+                },
+                "custom_image": {
+                    "label": "Custom image",
+                    "description": "Upload SVG, PNG, or GIF — shown on the deferral card",
+                    "default_content": ""
+                },
+                "button": {
+                    "label": "Button (link)",
+                    "description": "Clickable link styled as a button — opens in the player's browser (http/https only)",
+                    "default_content": ""
+                }
+            },
+            "scenarios": {
+                "ban_temporary": {
+                    "label": "Ban — temporary",
+                    "description": "Shown when the player has an active timed ban."
+                },
+                "ban_permanent": {
+                    "label": "Ban — permanent",
+                    "description": "Shown when the player has a permanent ban."
+                },
+                "whitelist_pending": {
+                    "label": "Whitelist — pending approval",
+                    "description": "Manual review: player is not on the list; includes request ID when enabled."
+                },
+                "whitelist_schedule_closed": {
+                    "label": "Whitelist — applications closed",
+                    "description": "Join attempted outside configured application windows."
+                },
+                "whitelist_admin_denied": {
+                    "label": "Whitelist — admin-only denied",
+                    "description": "Maintenance mode: player is not a panel administrator."
+                },
+                "whitelist_admin_insufficient_ids": {
+                    "label": "Whitelist — admin-only missing IDs",
+                    "description": "Maintenance mode: missing license or Discord identifier."
+                },
+                "whitelist_discord_member_denied": {
+                    "label": "Whitelist — not in Discord",
+                    "description": "Discord member workflow: user is not in the guild."
+                },
+                "whitelist_discord_member_insufficient_ids": {
+                    "label": "Whitelist — Discord member missing ID",
+                    "description": "Discord member workflow: no discord: identifier."
+                },
+                "whitelist_discord_roles_not_member": {
+                    "label": "Whitelist — roles: not in guild",
+                    "description": "Discord roles workflow: user is not in the guild."
+                },
+                "whitelist_discord_roles_no_roles": {
+                    "label": "Whitelist — roles: missing role",
+                    "description": "Discord roles workflow: member lacks a required role."
+                },
+                "whitelist_discord_roles_insufficient_ids": {
+                    "label": "Whitelist — roles: missing ID",
+                    "description": "Discord roles workflow: no discord: identifier."
+                },
+                "whitelist_insufficient_license": {
+                    "label": "Whitelist — missing license",
+                    "description": "Manual review: no license identifier on connect."
+                },
+                "whitelist_error": {
+                    "label": "Whitelist — validation error",
+                    "description": "Discord or internal validation failed while checking whitelist."
+                },
+                "connection_queue": {
+                    "label": "Connection queue",
+                    "description": "Placeholder for server queue / deferral messaging (hook up from your queue resource)."
+                },
+                "access_denied": {
+                    "label": "Access denied (generic)",
+                    "description": "Fallback card when no specific scenario is matched."
+                }
+            }
+        },
+        "settings": {
+            "saving": "Saving %{cardTitle} settings...",
+            "save_error": "Error saving %{cardTitle} settings:",
+            "discard_action": "Discard",
+            "discard_unsaved_message": "You have unsaved changes in the %{cardTitle} tab.",
+            "discard_confirm": "Are you sure you want to discard them?",
+            "addon_error": "Addon error: %{title}",
+            "addon_tab_error": "Addon tab error: %{title}",
+            "tabs": {
+                "general": "General",
+                "fxserver": "FXServer",
+                "deferral_cards": "Deferral Cards",
+                "player_tags": "Player Tags",
+                "whitelist": "Whitelist",
+                "queue": "Queue",
+                "bans": "Bans",
+                "game": "Game",
+                "discord": "Discord",
+                "game_menu": "Game Menu",
+                "game_notifications": "Game Notifications",
+                "game_reports": "Game Reports",
+                "danger_zone": "Danger Zone"
+            },
+            "cards": {
+                "bot": "Bot",
+                "oauth": "OAuth",
+                "menu": "Menu",
+                "notifications": "Notifications",
+                "reports": "Reports"
+            },
+            "switch": {
+                "enabled": "Enabled",
+                "disabled": "Disabled",
+                "required": "Required",
+                "optional": "Optional",
+                "hidden": "Hidden",
+                "visible": "Visible"
+            },
+            "general": {
+                "server_name": {
+                    "label": "Server Name",
+                    "desc": "A short server name to be used in the fxPanel interface and Server/Discord messages.",
+                    "desc_length": "The name must be between 1 and 18 characters.",
+                    "placeholder": "Example RP"
+                },
+                "language": {
+                    "label": "Language",
+                    "desc": "The language to use on Chat/Discord messages.",
+                    "desc_custom": "You can customize the phrases/words by using the Custom option.",
+                    "desc_docs": "For more information, please read the documentation.",
+                    "browser_suffix": "(browser)",
+                    "custom_inline": "Custom",
+                    "custom_option": "Custom (txData/locale.json)",
+                    "documentation_link": "documentation"
+                },
+                "allow_self_identifier_edit": {
+                    "label": "Allow Self Identifier Edit",
+                    "desc_enabled": "When enabled, all admins can change their own identifiers (FiveM & Discord) from the Account dialog.",
+                    "desc_disabled": "When disabled, only admins with the Manage Admins permission can edit identifiers."
+                },
+                "require_admin_two_factor": {
+                    "label": "Require Two-Factor Authentication",
+                    "desc": "When required, every admin — including the master account — must enable 2FA before using the web panel or in-game menu.",
+                    "desc_master": "You must enable 2FA on your own account before turning this on. Only the master admin can change this setting."
+                }
+            },
+            "bans": {
+                "checking_label": "Ban Checking",
+                "checking_desc": "Enable checking for ban status on player join.",
+                "checking_note": "fxPanel bans will not work if this option is disabled.",
+                "note_label": "Note:",
+                "templates_label": "Ban Templates",
+                "edit_templates": "Edit Ban Templates",
+                "templates_desc": "Configure ban reasons and durations that will appear as dropdown options when banning a player.",
+                "rejection_label": "Ban Rejection Message",
+                "rejection_placeholder": "You can join http://discord.gg/example to appeal this ban.",
+                "rejection_desc": "Optional message to display to a player on the rejection message that shows when they try to connect while being banned.",
+                "rejection_appeal": "If you have a ban appeal process, you can use this field to inform the players.",
+                "hwid_label": "Required Ban HWID Matches",
+                "hwid_desc": "This option configures how many HWID tokens must match between a player and an existing ban for the player join to be blocked, or can disable HWID Bans entirely.",
+                "hwid_note": "Note: Most players have 3 to 6 HWID tokens.",
+                "hwid_option_1": "1 - recommended",
+                "hwid_option_2": "2 - lax",
+                "hwid_option_3": "3 - very lax",
+                "hwid_option_4": "4 - virtually disabled",
+                "hwid_option_0": "Disable HWID Bans",
+                "rejection_too_big_title": "The Ban Rejection Message is too big.",
+                "rejection_too_big_msg": "The message must be 512 characters or less."
+            },
+            "deferral": {
+                "about_label": "About connection deferral cards",
+                "about_desc": "HTML cards shown to players during FiveM connection deferrals — bans, whitelist denials, queue messages, and other join blocks.",
+                "discord_invite_label": "Discord invite",
+                "discord_invite_placeholder": "https://discord.gg/your-server",
+                "custom_placeholders_label": "Custom placeholders",
+                "studio_label": "Deferral card studio",
+                "open_studio": "Open deferral card studio",
+                "import_export_label": "Import and export",
+                "export_all": "Export all",
+                "import": "Import",
+                "body_too_long_title": "Deferral body template is too long.",
+                "body_too_long_msg": "Keep \"%{id}\" under 2048 characters.",
+                "imported_title": "Imported",
+                "imported_msg": "%{count} scenario(s)",
+                "cards_exported_msg": "All scenarios",
+                "invalid_json": "Invalid JSON",
+                "discord_invite_desc": "Used for the built-in {discordInvite} token in any card block.",
+                "discord_invite_preview": "Preview:",
+                "custom_placeholders_desc": "Extra static tokens for card text — use {key} in the studio. The same placeholders apply to every scenario.",
+                "studio_desc": "Visual editor with a FiveM-sized canvas — pick a scenario, drag blocks, toggle the watermark logo per card, and export or import layouts.",
+                "import_export_desc": "Share full deferral card configs between servers or backups.",
+                "addon_skipped_title": "Some addon cards skipped"
+            },
+            "deferral_editor": {
+                "parent_whitelist": "Whitelist settings",
+                "visual_editor": "Visual editor",
+                "template_text": "Template text",
+                "export_scenario": "Export scenario",
+                "export_all": "Export all",
+                "import": "Import",
+                "enable_visual_title": "Convert this scenario to the visual block editor. Your current title and body become draggable blocks.",
+                "enable_visual": "Enable visual editor",
+                "card_title": "Card title",
+                "body_template": "Body template",
+                "body_placeholder": "Use {customMessage} for dynamic text from the server.",
+                "show_request_id_on": "Show request ID block",
+                "show_request_id_off": "Hide request ID",
+                "show_tier_on": "Show tier name",
+                "show_tier_off": "Hide tier",
+                "watermark_on": "Watermark logo",
+                "watermark_off": "No logo",
+                "live_preview": "Live preview",
+                "save_card": "Save card",
+                "back_whitelist": "Back to whitelist",
+                "all_scenarios": "All scenarios",
+                "saving": "Saving deferral card...",
+                "saved_title": "Deferral card saved.",
+                "export_all_msg": "Full config",
+                "import_complete": "Import complete",
+                "import_scenarios_msg": "%{count} scenario(s)",
+                "invalid_json_file": "Invalid JSON file"
+            },
+            "danger_zone": {
+                "warning_label": "Warning:",
+                "master_admin_warning": "You must be the Master Admin to use the options below.",
+                "web_only_warning": "These functions are disabled for the in-game menu - please use the web version.",
+                "backup_title": "Backup Database",
+                "backup_desc": "Download a copy of",
+                "backup_button": "Backup Database",
+                "revoke_title": "Revoke Whitelists",
+                "revoke_desc": "Revoke whitelist from players that haven't joined recently. Only applies to license whitelist - not Discord member or role whitelist.",
+                "filter_label": "Filter",
+                "wl_filter_30d": "players that haven't joined in the last 30 days",
+                "wl_filter_15d": "players that haven't joined in the last 15 days",
+                "wl_filter_7d": "players that haven't joined in the last 7 days",
+                "wl_filter_all": "REVOKE ALL WHITELISTS",
+                "revoke_button": "Revoke Whitelists",
+                "clean_title": "Clean Database",
+                "clean_desc_prefix": "Permanently remove players and actions from the database. This action is",
+                "clean_desc_irreversible": "irreversible",
+                "clean_desc_suffix": " — save a backup first.",
+                "clean_irreversible_warning": "this action is irreversible. Save a database backup first.",
+                "players_label": "Players",
+                "bans_label": "Bans",
+                "warns_label": "Warns",
+                "hwids_label": "HWIDs",
+                "players_none": "none",
+                "players_60d": "inactive over 60 days",
+                "players_30d": "inactive over 30 days",
+                "players_15d": "inactive over 15 days",
+                "players_help": "Remove players based on time since last connection. Does not affect players with notes, bans, warns, or whitelist logs.",
+                "bans_none": "none",
+                "bans_revoked": "revoked",
+                "bans_revoked_expired": "revoked or expired",
+                "bans_all": "REMOVE ALL BANS",
+                "bans_help": "Remove expired or revoked bans.",
+                "warns_none": "none",
+                "warns_revoked": "revoked",
+                "warns_30d": "older than 30 days",
+                "warns_15d": "older than 15 days",
+                "warns_7d": "older than 7 days",
+                "warns_all": "REMOVE ALL WARNS",
+                "warns_help": "Remove old or revoked warns.",
+                "hwids_none": "none",
+                "hwids_players": "from players",
+                "hwids_bans": "from bans",
+                "hwids_all": "REMOVE ALL HWIDS",
+                "hwids_help_prefix": "HWID tokens are tied to your",
+                "hwids_help_suffix": " owner. Wipe if transferring to a different license key owner.",
+                "clean_button": "Clean Database",
+                "confirm_title": "Are you sure you want to:",
+                "select_one_option": "You need to select at least one option.",
+                "change_remove_players": "Remove players %{filter}.",
+                "change_remove_bans": "Remove bans %{filter}.",
+                "change_remove_warns": "Remove warns %{filter}.",
+                "change_remove_hwids": "Remove HWIDs %{filter}.",
+                "revoke_all": "Revoke ALL Whitelists.",
+                "revoke_inactive": "Revoke Whitelist from all players that have not joined in the past %{filter}.",
+                "clean_success": "Players deleted: %{players}\nActions deleted: %{actions}\nHWIDs deleted: %{hwids}\nFinished in %{ms}ms.",
+                "revoke_success": "Whitelists revoked: %{count}\nFinished in %{ms}ms.",
+                "telemetry_title": "Anonymous usage data",
+                "telemetry_desc": "When collection is enabled, fxPanel periodically sends anonymous install statistics (panel version, player slot usage, coarse region, resource folder names). No player names, licenses, or chat content are transmitted.",
+                "telemetry_opt_out_label": "Opt out of data collection",
+                "telemetry_opted_out": "Opted out",
+                "telemetry_collecting": "Collecting"
+            },
+            "embed_editor": {
+                "parent_settings": "Settings",
+                "page_title_status": "Status embed",
+                "page_title_player_list": "Player list embed",
+                "intro_status": "Customize the server status card and its config (colors, buttons, player templates). Use preset mode for a visual editor or raw JSON for full control.",
+                "intro_player_list": "Customize the player list card and paging settings. Use preset mode for a visual editor or raw JSON for full control.",
+                "mode_preset": "Preset",
+                "mode_raw": "Raw JSON",
+                "raw_parse_error_title": "Cannot switch to preset mode",
+                "raw_embed_json": "Embed JSON",
+                "raw_config_json": "Config JSON",
+                "load_stored": "Reload saved",
+                "reset_factory": "Factory default",
+                "placeholders_copy_hint": "Expand and use the copy button next to each token.",
+                "section_content": "Content",
+                "section_fields": "Fields",
+                "section_buttons": "Buttons",
+                "section_config": "Status colors",
+                "section_player_list": "Player list templates",
+                "field_title": "Title",
+                "field_url": "Title URL",
+                "field_description": "Description",
+                "field_color": "Color",
+                "field_thumbnail": "Thumbnail URL",
+                "field_image": "Image URL",
+                "field_footer_text": "Footer text",
+                "field_footer_icon": "Footer icon URL",
+                "field_name": "Field name",
+                "field_inline_on": "Inline",
+                "field_inline_off": "Not inline",
+                "add_field": "Add field",
+                "add_button": "Add button",
+                "button_label": "Label",
+                "button_url": "URL",
+                "button_emoji": "Emoji (optional)",
+                "onlineColor": "Online color",
+                "partialColor": "Partial color",
+                "offlineColor": "Offline color",
+                "onlineString": "Online label",
+                "partialString": "Partial label",
+                "offlineString": "Offline label",
+                "playerLineTemplate": "Player line template",
+                "playerInlineTemplate": "Inline player template",
+                "playerColumnTemplate": "Column template",
+                "playerColumnCount": "Column count",
+                "playersPerColumn": "Players per column",
+                "maxPlayersShown": "Max players shown (legacy)",
+                "playerListSeparator": "List separator",
+                "playerListInlineSeparator": "Inline separator",
+                "emptyPlayerListString": "Empty list text",
+                "show_pager_on": "Pager buttons on",
+                "show_pager_off": "Pager buttons off",
+                "live_preview": "Live preview",
+                "preview_sample_note": "Preview uses sample server and player data in place of placeholders.",
+                "preview_invalid_json": "Fix JSON syntax to update the preview.",
+                "preview_health_label": "Preview status",
+                "preview_health_online": "Online",
+                "preview_health_partial": "Partial",
+                "preview_health_offline": "Offline",
+                "status_embed": "status embed",
+                "player_list_embed": "player list embed",
+                "intro": "The %{embedLabel} is customizable by editing the JSON below.",
+                "intro_placeholders": "You can use the placeholders to include dynamic server information in the embed, button URLs, and player line templates.",
+                "intro_docs": "For information refer to",
+                "docs_link": "our docs",
+                "hide_placeholders": "Hide Placeholders",
+                "show_placeholders": "Show Placeholders",
+                "player_list_alert": "Player-list paging and compact columns are configured in the Config JSON with playerColumnCount, playersPerColumn, playerColumnTemplate, showPagerButtons, and pagerPageLabelTemplate.",
+                "placeholders_title": "Available Placeholders",
+                "player_placeholders_title": "Player Line Placeholders",
+                "invalid_json": "Invalid JSON: %{error}",
+                "saving": "Saving embed settings...",
+                "save_error_title": "Error saving embed:",
+                "back_settings": "Back to Settings",
+                "discard_changes": "Discard Changes",
+                "reset_default": "Reset to Default",
+                "save_changes": "Save Changes",
+                "placeholders": {
+                    "serverCfxId": "The Cfx.re id of your server, this is tied to your sv_licenseKey and detected at runtime.",
+                    "serverJoinUrl": "The direct join URL of your server. Example: https://cfx.re/join/xxxxxx.",
+                    "serverBrowserUrl": "The FiveM Server browser URL of your server. Example: https://servers.fivem.net/servers/detail/xxxxxx.",
+                    "serverEndpoint": "The live FXServer connect endpoint in ip:port form detected from the running server config.",
+                    "serverIp": "The host portion of the detected FXServer endpoint.",
+                    "serverPort": "The port portion of the detected FXServer endpoint.",
+                    "serverConnectCommand": "A ready-to-paste F8 command using the detected endpoint. Example: connect 127.0.0.1:30120.",
+                    "serverAvailableSlots": "How many open player slots are left based on the current online count and max clients.",
+                    "serverClients": "The number of players online in your server.",
+                    "serverMaxClients": "The sv_maxclients of your server, detected at runtime.",
+                    "serverOccupancyPercent": "The current player occupancy percentage, including the % suffix.",
+                    "serverName": "This is the fxPanel-given name for this server. Can be changed in fxPanel > Settings > Global.",
+                    "statusColor": "A hex-encoded color, from the Config JSON.",
+                    "statusString": "A text to be displayed with the server status, from the Config JSON.",
+                    "uptime": "For how long is the server online. Example: 1 hr, 50 mins.",
+                    "nextScheduledRestart": "String with when is the next scheduled restart. Example: in 2 hrs, 48 mins.",
+                    "recentJoinCount": "How many player joins were recorded in the recent rolling window tracked by fxPanel.",
+                    "recentLeaveCount": "How many player leaves were recorded in the recent rolling window tracked by fxPanel.",
+                    "playerList": "A multiline rendered player list for the current page using the player line template from the Config JSON.",
+                    "playerListColumns": "Expands a single embed field into compact inline roster columns for the current player-list page.",
+                    "playerListInline": "A compact rendered player list for the current page using the inline player template from the Config JSON.",
+                    "playerListSummary": "A short summary of how many players are online right now.",
+                    "playerListPage": "The current 1-based player-list page number.",
+                    "playerListTotalPages": "The total amount of available player-list pages.",
+                    "playerListPageSummary": "A short summary of the current player-list page range. Example: Page 2/3 • Showing 31-60."
+                },
+                "player_placeholders": {
+                    "index": "1-based player position in the rendered list.",
+                    "netid": "The player network id.",
+                    "displayName": "The current display name shown in the fxPanel player list.",
+                    "pureName": "The raw player name before tag decorations.",
+                    "license": "The player license identifier.",
+                    "playTimeMinutes": "The player playtime stored by fxPanel, in minutes.",
+                    "playTime": "A human-readable version of the player playtime stored by fxPanel. Example: 48 mins.",
+                    "sessionTimeSeconds": "How many seconds the player has been connected in the current server session.",
+                    "sessionTimeMinutes": "How many minutes the player has been connected in the current server session.",
+                    "sessionTime": "A human-readable session duration for the player. Example: 1 hr, 16 mins.",
+                    "tags": "The player tags computed by fxPanel, joined by commas."
+                }
+            },
+            "whitelist": {
+                "enabled_label": "Whitelist",
+                "enabled_desc": "When disabled, join checks skip whitelist (banlist may still apply). Configure the active workflow below.",
+                "workflow_label": "Join workflow",
+                "workflow": {
+                    "disabled": {
+                        "title": "Disabled",
+                        "desc": "No whitelist checks on join."
+                    },
+                    "auto_admin": {
+                        "title": "Admin-only (maintenance)",
+                        "desc": "Only fxPanel administrators with linked fivem/discord identifiers may join."
+                    },
+                    "auto_discord_member": {
+                        "title": "Discord server member",
+                        "desc": "Player must have a discord: identifier and be in the configured Discord guild."
+                    },
+                    "auto_discord_role": {
+                        "title": "Discord server roles",
+                        "desc": "Player must be in the guild and have at least one configured role."
+                    },
+                    "manual_review": {
+                        "title": "Manual review (license)",
+                        "desc": "Unlisted players receive a request ID on the deferral card; staff approve in the Whitelist page or Discord."
+                    },
+                    "external_whitelist": {
+                        "title": "External whitelist",
+                        "desc": "fxPanel does not block joins — use your own allowlist resource or service. Server browser padlock and instructions apply while this mode is selected."
+                    }
+                },
+                "browser_instructions_label": "Allowlist instructions",
+                "browser_instructions_placeholder": "Join our Discord at discord.gg/example to apply for the allowlist.",
+                "browser_instructions_desc": "Shown in the server browser while whitelist is enabled. Sets sv_allowlistInstructions (plain text, max 512 characters). The allowlist padlock (sv_appearAllowlisted) turns on automatically with whitelist.",
+                "discord_review_channel_label": "Discord review channel",
+                "discord_review_channel_placeholder": "Channel snowflake for application threads",
+                "discord_review_channel_desc": "New join requests open a thread here. React with ✅ or ❌ on the thread message to approve or deny.",
+                "discord_roles_label": "Whitelisted Discord roles",
+                "discord_roles_placeholder": "000000000000000000, 000000000000000000",
+                "discord_roles_desc": "Comma-separated role snowflakes. Requires Discord Bot enabled.",
+                "deferral_cards_label": "Connection deferral cards",
+                "deferral_cards_desc_prefix": "Customize join denial cards, placeholders, and layouts on the",
+                "deferral_cards_desc_suffix": "settings tab.",
+                "schedule_label": "Application schedule",
+                "schedule_on": "Schedule on",
+                "schedule_off": "Schedule off",
+                "schedule_closed_placeholder": "Applications closed message",
+                "schedule_desc": "When enabled, new join requests are only accepted during the configured windows (server timezone).",
+                "schedule_closed_default": "Whitelist applications are currently closed.",
+                "manage_label": "Manage whitelist",
+                "manage_desc": "Approve players and view analytics on the Whitelist page or via /whitelist Discord commands.",
+                "schedule_timezone": "Timezone",
+                "schedule_start_hour": "Start hour",
+                "schedule_end_hour": "End hour",
+                "schedule_hour_range": "to",
+                "schedule_exclusive_end": "(hour, exclusive end)",
+                "schedule_add_window": "Add window",
+                "schedule_day_sunday": "Sunday",
+                "schedule_day_monday": "Monday",
+                "schedule_day_tuesday": "Tuesday",
+                "schedule_day_wednesday": "Wednesday",
+                "schedule_day_thursday": "Thursday",
+                "schedule_day_friday": "Friday",
+                "schedule_day_saturday": "Saturday",
+                "toast_discord_bot_required_title": "Discord Bot is required.",
+                "toast_discord_bot_required_msg": "Enable the Discord Bot in the Discord tab for Discord-based workflows.",
+                "toast_discord_roles_required_title": "Discord roles required.",
+                "toast_discord_roles_required_msg": "Add at least one Discord role ID for the Discord roles workflow.",
+                "toast_invalid_role_title": "Invalid Discord Role ID.",
+                "toast_invalid_role_msg": "Invalid role: %{roleId}",
+                "toast_instructions_required_title": "Allowlist instructions required.",
+                "toast_instructions_required_msg": "Enter server browser instructions whenever whitelist is enabled.",
+                "toast_instructions_too_long_title": "Allowlist instructions are too long.",
+                "toast_instructions_too_long_msg": "Keep instructions at 512 characters or fewer.",
+                "toast_schedule_windows_title": "Schedule windows required.",
+                "toast_schedule_windows_msg": "Add at least one open window when the application schedule is enabled.",
+                "toast_invalid_review_channel_title": "Invalid Discord review channel.",
+                "toast_invalid_review_channel_msg": "Use a valid channel snowflake ID."
+            },
+            "queue": {
+                "enabled_label": "Queue",
+                "enabled_desc": "Role-based join queue with slot pools and priority. Separate from Whitelist.",
+                "max_users_label": "Max users in queue",
+                "max_users_desc": "Maximum players that can wait in the queue at once. When full, new connections skip the queue and use the normal join flow.",
+                "slot_summary_label": "Slot summary",
+                "slot_summary_one": "1 slot reserved across 1 pool. Remaining capacity is the public pool.",
+                "slot_summary_many": "%{count} slots reserved across %{poolCount} pools. Remaining capacity is the public pool.",
+                "slot_pools_label": "Slot pools",
+                "pool_name_label": "Pool name",
+                "pool_name_placeholder": "Staff only",
+                "slots_label": "Slots",
+                "remove_pool_aria": "Remove pool",
+                "staff_pool_on": "Panel staff can use this pool",
+                "staff_pool_off": "Staff cannot use this pool",
+                "pool_rules_heading": "Queue rules in this pool",
+                "unnamed_rule": "Unnamed rule",
+                "add_roles_first": "Add Discord roles to this rule first",
+                "rule_priority": "Priority %{priority}",
+                "pool_rules_desc": "Players matching a linked rule's Discord roles may use this pool when public slots are full. Staff with the toggle above can also use it.",
+                "add_rules_hint": "Add queue rules below, then link them to this pool.",
+                "empty_pools": "No slot pools yet. Example: 8 slots staff-only, 20 slots for donators + staff.",
+                "add_pool": "Add pool",
+                "rules_label": "Queue rules (priority)",
+                "rule_label": "Label",
+                "rule_label_placeholder": "Donator",
+                "remove_rule_aria": "Remove rule",
+                "discord_roles_label": "Discord Role IDs",
+                "priority_label": "Priority",
+                "priority_desc": "Higher value = earlier in queue.",
+                "empty_rules": "Define roles for queue priority, then assign them to slot pools above.",
+                "add_rule": "Add rule",
+                "toast_unexpected_payload": "Unexpected queue config payload.",
+                "toast_rule_label_required": "Each queue rule needs a label.",
+                "toast_pool_label_required": "Each slot pool needs a label.",
+                "toast_invalid_role_title": "Invalid Discord Role ID.",
+                "toast_invalid_role_msg": "Invalid role: %{roleId}",
+                "toast_discord_bot_required_title": "Discord Bot is required.",
+                "toast_discord_bot_required_msg": "Enable the Discord Bot in the Discord tab to use role-based queue rules.",
+                "toast_pool_needs_access": "Pool \"%{label}\" needs staff access and/or at least one queue rule.",
+                "toast_pool_rule_no_roles": "Pool \"%{poolLabel}\": linked rule \"%{ruleLabel}\" has no Discord roles."
+            },
+            "player_tags": {
+                "threshold_label": "New Player Threshold",
+                "threshold_desc": "Players with less than this many minutes of total playtime will receive the Newcomer tag. Set to 0 to disable.",
+                "tags_label": "Tags",
+                "tags_desc": "Built-in tags (Staff, Problematic, Newcomer) can be enabled/disabled and customized (label, color, priority) but cannot be deleted. Define up to 20 additional custom tags for identifying players (e.g. Streamer, VIP). Tags are assigned via resource exports: exports.txadmin:addPlayerTag(serverId, tagId) and exports.txadmin:removePlayerTag(serverId, tagId). Lower priority number = higher importance (1 is highest priority, 100 is lowest).",
+                "field_id": "ID",
+                "field_label": "Label",
+                "field_prefix": "Prefix",
+                "field_color": "Color",
+                "field_priority": "Priority",
+                "hud_color": "HUD %{index}",
+                "add_tag": "Add Tag",
+                "auto_tag_staff": "Shown on anyone who has an fxPanel admin account.",
+                "auto_tag_problematic": "Shown on anyone with an active (non-revoked) ban or warning.",
+                "auto_tag_newplayer": "Shown on anyone with less than the threshold minutes of total playtime.",
+                "discord_roles_label": "Discord Roles",
+                "discord_roles_desc": "Players with any of these Discord roles receive this tag on join. Requires Discord Bot enabled. Tags are re-synced when roles change while online.",
+                "toast_invalid_role_id": "Invalid Discord role ID: %{roleId}",
+                "toast_missing_id": "Each custom tag must have an ID.",
+                "toast_missing_label": "Tag \"%{tagId}\" must have a label.",
+                "toast_duplicate_id": "Duplicate tag ID: %{tagId}"
+            },
+            "discord_roles_picker": {
+                "loading": "Loading Discord roles…",
+                "choose_roles": "Choose Discord roles",
+                "search_placeholder": "Search roles…",
+                "no_roles": "No roles found.",
+                "none_selected": "No roles selected.",
+                "unknown_role": "Unknown role (%{roleId})",
+                "remove_role": "Remove %{label}",
+                "refresh": "Refresh Discord roles",
+                "manual_entry": "Enter role IDs manually",
+                "manual_placeholder": "Paste role IDs separated by commas, spaces, or new lines",
+                "use_picker": "Use role picker"
+            },
+            "game_menu": {
+                "menu_label": "Game Menu",
+                "menu_desc": "When enabled, admins will be able to open the menu by typing /tx or using the keybind configured in the FiveM/RedM settings.",
+                "panel_tab_label": "In-Game Web Panel Tab",
+                "panel_tab_desc": "When enabled, the in-game menu shows a Panel tab that opens the full web panel without leaving the game.",
+                "align_right_label": "Align Menu Right",
+                "align_right_on": "Right aligned",
+                "align_right_off": "Left aligned",
+                "align_right_desc": "Move menu to the right side of the screen.",
+                "page_key_label": "Menu Page Switch Key",
+                "page_key_placeholder": "click here and use the key to change",
+                "page_key_desc": "The key used to to switch tabs in the menu.",
+                "page_key_desc_click": "Click above and press any key to change the configuration.",
+                "page_key_note_prefix": "The default is",
+                "page_key_note_mid": "and you cannot use",
+                "page_key_note_or": "or",
+                "player_id_distance_label": "Overhead Player ID Range",
+                "player_id_distance_desc": "Maximum distance (in meters) at which overhead player IDs are visible when toggled on. Valid range: 1–1000.",
+                "overhead_two_row_label": "Overhead Two-Row Layout",
+                "overhead_two_row_desc": "When enabled (FiveM only), row 1 shows the tag prefix and native icons; row 2 shows the player name, server ID, and distance.",
+                "overhead_seat_icons_label": "Overhead Vehicle Seat Icons",
+                "overhead_seat_icons_desc": "Show native driver and front-passenger icons on overhead tags when players are in vehicles (FiveM only). Rear seats use text suffixes BL/BR.",
+                "overhead_noclip_icon_label": "Overhead Noclip Icon",
+                "overhead_noclip_icon_desc": "Show the native passive-mode icon on overhead tags when an admin is in noclip (FiveM only). Visible to other admins with overhead IDs enabled.",
+                "player_mode_effect_label": "Player Mode Change Effect",
+                "player_mode_effect_desc": "Play a particle effect and sound when an admin uses NoClip, God Mode, etc.",
+                "player_mode_effect_warning": "This options help prevent admin abuse during PvP by making it visible/audible to all players that an admin is using a special mode. We recommend keeping it enabled."
+            },
+            "game_notifications": {
+                "hide_admin_punishments": "Hide Admin Name In Punishments",
+                "hide_admin_punishments_desc": "Never show to the players the admin name on Bans or Warns.",
+                "hide_admin_punishments_note": "This information will still be available in the history and logs.",
+                "hide_admin_messages": "Hide Admin Name In Messages",
+                "hide_admin_messages_desc": "Do not show the admin name on Announcements or DMs.",
+                "hide_admin_messages_note": "This information will still be available in the live console and logs.",
+                "hide_announcement_label": "Hide Announcement Notifications",
+                "hide_announcement_desc": "Suppresses the display of announcements, allowing you to implement your own announcement via the event txAdmin:events:announcement.",
+                "hide_dm_label": "Hide Direct Message Notification",
+                "hide_dm_desc": "Suppresses the display of direct messages, allowing you to implement your own direct message notification via the event txAdmin:events:playerDirectMessage.",
+                "hide_warning_label": "Hide Warning Notification",
+                "hide_warning_desc": "Suppresses the display of warnings, allowing you to implement your own warning via the event txAdmin:events:playerWarned.",
+                "hide_restart_label": "Hide Scheduled Restart Warnings",
+                "hide_restart_desc": "Suppresses the display of scheduled restart warnings, allowing you to implement your own warning via the event txAdmin:events:scheduledRestart.",
+                "documentation_link": "Documentation"
+            },
+            "game_reports": {
+                "tickets_label": "Player Tickets",
+                "tickets_desc": "When enabled, players can use the /ticket command to submit support tickets that admins can review in the Tickets page.",
+                "categories_label": "Categories",
+                "categories_placeholder": "Player Report, Bug Report, Question, Other",
+                "categories_desc": "Comma-separated list of ticket categories players can choose from.",
+                "priority_label": "Priority Selection",
+                "priority_desc": "Allow players to set a priority level (Low, Medium, High, Critical) when submitting a ticket.",
+                "feedback_label": "Player Feedback",
+                "feedback_desc": "When a ticket is resolved, prompt the player to rate their support experience.",
+                "retention_label": "Retention Days",
+                "retention_desc": "How many days to keep resolved/closed tickets before they are automatically deleted. Default is 30 days.",
+                "discord_channel_label": "Discord Channel ID",
+                "discord_channel_placeholder": "Discord channel snowflake ID",
+                "discord_channel_desc": "When set, new tickets will create a Discord thread in this channel (requires Discord integration to be enabled).",
+                "toast_retention_invalid": "Retention days must be a number between 1 and 365."
+            },
+            "discord_oauth": {
+                "client_id_label": "Client ID",
+                "client_secret_label": "Client Secret",
+                "client_id_desc": "The Client/Application ID from your Discord application. Required alongside the Client Secret to enable the \"Login with Discord\" button on the login page.",
+                "client_id_portal": "Get it from the Discord Developer Portal under your application's OAuth2 settings.",
+                "client_id_note": "You can reuse the same application as your bot.",
+                "client_secret_desc": "The Client Secret from your Discord application's OAuth2 page.",
+                "client_secret_redirect": "You must add <your-panel-url>/login/discord/callback as a redirect URL in the Discord Developer Portal."
+            },
+            "fxserver": {
+                "data_folder_label": "Server Data Folder",
+                "reset_button": "Reset",
+                "data_folder_desc": "The full path of the folder that contains the resources folder, usually it's the same place that contains your server.cfg.",
+                "data_folder_reset_note": "Resetting this value will allow you to go back to the Setup page, without deleting any files.",
+                "data_folder_host_prefix": "This path should start with",
+                "restart_schedule_label": "Restart Schedule",
+                "restart_schedule_desc": "At which times of day to restart the server.",
+                "restart_schedule_note": "Make sure your schedule matches your server time and not your local time.",
+                "restart_schedule_empty": "No schedule set. Click on the + button to add a time.",
+                "restart_schedule_presets": "Presets:",
+                "restart_schedule_preset_1x": "1x/day",
+                "restart_schedule_preset_2x": "2x/day",
+                "restart_schedule_preset_3x": "3x/day",
+                "restart_schedule_preset_4x": "4x/day",
+                "restart_schedule_add_time": "Add Restart Time",
+                "restart_schedule_remove_aria": "Remove",
+                "restart_schedule_add_aria": "Add",
+                "restart_schedule_clear_aria": "Clear",
+                "timezone_warning": "Your server timezone is set to %{serverTz}, but your browser timezone is %{browserTz}. Make sure to configure the time according to the server timezone.",
+                "warning_label": "Warning:",
+                "restart_interval_label": "Restart Interval",
+                "restart_interval_hours": "hours (0 = disabled)",
+                "restart_interval_desc": "Restart the server every N hours (based on uptime). Set to 0 to disable.",
+                "restart_interval_both": "If both a schedule and an interval are set, whichever comes first will trigger the restart.",
+                "quiet_mode_label": "Quiet Mode",
+                "quiet_mode_desc": "Do not print FXServer's output to the terminal.",
+                "quiet_mode_console": "You will still be able to use the Live Console.",
+                "quiet_mode_locked": "This setting is locked and cannot be changed.",
+                "cfg_path_label": "CFG File Path",
+                "cfg_path_placeholder": "server.cfg",
+                "cfg_path_desc": "The path to your server config file, probably named server.cfg.",
+                "cfg_path_relative": "This can either be absolute, or relative to the Server Data folder.",
+                "startup_args_label": "Startup Arguments",
+                "startup_args_placeholder": "--trace-warning",
+                "startup_args_desc": "Additional command-line arguments to pass to the FXServer instance such as NodeJS CLI flags.",
+                "startup_args_warning": "You almost certainly should not use this option, commands and convars should be placed in your server.cfg instead.",
+                "onesync_label": "OneSync",
+                "onesync_placeholder": "Select OneSync option",
+                "onesync_on": "On (recommended)",
+                "onesync_legacy": "Legacy",
+                "onesync_off": "Off",
+                "onesync_desc": "Most servers should be using OneSync On.",
+                "onesync_deprecated": "The other options are considered deprecated and should not be used unless you know what you're doing. For more information, please read the documentation.",
+                "autostart_label": "Autostart",
+                "autostart_desc": "Start the server automatically after fxPanel starts.",
+                "resource_tolerance_label": "Resource Starting Tolerance",
+                "resource_tolerance_90": "1.5 minutes (default)",
+                "resource_tolerance_180": "3 minutes",
+                "resource_tolerance_300": "5 minutes",
+                "resource_tolerance_600": "10 minutes",
+                "resource_tolerance_desc": "At server boot, how much time to wait for any single resource to start before restarting the server.",
+                "resource_tolerance_note": "If you are getting failed to start in time errors, increase this value.",
+                "disable_health_check_label": "Disable HTTP health check",
+                "disable_health_check_desc": "When enabled, fxPanel does not use the game HTTP API for server status or player list polling.",
+                "disable_health_check_note": "When off, player counts are read from the game port, the optional host override below, and the public server listing.",
+                "http_playerlist_host_label": "HTTP playerlist host override",
+                "http_playerlist_host_desc": "Optional host:port for the player HTTP endpoint when it is not reachable on localhost (e.g. public connect address). Leave empty to auto-detect.",
+                "http_playerlist_host_placeholder": "203.0.113.10:30120",
+                "log_retention_label": "Server Log Retention",
+                "log_retention_3": "3 days",
+                "log_retention_7": "7 days",
+                "log_retention_14": "14 days (default)",
+                "log_retention_30": "30 days",
+                "log_retention_60": "60 days",
+                "log_retention_90": "90 days",
+                "log_retention_custom": "Custom",
+                "log_retention_days": "days",
+                "log_retention_desc": "How many days of historical server log sessions to keep. Sessions older than this are automatically deleted.",
+                "hide_update_label": "Hide FxServer Update",
+                "hide_update_desc": "Permanently hide the FxServer update notification banner for all admins.",
+                "toast_data_path_required_title": "The Server Data Folder is required.",
+                "toast_data_path_required_msg": "If you want to return to the Setup page, click on the \"Reset\" button instead.",
+                "toast_cfg_path_required_title": "The CFG File Path is required.",
+                "toast_cfg_path_required_msg": "The value should probably be `server.cfg`.",
+                "toast_onesync_args_title": "You cannot set OneSync in Startup Arguments.",
+                "toast_onesync_args_msg": "Please use the selectbox below it.",
+                "reset_dialog_title": "Reset Server Data Path",
+                "reset_dialog_confirm": "Are you sure you want to reset the server data path?",
+                "reset_dialog_no_delete": "This will not delete any resource files or database, but just reset the fxPanel configuration, allowing you to go back to the Setup page.",
+                "reset_dialog_restore": "If you want, you can set the path back to the current value later.",
+                "reset_dialog_warning": "take note of the current path before proceeding, so you can set it back later if you need to. Current path:",
+                "reset_loading": "Resetting server data path..."
+            },
+            "discord_bot": {
+                "bot_label": "Discord Bot",
+                "bot_desc": "Enable Discord Integration.",
+                "token_label": "Token",
+                "token_placeholder": "xxxxxxxxxxxxxxxxxxxxxxxx.xxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "token_desc_guides": "To get a token and the bot to join your server, follow these two guides:",
+                "token_guide_setup": "Setting up a bot application",
+                "token_guide_and": "and",
+                "token_guide_add": "Adding your bot to servers",
+                "token_note_reuse": "Do not reuse the same token for another bot.",
+                "token_note_intent": "The bot requires the Server Members intent, which can be set at the Discord Developer Portal.",
+                "guild_label": "Guild/Server ID",
+                "guild_placeholder": "000000000000000000",
+                "guild_desc": "The ID of the Discord Server (also known as Discord Guild).",
+                "guild_dev_mode": "To get the Server ID, go to Discord's settings and enable developer mode, then right-click on the guild icon select \"Copy ID\".",
+                "logging_label": "Discord Logging",
+                "edit_logging": "Edit Logging",
+                "logging_desc": "Configure the warnings channel, one shared log guild override, per-route channel selection, and advanced per-entry log filters in a dedicated editor page.",
+                "presence_label": "Bot Presence",
+                "presence_status_label": "Activity Status",
+                "presence_status_placeholder": "Select bot status",
+                "presence_type_label": "Activity Type",
+                "presence_type_placeholder": "Select activity type",
+                "presence_text_label": "Activity Text",
+                "presence_text_placeholder": "[{playerCount}/{maxPlayers}] on {serverName}",
+                "presence_text_desc": "Supports {playerCount}, {maxPlayers}, {serverName}, and {uptime} placeholders.",
+                "presence_interval_label": "Refresh Interval (seconds)",
+                "presence_interval_desc": "Controls how often the bot refreshes the live activity text from fxPanel.",
+                "presence_status_online": "Online",
+                "presence_status_idle": "Idle",
+                "presence_status_dnd": "Do Not Disturb",
+                "presence_status_invisible": "Invisible",
+                "presence_type_playing": "Playing",
+                "presence_type_watching": "Watching",
+                "presence_type_listening": "Listening",
+                "presence_type_competing": "Competing",
+                "presence_type_custom": "Custom",
+                "role_mapping_label": "Role Permission Mapping",
+                "mapping_label": "Mapping Label",
+                "mapping_label_placeholder": "Moderators",
+                "remove_mapping_aria": "Remove mapping",
+                "mapping_roles_label": "Discord Role IDs",
+                "mapping_roles_desc": "Paste one or more Discord role IDs or role mentions. Separate entries with commas, spaces, or new lines.",
+                "mapping_preset_label": "Permission Preset",
+                "mapping_preset_placeholder": "Select a permission preset",
+                "mapping_preset_unassigned": "Select a permission preset",
+                "mapping_preset_desc": "Matching Discord roles sync this preset's permissions onto linked admin accounts.",
+                "mapping_empty": "No role mappings configured. Add one to grant fxPanel permission presets to Discord roles.",
+                "mapping_no_presets": "No permission presets are available yet. Create one in Admin Manager before saving role mappings here.",
+                "add_mapping": "Add Mapping",
+                "role_mapping_desc": "Link Discord roles to fxPanel permission presets for linked admins. If an admin matches multiple mappings, all matched preset permissions are merged and synced onto their admin account.",
+                "status_embed_label": "Status Embed",
+                "edit_status_embed": "Edit status embed",
+                "edit_player_list_embed": "Edit player list embed",
+                "change_embed_json": "Change Embed JSON",
+                "change_config_json": "Change Config JSON",
+                "status_embed_json_label": "Status Embed JSON",
+                "status_config_json_label": "Status Config JSON",
+                "status_embed_desc": "The server status embed is customizable by editing the two JSONs above. You can add live server stats, occupancy, recent join/leave counts, and the rendered player list through placeholders.",
+                "status_embed_note": "Use the command /status add on a channel that the bot has the \"Send Message\" permission to setup the embed.",
+                "player_list_embed_label": "Player List Embed",
+                "player_list_embed_json_label": "Player List Embed JSON",
+                "player_list_config_json_label": "Player List Config JSON",
+                "player_list_embed_desc": "The live player list embed is customizable by editing the two JSONs above.",
+                "player_list_embed_note": "Use the command /players add on a channel that the bot has the \"Send Message\" permission to setup the embed.",
+                "toast_token_required": "You must provide a Discord Bot Token to enable the bot.",
+                "toast_guild_required": "You must provide a Server ID to enable the bot.",
+                "toast_mapping_label_required": "Each Discord role mapping needs a label.",
+                "toast_mapping_roles_required": "Each Discord role mapping needs at least one Discord role ID.",
+                "toast_invalid_role_id": "Invalid Discord role ID: %{roleId}",
+                "toast_mapping_preset_required": "Each Discord role mapping needs a permission preset."
+            }
+        },
+        "playerlist": {
+            "filter_by_tag": "Filter by Tag",
+            "sort_by": "Sort by",
+            "filter_placeholder": "Filter by Name or ID",
+            "clear_filter": "Clear Filter",
+            "join_order": "Join Order",
+            "tag_priority": "Tag Priority",
+            "showing_count": "Showing %{shown} of %{total} players.",
+            "no_players_filtered": "No players to show.",
+            "clear_filter_hint": "Clear the filter to show all players.",
+            "no_players_online": "No players online.",
+            "invite_friends_hint": "Invite some friends to join in!"
+        },
+        "insights": {
+            "page_description": "Long-term server trends, player analytics and moderation history",
+            "errors": {
+                "request_failed": "Request failed",
+                "failed_to_load": "Failed to load"
+            },
+            "pills": {
+                "peak": "Peak",
+                "total": "Total",
+                "median": "Median",
+                "avg": "Avg",
+                "sample": "Sample",
+                "window": "Window"
+            },
+            "values": {
+                "peak_players": "%{count} players",
+                "sample_players": "%{count} players",
+                "window_days": "%{days}d",
+                "sessions_subtitle": "%{sessions} sessions · %{hours}h analyzed"
+            },
+            "sections": {
+                "population": {
+                    "title": "Population",
+                    "description": "How your player base evolves over time"
+                },
+                "sessions": {
+                    "title": "Sessions & Engagement",
+                    "description": "What players do once they're connected"
+                },
+                "operations": {
+                    "title": "Operations",
+                    "description": "Server uptime and moderation activity"
+                }
+            },
+            "cards": {
+                "player_count": {
+                    "title": "Player Count & Memory",
+                    "subtitle": "Long-term population and host memory trend"
+                },
+                "new_players": {
+                    "title": "New Players Per Day",
+                    "subtitle": "First-seen players over time"
+                },
+                "playtime_dist": {
+                    "title": "Playtime Distribution",
+                    "subtitle": "How much total time players accumulate"
+                },
+                "top_players": {
+                    "title": "Top Players by Playtime",
+                    "subtitle": "All-time leaderboard"
+                },
+                "retention": {
+                    "title": "Player Retention",
+                    "subtitle": "Do players come back?"
+                },
+                "uptime": {
+                    "title": "Server Uptime Timeline",
+                    "subtitle": "Historical up / down segments"
+                },
+                "disconnect_reasons": {
+                    "title": "Disconnect Reasons",
+                    "subtitle": "Last 14 days · logged disconnects"
+                },
+                "peak_hours": {
+                    "title": "Peak Hours",
+                    "subtitle": "Average players by weekday & hour"
+                },
+                "moderation": {
+                    "title": "Moderation Activity",
+                    "subtitle": "Warns, kicks, bans and more over time"
+                },
+                "player_growth": {
+                    "title": "Player Growth",
+                    "subtitle": "Cumulative unique players over time"
+                },
+                "session_length": {
+                    "title": "Session Length",
+                    "subtitle": "How long sessions typically last"
+                },
+                "daily_players": {
+                    "title": "New vs Returning Players",
+                    "subtitle": "Daily breakdown of who showed up"
+                }
+            },
+            "retention": {
+                "return_rate_heading": "Return Rate (joined 30+ days ago)",
+                "current_activity_heading": "Current Activity (all players)",
+                "after_1d": "After 1 day",
+                "after_7d": "After 7 days",
+                "after_30d": "After 30 days",
+                "active_last_7d": "Active last 7d",
+                "active_last_30d": "Active last 30d"
+            }
+        },
+        "reports": {
+            "status": {
+                "open": "Open",
+                "in_review": "In Review",
+                "resolved": "Resolved",
+                "closed": "Closed"
+            },
+            "priority": {
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High",
+                "critical": "Critical"
+            },
+            "page": {
+                "open_count": "%{count} open",
+                "in_review_count": "%{count} in review",
+                "analytics_button": "Analytics",
+                "refresh": "Refresh",
+                "search_placeholder": "Search tickets...",
+                "status_placeholder": "Status",
+                "all_status": "All Status",
+                "category_placeholder": "Category",
+                "all_categories": "All Categories",
+                "priority_placeholder": "Priority",
+                "all_priorities": "All Priorities",
+                "archived": "Archived",
+                "archived_section": "Archived Tickets",
+                "route_unavailable": "Reports route not available.",
+                "no_tickets": "No tickets found.",
+                "no_matches": "No tickets match your filters.",
+                "by_prefix": "by ",
+                "message_count": "%{count} msg",
+                "message_count_plural": "%{count} msgs"
+            },
+            "analytics": {
+                "parent_name": "Reports",
+                "header_subtitle": "30d detail with 7d and 30d rollups",
+                "load_failed": "Failed to load analytics.",
+                "ticket_queue_title": "Ticket Queue",
+                "ticket_queue_desc": "Claim speed, staff response time, resolution health, and current queue mix.",
+                "total_tickets": "Total Tickets",
+                "resolution_rate": "Resolution Rate",
+                "rollup_7d": "Queue Rollup · 7 Days",
+                "rollup_30d": "Queue Rollup · 30 Days",
+                "tickets_created": "Tickets Created",
+                "tickets_resolved": "Tickets Resolved",
+                "reopen_rate": "Reopen Rate",
+                "avg_time_to_claim": "Avg Time To Claim",
+                "avg_first_response": "Avg First Response",
+                "avg_resolution": "Avg Resolution",
+                "daily_activity": "Daily Activity (Last 14 Days)",
+                "col_date": "Date",
+                "col_created": "Created",
+                "col_resolved": "Resolved",
+                "no_data": "No data",
+                "by_category": "By Category",
+                "by_priority": "By Priority",
+                "staff_metrics": "Staff Metrics",
+                "tickets_claimed": "Tickets Claimed",
+                "tickets_responded": "Tickets Responded",
+                "resolved_tickets": "Resolved Tickets",
+                "reopened_tickets": "Reopened Tickets",
+                "leaderboard_title": "Staff Leaderboard (Last 30 Days)",
+                "col_admin": "Admin",
+                "col_avg_resolution": "Avg Resolution"
+            },
+            "ticket_modal": {
+                "claim": "Claim",
+                "claimed_by": "Claimed by %{name}",
+                "copy_link": "Copy link",
+                "delete": "Delete",
+                "tab_conversation": "Conversation",
+                "tab_staff_notes": "Staff Notes",
+                "tab_logs": "Logs",
+                "tab_info": "Info",
+                "screenshot_label": "In-game Screenshot",
+                "screenshot_alt": "ticket screenshot",
+                "no_replies": "No replies yet.",
+                "reply_placeholder": "Type a reply...",
+                "image_url_placeholder": "Image URL (optional)",
+                "no_staff_notes": "No staff notes yet.",
+                "note_placeholder": "Add a private staff note...",
+                "reporter_logs": "Reporter Logs",
+                "target_logs": "Target Logs",
+                "world_events": "World Events",
+                "no_log_context": "No log context was captured.",
+                "exclude_auto_deletion": "Exclude From Auto Deletion",
+                "exclude_auto_deletion_desc": "Keep this ticket when the retention cleanup prunes old resolved and closed tickets.",
+                "excluded": "Excluded",
+                "auto_delete": "Auto Delete",
+                "info_category": "Category",
+                "info_priority": "Priority",
+                "info_status": "Status",
+                "info_created": "Created",
+                "info_last_activity": "Last Activity",
+                "info_resolved": "Resolved",
+                "info_resolved_by": "Resolved By",
+                "info_claimed_by": "Claimed By",
+                "info_feedback": "Feedback",
+                "reporter_heading": "Reporter",
+                "targets_heading": "Target(s)",
+                "lightbox_alt": "enlarged attachment",
+                "deleted_toast": "Ticket deleted.",
+                "excluded_toast": "Ticket excluded from auto deletion.",
+                "reenabled_toast": "Ticket will follow the retention policy again.",
+                "link_copied": "Link copied!",
+                "link_copy_failed": "Failed to copy link",
+                "delete_title": "Delete Ticket?",
+                "delete_message": "This permanently deletes %{id}. This cannot be undone.",
+                "delete_action": "Delete Ticket",
+                "title": "Ticket %{id}",
+                "not_found": "Ticket not found.",
+                "badge_original": "original",
+                "attachment_alt": "attachment %{number}",
+                "activity_heading": "Ticket Activity"
+            }
+        },
+        "whitelist": {
+            "tabs": {
+                "players": {
+                    "label": "Whitelisted players",
+                    "short": "Players",
+                    "subtitle": "Everyone approved to join who has connected at least once."
+                },
+                "requests": {
+                    "label": "Join requests",
+                    "short": "Requests",
+                    "subtitle": "Players who tried to connect but are not whitelisted yet."
+                },
+                "approvals": {
+                    "label": "Pending approvals",
+                    "short": "Approvals",
+                    "subtitle": "Pre-approved identifiers consumed automatically on first connect."
+                }
+            },
+            "stats": {
+                "players": "Players",
+                "requests": "Requests",
+                "pending": "Pending",
+                "approved_pct": "Approved %",
+                "avg_wait": "Avg wait (s)",
+                "stale_24h": "Stale 24h+",
+                "joined_7d": "Joined 7d"
+            },
+            "search_label": "Search",
+            "search_players": "Search by name, identifier, or staff…",
+            "search_requests": "Search by ID, name, or Discord tag…",
+            "identifier_placeholder": "license:xxxx or discord:xxxx",
+            "copy_identifier": "Copy identifier",
+            "remove_whitelist": "Remove whitelist",
+            "remove": "Remove",
+            "clear_search": "Clear search",
+            "page_title": "Whitelist",
+            "page_subtitle": "Manage approved players, review join requests, and pre-approve identifiers."
+        },
+        "player_modal": {
+            "footer": {
+                "dm": "DM",
+                "kick": "Kick",
+                "warn": "Warn",
+                "more": "More",
+                "give_admin": "Give Admin",
+                "heal": "Heal",
+                "screenshot": "Screenshot",
+                "watch_live": "Watch Live",
+                "delete_player": "Delete Player"
+            },
+            "prompts": {
+                "dm_title": "Direct Message %{name}",
+                "dm_message": "Type direct message below",
+                "dm_placeholder": "whatever you wanna say",
+                "kick_title": "Kick %{name}",
+                "kick_message": "Type the kick reason or leave it blank (press enter)",
+                "kick_placeholder": "any reason you want",
+                "warn_title": "Warn %{name}",
+                "warn_message": "Type below the warn reason.",
+                "warn_offline_hint": "Offline players will receive the warning when they come back online.",
+                "warn_placeholder": "The reason for the warn, rule violated, etc.",
+                "delete_title": "Delete Player",
+                "delete_message": "Are you sure you want to permanently delete %{name} from the database?",
+                "delete_detail": "This will remove all their data including play time, join date, notes, and identifier history.",
+                "delete_irreversible": "This action cannot be undone."
+            },
+            "toasts": {
+                "dm_sent": "Direct message sent.",
+                "dm_sending": "Sending direct message...",
+                "player_kicked": "Player kicked.",
+                "kicking": "Kicking player...",
+                "warning_sent": "Warning sent.",
+                "warning_sending": "Sending warning...",
+                "healed": "Healed %{name}.",
+                "healing": "Healing player...",
+                "player_deleted": "Player deleted from database.",
+                "deleting": "Deleting player...",
+                "screenshot_failed": "Failed to capture screenshot.",
+                "spectate_failed": "Failed to start live spectate.",
+                "tag_updating": "Updating tag...",
+                "tag_updated": "Tag updated.",
+                "whitelist_updating": "Updating whitelist...",
+                "whitelist_changed": "Whitelist changed.",
+                "notes_saving": "Saving...",
+                "notes_save_hint": "Press enter to save.",
+                "wipe_ids": "Wiping IDs...",
+                "wipe_ids_success": "IDs wiped successfully.",
+                "wipe_hwids": "Wiping HWIDs...",
+                "wipe_hwids_success": "HWIDs wiped successfully."
+            },
+            "screenshot": {
+                "title": "Screenshot: %{name}",
+                "description": "Screenshot capture of player %{name}",
+                "capturing": "Capturing screenshot…",
+                "save": "Save",
+                "alt": "Screenshot of %{name}"
+            },
+            "spectate": {
+                "title": "Live Spectate: %{name}",
+                "description": "Live spectate stream of player %{name}",
+                "connecting": "Connecting to live stream…",
+                "timeout": "Connection timed out — no frames received from the player.",
+                "alt": "Live spectate of %{name}"
+            },
+            "info": {
+                "session_time": "Session Time",
+                "play_time": "Play Time",
+                "join_date": "Join Date",
+                "last_connection": "Last Connection",
+                "id_whitelisted": "ID Whitelisted",
+                "not_yet": "not yet",
+                "add_wl": "Add WL",
+                "sanctions": "Sanctions",
+                "custom_tags": "Custom Tags",
+                "notes_label": "Notes:",
+                "notes_placeholder": "Type your notes about the player.",
+                "notes_unregistered": "Cannot set notes for players that are not registered.",
+                "save_note": "Save Note",
+                "banned_permanent": "This player is permanently banned.",
+                "banned_until": "This player is banned until %{date}",
+                "bans_count_zero": "0 Bans",
+                "bans_count_one": "1 Ban",
+                "bans_count_other": "%{count} Bans",
+                "warns_count_zero": "0 Warns",
+                "warns_count_one": "1 Warn",
+                "warns_count_other": "%{count} Warns"
+            },
+            "history": {
+                "empty": "No bans/warns found.",
+                "banned_by": "BANNED by %{author}",
+                "warned_by": "WARNED by %{author}",
+                "kicked_by": "KICKED by %{author}",
+                "revoked_by": "Revoked by %{author} on %{date}.",
+                "revoked_reason": "Reason: %{reason}",
+                "expired_on": "Expired on %{date}.",
+                "expires_in": "Expires in %{date}."
+            },
+            "ban": {
+                "no_permission": "You don't have permission to ban players.",
+                "reason_min_length": "The reason must be at least 3 characters long.",
+                "banning": "Banning player…",
+                "banning_btn": "Banning…",
+                "success": "Player banned.",
+                "apply": "Apply Ban",
+                "reason_label": "Reason",
+                "reason_placeholder": "The reason for the ban, rule violated, etc.",
+                "duration_label": "Duration",
+                "select_duration": "Select Duration",
+                "no_templates": "You do not have any template configured.",
+                "add_template": "Add Ban Template",
+                "duration": {
+                    "custom": "Custom (set below)",
+                    "permanent": "Permanent",
+                    "hours_2": "2 HOURS",
+                    "hours_8": "8 HOURS",
+                    "day_1": "1 DAY",
+                    "days_2": "2 DAYS",
+                    "week_1": "1 WEEK",
+                    "weeks_2": "2 WEEKS",
+                    "unit_hours": "HOURS",
+                    "unit_days": "DAYS",
+                    "unit_weeks": "WEEKS",
+                    "unit_months": "MONTHS"
+                }
+            },
+            "activity": {
+                "no_data": "No activity data available.",
+                "active_days": "Active Days",
+                "avg_per_day": "Avg / Day",
+                "peak_hour": "Peak Hour",
+                "most_active_hours": "Most Active Hours",
+                "total_suffix": "(%{time} total)",
+                "last_28_days": "Last 28 Days",
+                "less": "Less",
+                "more": "More",
+                "today_breakdown": "Today's Hourly Breakdown",
+                "days": {
+                    "sun": "Sun",
+                    "mon": "Mon",
+                    "tue": "Tue",
+                    "wed": "Wed",
+                    "thu": "Thu",
+                    "fri": "Fri",
+                    "sat": "Sat"
+                }
+            },
+            "insights": {
+                "not_registered": "Player is not registered in the database yet.",
+                "risk_assessment": "Risk Assessment",
+                "no_risk_signals": "No risk signals detected.",
+                "account_ages": "Account Ages",
+                "discord": "Discord",
+                "steam": "Steam",
+                "server": "Server",
+                "profile": "Profile",
+                "na": "N/A",
+                "created": "Created %{date}",
+                "joined": "Joined %{date}",
+                "identifier_changes": "Identifier Changes",
+                "changed": "changed",
+                "name_history": "Name History",
+                "names_count": "(%{count} names)",
+                "unknown_age": "Unknown",
+                "less_than_day": "Less than a day",
+                "days_one": "1 day",
+                "days_other": "%{count} days",
+                "months_one": "1 month",
+                "months_other": "%{count} months",
+                "years_one": "1 year",
+                "years_other": "%{count} years",
+                "years_months": "%{years}y %{months}mo",
+                "risk": {
+                    "active_bans_one": "1 active ban",
+                    "active_bans_other": "%{count} active bans",
+                    "past_bans_one": "1 past ban (revoked)",
+                    "past_bans_other": "%{count} past bans (revoked)",
+                    "active_warns_one": "1 active warning",
+                    "active_warns_other": "%{count} active warnings",
+                    "past_warns_one": "1 past warning (revoked)",
+                    "past_warns_other": "%{count} past warnings (revoked)",
+                    "kicks_one": "1 kick",
+                    "kicks_other": "%{count} kicks",
+                    "id_changes_one": "1 identifier change",
+                    "id_changes_other": "%{count} identifier changes",
+                    "discord_under_30": "Discord account < 30 days old",
+                    "discord_under_90": "Discord account < 90 days old",
+                    "low_playtime_sanctions": "Low playtime with active sanctions"
+                }
+            }
+        },
+        "action_modal": {
+            "info": {
+                "reason_label": "Reason:",
+                "date_time": "Date/Time",
+                "expiration": "Expiration",
+                "player_accepted": "Player Accepted",
+                "not_yet": "Not yet",
+                "revoked": "Revoked",
+                "revoked_by": "By %{author} on",
+                "revocation_reason": "Reason: %{reason}",
+                "admin": "Admin",
+                "player": "Player",
+                "unknown_player": "unknown player",
+                "expires_in": "In %{distance}"
+            },
+            "edit": {
+                "title": "Change Duration",
+                "description": "Set a new duration for this ban. The expiration will be recalculated from now.",
+                "revoked_warning": "This ban has been revoked. The duration cannot be changed.",
+                "duration_label": "Duration",
+                "select_duration": "Select Duration",
+                "changing": "Changing ban duration…",
+                "changing_btn": "Changing…",
+                "success": "Ban duration changed.",
+                "change_btn": "Change Duration",
+                "no_permission": "Change Duration (no permission)"
+            },
+            "modify": {
+                "revoke_title": "Revoke %{type}",
+                "revoke_description": "This is generally done when the player successfully appeals the %{type} or the admin regrets issuing it.",
+                "revoke_ban_rejoin": "The player will be able to rejoin the server.",
+                "revoke_no_notify": "The player will not be notified of the revocation.",
+                "revoke_stays_history": "This %{type} will not be removed from the player history.",
+                "revoke_irreversible": "The revocation cannot be undone!",
+                "revoke_placeholder": "Revocation reason (optional)",
+                "revoking": "Revoking…",
+                "revoking_toast": "Revoking %{type}…",
+                "revoked_success": "%{type} revoked.",
+                "revoke_btn": "Revoke %{type}",
+                "revoke_no_permission": "Revoke (no permission)",
+                "type_revoked": "%{type} revoked",
+                "delete_title": "Delete %{type}",
+                "delete_confirm": "Are you sure you want to permanently delete this %{type}?",
+                "delete_irreversible": "This will remove it from the player's history entirely and cannot be undone.",
+                "deleting": "Deleting…",
+                "deleting_toast": "Deleting %{type}…",
+                "deleted_success": "%{type} deleted.",
+                "delete_btn": "Delete %{type}",
+                "delete_no_permission": "Delete (no permission)",
+                "delete_section_title": "Delete %{type}",
+                "delete_section_description": "Permanently removes this %{type} from the database.",
+                "delete_removed_history": "This will be removed from the player's history entirely.",
+                "delete_cannot_undo": "This action cannot be undone!"
+            }
+        },
+        "account": {
+            "welcome_title": "Welcome to fxPanel!",
+            "your_account": "Your Account - %{name}",
+            "tabs": {
+                "password": "Password",
+                "identifiers": "Identifiers",
+                "security": "Security",
+                "security_required": "Security *"
+            },
+            "password": {
+                "temp_warning": "Your account has a temporary password that needs to be changed before you can use this web panel.",
+                "temp_note": "Make sure to take note of your new password before saving.",
+                "description": "You can use your password to login to the fxPanel interface even without using the Cfx.re login button.",
+                "current_label": "Current Password",
+                "current_placeholder": "Enter current password",
+                "new_label": "New Password",
+                "new_placeholder": "Enter new password",
+                "confirm_label": "Confirm Password",
+                "confirm_placeholder": "Repeat new password",
+                "mismatch": "The passwords do not match.",
+                "save_next": "Save & Next",
+                "change_btn": "Change Password",
+                "success": "Password changed successfully!"
+            },
+            "identifiers": {
+                "description": "The identifiers are optional for accessing the Web Panel but required for you to be able to use the In Game Menu and the Discord Bot.",
+                "recommended": "It is recommended that you configure at least one.",
+                "fivem_label": "FiveM identifier",
+                "fivem_placeholder": "fivem:000000",
+                "fivem_help": "Your identifier can be found by clicking in your name in the playerlist and going to the IDs page.",
+                "fivem_forum": "You can also type in your forum.cfx.re username and it will be converted automatically.",
+                "fivem_required": "This is required if you want to login using the Cfx.re button.",
+                "discord_label": "Discord identifier",
+                "discord_placeholder": "discord:000000000000000000",
+                "discord_help": "You can get your Discord User ID by following this guide.",
+                "discord_required": "This is required if you want to use the Discord Bot slash commands.",
+                "forum_not_found": "Could not find the user in the forum. Make sure you typed the username correctly.",
+                "forum_api_failed": "Failed to check the identifiers on the forum API.",
+                "success": "Identifiers changed successfully!",
+                "save_btn": "Save Changes"
+            },
+            "two_factor": {
+                "required_warning": "Your server requires two-factor authentication. Enable 2FA below to use the web panel and in-game menu.",
+                "status_description": "Two-factor authentication adds an extra layer of security to your account by requiring a code from your authenticator app when logging in.",
+                "status_label": "2FA Status",
+                "disable_btn": "Disable 2FA",
+                "required_policy": "Required by server policy",
+                "enable_btn": "Enable 2FA",
+                "setup_description": "Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to verify.",
+                "qr_unavailable": "QR code unavailable. Enter the key manually below.",
+                "manual_key": "Can't scan? Enter this key manually:",
+                "verify_label": "Verification Code",
+                "verifying": "Verifying...",
+                "verify_enable": "Verify & Enable",
+                "backup_warning": "Save these backup codes in a safe place. Each code can only be used once. You won't be able to see them again.",
+                "copy_codes": "Copy Codes",
+                "finish_setup": "Finish setup",
+                "disable_description": "To disable two-factor authentication, enter your current password and a 2FA code.",
+                "password_label": "Password",
+                "password_placeholder": "Enter your password",
+                "code_label": "2FA Code",
+                "disabling": "Disabling...",
+                "setup_failed": "Failed to start 2FA setup.",
+                "confirm_failed": "Failed to confirm 2FA setup.",
+                "disable_failed": "Failed to disable 2FA.",
+                "disabled_success": "Two-factor authentication disabled.",
+                "backup_copied": "Backup codes copied to clipboard.",
+                "qr_alt": "TOTP QR Code"
+            }
+        },
+        "api_errors": {
+            "no_permission": "You don't have permission to perform this action.",
+            "invalid_request": "Invalid request.",
+            "server_not_running": "The server is not running.",
+            "player_not_connected": "This player is not connected to the server.",
+            "settings": {
+                "no_permission_view": "You do not have permission to view the settings."
+            },
+            "player_action": {
+                "no_permission": "You don't have permission to execute this action.",
+                "invalid_request": "Invalid request.",
+                "unknown_action": "Unknown action.",
+                "player_not_found": "Player not found.",
+                "no_identifiers": "This player has no identifiers.",
+                "no_license": "This player has no license.",
+                "empty_message": "Cannot send a direct message with an empty message.",
+                "unknown_tag": "Unknown custom tag.",
+                "failed_save_note": "Failed to save note.",
+                "failed_warn": "Failed to warn player.",
+                "warn_stdin_failed": "Warn saved, but likely failed to send the warn in game.",
+                "invalid_duration": "Invalid ban duration.",
+                "failed_ban": "Failed to ban player.",
+                "ban_stdin_failed": "Player banned, but likely failed to kick player.",
+                "failed_whitelist": "Failed to save whitelist status.",
+                "failed_save_tag": "Failed to save tag.",
+                "failed_dm": "Failed to send direct message.",
+                "failed_kick": "Failed to kick player.",
+                "failed_heal": "Failed to heal player.",
+                "failed_spectate": "Failed to spectate player.",
+                "failed_wipe_ids": "Failed to wipe player IDs.",
+                "failed_wipe_hwids": "Failed to wipe player HWIDs.",
+                "failed_delete": "Failed to delete player."
+            },
+            "player_screenshot": {
+                "no_permission": "You don't have permission to execute this action.",
+                "timeout": "Screenshot request timed out.",
+                "no_data": "No screenshot data received.",
+                "read_failed": "Failed to read screenshot file."
+            }
+        },
+        "permissions": {
+            "categories": {
+                "system": "System",
+                "server": "Server",
+                "ingame": "In-Game Menu",
+                "players": "Player Management",
+                "addons": "Addons"
+            },
+            "all_permissions": {
+                "label": "All Permissions",
+                "description": "Root permission — grants every other permission."
+            },
+            "manage_admins": {
+                "label": "Manage Admins",
+                "description": "Create, edit, and delete admin accounts."
+            },
+            "settings_view": {
+                "label": "Settings: View",
+                "description": "View settings (sensitive tokens hidden)."
+            },
+            "settings_write": {
+                "label": "Settings: Change",
+                "description": "Modify fxPanel settings."
+            },
+            "txadmin_log_view": {
+                "label": "View System Logs",
+                "description": "View fxPanel system and admin action logs."
+            },
+            "console_view": {
+                "label": "Console: View",
+                "description": "View the live FXServer console."
+            },
+            "console_write": {
+                "label": "Console: Write",
+                "description": "Execute commands in the FXServer console."
+            },
+            "control_server": {
+                "label": "Start / Stop / Restart Server",
+                "description": "Start, stop, restart the FXServer and scheduler."
+            },
+            "announcement": {
+                "label": "Send Announcements",
+                "description": "Broadcast announcements to all players."
+            },
+            "commands_resources": {
+                "label": "Start / Stop Resources",
+                "description": "Start or stop server resources."
+            },
+            "server_cfg_editor": {
+                "label": "server.cfg Editor",
+                "description": "Read and write the server.cfg file."
+            },
+            "server_log_view": {
+                "label": "View Server Logs",
+                "description": "View FXServer log output."
+            },
+            "menu_vehicle_spawn": {
+                "label": "Spawn Vehicles",
+                "description": "Spawn vehicles via the in-game menu."
+            },
+            "menu_vehicle_fix": {
+                "label": "Fix Vehicles",
+                "description": "Repair vehicles via the in-game menu."
+            },
+            "menu_vehicle_boost": {
+                "label": "Boost Vehicles",
+                "description": "Boost vehicles via the in-game menu."
+            },
+            "menu_vehicle_delete": {
+                "label": "Delete Vehicles",
+                "description": "Delete vehicles via the in-game menu."
+            },
+            "menu_clear_area": {
+                "label": "Reset World Area",
+                "description": "Reset a world area via the in-game menu."
+            },
+            "menu_viewids": {
+                "label": "View Player IDs",
+                "description": "See player IDs overhead in-game."
+            },
+            "menu_mapblips": {
+                "label": "View Map Blips",
+                "description": "See all players on the in-game map via map blips."
+            },
+            "players_direct_message": {
+                "label": "Direct Message",
+                "description": "Send direct messages to players."
+            },
+            "players_whitelist": {
+                "label": "Whitelist",
+                "description": "Whitelist players."
+            },
+            "players_warn": {
+                "label": "Warn",
+                "description": "Issue warnings to players."
+            },
+            "players_kick": {
+                "label": "Kick",
+                "description": "Kick players from the server."
+            },
+            "players_ban": {
+                "label": "Ban",
+                "description": "Ban players from the server."
+            },
+            "players_unban": {
+                "label": "Unban",
+                "description": "Revoke existing player bans."
+            },
+            "players_freeze": {
+                "label": "Freeze Players",
+                "description": "Freeze player peds in-game."
+            },
+            "players_heal": {
+                "label": "Heal",
+                "description": "Heal self or all players."
+            },
+            "players_noclip": {
+                "label": "NoClip",
+                "description": "Toggle NoClip mode for yourself."
+            },
+            "players_godmode": {
+                "label": "God Mode",
+                "description": "Toggle invincibility for yourself."
+            },
+            "players_superjump": {
+                "label": "Super Jump",
+                "description": "Toggle super jump for yourself."
+            },
+            "players_spectate": {
+                "label": "Spectate",
+                "description": "Spectate players."
+            },
+            "players_teleport": {
+                "label": "Teleport",
+                "description": "Teleport self or bring/go to players."
+            },
+            "players_troll": {
+                "label": "Troll Actions",
+                "description": "Use the troll menu on players."
+            },
+            "players_reports": {
+                "label": "Reports",
+                "description": "View and manage player reports."
+            },
+            "manage_tickets": {
+                "label": "Manage Tickets",
+                "description": "Delete any ticket at any time."
+            },
+            "players_delete": {
+                "label": "Remove Player Data",
+                "description": "Delete bans/warns, players, and player identifiers."
+            }
+        },
+        "shell": {
+            "header": {
+                "server_online": "Server online",
+                "server_offline": "Server offline",
+                "player_one": "player",
+                "player_other": "players",
+                "account": "Account",
+                "signed_in": "Signed in",
+                "your_account": "Your Account",
+                "support": "Support",
+                "logout": "Logout",
+                "open_menu": "Open menu",
+                "players": "Players"
+            },
+            "warning_bar": {
+                "socket_lost_title": "Socket connection lost.",
+                "socket_lost_desc": "The connection to the fxPanel server has been lost.",
+                "socket_lost_restart": "If you closed FXServer, please restart it.",
+                "postpone": "Postpone",
+                "download": "Download",
+                "tx_outdated_title": "This version of fxPanel is outdated.",
+                "tx_patch_title": "A patch (bug fix) update is available for fxPanel.",
+                "tx_outdated_desc": "Version v%{version} has been released bringing new features, bug fixes and improvements.",
+                "tx_patch_desc": "If you are experiencing any kind of issue, please update to v%{version}.",
+                "fx_outdated_title": "This version of FXServer is outdated.",
+                "fx_update_title": "An update is available for FXServer.",
+                "fx_update_desc": "Please update FXServer to artifact %{version}."
+            },
+            "addon_warning": {
+                "title": "Addons need attention",
+                "dismiss": "Dismiss",
+                "go_to_addons": "Go to Addons",
+                "awaiting_and_reapproval": "%{newCount} addon(s) awaiting approval and %{reapprovalCount} needing re-approval.",
+                "reapproval_only": "%{count} addon(s) updated with new permissions — re-approval required.",
+                "awaiting_only": "%{count} addon(s) awaiting approval."
+            },
+            "sidebar": {
+                "quick_actions": "Quick actions",
+                "next_restart_label": "Next restart",
+                "no_restart_to_cancel": "No restart to cancel",
+                "restart_already_cancelled": "Restart already cancelled",
+                "cancel_next_restart": "Cancel next restart",
+                "adjust_restart_time": "Adjust restart time",
+                "set_restart_time": "Set restart time",
+                "expand_sidebar": "Expand sidebar",
+                "collapse_sidebar": "Collapse sidebar",
+                "send_announcement": "Send announcement",
+                "kick_all_players": "Kick all players"
+            },
+            "page_header": {
+                "view_changelog": "View Changelog",
+                "last_updated": "Last Updated",
+                "no_changes_yet": "No changes yet",
+                "loading": "loading...",
+                "recent_changes": "Recent Changes",
+                "no_changes": "No changes"
+            }
+        },
+        "log_routes": {
+            "system_action": {
+                "label": "Panel Action Logs",
+                "description": "Log panel-side actions, moderation activity, and ticket workflow events."
+            },
+            "whitelist": {
+                "label": "Whitelist Logs",
+                "description": "Log whitelist applications, approvals, grants, and revocations."
+            },
+            "system_command": {
+                "label": "Panel Command Logs",
+                "description": "Log server control commands and live console commands executed through fxPanel."
+            },
+            "system_login": {
+                "label": "Login Logs",
+                "description": "Log successful administrator sign-ins."
+            },
+            "system_config": {
+                "label": "Config Change Logs",
+                "description": "Log configuration changes saved through fxPanel."
+            },
+            "system_monitor": {
+                "label": "Monitor Logs",
+                "description": "Log monitor events such as restarts, crash handling, and health alerts."
+            },
+            "system_scheduler": {
+                "label": "Scheduler Logs",
+                "description": "Log scheduled actions handled by the server scheduler."
+            },
+            "system_system": {
+                "label": "System Logs",
+                "description": "Log other fxPanel system events that do not fall into a more specific category."
+            },
+            "server_menu": {
+                "label": "Admin Command Logs",
+                "description": "Log in-game admin menu actions such as noclip, teleport, heal, spectate, vehicle tools, and troll actions."
+            }
+        },
+        "system_log": {
+            "advanced_profile_monitor": {
+                "label": "Profile fxPanel Instance"
+            },
+            "admin_presets_save": {
+                "label": "Save Permission Presets"
+            },
+            "admin_user_add": {
+                "label": "Add Admin User"
+            },
+            "admin_user_delete": {
+                "label": "Delete Admin User"
+            },
+            "admin_user_edit": {
+                "label": "Edit Admin User"
+            },
+            "admin_user_password_reset": {
+                "label": "Reset Admin Password"
+            },
+            "announcement_send": {
+                "label": "Send Announcement"
+            },
+            "auth_2fa_enable": {
+                "label": "Enable 2FA"
+            },
+            "auth_admins_file_create": {
+                "label": "Create Admins File"
+            },
+            "auth_identifiers_change": {
+                "label": "Change Own Identifiers"
+            },
+            "auth_password_change": {
+                "label": "Change Own Password"
+            },
+            "deployer_commit": {
+                "label": "Commit Server Deploy"
+            },
+            "deployer_recipe_run": {
+                "label": "Run Recipe"
+            },
+            "deployer_recipe_set": {
+                "label": "Set Recipe"
+            },
+            "discord_embed_player_list_clear": {
+                "label": "Clear Player List Embed Location"
+            },
+            "discord_embed_player_list_save": {
+                "label": "Save Player List Embed Location"
+            },
+            "discord_embed_status_clear": {
+                "label": "Clear Status Embed Location"
+            },
+            "discord_embed_status_save": {
+                "label": "Save Status Embed Location"
+            },
+            "history_ban_duration_change": {
+                "label": "Change Ban Duration"
+            },
+            "history_ban_legacy": {
+                "label": "Ban Identifiers"
+            },
+            "history_delete": {
+                "label": "Delete Action History Entry"
+            },
+            "history_revoke": {
+                "label": "Revoke Action"
+            },
+            "player_ban": {
+                "label": "Ban Player"
+            },
+            "player_delete": {
+                "label": "Delete Player Record"
+            },
+            "player_heal": {
+                "label": "Heal Player"
+            },
+            "player_hwids_wipe": {
+                "label": "Wipe Player HWIDs"
+            },
+            "player_ids_wipe": {
+                "label": "Wipe Player IDs"
+            },
+            "player_kick": {
+                "label": "Kick Player"
+            },
+            "player_kick_all": {
+                "label": "Kick All Players"
+            },
+            "player_live_spectate_start": {
+                "label": "Start Live Spectate"
+            },
+            "player_message_send": {
+                "label": "Send Player Message"
+            },
+            "player_notes_save": {
+                "label": "Save Player Notes"
+            },
+            "player_screenshot": {
+                "label": "Request Player Screenshot"
+            },
+            "player_spectate": {
+                "label": "Spectate Player"
+            },
+            "player_tag_add": {
+                "label": "Add Player Tag"
+            },
+            "player_tag_remove": {
+                "label": "Remove Player Tag"
+            },
+            "player_warn": {
+                "label": "Warn Player"
+            },
+            "player_whitelist_add": {
+                "label": "Add Player Whitelist"
+            },
+            "player_whitelist_remove": {
+                "label": "Remove Player Whitelist"
+            },
+            "resource_ensure": {
+                "label": "Ensure Resource"
+            },
+            "resource_refresh": {
+                "label": "Refresh Resources"
+            },
+            "resource_restart": {
+                "label": "Restart Resource"
+            },
+            "resource_start": {
+                "label": "Start Resource"
+            },
+            "resource_stop": {
+                "label": "Stop Resource"
+            },
+            "scheduler_restart_enable": {
+                "label": "Re-enable Scheduled Restart"
+            },
+            "scheduler_restart_schedule": {
+                "label": "Schedule Restart"
+            },
+            "scheduler_restart_skip": {
+                "label": "Skip Scheduled Restart"
+            },
+            "settings_server_data_path_reset": {
+                "label": "Reset Server Data Path"
+            },
+            "setup_deployer_custom": {
+                "label": "Start Custom Deployer Setup"
+            },
+            "setup_deployer_import": {
+                "label": "Start Imported Deployer Setup"
+            },
+            "setup_local_save": {
+                "label": "Save Local Setup"
+            },
+            "ticket_assign": {
+                "label": "Assign Ticket"
+            },
+            "ticket_claim": {
+                "label": "Claim Ticket"
+            },
+            "ticket_close": {
+                "label": "Close Ticket"
+            },
+            "ticket_create": {
+                "label": "Create Ticket"
+            },
+            "ticket_delete": {
+                "label": "Delete Ticket"
+            },
+            "ticket_in_review": {
+                "label": "Mark Ticket In Review"
+            },
+            "ticket_note_add": {
+                "label": "Add Ticket Note"
+            },
+            "ticket_note_delete": {
+                "label": "Delete Ticket Note"
+            },
+            "ticket_reopen": {
+                "label": "Reopen Ticket"
+            },
+            "ticket_reply": {
+                "label": "Reply To Ticket"
+            },
+            "ticket_resolve": {
+                "label": "Resolve Ticket"
+            },
+            "ticket_retention_exclude": {
+                "label": "Exclude Ticket From Auto Deletion"
+            },
+            "ticket_retention_reenable": {
+                "label": "Re-enable Ticket Auto Deletion"
+            },
+            "ticket_unclaim": {
+                "label": "Unclaim Ticket"
+            },
+            "whitelist_approval_add": {
+                "label": "Add Whitelist Approval"
+            },
+            "whitelist_application_create": {
+                "label": "Create Whitelist Application"
+            },
+            "whitelist_approval_remove": {
+                "label": "Remove Whitelist Approval"
+            },
+            "whitelist_request_approve": {
+                "label": "Approve Whitelist Request"
+            },
+            "whitelist_request_deny": {
+                "label": "Deny Whitelist Request"
+            },
+            "whitelist_request_deny_all": {
+                "label": "Deny All Whitelist Requests"
+            },
+            "artifact_apply": {
+                "label": "Apply FXServer Update"
+            },
+            "artifact_download": {
+                "label": "Download FXServer Artifact"
+            },
+            "console_command": {
+                "label": "Live Console Command"
+            },
+            "server_restart": {
+                "label": "Restart Server"
+            },
+            "server_start": {
+                "label": "Start Server"
+            },
+            "server_stop": {
+                "label": "Stop Server"
+            },
+            "auth_2fa_disable": {
+                "label": "Disable 2FA"
+            },
+            "config_general_serverName": {
+                "label": "Server Name"
+            },
+            "config_general_language": {
+                "label": "Language"
+            },
+            "config_general_hideFxsUpdateNotification": {
+                "label": "Hide FxServer Update Notification"
+            },
+            "config_general_allowSelfIdentifierEdit": {
+                "label": "Allow Self Identifier Edit"
+            },
+            "config_general_enableTelemetry": {
+                "label": "Enable Anonymous Telemetry"
+            },
+            "config_server_dataPath": {
+                "label": "Server Data Path"
+            },
+            "config_server_cfgPath": {
+                "label": "CFG File Path"
+            },
+            "config_server_startupArgs": {
+                "label": "Startup Arguments"
+            },
+            "config_server_onesync": {
+                "label": "OneSync"
+            },
+            "config_server_autoStart": {
+                "label": "Autostart"
+            },
+            "config_server_quiet": {
+                "label": "Quiet Mode"
+            },
+            "config_server_shutdownNoticeDelayMs": {
+                "label": "Shutdown Notice Delay"
+            },
+            "config_server_restartSpawnDelayMs": {
+                "label": "Restart Spawn Delay"
+            },
+            "config_restarter_schedule": {
+                "label": "Restart Schedule"
+            },
+            "config_restarter_bootGracePeriod": {
+                "label": "Boot Grace Period"
+            },
+            "config_restarter_resourceStartingTolerance": {
+                "label": "Resource Starting Tolerance"
+            },
+            "config_restarter_intervalHours": {
+                "label": "Restart Interval (Hours)"
+            },
+            "config_restarter_disableHealthCheck": {
+                "label": "Disable HTTP Health Check"
+            },
+            "config_banlist_enabled": {
+                "label": "Ban Checking Enabled"
+            },
+            "config_banlist_rejectionMessage": {
+                "label": "Ban Rejection Message"
+            },
+            "config_banlist_requiredHwidMatches": {
+                "label": "Required Ban HWID Matches"
+            },
+            "config_banlist_templates": {
+                "label": "Ban Templates"
+            },
+            "config_whitelist_enabled": {
+                "label": "Whitelist Enabled"
+            },
+            "config_whitelist_activeWorkflowId": {
+                "label": "Active Whitelist Workflow"
+            },
+            "config_whitelist_workflows": {
+                "label": "Whitelist Workflows"
+            },
+            "config_whitelist_deferralCard": {
+                "label": "Whitelist Deferral Card (legacy)"
+            },
+            "config_whitelist_deferralCards": {
+                "label": "Connection Deferral Cards"
+            },
+            "config_whitelist_schedule": {
+                "label": "Whitelist Schedule"
+            },
+            "config_whitelist_webhooks": {
+                "label": "Whitelist Webhooks"
+            },
+            "config_whitelist_appearInServerBrowser": {
+                "label": "Server Browser Allowlist Icon"
+            },
+            "config_whitelist_serverBrowserInstructions": {
+                "label": "Server Browser Allowlist Instructions"
+            },
+            "config_queue_enabled": {
+                "label": "Queue Enabled"
+            },
+            "config_queue_rules": {
+                "label": "Queue Rules"
+            },
+            "config_queue_pools": {
+                "label": "Queue Slot Pools"
+            },
+            "config_queue_maxConcurrentDeferrals": {
+                "label": "Queue Max Users In Queue"
+            },
+            "config_discordBot_enabled": {
+                "label": "Bot Enabled"
+            },
+            "config_discordBot_token": {
+                "label": "Bot Token"
+            },
+            "config_discordBot_guild": {
+                "label": "Server ID"
+            },
+            "config_discordBot_warningsChannel": {
+                "label": "Warnings Channel ID"
+            },
+            "config_discordBot_logGuildOverride": {
+                "label": "Discord Log Guild Override"
+            },
+            "config_discordBot_bridgePort": {
+                "label": "Bridge Port"
+            },
+            "config_discordBot_bridgeSecret": {
+                "label": "Bridge Secret"
+            },
+            "config_discordBot_presence": {
+                "label": "Presence Config"
+            },
+            "config_discordBot_rolePermissions": {
+                "label": "Role Permissions"
+            },
+            "config_discordBot_customCommands": {
+                "label": "Custom Commands"
+            },
+            "config_discordBot_logRoutes": {
+                "label": "Discord Log Routes"
+            },
+            "config_discordBot_eventActions": {
+                "label": "Event Actions"
+            },
+            "config_discordBot_appealsChannelId": {
+                "label": "Appeals Channel ID"
+            },
+            "config_discordBot_ticketChannelId": {
+                "label": "Ticket Threads Channel ID"
+            },
+            "config_discordBot_ticketThreadNotifyEnabled": {
+                "label": "Ticket Thread Notifications Enabled"
+            },
+            "config_discordBot_embedJson": {
+                "label": "Status Embed JSON"
+            },
+            "config_discordBot_embedConfigJson": {
+                "label": "Status Config JSON"
+            },
+            "config_discordBot_playerListEmbedJson": {
+                "label": "Player List Embed JSON"
+            },
+            "config_discordBot_playerListEmbedConfigJson": {
+                "label": "Player List Config JSON"
+            },
+            "config_discordBot_embedRefreshIntervalSeconds": {
+                "label": "Status Embed Refresh Interval Seconds"
+            },
+            "config_discordBot_oauthClientId": {
+                "label": "OAuth Client ID"
+            },
+            "config_discordBot_oauthClientSecret": {
+                "label": "OAuth Client Secret"
+            },
+            "config_gameFeatures_reportsEnabled": {
+                "label": "Reports Enabled"
+            },
+            "config_gameFeatures_ticketCategories": {
+                "label": "Ticket Categories"
+            },
+            "config_gameFeatures_ticketCategoryDescriptions": {
+                "label": "Ticket Category Descriptions"
+            },
+            "config_gameFeatures_ticketPriorityEnabled": {
+                "label": "Ticket Priority Enabled"
+            },
+            "config_gameFeatures_ticketFeedbackEnabled": {
+                "label": "Ticket Feedback Enabled"
+            },
+            "config_gameFeatures_ticketRetentionDays": {
+                "label": "Ticket Retention Days"
+            },
+            "config_gameFeatures_menuEnabled": {
+                "label": "Menu Enabled"
+            },
+            "config_gameFeatures_menuAlignRight": {
+                "label": "Align Menu Right"
+            },
+            "config_gameFeatures_menuPageKey": {
+                "label": "Menu Page Switch Key"
+            },
+            "config_gameFeatures_menuPlayerIdDistance": {
+                "label": "Overhead Player ID Distance (meters)"
+            },
+            "config_gameFeatures_overheadTwoRowLayout": {
+                "label": "Overhead Two-Row Layout"
+            },
+            "config_gameFeatures_overheadSeatIcons": {
+                "label": "Overhead Vehicle Seat Icons"
+            },
+            "config_gameFeatures_overheadNoclipIcon": {
+                "label": "Overhead Noclip Icon"
+            },
+            "config_gameFeatures_playerModePtfx": {
+                "label": "Player Mode Change Effect"
+            },
+            "config_gameFeatures_hideAdminInPunishments": {
+                "label": "Hide Admin Name In Punishments"
+            },
+            "config_gameFeatures_hideAdminInMessages": {
+                "label": "Hide Admin Name In Messages"
+            },
+            "config_gameFeatures_hideDefaultAnnouncement": {
+                "label": "Hide Announcement Notifications"
+            },
+            "config_gameFeatures_hideDefaultDirectMessage": {
+                "label": "Hide Direct Message Notification"
+            },
+            "config_gameFeatures_hideDefaultWarning": {
+                "label": "Hide Warning Notification"
+            },
+            "config_gameFeatures_hideDefaultScheduledRestartWarning": {
+                "label": "Hide Scheduled Restart Warnings"
+            },
+            "config_gameFeatures_newplayerThreshold": {
+                "label": "New Player Tag Threshold (minutes)"
+            },
+            "config_gameFeatures_customTags": {
+                "label": "Custom Player Tags"
+            },
+            "config_webServer_disableNuiSourceCheck": {
+                "label": "Disable NUI Source Check"
+            },
+            "config_webServer_trustProxy": {
+                "label": "Trust Reverse Proxy (X-Forwarded-*)"
+            },
+            "config_webServer_proxyTrustedHops": {
+                "label": "Proxy Trusted Hops (X-Forwarded-For Tail)"
+            },
+            "config_webServer_limiterMinutes": {
+                "label": "Rate Limiter Minutes"
+            },
+            "config_webServer_limiterAttempts": {
+                "label": "Rate Limiter Attempts"
+            },
+            "config_webServer_useSecureCookies": {
+                "label": "Use Secure Cookies"
+            },
+            "config_webServer_persistSessions": {
+                "label": "Persist Sessions to Disk"
+            },
+            "config_logger_admin": {
+                "label": "Admin Logs"
+            },
+            "config_logger_fxserver": {
+                "label": "FXServer Logs"
+            },
+            "config_logger_server": {
+                "label": "Server Logs"
+            },
+            "config_logger_serverLogRetention": {
+                "label": "Server Log Retention"
+            },
+            "config_logger_serverLogExcludeTypes": {
+                "label": "Server Log Exclude Types"
+            },
+            "login_discord": {
+                "label": "Discord Login"
+            },
+            "login_discourse": {
+                "label": "Discourse Login"
+            },
+            "login_password": {
+                "label": "Password Login"
+            },
+            "login_password_2fa": {
+                "label": "Password + 2FA Login"
+            },
+            "monitor_restart": {
+                "label": "Automatic Monitor Restart"
+            },
+            "scheduler_restart_execute": {
+                "label": "Scheduled Restart Triggered"
+            },
+            "system_max_clients_corrected": {
+                "label": "Correct Max Clients"
+            }
+        },
+        "deferral": {
+            "studio": {
+                "block_heading": {
+                    "label": "Title"
+                },
+                "block_text": {
+                    "label": "Text line"
+                },
+                "block_paragraph": {
+                    "label": "Paragraph"
+                },
+                "block_rejection_message": {
+                    "label": "Rejection message"
+                },
+                "block_custom_text": {
+                    "label": "Custom text"
+                },
+                "block_request_id": {
+                    "label": "Request ID"
+                },
+                "block_ban_id": {
+                    "label": "Ban ID"
+                },
+                "block_ban_reason": {
+                    "label": "Ban reason"
+                },
+                "block_ban_expires": {
+                    "label": "Ban expiry"
+                },
+                "block_tier_name": {
+                    "label": "Tier name"
+                },
+                "block_spacer": {
+                    "label": "Spacer"
+                },
+                "block_divider": {
+                    "label": "Divider"
+                },
+                "block_logo": {
+                    "label": "Watermark logo"
+                },
+                "block_custom_image": {
+                    "label": "Custom image"
+                },
+                "block_button": {
+                    "label": "Button (link)"
+                }
+            }
+        },
+        "player_tags": {
+            "presets": {
+                "staff": {
+                    "label": "Staff"
+                },
+                "problematic": {
+                    "label": "Problematic"
+                },
+                "newplayer": {
+                    "label": "Newcomer"
+                }
+            }
+        }
+    },
+    "nui_reports": {
+        "back": "Back",
+        "close": "Close",
+        "all": "All",
+        "status": "Status",
+        "category": "Category",
+        "description": "Description",
+        "target_players": "Target Player(s)",
+        "priority_optional": "Priority (Optional)",
+        "describe_issue": "Describe your issue in detail…",
+        "my_tickets": "My Tickets",
+        "my_tickets_count": "My Tickets (%{count})",
+        "staff": "Staff",
+        "type_message": "Type a message…",
+        "type_reply": "Type a reply…",
+        "image_url_optional": "Image URL (optional)",
+        "submit_report": "Submit Report",
+        "submit_ticket": "Submit Ticket",
+        "submit_feedback": "Submit Feedback",
+        "submitting": "Submitting…",
+        "search_tickets": "Search tickets…",
+        "claim": "Claim",
+        "resolve": "Resolve",
+        "close_without_resolving": "Close without resolving",
+        "reopen": "Reopen",
+        "start_review": "Start Review",
+        "refresh": "Refresh",
+        "show_active": "Show active",
+        "show_archive": "Show archive",
+        "new_ticket_from": "New ticket from %{name}",
+        "new_ticket_click": "New ticket from %{name} — click to view",
+        "just_now": "just now",
+        "time_minutes_ago": "%{count}m ago",
+        "time_hours_ago": "%{count}h ago",
+        "time_days_ago": "%{count}d ago",
+        "menu_what": "What would you like to do?",
+        "submit_new_ticket": "Submit a New Ticket",
+        "title_menu": "Support Tickets",
+        "title_create": "New Ticket",
+        "title_list": "My Tickets",
+        "title_detail": "Ticket Detail",
+        "title_feedback": "Rate Your Experience",
+        "title_tickets": "Tickets",
+        "title_archived": "Archived Tickets",
+        "ticket_heading": "Ticket %{id}",
+        "claimed_by": "Claimed by %{name}",
+        "created_at": "Created %{date}",
+        "resolved_at": " · Resolved %{date}",
+        "resolved_by": " by %{name}",
+        "by_prefix": "by ",
+        "no_tickets_player": "You have no tickets.",
+        "no_open_tickets": "No open tickets.",
+        "no_archived_tickets": "No archived tickets.",
+        "no_matches": "No tickets match your filters.",
+        "no_messages_player": "No messages yet. An admin will respond to your ticket.",
+        "no_messages_admin": "No messages yet. Send a reply below.",
+        "unread_new": "%{count} new",
+        "rate_prompt": "⭐ Please rate your experience",
+        "feedback_title": "How was your support experience?",
+        "comments_optional": "Comments (optional)",
+        "ticket_has_been": "This ticket has been %{status}.",
+        "image_failed_load": "Image failed to load",
+        "lightbox_alt": "enlarged attachment",
+        "attachment_alt": "attachment",
+        "loading_ticket": "Loading ticket…",
+        "loading_tickets": "Loading tickets…",
+        "count_active": "%{count} active",
+        "count_archived": "%{count} archived",
+        "select_ticket_hint": "Select a ticket to view details",
+        "tab_active": "Active",
+        "tab_archive": "Archive",
+        "stat_open": "Open",
+        "stat_in_review": "In Review",
+        "stat_archived": "Archived",
+        "last_activity": "Last activity %{date}",
+        "message_count": "%{smart_count} message |||| %{smart_count} messages",
+        "message_count_short": "%{smart_count} msg |||| %{smart_count} msgs",
+        "failed_submit_ticket": "Failed to submit ticket: %{message}",
+        "failed_send_message": "Failed to send message: %{message}",
+        "failed_submit_feedback": "Failed to submit feedback",
+        "failed_fetch_tickets": "Failed to fetch tickets: %{message}",
+        "errors": {
+            "invalid_ticket_data": "Invalid ticket data",
+            "description_required": "Description is required",
+            "message_required": "Message must have content or an image",
+            "invalid_ticket_id": "Invalid ticket ID",
+            "invalid_message_data": "Invalid message data",
+            "invalid_input": "Invalid input",
+            "invalid_content": "Invalid content",
+            "invalid_status": "Invalid status"
+        },
+        "server": {
+            "tickets_disabled": "Support tickets are disabled on this server.",
+            "reports_disabled": "Reports are disabled on this server.",
+            "could_not_identify": "Could not identify your license.",
+            "permission_denied": "Permission denied.",
+            "failed_create": "Failed to create ticket.",
+            "not_authenticated": "Not authenticated.",
+            "failed_fetch": "Failed to fetch tickets.",
+            "failed_fetch_ticket": "Failed to fetch ticket."
+        }
+    },
+    "deferral": {
+        "defaults": {
+            "labels": {
+                "status": "Status",
+                "players": "Players",
+                "position": "Position",
+                "eta": "ETA",
+                "server": "Server",
+                "required": "Required",
+                "discord": "Discord",
+                "ban_id": "Ban ID",
+                "ban_date": "Ban date",
+                "additional": "Additional",
+                "details": "Details",
+                "next_steps": "Next steps",
+                "boarding_pass": "Boarding pass"
+            },
+            "scenarios": {
+                "ban_temporary": {
+                    "title": "Banned",
+                    "body": "{customMessage}",
+                    "status": "Temporary",
+                    "section_title": "Additional"
+                },
+                "ban_permanent": {
+                    "title": "Banned",
+                    "body": "{customMessage}",
+                    "status": "Permanent",
+                    "section_title": "Additional"
+                },
+                "whitelist_pending": {
+                    "title": "Not Whitelisted",
+                    "body": "Please join {guildName} and request to be whitelisted.",
+                    "subtitle": "Approval required before you can join",
+                    "status": "Pending",
+                    "section_title": "Next steps",
+                    "message": "Join <strong>{guildName}</strong> and submit a whitelist request. Staff may ask for your request ID below."
+                },
+                "whitelist_schedule_closed": {
+                    "title": "Applications Closed",
+                    "body": "{customMessage}",
+                    "status": "Closed",
+                    "section_title": "Details"
+                },
+                "whitelist_admin_denied": {
+                    "title": "Server Maintenance",
+                    "body": "{customMessage}",
+                    "status": "Maintenance",
+                    "section_title": "Details"
+                },
+                "whitelist_admin_insufficient_ids": {
+                    "title": "Server Maintenance",
+                    "body": "{customMessage}",
+                    "status": "Missing ID",
+                    "section_title": "Details",
+                    "required": "License or Discord"
+                },
+                "whitelist_discord_member_denied": {
+                    "title": "Not Whitelisted",
+                    "body": "{customMessage}",
+                    "status": "Not in guild",
+                    "section_title": "Details"
+                },
+                "whitelist_discord_member_insufficient_ids": {
+                    "title": "Not Whitelisted",
+                    "body": "{customMessage}",
+                    "status": "Missing ID",
+                    "section_title": "Details"
+                },
+                "whitelist_discord_roles_not_member": {
+                    "title": "Not Whitelisted",
+                    "body": "{customMessage}",
+                    "status": "Not in guild",
+                    "section_title": "Details"
+                },
+                "whitelist_discord_roles_no_roles": {
+                    "title": "Not Whitelisted",
+                    "body": "{customMessage}",
+                    "status": "Missing role",
+                    "section_title": "Details"
+                },
+                "whitelist_discord_roles_insufficient_ids": {
+                    "title": "Not Whitelisted",
+                    "body": "{customMessage}",
+                    "status": "Missing ID",
+                    "section_title": "Details",
+                    "required": "discord:"
+                },
+                "whitelist_insufficient_license": {
+                    "title": "Not Whitelisted",
+                    "body": "{customMessage}",
+                    "status": "Missing license",
+                    "section_title": "Details",
+                    "required": "license:"
+                },
+                "whitelist_error": {
+                    "title": "Whitelist Error",
+                    "body": "{customMessage}",
+                    "status": "Error",
+                    "section_title": "Details"
+                },
+                "connection_queue": {
+                    "title": "{serverName}",
+                    "body": "{customMessage}",
+                    "subtitle": "Welcome, <strong>{playerName}</strong>",
+                    "status": "IN QUEUE",
+                    "section_title": "Boarding pass"
+                },
+                "access_denied": {
+                    "title": "Access Denied",
+                    "body": "{customMessage}",
+                    "status": "Denied",
+                    "section_title": "Details"
+                }
             }
         }
     }

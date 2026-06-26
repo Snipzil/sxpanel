@@ -1,108 +1,68 @@
 # addon-starter-template
 
-A minimal fxPanel addon template to help you get started quickly. This addon demonstrates:
+Example addon: a small **shift board** for staff — server pulse (join/drop traffic), who's clocked in, a pin wall, and a live traffic feed. The UI is deliberately built like a real feature so you can copy the patterns, not just hello-world routes.
 
-- **Server routes** — Authenticated GET/POST endpoints
-- **Storage** — Persistent key-value data
-- **Events** — Listening for game events (player join/drop)
-- **WebSocket push** — Real-time updates to the panel
-- **Discord slash command** — A standalone bot command loaded from the addon manifest
-- **Panel page** — Full page in the sidebar
-- **Panel widget** — Dashboard widget
+Docs: [fxPanel addon development](https://github.com/fxPanel/fxPanel-Docs/tree/main/v0.4.0-Beta)
 
-## Getting Started
+## What it does
 
-1. Copy this entire `addon-starter-template/` directory
-2. Rename the folder to your addon's ID (e.g. `my-cool-addon`)
-3. Update `addon.json` with your addon's details (id, name, description, author)
-4. Modify `server/index.js` to add your server-side logic
-5. Modify `panel/index.js` to build your panel UI
-6. Restart fxPanel and approve your addon from the Addons page
+- **Server** (`server/index.js`) — API routes, scoped storage, game event listeners, optional `ws.push` to the panel.
+- **Panel** (`panel/index.js`) — React page + dashboard widget. Calls your routes through `/addons/addon-starter-template/api/*` with CSRF via `txAddonApi`.
+- **In-game** (`resource/*.lua` + `nui/index.js`) — Lua reads live server natives, client forwards to the admin menu NUI, NUI POSTs to `/ingame/push` so the panel can `GET /ingame`.
+- **Discord** (`discord-bot/commands/`) — Two sample slash commands: a static reply, and one that hits the same server routes as the panel (`addonRoute`), so logic stays in one place.
 
-## File Structure
+`addon.json` wires those pieces together (permissions, page path, widget slot, Discord command folder).
 
-```text
-addon-starter-template/
-├── addon.json           ← Manifest (metadata, permissions, entry points)
-├── package.json         ← Must have "type": "module"
-├── README.md            ← This file
-├── discord-bot/
-│   └── commands/
-│       ├── fxpanel.js           ← Example static `/fxpanel` slash command
-│       └── starter-greeting.js  ← Example bridge-backed slash command
-├── server/
-│   └── index.js         ← Server-side code (runs in isolated child process)
-└── panel/
-    └── index.js         ← Panel UI components (React, loaded at runtime)
-```
+## Developing on this repo
 
-## Customization Checklist
+fxPanel addons are split across a few runtimes. That affects what you need to reload after a change.
 
-- [ ] Rename the directory and update `addon.json` → `id`
-- [ ] Update name, description, author, and version in `addon.json`
-- [ ] Adjust `permissions.required` and `permissions.optional`
-- [ ] Update or remove the `discordBot` section in `addon.json`
-- [ ] Update the URL or response text in `discord-bot/commands/fxpanel.js`
-- [ ] Update the `ADDON_ID` constant in `discord-bot/commands/starter-greeting.js`
-- [ ] Update `panel.pages[].component` names to match your exports
-- [ ] Update `panel.widgets[].component` names to match your exports
-- [ ] Update `ADDON_ID` constant in `panel/index.js`
-- [ ] Replace `API_BASE` path in `panel/index.js`
+**Where files live**
 
-## Tips
+- You edit addons under `fxPanel/addons/<id>/` in the git repo.
+- A running dev server does **not** read that folder directly. `npm run dev` copies `addons/` into the FXServer monitor resource at `TXDEV_FXSERVER_PATH/citizen/system_resources/monitor/addons/`. That copy is what fxPanel loads and serves.
 
-- React is available globally — do NOT bundle it in your panel entry
-- Always call `addon.ready()` at the end of your server entry
-- Use `addon.log.info/warn/error()` instead of `console.log`
-- Check permissions in route handlers with `req.admin.hasPermission('perm')`
-- Use `addon.storage.getOr(key, default)` for safe defaults
-- Use wildcard routes (`/*`) for SPA catch-all patterns
+**Panel UI** (`panel/index.js`)
 
-## Discord Example
+- Served as a static JS file from the monitor addon path, then imported by the panel shell.
+- After you save, a normal browser refresh is enough (the manifest cache-busts the entry URL).
+- React is already global in the panel — don't bundle it in your addon build.
 
-The template includes two Discord command examples:
+**Server** (`server/index.js`)
 
-How it works:
+- Runs in a separate addon process started by fxPanel.
+- Saving the file on disk is not enough: use **Addons → Reload** on this addon so the process restarts and picks up new routes.
+- If the page loads but API calls return `Route not found`, the panel updated and the server did not.
 
-- `addon.json` points `discordBot.commands` at `discord-bot/commands`
-- `addon.json` also applies a default Discord rate limit for this addon (`5` requests per `15s` per user/handler)
-- The standalone bot auto-loads that folder when the addon is running
-- `discord-bot/commands/fxpanel.js` registers `/fxpanel` and replies with the fxPanel website link
-- `discord-bot/commands/starter-greeting.js` registers `/starter-greeting`, provides autocomplete suggestions, and routes button/modal interactions through the addon's `/greeting` server route
+**In-game (Lua + NUI)**
 
-Use `fxpanel.js` as the minimal static-reply example, and use `starter-greeting.js` as the pattern when a Discord command needs autocomplete, buttons, modals, or server-route calls. Command files still receive the raw bridge helper in `execute(interaction, bridge)`, but the supported path is to wrap it with `createAddonDiscordSdk({ addonId, bridge })` so requester payloads, namespaced custom IDs, and bridge calls stay typed and reusable.
+- `resource/sv_shift.lua` is picked up automatically (`addons/**/resource/sv_*.lua` in the built `fxmanifest`).
+- `resource/cl_shift.lua` is included the same way after a dev build (`addons/**/resource/cl_*.lua`).
+- `nui/index.js` loads when you open the in-game admin menu (WebPipe). It listens for Lua snapshots and POSTs them to the addon API.
+- Restart the **monitor** resource (or full FXServer) after adding Lua/client scripts the first time so FiveM loads the new `client_scripts` list.
+- NUI/CSS changes: close and reopen the menu, or trigger `txAdmin:refreshNui` on the client.
 
-The starter command uses the SDK helpers introduced for v0.3.X:
+**Discord commands**
 
-- `discord.respondWithChoices(interaction, choices)` for slash-command autocomplete responses
-- `discord.interactions.button(...)` to attach a namespaced addon button custom ID
-- `discord.interactions.modal(...)` to attach a namespaced addon modal custom ID
-- `buttons` and `modals` handler maps on the exported command object so the standalone bot can dispatch those interactions back into the addon
-- `discordBot.rateLimit` in `addon.json` for a per-addon runtime default
+- Loaded by the standalone bot from your addon folder when the addon is running.
+- Same reload rules as the server if you change command files or routes they call.
 
-### Local Mock Bridge
+**Permissions**
 
-When you want to iterate on a command without a live bot runtime, you can swap in the SDK's mock bridge:
+- `storage` is required for pins, visits, shift roster, duty-hour totals, and activity history.
+- `ws.push` is optional — without it, the UI still works but live updates fall back to refetching.
+- `players.write` is checked in route handlers for posting pins; granting it in the manifest alone is not enough.
+- **View Duty Hours** (`addon-starter-template.view-duty-hours`) — custom addon permission in Admin → Roles. Everyone sees their own session/total on the shift board; this permission unlocks the all-staff duty hours table.
 
-```js
-import { createAddonDiscordSdk, createMockDiscordBridge } from 'addon-sdk/discord';
+**Duty tracking**
 
-const discord = createAddonDiscordSdk({
-    addonId: 'addon-starter-template',
-    bridge: createMockDiscordBridge({
-        handlers: {
-            addonRoute: (payload) => ({
-                status: 200,
-                body: {
-                    message: `Mocked response for ${payload.path}`,
-                },
-            }),
-        },
-    }),
-});
-```
+- Staff **clock in / out** on the shift board (panel or in-game HUD via the same API).
+- Time accrues while on duty; **clocking out** adds the session to cumulative storage (`dutyTotals`).
+- **In-game staff** list comes from Lua (`TX_ADMINS` — admins with an authenticated menu session). Open the in-game menu so `nui/index.js` can POST a snapshot and refresh the roster.
 
-That mock keeps request history, supports custom request handlers, and lets you exercise command logic before wiring the command into the standalone bot.
+## Making it your own
+
+Copy this folder to `addons/<your-id>/`, rename `id` in `addon.json`, and replace `addon-starter-template` anywhere it appears in `server/index.js`, `panel/index.js`, and the Discord command that references the addon ID. Approve the new addon in the panel, then reload it once.
 
 ## License
 

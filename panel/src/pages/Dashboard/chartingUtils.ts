@@ -1,5 +1,20 @@
 import type { SvRtLogFilteredType, SvRtPerfCountsThreadType } from '@shared/otherTypes';
 import { quantile } from 'd3-array';
+import type { PerfSnapType } from './dashboardTypes';
+
+export type { PerfSnapType } from './dashboardTypes';
+
+export type PerfChartApiSuccessShape = {
+    boundaries: (string | number)[];
+    threadPerfLog: SvRtLogFilteredType;
+};
+
+export const isPerfChartApiSuccess = (data: unknown): data is PerfChartApiSuccessShape => {
+    if (typeof data !== 'object' || data === null) return false;
+    if ('fail_reason' in data) return false;
+    const candidate = data as PerfChartApiSuccessShape;
+    return Array.isArray(candidate.boundaries) && Array.isArray(candidate.threadPerfLog);
+};
 
 /**
  * Find which is the last bucket boundary that is less than or equal to the minTickInterval, excluding +Infinity.
@@ -96,14 +111,6 @@ export const getTimeWeightedHistogram = (bucketCounts: number[], bucketEstimated
 /**
  * Slicer types
  */
-export type PerfSnapType = {
-    start: Date;
-    end: Date;
-    players: number;
-    fxsMemory: number | null;
-    nodeMemory: number | null;
-    weightedPerf: number[];
-};
 export type PerfLifeSpanType = {
     bootTime?: Date;
     bootDuration?: number;
@@ -124,6 +131,10 @@ const emptyPerfLifeSpan: PerfLifeSpanType = {
  * Slices the log into groups representing server lifespan.
  */
 export const processPerfLog = (perfLog: SvRtLogFilteredType, perfProcessor: PerfProcessorType) => {
+    if (!Array.isArray(perfLog) || perfLog.length === 0) {
+        return undefined;
+    }
+
     let dataStart: Date | undefined;
     let dataEnd: Date | undefined;
     let lifespans: PerfLifeSpanType[] = [];
@@ -153,6 +164,10 @@ export const processPerfLog = (perfLog: SvRtLogFilteredType, perfProcessor: Perf
                 currentLifespan = structuredClone(emptyPerfLifeSpan);
             }
         } else if (currEntry.type === 'data') {
+            if (!currEntry.perf?.buckets?.length) {
+                continue;
+            }
+
             const minAcceptableStartTs = currEntry.ts - maxPerfTimeGap;
             const lastData = hasDataLogStarted ? currentLifespan.log.at(-1) : undefined;
             let perfStartTs = currEntry.ts - minPerfTime;

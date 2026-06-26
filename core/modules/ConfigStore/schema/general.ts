@@ -38,9 +38,15 @@ export default {
         validator: z.boolean(),
         fixer: SYM_FIXER_DEFAULT,
     }),
+    requireAdminTwoFactor: typeDefinedConfig({
+        name: 'Require Two-Factor Authentication',
+        default: false,
+        validator: z.boolean(),
+        fixer: SYM_FIXER_DEFAULT,
+    }),
     enableTelemetry: typeDefinedConfig({
         name: 'Enable Anonymous Telemetry',
-        default: false,
+        default: true,
         validator: z.boolean(),
         fixer: SYM_FIXER_DEFAULT,
     }),

@@ -1,0 +1,5 @@
+{
+    "replace": {
+        "type-fest": "./node_modules/type-fest/license-mit"
+    }
+}

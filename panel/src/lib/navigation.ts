@@ -1,4 +1,4 @@
-import { LogoutReasonHash } from '@/pages/auth/Login';
+import { LogoutReasonHash } from '@/lib/logoutReasonHash';
 
 export { isValidRedirectPath } from './redirectValidation';
 

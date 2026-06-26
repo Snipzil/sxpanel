@@ -101,6 +101,7 @@ const client = new Client({
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.MessageContent,
     ],
 });
@@ -132,11 +133,13 @@ const collectAddonRoots = (key) => {
     const addons = client.fxpanel.latestConfigSnapshot?.discordBotAddons;
     if (!Array.isArray(addons)) return [];
 
-    return [...new Set(
-        addons
-            .map((addon) => (addon && typeof addon === 'object' ? addon[key] : null))
-            .filter((entryPath) => typeof entryPath === 'string'),
-    )];
+    return [
+        ...new Set(
+            addons
+                .map((addon) => (addon && typeof addon === 'object' ? addon[key] : null))
+                .filter((entryPath) => typeof entryPath === 'string'),
+        ),
+    ];
 };
 
 const resolveAddonDescriptorForFile = (filePath) => {
@@ -165,10 +168,7 @@ const resolveAddonIdForFile = (filePath) => {
 };
 
 const pushRuntimeDiagnostics = () => {
-    const failures = [
-        ...client.fxpanel.addonLoadFailures.command,
-        ...client.fxpanel.addonLoadFailures.event,
-    ];
+    const failures = [...client.fxpanel.addonLoadFailures.command, ...client.fxpanel.addonLoadFailures.event];
 
     bridge.send({
         type: 'botDiagnostics',
@@ -353,10 +353,14 @@ client.fxpanel = {
     registerCommands: async (guildId) => {
         if (!client.application) return;
 
+        const reportsEnabled = client.fxpanel.latestConfigSnapshot?.gameFeatures?.reportsEnabled !== false;
+
         const commandPayload = [...client.commands.values()]
             .map((command) => {
                 if (!command?.data) return null;
-                return typeof command.data.toJSON === 'function' ? command.data.toJSON() : command.data;
+                const json = typeof command.data.toJSON === 'function' ? command.data.toJSON() : command.data;
+                if (!reportsEnabled && json?.name === 'reports') return null;
+                return json;
             })
             .filter(Boolean);
 

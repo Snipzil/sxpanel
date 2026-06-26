@@ -1,6 +1,7 @@
 import { suite, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@modules/AdminStore/permissionPresets', () => ({
+    PRESET_TABLE_PAD: 0x5a,
     getAllPermissionPresets: () => [
         {
             id: 'custom:supporter',
@@ -15,12 +16,16 @@ vi.mock('@modules/AdminStore/permissionPresets', () => ({
             ],
         },
     ],
-    resolvePermissionPresetIdsFromCatalog: (catalog: Array<{ id: string; name: string; permissions: string[] }>, presetIds: unknown) => {
-        const normalizedPresetIds = typeof presetIds === 'string'
-            ? [presetIds]
-            : Array.isArray(presetIds)
-              ? presetIds.filter((presetId): presetId is string => typeof presetId === 'string')
-              : [];
+    resolvePermissionPresetIdsFromCatalog: (
+        catalog: Array<{ id: string; name: string; permissions: string[] }>,
+        presetIds: unknown,
+    ) => {
+        const normalizedPresetIds =
+            typeof presetIds === 'string'
+                ? [presetIds]
+                : Array.isArray(presetIds)
+                  ? presetIds.filter((presetId): presetId is string => typeof presetId === 'string')
+                  : [];
 
         const matchedPresetIds = [] as string[];
         const matchedPresetNames = [] as string[];
@@ -147,7 +152,7 @@ suite('normalAuthLogic', () => {
             username: 'testadmin',
             csrfToken: 'test-csrf-token',
             expiresAt: false,
-            password_hash: mockAdminRaw.password_hash,
+            password_revision: 0,
         };
         const result = normalAuthLogic(mockSessTools({ auth: sessAuth }));
         expect(result.success).toBe(true);
@@ -157,13 +162,13 @@ suite('normalAuthLogic', () => {
         }
     });
 
-    it('should fail with wrong password hash', () => {
+    it('should fail with wrong password revision', () => {
         const sessAuth: PassSessAuthType = {
             type: 'password',
             username: 'testadmin',
             csrfToken: 'test-csrf-token',
             expiresAt: false,
-            password_hash: 'wrong-hash',
+            password_revision: 99,
         };
         const result = normalAuthLogic(mockSessTools({ auth: sessAuth }));
         expect(result.success).toBe(false);
@@ -214,7 +219,7 @@ suite('normalAuthLogic', () => {
             username: 'nonexistent',
             csrfToken: 'test-csrf-token',
             expiresAt: false,
-            password_hash: 'whatever',
+            password_revision: 0,
         };
         const result = normalAuthLogic(mockSessTools({ auth: sessAuth }));
         expect(result.success).toBe(false);
@@ -300,7 +305,7 @@ suite('checkRequestAuth', () => {
             username: 'testadmin',
             csrfToken: 'test-csrf-token',
             expiresAt: false,
-            password_hash: mockAdminRaw.password_hash,
+            password_revision: 0,
         };
         const result = checkRequestAuth({}, '127.0.0.1', true, mockSessTools({ auth: sessAuth }));
         expect(result.success).toBe(true);

@@ -33,8 +33,8 @@ export default async function TotpVerify(ctx: InitializedCtx) {
             return sendTypedResp({ error: 'Admin not found.' });
         }
 
-        // Verify password hash still matches (in case it changed)
-        if (vaultAdmin.passwordHash !== authData.password_hash) {
+        // Verify password revision still matches (in case it changed)
+        if (vaultAdmin.passwordRevision !== authData.password_revision) {
             ctx.sessTools.destroy();
             return sendTypedResp({ error: 'Session expired. Please login again.' });
         }
@@ -69,7 +69,7 @@ export default async function TotpVerify(ctx: InitializedCtx) {
         const sessData = {
             type: 'password',
             username: vaultAdmin.name,
-            password_hash: vaultAdmin.passwordHash,
+            password_revision: vaultAdmin.passwordRevision,
             expiresAt: false,
             csrfToken: txCore.adminStore.genCsrfToken(),
         } satisfies PassSessAuthType;

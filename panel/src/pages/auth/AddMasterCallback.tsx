@@ -19,9 +19,10 @@ import { AuthError, processFetchError, type AuthErrorData } from './errors';
 import GenericSpinner from '@/components/GenericSpinner';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import consts from '@shared/consts';
+import { PASSWORD_POLICY_DESCRIPTION, validateAdminPassword } from '@shared/passwordPolicy';
 import { fetchWithTimeout } from '@/hooks/fetch';
-import { LogoutReasonHash } from './Login';
 import { LogoFullSquareGreen } from '@/components/Logos';
+import { useLocale } from '@/hooks/locale';
 
 type RegisterFormState = {
     errorMessage: string | undefined;
@@ -39,6 +40,7 @@ function reduceRegisterFormState(state: RegisterFormState, action: Partial<Regis
 }
 
 function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallbackFivemData) {
+    const { t } = useLocale();
     const { setAuthData } = useAuth();
 
     const discordRef = useRef<HTMLInputElement>(null);
@@ -112,9 +114,9 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                 discordRef.current!.value = discordInput;
             }
             if (!consts.validIdentifierParts.discord.test(discordInput)) {
-                setErrorMessage(
-                    'The Discord ID needs to be the numeric "User ID" instead of the username.\n You can also leave it blank.',
-                );
+                dispatch({
+                    errorMessage: t('panel.auth.add_master.callback.invalid_discord_id'),
+                });
                 return;
             }
             discordId = discordInput;
@@ -122,20 +124,20 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
 
         // @ts-ignore - Check terms
         if (termsRef.current?.value !== 'on') {
-            setErrorMessage('You MUST agree to the terms.');
+            dispatch({ errorMessage: t('panel.auth.add_master.callback.must_agree_terms') });
             return;
         }
 
         //Check passwords
         const password = passwordRef.current?.value || '';
         const password2 = password2Ref.current?.value || '';
-        if (password.length < consts.adminPasswordMinLength || password.length > consts.adminPasswordMaxLength) {
-            setErrorMessage(
-                `The password must be between ${consts.adminPasswordMinLength} and ${consts.adminPasswordMaxLength} characters long.`,
-            );
+        const policyResult = validateAdminPassword(password);
+        if (!policyResult.ok) {
+            dispatch({ errorMessage: policyResult.error });
             return;
-        } else if (password !== password2) {
-            setErrorMessage('The passwords do not match.');
+        }
+        if (password !== password2) {
+            dispatch({ errorMessage: t('panel.auth.add_master.callback.passwords_mismatch') });
             return;
         }
 
@@ -166,13 +168,9 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
             <form onSubmit={handleSubmit} className="w-full text-left">
                 <CardContent className="flex flex-col gap-4 pt-6">
                     <div>
-                        Cfx.re account
+                        {t('panel.auth.add_master.callback.cfx_account')}
                         <div className="mt-2 flex flex-row items-center justify-start rounded-md border bg-zinc-900 p-2">
-                            <Avatar
-                                className="size-16 text-3xl"
-                                username={fivemName}
-                                profilePicture={profilePicture}
-                            />
+                            <Avatar className="size-16 text-3xl" username={fivemName} profilePicture={profilePicture} />
                             <div className="ml-4 overflow-hidden text-left text-ellipsis">
                                 <span className="text-2xl">{fivemName}</span> <br />
                                 <code className="text-muted-foreground">{fivemId}</code>
@@ -183,8 +181,10 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                     <input type="text" name="frm-username" className="hidden" value={fivemName} readOnly />
                     <div className="grid gap-2">
                         <div className="flex flex-row items-center justify-between">
-                            <Label htmlFor="frm-discord">Discord ID</Label>
-                            <span className="text-muted-foreground text-xs">(optional)</span>
+                            <Label htmlFor="frm-discord">{t('panel.auth.add_master.callback.discord_id')}</Label>
+                            <span className="text-muted-foreground text-xs">
+                                {t('panel.auth.add_master.callback.discord_id_optional')}
+                            </span>
                         </div>
                         <Input
                             className="placeholder:text-zinc-800"
@@ -197,9 +197,9 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                     </div>
                     <div className="grid gap-2">
                         <div className="flex flex-row items-center justify-between">
-                            <Label htmlFor="frm-password">Backup Password</Label>
+                            <Label htmlFor="frm-password">{t('panel.auth.add_master.callback.backup_password')}</Label>
                             <span className="text-muted-foreground text-xs">
-                                ({consts.adminPasswordMinLength}~{consts.adminPasswordMaxLength} digits)
+                                {t('panel.auth.add_master.callback.password_requirements')}
                             </span>
                         </div>
                         <Input
@@ -212,8 +212,9 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                             required
                         />
                     </div>
+                    <p className="text-muted-foreground text-xs">{PASSWORD_POLICY_DESCRIPTION}</p>
                     <div className="grid gap-2">
-                        <Label htmlFor="frm-password2">Confirm Password</Label>
+                        <Label htmlFor="frm-password2">{t('panel.auth.add_master.callback.confirm_password')}</Label>
                         <Input
                             className="placeholder:text-zinc-800"
                             id="frm-password2"
@@ -231,23 +232,23 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                             htmlFor="terms"
                             className="text-sm leading-4 font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                            I have read and agree to the{' '}
+                            {t('panel.auth.add_master.callback.terms_prefix')}{' '}
                             <a
                                 href="https://fivem.net/terms"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-accent hover:underline"
                             >
-                                Creator PLA
+                                {t('panel.auth.add_master.callback.terms_creator_pla')}
                             </a>{' '}
-                            as well as the{' '}
+                            {t('panel.auth.add_master.callback.terms_and')}{' '}
                             <a
                                 href="https://github.com/someaussiegaymer/fxPanel/blob/master/LICENSE"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-accent hover:underline"
                             >
-                                fxPanel License
+                                {t('panel.auth.add_master.callback.terms_fxpanel_license')}
                             </a>
                             .
                         </label>
@@ -257,7 +258,7 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                     <span className="text-destructive text-center whitespace-pre-wrap">{errorMessage}</span>
                     <Button className="w-full" disabled={isSaving || !!pendingAuth}>
                         {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
-                        Register
+                        {t('panel.auth.add_master.callback.register')}
                     </Button>
                 </CardFooter>
             </form>
@@ -277,7 +278,9 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                 >
                     <div className="border-border/40 flex shrink-0 items-center gap-3 border-b px-6 py-4">
                         <LogoFullSquareGreen className="h-8 w-auto opacity-90" />
-                        <span className="text-muted-foreground text-xs tracking-wide uppercase">First-time setup</span>
+                        <span className="text-muted-foreground text-xs tracking-wide uppercase">
+                            {t('panel.auth.add_master.callback.first_time_setup')}
+                        </span>
                     </div>
                 </div>
             )}
@@ -286,6 +289,7 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
 }
 
 export default function AddMasterCallback() {
+    const { t } = useLocale();
     const hasPendingMutation = useRef(false); //due to strict mode re-rendering
     const [fivemData, setFivemData] = useState<ApiAddMasterCallbackFivemData | undefined>();
     const [errorData, setErrorData] = useState<ApiOauthCallbackErrorResp | undefined>();
@@ -298,8 +302,8 @@ export default function AddMasterCallback() {
             const payload = params.get('payload');
             if (!payload) {
                 setErrorData({
-                    errorTitle: 'Missing payload',
-                    errorMessage: 'The Discourse callback did not include the expected payload parameter.',
+                    errorTitle: t('panel.auth.add_master.callback.missing_payload_title'),
+                    errorMessage: t('panel.auth.add_master.callback.missing_payload_message'),
                 });
                 return;
             }
@@ -325,5 +329,13 @@ export default function AddMasterCallback() {
         submitCallback();
     }, []);
 
-    return fivemData ? <RegisterForm {...fivemData} /> : errorData ? <AuthError error={{ ...errorData, returnTo: '/addMaster/pin' }} /> : isFetching ? <GenericSpinner msg="Authenticating..." /> : <GenericSpinner />;
+    return fivemData ? (
+        <RegisterForm {...fivemData} />
+    ) : errorData ? (
+        <AuthError error={{ ...errorData, returnTo: '/addMaster/pin' }} />
+    ) : isFetching ? (
+        <GenericSpinner msg={t('panel.auth.add_master.callback.authenticating')} />
+    ) : (
+        <GenericSpinner />
+    );
 }

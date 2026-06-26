@@ -4,6 +4,7 @@ import { Readable, Writable } from 'node:stream';
 import { txEnv, txHostConfig } from '@core/globalData';
 import { redactStartupSecrets } from '@lib/misc';
 import { getTagDefinitions } from '@lib/player/playerTags';
+import { getCfxAllowlistConvarCmdArgs, getCfxAllowlistConvars } from '@modules/Whitelist/serverBrowser';
 import path from 'node:path';
 
 /**
@@ -25,14 +26,20 @@ export const childProcessEventBlackHole = (...args: any[]) => {
  * Returns a tuple with the convar name and value, formatted for the server command line
  */
 export const getMutableConvars = (isCmdLine = false) => {
-    const checkPlayerJoin = txConfig.banlist.enabled || txConfig.whitelist.mode !== 'disabled';
+    const checkPlayerJoin = txConfig.banlist.enabled || txConfig.whitelist.enabled;
     const convars: RawConvarSetTuple[] = [
         ['setr', 'locale', txConfig.general.language ?? 'en'],
         ['set', 'serverName', txConfig.general.serverName ?? 'fxPanel'],
         ['set', 'checkPlayerJoin', checkPlayerJoin],
         ['setr', 'reportsEnabled', txConfig.gameFeatures.reportsEnabled],
+        ['setr', 'ticketCategories', (txConfig.gameFeatures.ticketCategories ?? []).join(',')],
+        ['setr', 'ticketPriorityEnabled', txConfig.gameFeatures.ticketPriorityEnabled],
         ['set', 'menuAlignRight', txConfig.gameFeatures.menuAlignRight],
         ['set', 'menuPageKey', txConfig.gameFeatures.menuPageKey],
+        ['setr', 'menuPlayerIdDistance', txConfig.gameFeatures.menuPlayerIdDistance],
+        ['setr', 'overheadTwoRowLayout', txConfig.gameFeatures.overheadTwoRowLayout],
+        ['setr', 'overheadSeatIcons', txConfig.gameFeatures.overheadSeatIcons],
+        ['setr', 'overheadNoclipIcon', txConfig.gameFeatures.overheadNoclipIcon],
         ['set', 'playerModePtfx', txConfig.gameFeatures.playerModePtfx],
         ['set', 'hideAdminInPunishments', txConfig.gameFeatures.hideAdminInPunishments],
         ['set', 'hideAdminInMessages', txConfig.gameFeatures.hideAdminInMessages],
@@ -55,7 +62,23 @@ const polishConvarSetTuple = ([setter, name, value]: RawConvarSetTuple, isCmdLin
     return [isCmdLine ? `+${setter}` : setter, 'txAdmin-' + name, value.toString()];
 };
 
-export const mutableConvarConfigDependencies = ['general.*', 'gameFeatures.*', 'banlist.enabled', 'whitelist.mode'];
+export const mutableConvarConfigDependencies = [
+    'general.*',
+    'gameFeatures.*',
+    'banlist.enabled',
+    'whitelist.enabled',
+    'whitelist.appearInServerBrowser',
+    'whitelist.serverBrowserInstructions',
+    'whitelist.deferralCard',
+    'whitelist.deferralCards',
+];
+
+/**
+ * txAdmin-prefixed convars plus native Cfx allowlist server-list convars.
+ */
+export const getRuntimeConvars = (isCmdLine = false) => {
+    return [...getMutableConvars(isCmdLine), ...getCfxAllowlistConvars()];
+};
 
 /**
  * Pre calculating HOST dependent spawn variables
@@ -99,6 +122,7 @@ export const getFxSpawnVariables = (): FxSpawnVariables => {
     const cmdArgs = [
         ...osSpawnVars.args,
         getMutableConvars(true), //those are the ones that can change without restart
+        getCfxAllowlistConvarCmdArgs(true),
         txConfig.server.startupArgs,
         '+set',
         'onesync',

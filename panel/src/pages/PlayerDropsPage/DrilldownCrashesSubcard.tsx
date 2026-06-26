@@ -112,7 +112,7 @@ export default function DrilldownCrashesSubcard({
 
     return (
         <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-lg">
+            <table className="w-full min-w-0">
                 <thead>
                     <tr className="text-muted-foreground/75 border-border/40 border-b">
                         <th className="min-w-[4ch] border-r px-2 py-1 text-right">%</th>

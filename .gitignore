@@ -1,9 +1,19 @@
 ## Custom:
 db/*
 cache/*
-addons/*
 monitor/*
 monitor.zip
+
+## Local-only V1/V2 design experiment (do not commit)
+##
+## All redesign work — V2 pages, dev shells, the toggle, and helpers — lives
+## under `panel/src/_dev-redesign/`. The 5 modified dispatcher entry points
+## (DiagnosticsPage.tsx, Players/PlayersPage.tsx, Settings/SettingsPage.tsx,
+## Settings/SettingsCardShell.tsx, Settings/settingsItems.tsx) are kept out
+## of pushes via `git update-index --skip-worktree`.
+##
+panel/src/_dev-redesign/
+
 .reports/*
 license_report/*
 .tsc/*
@@ -18,7 +28,11 @@ scripts/**/*.local.*
 *.tsbuildinfo
 .npm-upgrade.json
 .github/agents/*
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+!.cursor/skills/
+!.cursor/skills/**
 .claude/
 
 # OS files
@@ -93,6 +107,10 @@ yarn.lock
 
 # dotenv environment variables file
 .env
+
+# Local security run artifacts (may reference env/session context)
+scripts/security/LIVE_SECURITY_RESULTS.json
+scripts/security/GITLEAKS_REPORT.json
 
 # next.js build output
 .next

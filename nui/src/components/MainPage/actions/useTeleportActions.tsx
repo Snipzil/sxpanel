@@ -54,7 +54,9 @@ export function useTeleportActions() {
                 }
 
                 // Parse as floats and re-format to break taint chain and ensure only numeric data
-                const parts = String(data.coords).split(',').map((s) => parseFloat(s.trim()));
+                const parts = String(data.coords)
+                    .split(',')
+                    .map((s) => parseFloat(s.trim()));
                 if (parts.length < 3 || parts.some((n) => !Number.isFinite(n))) {
                     throw new Error('Invalid current coords.');
                 }

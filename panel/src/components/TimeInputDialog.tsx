@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Label } from './ui/label';
+import { useLocale } from '@/hooks/locale';
 
 type StyledHourOptionProps = {
     value: string;
@@ -31,6 +32,7 @@ type TimeInputDialogProps = {
 };
 
 export function TimeInputDialog({ title, isOpen, onClose, onSubmit }: TimeInputDialogProps) {
+    const { t } = useLocale();
     const [hour, setHour] = useState('00');
     const [minute, setMinute] = useState('00');
     const hourSelectId = `timeinput-${useId()}`;
@@ -68,11 +70,11 @@ export function TimeInputDialog({ title, isOpen, onClose, onSubmit }: TimeInputD
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-y-1.5">
                             <Label htmlFor={hourSelectId} className="text-sm font-medium">
-                                Hour
+                                {t('panel.common.hour')}
                             </Label>
                             <Select onValueChange={setHour} value={hour}>
                                 <SelectTrigger id={hourSelectId}>
-                                    <SelectValue placeholder="Select hour" />
+                                    <SelectValue placeholder={t('panel.common.select_hour')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {hoursArray.map((h) => (
@@ -83,11 +85,11 @@ export function TimeInputDialog({ title, isOpen, onClose, onSubmit }: TimeInputD
                         </div>
                         <div className="flex flex-col gap-y-1.5">
                             <Label htmlFor={minuteSelectId} className="text-sm font-medium">
-                                Minute
+                                {t('panel.common.minute')}
                             </Label>
                             <Select onValueChange={setMinute} value={minute}>
                                 <SelectTrigger id={minuteSelectId}>
-                                    <SelectValue placeholder="Select minute" />
+                                    <SelectValue placeholder={t('panel.common.select_minute')} />
                                 </SelectTrigger>
                                 <SelectContent onBlur={(e) => e.preventDefault()}>
                                     <SelectItem value={'00'}>00</SelectItem>
@@ -108,7 +110,7 @@ export function TimeInputDialog({ title, isOpen, onClose, onSubmit }: TimeInputD
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSubmit}>Add Time</Button>
+                    <Button onClick={handleSubmit}>{t('panel.common.add_time')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

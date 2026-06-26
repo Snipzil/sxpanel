@@ -1,8 +1,9 @@
-import { getHostData } from '@lib/diagnostics';
+import { ensureHostStaticDataCache } from '@lib/diagnostics';
 import { isProxy } from 'node:util/types';
 import { startReadyWatcher } from './boot/startReadyWatcher';
 import { Deployer } from './deployer';
 import { txEnv } from '@core/globalData';
+import { getDisplayPlayerCount } from '@lib/fxserver/httpHealthCheck';
 import { TxConfigState, type FxMonitorHealth } from '@shared/enums';
 import type { GlobalStatusType } from '@shared/socketioTypes';
 import quitProcess from '@lib/quitProcess';
@@ -39,6 +40,7 @@ export default class TxManager {
     private readonly moduleShutdownHandlers: (() => void)[] = [];
     public isShuttingDown = false;
     public readonly txRuntime = new TxRuntimeMetrics();
+    private lastStatusBroadcastJson: string | undefined;
 
     constructor() {
         //Listen for shutdown signals
@@ -51,20 +53,23 @@ export default class TxManager {
             txCore.fxRunner.signalStartReady();
         });
 
-        //Push global status to all connected clients every 5 seconds
-        setInterval(async () => {
+        //Push global status to all connected clients every 5 seconds when it changed
+        setInterval(() => {
+            const nextStatusJson = JSON.stringify(this.globalStatus);
+            if (nextStatusJson === this.lastStatusBroadcastJson) return;
+            this.lastStatusBroadcastJson = nextStatusJson;
             txCore.webServer.webSocket.pushRefresh('status');
         }, 5000);
 
         //Updates the terminal title every 15 seconds
         setInterval(() => {
-            setTTYTitle(`(${txCore.fxPlayerlist.onlineCount}) ${txConfig.general.serverName} - fxPanel`);
+            setTTYTitle(`(${getDisplayPlayerCount()}) ${txConfig.general.serverName} - fxPanel`);
         }, 15000);
 
-        //Pre-calculate static data
-        setTimeout(() => {
-            getHostData().catch((e) => {});
-        }, 10_000);
+        //Pre-calculate static data as early as possible (TxRuntimeMetrics needs it)
+        setImmediate(() => {
+            ensureHostStaticDataCache().catch(() => {});
+        });
     }
 
     /**
@@ -156,7 +161,7 @@ export default class TxManager {
             isConfigured: this.configState === TxConfigState.Ready,
             dataPath: serverPaths?.dataPath ?? null,
             cfgPath: serverPaths?.cfgPath ?? null,
-            playerCount: txCore.fxPlayerlist.onlineCount,
+            playerCount: getDisplayPlayerCount(),
             status: txCore.fxMonitor.status.health,
 
             //Detected at runtime
@@ -177,6 +182,7 @@ export default class TxManager {
         const fxMonitorStatus = txCore.fxMonitor.status;
         return {
             serverTime: Math.round(Date.now() / 1000),
+            language: txConfig.general.language ?? 'en',
             configState: txManager.configState,
             discord: txCore.discordBot.status,
             runner: {
@@ -188,7 +194,8 @@ export default class TxManager {
                 uptime: fxMonitorStatus.uptime,
                 health: fxMonitorStatus.health,
                 healthReason: fxMonitorStatus.healthReason,
-                whitelist: txConfig.whitelist.mode,
+                whitelist: txConfig.whitelist.enabled ? txConfig.whitelist.activeWorkflowId : 'disabled',
+                playerCount: getDisplayPlayerCount(),
             },
             scheduler: txCore.fxScheduler.getStatus(), //no push events, updated every Scheduler.checkSchedule()
         };

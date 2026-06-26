@@ -81,7 +81,6 @@ const ThreadPerfChart = memo(({ data, minTickIntervalMarker, avgColor, width, he
                 width={width}
                 data={data}
                 theme={{
-                    tooltip: { wrapper: { zIndex: 10000 } },
                     text: {
                         fontSize: '12px',
                         fontWeight: 600,

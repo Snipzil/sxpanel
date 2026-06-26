@@ -1,4 +1,5 @@
-import { usePushPlayerDropEvent } from '@/pages/Dashboard/dashboardHooks';
+import { usePushPlayerDropEvent } from '@/pages/Dashboard/dashboardAtoms';
+import { globalStatusAtom } from '@/hooks/status';
 import { PlayerlistEventType, PlayerlistPlayerType, TagDefinition } from '@shared/socketioTypes';
 import { atom, useSetAtom } from 'jotai';
 
@@ -6,7 +7,12 @@ import { atom, useSetAtom } from 'jotai';
  * Atoms
  */
 export const playerlistAtom = atom<PlayerlistPlayerType[]>([]);
-export const playerCountAtom = atom((get) => get(playerlistAtom).length);
+export const playerCountAtom = atom((get) => {
+    const listCount = get(playerlistAtom).length;
+    const statusCount = get(globalStatusAtom)?.server.playerCount;
+    if (typeof statusCount === 'number') return Math.max(listCount, statusCount);
+    return listCount;
+});
 export const serverMutexAtom = atom<string | null>(null);
 export const tagDefinitionsAtom = atom<TagDefinition[]>([]);
 

@@ -29,6 +29,7 @@ import { useLocation } from 'wouter';
 import type { ResetServerDataPathResp } from '@shared/otherTypes';
 import { useOpenConfirmDialog } from '@/hooks/dialogs';
 import { Separator } from '@/components/ui/separator';
+import { useLocale } from '@/hooks/locale';
 
 // Remove duplicates and sort times
 function sanitizeTimes(times: string[]): string[] {
@@ -47,6 +48,7 @@ type RestartScheduleBoxProps = {
 };
 
 function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: RestartScheduleBoxProps) {
+    const { t } = useLocale();
     const [isTimeInputOpen, setIsTimeInputOpen] = useState(false);
     const [animationParent] = useAutoAnimate();
 
@@ -75,17 +77,18 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                 <div className="flex grow flex-wrap gap-2" ref={animationParent}>
                     {restartTimes && restartTimes.length === 0 && (
                         <div className="text-muted-foreground text-sm">
-                            <span>
-                                No schedule set. Click on the <strong>+</strong> button to add a time.
-                            </span>
+                            <span>{t('panel.settings.fxserver.restart_schedule_empty')}</span>
                             <p>
-                                {'Presets: '}
+                                {t('panel.settings.fxserver.restart_schedule_presets')}{' '}
                                 <button
                                     type="button"
                                     onClick={() => applyPreset(['00:00'])}
                                     className="text-primary inline cursor-pointer bg-transparent p-0 text-sm hover:underline"
                                 >
-                                    1x<span className={presetSpanClasses}>/day</span>
+                                    1x
+                                    <span className={presetSpanClasses}>
+                                        {t('panel.settings.fxserver.restart_schedule_preset_1x')}
+                                    </span>
                                 </button>
                                 {', '}
                                 <button
@@ -93,7 +96,10 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                                     onClick={() => applyPreset(['00:00', '12:00'])}
                                     className="text-primary inline cursor-pointer bg-transparent p-0 text-sm hover:underline"
                                 >
-                                    2x<span className={presetSpanClasses}>/day</span>
+                                    2x
+                                    <span className={presetSpanClasses}>
+                                        {t('panel.settings.fxserver.restart_schedule_preset_2x')}
+                                    </span>
                                 </button>
                                 {', '}
                                 <button
@@ -101,7 +107,10 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                                     onClick={() => applyPreset(['00:00', '08:00', '16:00'])}
                                     className="text-primary inline cursor-pointer bg-transparent p-0 text-sm hover:underline"
                                 >
-                                    3x<span className={presetSpanClasses}>/day</span>
+                                    3x
+                                    <span className={presetSpanClasses}>
+                                        {t('panel.settings.fxserver.restart_schedule_preset_3x')}
+                                    </span>
                                 </button>
                                 {', '}
                                 <button
@@ -109,7 +118,10 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                                     onClick={() => applyPreset(['00:00', '06:00', '12:00', '18:00'])}
                                     className="text-primary inline cursor-pointer bg-transparent p-0 text-sm hover:underline"
                                 >
-                                    4x<span className={presetSpanClasses}>/day</span>
+                                    4x
+                                    <span className={presetSpanClasses}>
+                                        {t('panel.settings.fxserver.restart_schedule_preset_4x')}
+                                    </span>
                                 </button>
                             </p>
                         </div>
@@ -125,7 +137,7 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                                     <button
                                         onClick={() => removeTime(index)}
                                         className="text-secondary-foreground/50 hover:text-destructive ml-2"
-                                        aria-label="Remove"
+                                        aria-label={t('panel.settings.fxserver.restart_schedule_remove_aria')}
                                         disabled={disabled}
                                     >
                                         <XIcon className="size-4" />
@@ -140,7 +152,7 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                         variant="secondary"
                         size={'xs'}
                         className="hover:bg-primary hover:text-primary-foreground w-10"
-                        aria-label="Add"
+                        aria-label={t('panel.settings.fxserver.restart_schedule_add_aria')}
                         disabled={disabled}
                     >
                         <PlusIcon className="h-4" />
@@ -150,7 +162,7 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                         variant="muted"
                         size={'xs'}
                         className="hover:bg-destructive hover:text-destructive-foreground w-10"
-                        aria-label="Clear"
+                        aria-label={t('panel.settings.fxserver.restart_schedule_clear_aria')}
                         disabled={disabled || !restartTimes || restartTimes.length === 0}
                     >
                         <TrashIcon className="h-3.5" />
@@ -158,7 +170,7 @@ function RestartScheduleBox({ restartTimes, setRestartTimes, disabled }: Restart
                 </div>
             </div>
             <TimeInputDialog
-                title="Add Restart Time"
+                title={t('panel.settings.fxserver.restart_schedule_add_time')}
                 isOpen={isTimeInputOpen}
                 onClose={() => setIsTimeInputOpen(false)}
                 onSubmit={addTime}
@@ -180,15 +192,17 @@ const getServerDataPlaceholder = (hostSuggested?: string) => {
 
 // Check if the browser timezone is different from the server timezone
 function TimeZoneWarning() {
+    const { t } = useLocale();
     try {
         const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         if (window.txConsts.serverTimezone !== browserTimezone) {
             return (
                 <SettingItemDesc className="text-destructive-inline">
-                    <strong>Warning:</strong> Your server timezone is set to{' '}
-                    <InlineCode>{window.txConsts.serverTimezone}</InlineCode>, but your browser timezone is{' '}
-                    <InlineCode>{browserTimezone}</InlineCode>. Make sure to configure the time according to the server
-                    timezone.
+                    <strong>{t('panel.settings.fxserver.warning_label')}</strong>{' '}
+                    {t('panel.settings.fxserver.timezone_warning', {
+                        serverTz: window.txConsts.serverTimezone,
+                        browserTz: browserTimezone,
+                    })}
                 </SettingItemDesc>
             );
         }
@@ -213,9 +227,12 @@ const pageConfigs = {
     onesync: getPageConfig('server', 'onesync', true),
     autoStart: getPageConfig('server', 'autoStart', true, true),
     resourceTolerance: getPageConfig('restarter', 'resourceStartingTolerance', true),
+    disableHealthCheck: getPageConfig('restarter', 'disableHealthCheck', true, false),
+    httpPlayerlistHost: getPageConfig('restarter', 'httpPlayerlistHost', true, ''),
 } as const;
 
 function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
+    const { t } = useLocale();
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [isResettingServerData, setIsResettingServerData] = useState(false);
     const { hasPerm } = useAdminPerms();
@@ -319,16 +336,16 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
 
         if (!localConfigs.server?.dataPath) {
             return txToast.error({
-                title: 'The Server Data Folder is required.',
+                title: t('panel.settings.fxserver.toast_data_path_required_title'),
                 md: true,
-                msg: 'If you want to return to the Setup page, click on the "Reset" button instead.',
+                msg: t('panel.settings.fxserver.toast_data_path_required_msg'),
             });
         }
         if (localConfigs.server.cfgPath !== undefined && !localConfigs.server.cfgPath) {
             return txToast.error({
-                title: 'The CFG File Path is required.',
+                title: t('panel.settings.fxserver.toast_cfg_path_required_title'),
                 md: true,
-                msg: 'The value should probably be `server.cfg`.',
+                msg: t('panel.settings.fxserver.toast_cfg_path_required_msg'),
             });
         }
         if (
@@ -336,9 +353,9 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
             localConfigs.server.startupArgs.some((arg: string) => arg.toLowerCase() === 'onesync')
         ) {
             return txToast.error({
-                title: 'You cannot set OneSync in Startup Arguments.',
+                title: t('panel.settings.fxserver.toast_onesync_args_title'),
                 md: true,
-                msg: 'Please use the selectbox below it.',
+                msg: t('panel.settings.fxserver.toast_onesync_args_msg'),
             });
         }
         pageCtx.saveChanges(cardCtx, localConfigs);
@@ -355,24 +372,23 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
     });
     const handleResetServerData = () => {
         openConfirmDialog({
-            title: 'Reset Server Data Path',
+            title: t('panel.settings.fxserver.reset_dialog_title'),
             message: (
                 <>
-                    Are you sure you want to reset the server data path? <br />
+                    {t('panel.settings.fxserver.reset_dialog_confirm')} <br />
                     <br />
-                    <strong>This will not delete any resource files or database</strong>, but just reset the fxPanel
-                    configuration, allowing you to go back to the Setup page. <br />
-                    If you want, you can set the path back to the current value later. <br />
+                    <strong>{t('panel.settings.fxserver.reset_dialog_no_delete')}</strong> <br />
+                    {t('panel.settings.fxserver.reset_dialog_restore')} <br />
                     <br />
-                    <strong className="text-warning-inline">Warning:</strong> take note of the current path before
-                    proceeding, so you can set it back later if you need to. Current path:
+                    <strong className="text-warning-inline">{t('panel.settings.fxserver.warning_label')}</strong>{' '}
+                    {t('panel.settings.fxserver.reset_dialog_warning')}
                     <Input value={cfg.dataPath.initialValue} className="mt-2" readOnly />
                 </>
             ),
             onConfirm: () => {
                 setIsResettingServerData(true);
                 resetServerDataApi({
-                    toastLoadingMessage: 'Resetting server data path...',
+                    toastLoadingMessage: t('panel.settings.fxserver.reset_loading'),
                     success: (data, toastId) => {
                         if (data.type === 'success') {
                             setLocation('/server/setup');
@@ -398,7 +414,7 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
             advancedVisible={showAdvanced}
             advancedSetter={setShowAdvanced}
         >
-            <SettingItem label="Server Data Folder" htmlFor={cfg.dataPath.eid} required>
+            <SettingItem label={t('panel.settings.fxserver.data_folder_label')} htmlFor={cfg.dataPath.eid} required>
                 <div className="flex gap-2">
                     <Input
                         id={cfg.dataPath.eid}
@@ -418,25 +434,25 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                         disabled={pageCtx.isReadOnly || !hasPerm('all_permissions') || isResettingServerData}
                         onClick={handleResetServerData}
                     >
-                        <Undo2Icon className="mr-2 size-4" /> Reset
+                        <Undo2Icon className="mr-2 size-4" /> {t('panel.settings.fxserver.reset_button')}
                     </Button>
                 </div>
                 <SettingItemDesc>
-                    The full path of the folder that <strong>contains</strong> the <InlineCode>resources</InlineCode>{' '}
-                    folder, usually it's the same place that contains your <InlineCode>server.cfg</InlineCode>. <br />
-                    Resetting this value will allow you to go back to the Setup page, without deleting any files.
+                    {t('panel.settings.fxserver.data_folder_desc')} <br />
+                    {t('panel.settings.fxserver.data_folder_reset_note')}
                     {pageCtx.apiData?.dataPath && pageCtx.apiData?.hasCustomDataPath && (
                         <>
                             <br />
                             <span className="text-warning-inline">
-                                {window.txConsts.hostConfigSource}: This path should start with{' '}
+                                {window.txConsts.hostConfigSource}:{' '}
+                                {t('panel.settings.fxserver.data_folder_host_prefix')}{' '}
                                 <InlineCode>{pageCtx.apiData.dataPath}</InlineCode> .
                             </span>
                         </>
                     )}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Restart Schedule" showOptional>
+            <SettingItem label={t('panel.settings.fxserver.restart_schedule_label')} showOptional>
                 <RestartScheduleBox
                     restartTimes={states.restarterSchedule}
                     setRestartTimes={cfg.restarterSchedule.state.set}
@@ -444,11 +460,12 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                 />
                 <TimeZoneWarning />
                 <SettingItemDesc>
-                    At which times of day to restart the server. <br />
-                    <strong>Note:</strong> Make sure your schedule matches your server time and not your local time.
+                    {t('panel.settings.fxserver.restart_schedule_desc')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.fxserver.restart_schedule_note')}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Restart Interval" showOptional>
+            <SettingItem label={t('panel.settings.fxserver.restart_interval_label')} showOptional>
                 <div className="flex items-center gap-2">
                     <Input
                         id={cfg.restarterIntervalHours.eid}
@@ -462,30 +479,32 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                         }}
                         disabled={pageCtx.isReadOnly}
                     />
-                    <span className="text-muted-foreground text-sm">hours (0 = disabled)</span>
+                    <span className="text-muted-foreground text-sm">
+                        {t('panel.settings.fxserver.restart_interval_hours')}
+                    </span>
                 </div>
                 <SettingItemDesc>
-                    Restart the server every N hours (based on uptime). Set to 0 to disable. <br />
-                    If both a schedule and an interval are set, whichever comes first will trigger the restart.
+                    {t('panel.settings.fxserver.restart_interval_desc')} <br />
+                    {t('panel.settings.fxserver.restart_interval_both')}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Quiet Mode">
+            <SettingItem label={t('panel.settings.fxserver.quiet_mode_label')}>
                 <SwitchText
                     id={cfg.quietMode.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     checked={forceQuietMode || states.quietMode}
                     onCheckedChange={cfg.quietMode.state.set}
                     disabled={pageCtx.isReadOnly || forceQuietMode}
                 />
                 <SettingItemDesc>
-                    Do not print FXServer's output to the terminal. <br />
-                    You will still be able to use the Live Console.
+                    {t('panel.settings.fxserver.quiet_mode_desc')} <br />
+                    {t('panel.settings.fxserver.quiet_mode_console')}
                     {forceQuietMode && (
                         <>
                             <br />
                             <span className="text-warning-inline">
-                                {window.txConsts.hostConfigSource}: This setting is locked and cannot be changed.
+                                {window.txConsts.hostConfigSource}: {t('panel.settings.fxserver.quiet_mode_locked')}
                             </span>
                         </>
                     )}
@@ -494,12 +513,17 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
 
             {showAdvanced && <AdvancedDivider />}
 
-            <SettingItem label="CFG File Path" htmlFor={cfg.cfgPath.eid} showIf={showAdvanced} required>
+            <SettingItem
+                label={t('panel.settings.fxserver.cfg_path_label')}
+                htmlFor={cfg.cfgPath.eid}
+                showIf={showAdvanced}
+                required
+            >
                 <Input
                     id={cfg.cfgPath.eid}
                     ref={cfgPathRef}
                     defaultValue={cfg.cfgPath.initialValue}
-                    placeholder="server.cfg"
+                    placeholder={t('panel.settings.fxserver.cfg_path_placeholder')}
                     onInput={() => {
                         cfgPathEdited.current = true;
                         updatePageState();
@@ -508,16 +532,20 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                     required
                 />
                 <SettingItemDesc>
-                    The path to your server config file, probably named <InlineCode>server.cfg</InlineCode>. <br />
-                    This can either be absolute, or relative to the Server Data folder.
+                    {t('panel.settings.fxserver.cfg_path_desc')} <br />
+                    {t('panel.settings.fxserver.cfg_path_relative')}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Startup Arguments" htmlFor={cfg.startupArgs.eid} showIf={showAdvanced}>
+            <SettingItem
+                label={t('panel.settings.fxserver.startup_args_label')}
+                htmlFor={cfg.startupArgs.eid}
+                showIf={showAdvanced}
+            >
                 <Input
                     id={cfg.startupArgs.eid}
                     ref={startupArgsRef}
                     defaultValue={inputArrayUtil.toUi(cfg.startupArgs.initialValue)}
-                    placeholder="--trace-warning"
+                    placeholder={t('panel.settings.fxserver.startup_args_placeholder')}
                     onInput={() => {
                         startupArgsEdited.current = true;
                         updatePageState();
@@ -525,69 +553,102 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>
-                    Additional command-line arguments to pass to the FXServer instance such as NodeJS CLI flags. <br />
-                    <strong>Warning:</strong> You almost certainly should not use this option, commands and convars
-                    should be placed in your <InlineCode>server.cfg</InlineCode> instead.
+                    {t('panel.settings.fxserver.startup_args_desc')} <br />
+                    <strong>{t('panel.settings.fxserver.warning_label')}</strong>{' '}
+                    {t('panel.settings.fxserver.startup_args_warning')}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="OneSync" htmlFor={cfg.onesync.eid} showIf={showAdvanced}>
+            <SettingItem
+                label={t('panel.settings.fxserver.onesync_label')}
+                htmlFor={cfg.onesync.eid}
+                showIf={showAdvanced}
+            >
                 <Select value={states.onesync} onValueChange={handleOneSyncChange} disabled={pageCtx.isReadOnly}>
                     <SelectTrigger id={cfg.onesync.eid}>
-                        <SelectValue placeholder="Select OneSync option" />
+                        <SelectValue placeholder={t('panel.settings.fxserver.onesync_placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="on">On (recommended)</SelectItem>
-                        <SelectItem value="legacy">Legacy</SelectItem>
-                        <SelectItem value="off">Off</SelectItem>
+                        <SelectItem value="on">{t('panel.settings.fxserver.onesync_on')}</SelectItem>
+                        <SelectItem value="legacy">{t('panel.settings.fxserver.onesync_legacy')}</SelectItem>
+                        <SelectItem value="off">{t('panel.settings.fxserver.onesync_off')}</SelectItem>
                     </SelectContent>
                 </Select>
                 <SettingItemDesc>
-                    Most servers should be using <strong>OneSync On</strong>. <br />
-                    The other options are considered deprecated and should not be used unless you know what you're
-                    doing. For more information, please read the{' '}
+                    {t('panel.settings.fxserver.onesync_desc')} <br />
+                    {t('panel.settings.fxserver.onesync_deprecated')}{' '}
                     <TxAnchor href="https://docs.fivem.net/docs/scripting-reference/onesync/">documentation</TxAnchor>.
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Autostart" showIf={showAdvanced}>
+            <SettingItem label={t('panel.settings.fxserver.autostart_label')} showIf={showAdvanced}>
                 <SwitchText
                     id={cfg.autoStart.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     checked={states.autoStart}
                     onCheckedChange={cfg.autoStart.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
+                <SettingItemDesc>{t('panel.settings.fxserver.autostart_desc')}</SettingItemDesc>
+            </SettingItem>
+            <SettingItem label={t('panel.settings.fxserver.disable_health_check_label')} showIf={showAdvanced}>
+                <SwitchText
+                    id={cfg.disableHealthCheck.eid}
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
+                    checked={states.disableHealthCheck}
+                    onCheckedChange={cfg.disableHealthCheck.state.set}
+                    disabled={pageCtx.isReadOnly}
+                />
                 <SettingItemDesc>
-                    Start the server automatically after <strong>fxPanel</strong> starts.
+                    {t('panel.settings.fxserver.disable_health_check_desc')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.fxserver.disable_health_check_note')}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Resource Starting Tolerance" htmlFor={cfg.resourceTolerance.eid} showIf={showAdvanced}>
+            <SettingItem
+                label={t('panel.settings.fxserver.http_playerlist_host_label')}
+                htmlFor={cfg.httpPlayerlistHost.eid}
+                showIf={showAdvanced}
+            >
+                <Input
+                    id={cfg.httpPlayerlistHost.eid}
+                    value={states.httpPlayerlistHost}
+                    placeholder={t('panel.settings.fxserver.http_playerlist_host_placeholder')}
+                    onChange={(event) => cfg.httpPlayerlistHost.state.set(event.target.value)}
+                    disabled={pageCtx.isReadOnly}
+                />
+                <SettingItemDesc>{t('panel.settings.fxserver.http_playerlist_host_desc')}</SettingItemDesc>
+            </SettingItem>
+            <SettingItem
+                label={t('panel.settings.fxserver.resource_tolerance_label')}
+                htmlFor={cfg.resourceTolerance.eid}
+                showIf={showAdvanced}
+            >
                 <Select
                     value={selectNumberUtil.toUi(states.resourceTolerance)}
                     onValueChange={(val) => cfg.resourceTolerance.state.set(selectNumberUtil.toCfg(val))}
                     disabled={pageCtx.isReadOnly}
                 >
                     <SelectTrigger id={cfg.resourceTolerance.eid}>
-                        <SelectValue placeholder="Select..." />
+                        <SelectValue placeholder={t('panel.common.select_placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="90">1.5 minutes (default)</SelectItem>
-                        <SelectItem value="180">3 minutes</SelectItem>
-                        <SelectItem value="300">5 minutes</SelectItem>
-                        <SelectItem value="600">10 minutes</SelectItem>
+                        <SelectItem value="90">{t('panel.settings.fxserver.resource_tolerance_90')}</SelectItem>
+                        <SelectItem value="180">{t('panel.settings.fxserver.resource_tolerance_180')}</SelectItem>
+                        <SelectItem value="300">{t('panel.settings.fxserver.resource_tolerance_300')}</SelectItem>
+                        <SelectItem value="600">{t('panel.settings.fxserver.resource_tolerance_600')}</SelectItem>
                     </SelectContent>
                 </Select>
                 <SettingItemDesc>
-                    At server boot, how much time to wait for any single resource to start before restarting the server.{' '}
-                    <br />
-                    <strong>Note:</strong> If you are getting <InlineCode>failed to start in time</InlineCode> errors,
-                    increase this value.
+                    {t('panel.settings.fxserver.resource_tolerance_desc')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.fxserver.resource_tolerance_note')}
                 </SettingItemDesc>
             </SettingItem>
 
             <Separator />
 
-            <SettingItem label="Server Log Retention" htmlFor={cfg.serverLogRetention.eid}>
+            <SettingItem label={t('panel.settings.fxserver.log_retention_label')} htmlFor={cfg.serverLogRetention.eid}>
                 <div className="flex items-center gap-2">
                     <Select
                         value={customRetentionMode ? '__custom__' : String(states.serverLogRetention)}
@@ -602,16 +663,18 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                         disabled={pageCtx.isReadOnly}
                     >
                         <SelectTrigger id={cfg.serverLogRetention.eid} className="w-40">
-                            <SelectValue placeholder="Select..." />
+                            <SelectValue placeholder={t('panel.common.select_placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="3">3 days</SelectItem>
-                            <SelectItem value="7">7 days</SelectItem>
-                            <SelectItem value="14">14 days (default)</SelectItem>
-                            <SelectItem value="30">30 days</SelectItem>
-                            <SelectItem value="60">60 days</SelectItem>
-                            <SelectItem value="90">90 days</SelectItem>
-                            <SelectItem value="__custom__">Custom</SelectItem>
+                            <SelectItem value="3">{t('panel.settings.fxserver.log_retention_3')}</SelectItem>
+                            <SelectItem value="7">{t('panel.settings.fxserver.log_retention_7')}</SelectItem>
+                            <SelectItem value="14">{t('panel.settings.fxserver.log_retention_14')}</SelectItem>
+                            <SelectItem value="30">{t('panel.settings.fxserver.log_retention_30')}</SelectItem>
+                            <SelectItem value="60">{t('panel.settings.fxserver.log_retention_60')}</SelectItem>
+                            <SelectItem value="90">{t('panel.settings.fxserver.log_retention_90')}</SelectItem>
+                            <SelectItem value="__custom__">
+                                {t('panel.settings.fxserver.log_retention_custom')}
+                            </SelectItem>
                         </SelectContent>
                     </Select>
                     {customRetentionMode && (
@@ -630,30 +693,27 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                                 }}
                                 disabled={pageCtx.isReadOnly}
                             />
-                            <span className="text-muted-foreground text-sm">days</span>
+                            <span className="text-muted-foreground text-sm">
+                                {t('panel.settings.fxserver.log_retention_days')}
+                            </span>
                         </div>
                     )}
                 </div>
-                <SettingItemDesc>
-                    How many days of historical server log sessions to keep. Sessions older than this are automatically
-                    deleted.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.fxserver.log_retention_desc')}</SettingItemDesc>
             </SettingItem>
 
             <Separator />
 
-            <SettingItem label="Hide FxServer Update" htmlFor="hideFxsUpdate">
+            <SettingItem label={t('panel.settings.fxserver.hide_update_label')} htmlFor="hideFxsUpdate">
                 <SwitchText
                     id="hideFxsUpdate"
                     checked={!!states.hideFxsUpdateNotification}
                     onCheckedChange={(checked) => cfg.hideFxsUpdateNotification.state.set(checked)}
-                    checkedLabel="Hidden"
-                    uncheckedLabel="Visible"
+                    checkedLabel={t('panel.settings.switch.hidden')}
+                    uncheckedLabel={t('panel.settings.switch.visible')}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>
-                    Permanently hide the FxServer update notification banner for all admins.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.fxserver.hide_update_desc')}</SettingItemDesc>
             </SettingItem>
         </SettingsCardShell>
     );

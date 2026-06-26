@@ -93,6 +93,7 @@ export class UpdateConfigKeySet {
     }
 
     private _hasMatch(rule: string) {
+        if (typeof rule !== 'string' || !rule.includes('.')) return false;
         const [inputScope, inputKey] = rule.split('.');
         return this.raw.some(
             (rawCfg) =>

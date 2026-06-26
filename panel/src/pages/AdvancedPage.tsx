@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2Icon, WrenchIcon } from 'lucide-react';
 import useSWR from 'swr';
 import { PageHeader } from '@/components/page-header';
+import { useLocale } from '@/hooks/locale';
 import { isDevMockStatusOptInEnabled, setDevMockStatusOptInEnabled } from '@/lib/devFlags';
 
 type AdvancedDataResp = {
@@ -21,6 +22,7 @@ type AdvancedActionResp = {
 };
 
 export default function AdvancedPage() {
+    const { t } = useLocale();
     const magicInputRef = useRef<HTMLInputElement>(null);
     const [magicOutput, setMagicOutput] = useState('What will happen when its pressed?!');
     const [isRunning, setIsRunning] = useState(false);
@@ -56,18 +58,20 @@ export default function AdvancedPage() {
 
     const { data, mutate } = useSWR('/advanced/data', swrDataFetcher);
 
-    const handleAction = (
-        action: string,
-        parameter: string | boolean = false,
-        onSuccess?: (d: AdvancedActionResp) => void,
-    ) => {
+    const stripHtml = (value: string) => value.replace(/<[^>]+>/g, '');
+
+    const handleAction = (action: string, parameter = '', onSuccess?: (d: AdvancedActionResp) => void) => {
         setIsRunning(true);
         actionApi({
             data: { action, parameter },
             toastLoadingMessage: 'Executing...',
-            genericHandler: {
-                successMsg: 'Done.',
-            },
+            ...(onSuccess
+                ? {}
+                : {
+                      genericHandler: {
+                          successMsg: 'Done.',
+                      },
+                  }),
             success(respData) {
                 setIsRunning(false);
                 if (respData.refresh) {
@@ -78,8 +82,13 @@ export default function AdvancedPage() {
                 if (onSuccess) {
                     onSuccess(respData);
                 } else if (respData.type && respData.message) {
-                    const toastType = respData.type as 'success' | 'warning' | 'error' | 'info';
-                    txToast[toastType]?.(respData.message) ?? txToast.default(respData.message);
+                    const plainMessage = stripHtml(respData.message);
+                    if (respData.type === 'danger') {
+                        txToast.error(plainMessage);
+                    } else {
+                        const toastType = respData.type as 'success' | 'warning' | 'error' | 'info';
+                        txToast[toastType]?.(plainMessage) ?? txToast.default(plainMessage);
+                    }
                 }
             },
             error(msg) {
@@ -90,10 +99,10 @@ export default function AdvancedPage() {
     };
 
     return (
-        <div className="mx-auto w-full max-w-(--breakpoint-xl) space-y-4 px-2 md:px-0">
+        <div className="mx-auto w-full max-w-(--tx-page-max-width) space-y-4 px-2 md:px-0">
             <PageHeader
                 icon={<WrenchIcon />}
-                title="Advanced"
+                title={t('panel.routes.advanced')}
                 description="Experimental tools and low-level runtime controls."
             />
 
@@ -207,12 +216,19 @@ export default function AdvancedPage() {
                                 disabled={isRunning}
                                 onClick={() => {
                                     const val = magicInputRef.current?.value?.trim() ?? 'perform_magic';
-                                    handleAction(val, false, (d) => {
+                                    handleAction(val, '', (d) => {
+                                        if (!d.message) {
+                                            txToast.error('No response payload.');
+                                            return;
+                                        }
+                                        setMagicOutput(d.message);
+                                        const plainMessage = stripHtml(d.message);
                                         if (d.type === 'success') {
-                                            setMagicOutput(d.message ?? '');
-                                        } else if (d.message) {
-                                            const toastType = d.type as 'warning' | 'error' | 'info';
-                                            txToast[toastType]?.(d.message) ?? txToast.default(d.message);
+                                            txToast.success('Done.');
+                                        } else if (d.type === 'danger') {
+                                            txToast.error(plainMessage);
+                                        } else {
+                                            txToast.default(plainMessage);
                                         }
                                     });
                                 }}

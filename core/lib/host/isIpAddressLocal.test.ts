@@ -1,5 +1,5 @@
 import { suite, it, expect } from 'vitest';
-import { isIpAddressLocal, addLocalIpAddress } from './isIpAddressLocal';
+import { isIpAddressLocal, isIpAddressLoopback, addLocalIpAddress } from './isIpAddressLocal';
 
 suite('isIpAddressLocal', () => {
     suite('loopback addresses', () => {
@@ -7,10 +7,20 @@ suite('isIpAddressLocal', () => {
             expect(isIpAddressLocal('127.0.0.1')).toBe(true);
             expect(isIpAddressLocal('127.0.0.2')).toBe(true);
             expect(isIpAddressLocal('127.255.255.255')).toBe(true);
+            expect(isIpAddressLocal('::ffff:127.0.0.1')).toBe(true);
         });
 
         it('should accept IPv6 loopback', () => {
             expect(isIpAddressLocal('::1')).toBe(true);
+        });
+
+        it('should identify only loopback addresses as loopback', () => {
+            expect(isIpAddressLoopback('127.0.0.1')).toBe(true);
+            expect(isIpAddressLoopback('::ffff:127.0.0.1')).toBe(true);
+            expect(isIpAddressLoopback('::1')).toBe(true);
+            expect(isIpAddressLoopback('10.0.0.1')).toBe(false);
+            expect(isIpAddressLoopback('192.168.0.1')).toBe(false);
+            expect(isIpAddressLoopback('fd00::1')).toBe(false);
         });
     });
 
@@ -24,6 +34,11 @@ suite('isIpAddressLocal', () => {
         it('should accept 10.x.x.x', () => {
             expect(isIpAddressLocal('10.0.0.1')).toBe(true);
             expect(isIpAddressLocal('10.255.255.255')).toBe(true);
+        });
+
+        it('should accept 172.16.0.0/12', () => {
+            expect(isIpAddressLocal('172.16.0.1')).toBe(true);
+            expect(isIpAddressLocal('172.31.255.255')).toBe(true);
         });
 
         it('should accept fd00:: (IPv6 ULA)', () => {

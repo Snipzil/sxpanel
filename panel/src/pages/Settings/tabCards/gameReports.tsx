@@ -1,20 +1,10 @@
 import SwitchText from '@/components/SwitchText';
 import { SettingItem, SettingItemDesc } from '../settingsItems';
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import {
-    getConfigEmptyState,
-    getConfigAccessors,
-    SettingsCardProps,
-    getPageConfig,
-    configsReducer,
-    getConfigDiff,
-    reconcileCardPendingSave,
-} from '../utils';
-import SettingsCardShell from '../SettingsCardShell';
+import { getConfigAccessors, getPageConfig, type SettingsCardProps } from '../utils';
 import { Input } from '@/components/ui/input';
-import { txToast } from '@/components/TxToaster';
+import { useLocale } from '@/hooks/locale';
 
-export const pageConfigs = {
+export const gameReportsPageConfigs = {
     reportsEnabled: getPageConfig('gameFeatures', 'reportsEnabled', undefined, true),
     ticketPriorityEnabled: getPageConfig('gameFeatures', 'ticketPriorityEnabled', undefined, false),
     ticketFeedbackEnabled: getPageConfig('gameFeatures', 'ticketFeedbackEnabled', undefined, true),
@@ -28,144 +18,94 @@ export const pageConfigs = {
     ticketChannelId: getPageConfig('discordBot', 'ticketChannelId', undefined, null as string | null),
 } as const;
 
-export default function ConfigCardGameReports({ cardCtx, pageCtx }: SettingsCardProps) {
-    const [states, dispatch] = useReducer(configsReducer<typeof pageConfigs>, null, () =>
-        getConfigEmptyState(pageConfigs),
-    );
-    const cfg = useMemo(() => {
-        return getConfigAccessors(cardCtx.cardId, pageConfigs, pageCtx.apiData, dispatch);
-    }, [pageCtx.apiData, dispatch]);
+type GameReportsSettingsFieldsProps = {
+    cardId: string;
+    cfg: ReturnType<typeof getConfigAccessors<typeof gameReportsPageConfigs>>;
+    states: Record<string, unknown>;
+    pageCtx: SettingsCardProps['pageCtx'];
+    categoriesRef: React.RefObject<HTMLInputElement | null>;
+    retentionDaysRef: React.RefObject<HTMLInputElement | null>;
+    ticketChannelRef: React.RefObject<HTMLInputElement | null>;
+    updatePageState: () => void;
+    debouncedUpdatePageState: () => void;
+};
 
-    const categoriesRef = useRef<HTMLInputElement | null>(null);
-    const retentionDaysRef = useRef<HTMLInputElement | null>(null);
-    const ticketChannelRef = useRef<HTMLInputElement | null>(null);
-
-    // Set initial ref values from API data when it loads
-    useEffect(() => {
-        if (!pageCtx.apiData) return;
-        const stored = pageCtx.apiData.storedConfigs as any;
-        const defaults = pageCtx.apiData.defaultConfigs as any;
-        const cats = stored?.gameFeatures?.ticketCategories ?? defaults?.gameFeatures?.ticketCategories ?? [];
-        const ret = stored?.gameFeatures?.ticketRetentionDays ?? defaults?.gameFeatures?.ticketRetentionDays ?? 30;
-        const chan = stored?.discordBot?.ticketChannelId ?? defaults?.discordBot?.ticketChannelId ?? '';
-        if (categoriesRef.current) categoriesRef.current.value = cats.join(', ');
-        if (retentionDaysRef.current) retentionDaysRef.current.value = String(ret);
-        if (ticketChannelRef.current) ticketChannelRef.current.value = chan ?? '';
-    }, [pageCtx.apiData]);
-
-    const updatePageState = useCallback(() => {
-        const rawCategories = categoriesRef.current?.value ?? '';
-        const categories = rawCategories.split(/[,;]\s*/).reduce<string[]>((values, value) => {
-            const trimmedValue = value.trim();
-            if (trimmedValue.length > 0) {
-                values.push(trimmedValue);
-            }
-            return values;
-        }, []);
-        const retDays = parseInt(retentionDaysRef.current?.value ?? '30', 10);
-        const chanId = ticketChannelRef.current?.value.trim() || null;
-
-        const overwrites = {
-            ticketCategories: categories.length ? categories : undefined,
-            ticketRetentionDays: Number.isFinite(retDays) ? retDays : undefined,
-            ticketChannelId: chanId,
-        } as any;
-
-        const res = getConfigDiff(cfg, states, overwrites as any, false);
-        pageCtx.setCardPendingSave(reconcileCardPendingSave(cardCtx, res.hasChanges));
-        return res;
-    }, [cfg, states, pageCtx, cardCtx]);
-
-    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const debouncedUpdatePageState = useCallback(() => {
-        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = setTimeout(() => {
-            updatePageState();
-        }, 300);
-    }, [updatePageState]);
-
-    useEffect(() => {
-        return () => {
-            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-        };
-    }, []);
-
-    useEffect(() => {
-        updatePageState();
-    }, [states, updatePageState]);
-
-    const handleOnSave = () => {
-        const retDays = parseInt(retentionDaysRef.current?.value ?? '30', 10);
-        if (!Number.isFinite(retDays) || retDays < 1 || retDays > 365) {
-            return txToast.error('Retention days must be a number between 1 and 365.');
-        }
-        const { hasChanges, localConfigs } = updatePageState();
-        if (!hasChanges) return;
-        pageCtx.saveChanges(cardCtx, localConfigs);
-    };
+export function GameReportsSettingsFields({
+    cardId,
+    cfg,
+    states,
+    pageCtx,
+    categoriesRef,
+    retentionDaysRef,
+    ticketChannelRef,
+    updatePageState,
+    debouncedUpdatePageState,
+}: GameReportsSettingsFieldsProps) {
+    const { t } = useLocale();
 
     return (
-        <SettingsCardShell cardCtx={cardCtx} pageCtx={pageCtx} onClickSave={handleOnSave}>
-            <SettingItem label="Player Tickets">
+        <>
+            <SettingItem label={t('panel.settings.game_reports.tickets_label')}>
                 <SwitchText
                     id={cfg.reportsEnabled.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     variant="checkedGreen"
-                    checked={states.reportsEnabled}
+                    checked={states.reportsEnabled as boolean}
                     onCheckedChange={cfg.reportsEnabled.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>
-                    When enabled, players can use the <strong>/ticket</strong> command to submit support tickets that
-                    admins can review in the Tickets page.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_reports.tickets_desc')}</SettingItemDesc>
             </SettingItem>
 
-            <SettingItem label="Categories" htmlFor={`${cardCtx.cardId}-categories`} showOptional>
+            <SettingItem
+                label={t('panel.settings.game_reports.categories_label')}
+                htmlFor={`${cardId}-categories`}
+                showOptional
+            >
                 <Input
-                    id={`${cardCtx.cardId}-categories`}
+                    id={`${cardId}-categories`}
                     ref={categoriesRef}
-                    placeholder="Player Report, Bug Report, Question, Other"
+                    placeholder={t('panel.settings.game_reports.categories_placeholder')}
                     onChange={debouncedUpdatePageState}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>Comma-separated list of ticket categories players can choose from.</SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_reports.categories_desc')}</SettingItemDesc>
             </SettingItem>
 
-            <SettingItem label="Priority Selection">
+            <SettingItem label={t('panel.settings.game_reports.priority_label')}>
                 <SwitchText
                     id={cfg.ticketPriorityEnabled.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     variant="checkedGreen"
-                    checked={states.ticketPriorityEnabled}
+                    checked={states.ticketPriorityEnabled as boolean}
                     onCheckedChange={cfg.ticketPriorityEnabled.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>
-                    Allow players to set a priority level (Low, Medium, High, Critical) when submitting a ticket.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_reports.priority_desc')}</SettingItemDesc>
             </SettingItem>
 
-            <SettingItem label="Player Feedback">
+            <SettingItem label={t('panel.settings.game_reports.feedback_label')}>
                 <SwitchText
                     id={cfg.ticketFeedbackEnabled.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     variant="checkedGreen"
-                    checked={states.ticketFeedbackEnabled}
+                    checked={states.ticketFeedbackEnabled as boolean}
                     onCheckedChange={cfg.ticketFeedbackEnabled.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>
-                    When a ticket is resolved, prompt the player to rate their support experience.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_reports.feedback_desc')}</SettingItemDesc>
             </SettingItem>
 
-            <SettingItem label="Retention Days" htmlFor={`${cardCtx.cardId}-retention`} showOptional>
+            <SettingItem
+                label={t('panel.settings.game_reports.retention_label')}
+                htmlFor={`${cardId}-retention`}
+                showOptional
+            >
                 <Input
-                    id={`${cardCtx.cardId}-retention`}
+                    id={`${cardId}-retention`}
                     ref={retentionDaysRef}
                     type="number"
                     min={1}
@@ -175,25 +115,23 @@ export default function ConfigCardGameReports({ cardCtx, pageCtx }: SettingsCard
                     disabled={pageCtx.isReadOnly}
                     className="w-24"
                 />
-                <SettingItemDesc>
-                    How many days to keep resolved/closed tickets before they are automatically deleted. Default is 30
-                    days.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_reports.retention_desc')}</SettingItemDesc>
             </SettingItem>
 
-            <SettingItem label="Discord Channel ID" htmlFor={`${cardCtx.cardId}-discordChan`} showOptional>
+            <SettingItem
+                label={t('panel.settings.game_reports.discord_channel_label')}
+                htmlFor={`${cardId}-discordChan`}
+                showOptional
+            >
                 <Input
-                    id={`${cardCtx.cardId}-discordChan`}
+                    id={`${cardId}-discordChan`}
                     ref={ticketChannelRef}
-                    placeholder="Discord channel snowflake ID"
+                    placeholder={t('panel.settings.game_reports.discord_channel_placeholder')}
                     onChange={updatePageState}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>
-                    When set, new tickets will create a Discord thread in this channel (requires Discord integration to
-                    be enabled).
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_reports.discord_channel_desc')}</SettingItemDesc>
             </SettingItem>
-        </SettingsCardShell>
+        </>
     );
 }

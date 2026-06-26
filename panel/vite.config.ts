@@ -6,14 +6,46 @@ import react from '@vitejs/plugin-react';
 // import tsconfigPaths from 'vite-tsconfig-paths';
 import { licenseBanner } from '../scripts/build/utils';
 import { parseTxDevEnv } from '../shared/txDevEnv';
+import { cefCssCompat } from './vite-plugins/cefCssCompat';
 if (fs.existsSync(path.resolve(__dirname, '../.env'))) {
     process.loadEnvFile('../.env');
 }
 
 const txDevEnv = parseTxDevEnv();
 
+const FONT_PACKAGES = ['inter', 'jetbrains-mono'] as const;
+
+/**
+ * Vite leaves @fontsource URLs as `./files/*.woff2` in the emitted CSS but does
+ * not copy the binaries. NUI loads CSS from `nui://monitor/panel/` so those
+ * files must exist beside the bundle.
+ */
+function copyPanelFontFiles(): PluginOption {
+    return {
+        name: 'copy-panel-font-files',
+        closeBundle() {
+            const outFilesDir = path.resolve(__dirname, '../monitor/panel/files');
+            fs.mkdirSync(outFilesDir, { recursive: true });
+
+            for (const pkg of FONT_PACKAGES) {
+                const srcDir = path.resolve(__dirname, '../node_modules/@fontsource-variable', pkg, 'files');
+                if (!fs.existsSync(srcDir)) {
+                    console.warn(`[copy-panel-font-files] missing font package dir: ${srcDir}`);
+                    continue;
+                }
+                for (const entry of fs.readdirSync(srcDir)) {
+                    if (!entry.endsWith('.woff2')) continue;
+                    fs.copyFileSync(path.join(srcDir, entry), path.join(outFilesDir, entry));
+                }
+            }
+        },
+    };
+}
+
 const baseConfig = {
     build: {
+        // Align with FiveM NUI CEF (~Chrome 103); see nui/vite.config.ts and .github/MOTHERDOC.md
+        target: 'chrome103',
         emptyOutDir: true,
         outDir: '../monitor/panel',
         minify: true,
@@ -45,6 +77,11 @@ const baseConfig = {
                         id.includes('@xterm/addon-webgl')
                     )
                         return 'xterm-vendor';
+                    if (id.includes('node_modules/fuse.js')) return 'fuse-vendor';
+                    if (id.includes('node_modules/socket.io-client')) return 'socket-vendor';
+                    if (id.includes('node_modules/react-markdown')) return 'markdown-vendor';
+                    if (id.includes('node_modules/qrcode')) return 'qrcode-vendor';
+                    if (id.includes('node_modules/zod')) return 'schemas';
                 },
             },
         },
@@ -56,6 +93,8 @@ const baseConfig = {
     clearScreen: false,
     plugins: [
         react(),
+        copyPanelFontFiles(),
+        cefCssCompat(),
         visualizer({
             // template: 'flamegraph',
             // template: 'sunburst',
@@ -67,6 +106,7 @@ const baseConfig = {
         alias: {
             '@': path.resolve(__dirname, './src'),
             '@shared': path.resolve(__dirname, '../shared'),
+            '@locale': path.resolve(__dirname, '../locale'),
         },
     },
 } satisfies UserConfig;
@@ -82,7 +122,15 @@ export default defineConfig(({ command }) => {
         baseConfig.build.rollupOptions.input = './src/main.tsx'; // overwrite default .html entry
         return baseConfig;
     } else {
-        baseConfig.build.sourcemap = true;
+        baseConfig.build.sourcemap = false;
+        // Strip crossorigin — FiveM's cfx-nui file server doesn't send CORS headers,
+        // which causes Chromium to silently block crossorigin-mode resource fetches.
+        (baseConfig.plugins as PluginOption[]).push({
+            name: 'strip-crossorigin',
+            transformIndexHtml(html: string) {
+                return html.replace(/ crossorigin/g, '');
+            },
+        });
         return baseConfig;
     }
 });

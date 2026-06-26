@@ -150,6 +150,12 @@ suite('ActionsDao', () => {
             const id = dao.registerBan(['license:abc'], 'admin1', 'Cheating', false);
             expect(id).toBe('B001-TEST');
         });
+
+        it('should register a ban even when author is a routine audit label', () => {
+            const id = dao.registerBan(['license:abc'], 'System', 'Cheating', false);
+            expect(id).toBe('B001-TEST');
+            expect(mockDb.db.writeFlag).toHaveBeenCalled();
+        });
     });
 
     suite('registerWarn', () => {

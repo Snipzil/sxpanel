@@ -5,6 +5,7 @@ import server from './server';
 import restarter from './restarter';
 import banlist from './banlist';
 import whitelist from './whitelist';
+import queue from './queue';
 import discordBot from './discordBot';
 import gameFeatures from './gameFeatures';
 import webServer from './webServer';
@@ -31,6 +32,7 @@ export const ConfigSchemas_v2 = {
     restarter,
     banlist,
     whitelist,
+    queue,
     discordBot,
     gameFeatures,
     webServer,

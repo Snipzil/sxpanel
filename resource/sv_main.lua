@@ -22,10 +22,38 @@ if GetCurrentResourceName() ~= 'monitor' then
 end
 
 -- =============================================
+-- Command to trigger events from fxPanel (CFXBOT-compatible)
+-- =============================================
+RegisterCommand('txaSendEvent', function(source, args)
+    if source ~= 0 then return end
+    if #args < 2 then
+        TxPrint('^1txaSendEvent: missing arguments')
+        return
+    end
+
+    local eventName = args[1]
+    table.remove(args, 1)
+    local jsonData = table.concat(args, ' ')
+
+    local success, data = pcall(json.decode, jsonData)
+    if not success then
+        TxPrint('^1txaSendEvent: failed to decode JSON data')
+        return
+    end
+
+    TriggerEvent(eventName, data)
+end, true)
+
+-- =============================================
 -- MARK: Variables stuff
 -- =============================================
 TX_ADMINS = {}
 TX_PLAYERLIST = {}
+
+--- Normalizes player/server IDs to string keys (Lua treats t[1] and t["1"] as different).
+function TxPlayerListKey(id)
+    return tostring(id)
+end
 TX_LUACOMHOST = GetConvar('txAdmin-luaComHost', 'invalid')
 TX_LUACOMTOKEN = GetConvar('txAdmin-luaComToken', 'invalid')
 TX_VERSION = GetResourceMetadata('monitor', 'version', 0) -- for now, only used in the start print
@@ -169,6 +197,19 @@ local cvHideAnnouncement = GetConvarBool('txAdmin-hideDefaultAnnouncement')
 local cvHideDirectMessage = GetConvarBool('txAdmin-hideDefaultDirectMessage')
 local cvHideWarning = GetConvarBool('txAdmin-hideDefaultWarning')
 local cvHideScheduledRestartWarning = GetConvarBool('txAdmin-hideDefaultScheduledRestartWarning')
+
+--- Refreshes cached notification convars after fxPanel pushes updated settings.
+local function refreshNotificationConvars()
+    txServerName = GetConvar('txAdmin-serverName', 'txAdmin')
+    cvHideAdminInPunishments = GetConvarBool('txAdmin-hideAdminInPunishments')
+    cvHideAdminInMessages = GetConvarBool('txAdmin-hideAdminInMessages')
+    cvHideAnnouncement = GetConvarBool('txAdmin-hideDefaultAnnouncement')
+    cvHideDirectMessage = GetConvarBool('txAdmin-hideDefaultDirectMessage')
+    cvHideWarning = GetConvarBool('txAdmin-hideDefaultWarning')
+    cvHideScheduledRestartWarning = GetConvarBool('txAdmin-hideDefaultScheduledRestartWarning')
+end
+
+AddEventHandler('txAdmin:events:configChanged', refreshNotificationConvars)
 -- Adding all known events to the list so txaEvent can do whitelist checking
 TX_EVENT_HANDLERS = {
     -- Handled by another file
@@ -223,34 +264,84 @@ AddEventHandler('txAdmin:events:healedPlayer', function(eventData)
         TxPrintError('[txAdmin:events:healedPlayer] failed to bridge legacy event', err)
     end
 end)
---- Export: add a custom tag to a player (persisted in DB)
---- @param serverId number The player's server ID
---- @param tagId string The custom tag ID (must be defined in txAdmin settings)
-exports('addPlayerTag', function(serverId, tagId)
+local function requestPlayerTagChange(action, serverId, tagId)
+    serverId = tonumber(serverId)
     if type(serverId) ~= 'number' or type(tagId) ~= 'string' then
-        return TxPrintError('[addPlayerTag] invalid arguments: serverId must be number, tagId must be string')
+        return false, 'serverId must be a number and tagId must be a string'
     end
-    PrintStructuredTrace(json.encode({
-        type = 'txAdminPlayerTag',
-        action = 'add',
+    tagId = string.lower(tagId)
+    if tagId == '' then
+        return false, 'tagId cannot be empty'
+    end
+    if TX_LUACOMHOST == 'invalid' or TX_LUACOMTOKEN == 'invalid' then
+        return false, 'fxPanel intercom is not configured'
+    end
+
+    local intercomUrl = 'http://' .. TX_LUACOMHOST .. '/intercom/playerTag'
+    local requestBody = json.encode({
+        txAdminToken = TX_LUACOMTOKEN,
+        action = action,
         netId = serverId,
         tagId = tagId,
-    }))
+    })
+
+    local completed = false
+    local succeeded = false
+    local failureReason = 'intercom request timed out'
+
+    PerformHttpRequest(intercomUrl, function(httpCode, rawData)
+        if httpCode ~= 200 then
+            failureReason = 'intercom HTTP ' .. tostring(httpCode) .. ': ' .. tostring(rawData)
+            completed = true
+            return
+        end
+        local resp = json.decode(rawData or '')
+        if type(resp) == 'table' and resp.success == true then
+            succeeded = true
+            completed = true
+            return
+        end
+        failureReason = type(resp) == 'table' and resp.error or tostring(rawData)
+        completed = true
+    end, 'POST', requestBody, { ['Content-Type'] = 'application/json' })
+
+    local deadline = GetGameTimer() + 5000
+    while not completed and GetGameTimer() < deadline do
+        Wait(0)
+    end
+
+    if not succeeded then
+        TxPrintError('[playerTag]', failureReason)
+        return false, failureReason
+    end
+
+    return true
+end
+
+--- Export: add a custom tag to a player (persisted in DB)
+--- @param serverId number The player's server ID (GetPlayers() returns strings — use tonumber)
+--- @param tagId string The custom tag ID (must be defined in fxPanel settings)
+--- @return boolean success
+exports('addPlayerTag', function(serverId, tagId)
+    local ok, err = requestPlayerTagChange('add', serverId, tagId)
+    if not ok then
+        TxPrintError('[addPlayerTag]', err)
+        return false
+    end
+    return true
 end)
 
 --- Export: remove a custom tag from a player (persisted in DB)
---- @param serverId number The player's server ID
+--- @param serverId number The player's server ID (GetPlayers() returns strings — use tonumber)
 --- @param tagId string The custom tag ID to remove
+--- @return boolean success
 exports('removePlayerTag', function(serverId, tagId)
-    if type(serverId) ~= 'number' or type(tagId) ~= 'string' then
-        return TxPrintError('[removePlayerTag] invalid arguments: serverId must be number, tagId must be string')
+    local ok, err = requestPlayerTagChange('remove', serverId, tagId)
+    if not ok then
+        TxPrintError('[removePlayerTag]', err)
+        return false
     end
-    PrintStructuredTrace(json.encode({
-        type = 'txAdminPlayerTag',
-        action = 'remove',
-        netId = serverId,
-        tagId = tagId,
-    }))
+    return true
 end)
 
 -- =============================================
@@ -351,9 +442,9 @@ exports('kickPlayer', function(serverId, targetId, reason)
     PrintStructuredTrace(json.encode({
         type = 'txAdminCommandBridge',
         command = 'kick',
-        author = admin.username,
+        author = TxAdminActionAuthor(admin),
         targetNetId = targetId,
-        reason = type(reason) == 'string' and reason or 'no reason provided',
+        reason = type(reason) == 'string' and reason or translator.t('kick_messages.unknown_reason'),
     }))
     return true
 end)
@@ -377,9 +468,9 @@ exports('banPlayer', function(serverId, targetId, reason, duration)
     PrintStructuredTrace(json.encode({
         type = 'txAdminCommandBridge',
         command = 'ban',
-        author = admin.username,
+        author = TxAdminActionAuthor(admin),
         targetNetId = targetId,
-        reason = type(reason) == 'string' and reason or 'no reason provided',
+        reason = type(reason) == 'string' and reason or translator.t('kick_messages.unknown_reason'),
         duration = type(duration) == 'string' and duration or 'permanent',
     }))
     return true
@@ -403,9 +494,9 @@ exports('warnPlayer', function(serverId, targetId, reason)
     PrintStructuredTrace(json.encode({
         type = 'txAdminCommandBridge',
         command = 'warn',
-        author = admin.username,
+        author = TxAdminActionAuthor(admin),
         targetNetId = targetId,
-        reason = type(reason) == 'string' and reason or 'no reason provided',
+        reason = type(reason) == 'string' and reason or translator.t('kick_messages.unknown_reason'),
     }))
     return true
 end)
@@ -427,7 +518,7 @@ exports('sendAnnouncement', function(serverId, message)
     PrintStructuredTrace(json.encode({
         type = 'txAdminCommandBridge',
         command = 'announcement',
-        author = admin.username,
+        author = TxAdminActionAuthor(admin),
         message = message,
     }))
     return true
@@ -714,11 +805,13 @@ RegisterNetEvent('txsv:screenshot:result', function(requestId, data, errorMsg)
 
     if errorMsg then
         TxPrintError('[screenshot] Capture error: ' .. tostring(errorMsg))
-        return sendScreenshotResult(requestId, { error = 'Screenshot capture failed: ' .. tostring(errorMsg) })
+        return sendScreenshotResult(requestId, {
+            error = translator.t('screenshot_messages.capture_failed', { detail = tostring(errorMsg) }),
+        })
     end
 
     if type(data) ~= 'string' or #data == 0 then
-        return sendScreenshotResult(requestId, { error = 'No screenshot data received.' })
+        return sendScreenshotResult(requestId, { error = translator.t('screenshot_messages.no_data') })
     end
 
     local filename = 'screenshot_' .. requestId .. '.txt'
@@ -835,6 +928,20 @@ local function handleConnections(name, setKickReason, d)
 
         --Preparing vars and making sure we do have indentifiers
         local url = 'http://' .. TX_LUACOMHOST .. '/player/checkJoin'
+        local queueJoinUrl = 'http://' .. TX_LUACOMHOST .. '/player/queue/join'
+        local queuePollUrl = 'http://' .. TX_LUACOMHOST .. '/player/queue/poll'
+        local queueLeaveUrl = 'http://' .. TX_LUACOMHOST .. '/player/queue/leave'
+
+        local function presentQueueCard(payload)
+            if type(payload) ~= 'table' then
+                return
+            end
+            if type(payload.adaptiveCard) == 'string' and payload.adaptiveCard ~= '' then
+                d.presentCard(payload.adaptiveCard)
+            else
+                d.update('[fxPanel] Waiting in queue...')
+            end
+        end
         local exData = {
             txAdminToken = TX_LUACOMTOKEN,
             playerIds = GetPlayerIdentifiers(player),
@@ -853,6 +960,7 @@ local function handleConnections(name, setKickReason, d)
         CreateThread(function()
             local attempts = 0
             local isDone = false
+            local queueId = nil
             --Do 5 attempts (2.5 mins)
             while isDone == false and attempts < 5 do
                 attempts = attempts + 1
@@ -878,10 +986,75 @@ local function handleConnections(name, setKickReason, d)
                             logError('Checking banlist/whitelist failed with invalid response: ' .. respStr)
                         else
                             if respObj.allow == true then
-                                d.done()
-                                isDone = true
+                                -- Optional queue step (separate from whitelist)
+                                PerformHttpRequest(queueJoinUrl, function(qCode, qRaw, qHeaders)
+                                    if isDone then
+                                        return
+                                    end
+                                    if not qRaw or qCode ~= 200 then
+                                        d.done()
+                                        isDone = true
+                                        return
+                                    end
+
+                                    local qObj = json.decode(tostring(qRaw))
+                                    if not qObj or type(qObj.status) ~= 'string' then
+                                        d.done()
+                                        isDone = true
+                                        return
+                                    end
+
+                                    if qObj.status == 'disabled' or qObj.status == 'bypass' or qObj.status == 'allow' then
+                                        d.done()
+                                        isDone = true
+                                        return
+                                    end
+
+                                    if qObj.status ~= 'wait' or type(qObj.id) ~= 'string' then
+                                        d.done()
+                                        isDone = true
+                                        return
+                                    end
+
+                                    queueId = qObj.id
+                                    local pollMs = tonumber(qObj.pollAfterMs) or 5000
+                                    presentQueueCard(qObj)
+
+                                    while isDone == false do
+                                        Wait(pollMs)
+                                        if isDone then
+                                            break
+                                        end
+                                        PerformHttpRequest(queuePollUrl, function(pCode, pRaw, pHeaders)
+                                            if isDone then
+                                                return
+                                            end
+                                            if not pRaw or pCode ~= 200 then
+                                                return
+                                            end
+                                            local pObj = json.decode(tostring(pRaw))
+                                            if not pObj or type(pObj.status) ~= 'string' then
+                                                return
+                                            end
+                                            if pObj.status == 'allow' then
+                                                d.done()
+                                                isDone = true
+                                                return
+                                            end
+                                            if pObj.status == 'not_found' then
+                                                d.done()
+                                                isDone = true
+                                                return
+                                            end
+                                            if pObj.status == 'wait' then
+                                                pollMs = tonumber(pObj.pollAfterMs) or pollMs
+                                                presentQueueCard(pObj)
+                                            end
+                                        end, 'POST', json.encode({ txAdminToken = TX_LUACOMTOKEN, id = queueId }), { ['Content-Type'] = 'application/json' })
+                                    end
+                                end, 'POST', json.encode(exData), { ['Content-Type'] = 'application/json' })
                             else
-                                local reason = respObj.reason or '\n[fxPanel] no reason provided'
+                                local reason = respObj.reason or ('\n[fxPanel] ' .. translator.t('kick_messages.unknown_reason'))
                                 d.done('\n' .. reason)
                                 isDone = true
                             end
@@ -895,6 +1068,10 @@ local function handleConnections(name, setKickReason, d)
             if not isDone then
                 d.done('\n[fxPanel] Failed to validate your banlist/whitelist status. Try again in a few minutes.')
                 isDone = true
+            end
+
+            if queueId then
+                PerformHttpRequest(queueLeaveUrl, function(lCode, lRaw, lHeaders) end, 'POST', json.encode({ txAdminToken = TX_LUACOMTOKEN, id = queueId }), { ['Content-Type'] = 'application/json' })
             end
         end)
     end

@@ -17,11 +17,7 @@ const AvatarImage = ({ className, ref, ...props }: React.ComponentPropsWithRef<t
 );
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
-const AvatarFallback = ({
-    className,
-    ref,
-    ...props
-}: React.ComponentPropsWithRef<typeof AvatarPrimitive.Fallback>) => (
+const AvatarFallback = ({ className, ref, ...props }: React.ComponentPropsWithRef<typeof AvatarPrimitive.Fallback>) => (
     <AvatarPrimitive.Fallback
         ref={ref}
         className={cn('bg-muted flex h-full w-full items-center justify-center rounded-full', className)}

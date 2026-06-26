@@ -52,8 +52,7 @@ const buttonVariants = cva(
     },
 );
 
-interface ButtonProps
-    extends React.ComponentPropsWithRef<'button'>, VariantProps<typeof buttonVariants> {
+interface ButtonProps extends React.ComponentPropsWithRef<'button'>, VariantProps<typeof buttonVariants> {
     asChild?: boolean;
 }
 

@@ -1,16 +1,25 @@
-import InlineCode from '@/components/InlineCode';
-import { useAdminPerms } from '@/hooks/auth';
 import { useRef, useState } from 'react';
-import { ApiAddLegacyBanReqSchema } from '@shared/otherTypes';
-import { useBackendApi } from '@/hooks/fetch';
-import { Loader2Icon } from 'lucide-react';
+import { GavelIcon, InfoIcon, Loader2Icon } from 'lucide-react';
+import InlineCode from '@/components/InlineCode';
+import BanForm, { BanFormType } from '@/components/BanForm';
+import { txToast } from '@/components/TxToaster';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import BanForm, { BanFormType } from '@/components/BanForm';
-import { txToast } from '@/components/TxToaster';
+import { useAdminPerms } from '@/hooks/auth';
+import { useBackendApi } from '@/hooks/fetch';
+import { ApiAddLegacyBanReqSchema } from '@shared/otherTypes';
 import { GenericApiOkResp } from '@shared/genericApiTypes';
 
+/**
+ * Add Legacy Ban V2 — redesign goals over V1:
+ * - V2 header band (icon tile + title + description) replacing the raw
+ *   `text-3xl` h1 and prose paragraph.
+ * - Fixes the broken label association (`htmlFor="banIdentifiers"` now has
+ *   a matching textarea id).
+ * - `rounded-xl` card shell with the actions in a card footer instead of
+ *   floating centered buttons; structured info/permission hint cards.
+ */
 export default function AddLegacyBanPage() {
     const idsTextareaRef = useRef<HTMLTextAreaElement>(null);
     const banFormRef = useRef<BanFormType>(null);
@@ -58,12 +67,12 @@ export default function AddLegacyBanPage() {
             genericHandler: {
                 successMsg: 'Identifiers banned.',
             },
-            success: (data) => {
+            success: () => {
                 setIsSaving(false);
                 idsTextareaRef.current!.value = '';
                 idsTextareaRef.current!.focus();
             },
-            error: (error) => {
+            error: () => {
                 setIsSaving(false);
                 idsTextareaRef.current!.focus();
             },
@@ -71,56 +80,77 @@ export default function AddLegacyBanPage() {
     };
 
     const canBan = hasPerm('players.ban');
+    const isDisabled = isSaving || !canBan;
+
     return (
-        <div className="mx-auto w-full max-w-(--breakpoint-lg) space-y-4 px-2 md:px-0">
-            <div className="px-2 md:px-0">
-                <h1 className="mb-2 text-3xl">Ban Identifiers</h1>
-                <p>
-                    Here you can ban specific player identifiers (like <InlineCode>license</InlineCode> and{' '}
-                    <InlineCode>discord</InlineCode>) without having to search for a registered player.
-                    <br />
-                    Bans without a single <InlineCode>license</InlineCode> identifier are considered{' '}
-                    <em>Legacy Bans</em> and should be avoided if possible. <br />
-                    {!canBan ? (
+        <div className="mx-auto flex w-full max-w-(--breakpoint-lg) min-w-96 flex-col gap-4 px-2 md:px-0">
+            {/* Header band */}
+            <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+                <div className="flex min-w-0 items-center gap-3 p-4">
+                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <GavelIcon className="text-foreground size-5" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-foreground text-lg font-semibold tracking-tight">Ban Identifiers</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs">
+                            Ban specific identifiers without searching for a registered player.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Info / permission hint */}
+            <div className="border-border/50 bg-muted/15 flex gap-3 rounded-xl border p-3">
+                <InfoIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                    You can ban identifiers like <InlineCode>license</InlineCode> and <InlineCode>discord</InlineCode>{' '}
+                    directly. Bans without a single <InlineCode>license</InlineCode> identifier are considered{' '}
+                    <em>Legacy Bans</em> and should be avoided if possible.{' '}
+                    {!canBan && (
                         <span className="text-warning-inline">
                             You need the <InlineCode className="text-warning-inline">Player: Ban</InlineCode> permission
                             to use this feature.
                         </span>
-                    ) : null}
+                    )}
                 </p>
             </div>
-            <div className="bg-card grid gap-4 rounded-lg border p-4 lg:grid-cols-2">
-                <div className="flex flex-col gap-3">
-                    <Label htmlFor="banIdentifiers">Identifiers</Label>
-                    <Textarea
-                        ref={idsTextareaRef}
-                        className="h-full"
-                        disabled={isSaving || !canBan}
-                        placeholder="discord:xxxx, fivem:xxxx, license:xxxx, steam:xxxx, etc…"
-                    />
+
+            {/* Form card */}
+            <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+                <div className="grid gap-4 p-4 lg:grid-cols-2">
+                    <div className="flex flex-col gap-3">
+                        <Label htmlFor="banIdentifiers">Identifiers</Label>
+                        <Textarea
+                            id="banIdentifiers"
+                            ref={idsTextareaRef}
+                            className="h-full min-h-32"
+                            disabled={isDisabled}
+                            placeholder="discord:xxxx, fivem:xxxx, license:xxxx, steam:xxxx, etc…"
+                        />
+                    </div>
+                    <BanForm ref={banFormRef} disabled={isDisabled} />
                 </div>
-                <BanForm ref={banFormRef} disabled={isSaving || !canBan} />
-            </div>
-            <div className="flex place-content-center gap-4">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isSaving || !canBan}
-                    onClick={() => {
-                        banFormRef.current?.clearData();
-                    }}
-                >
-                    Clear
-                </Button>
-                <Button size="sm" variant="destructive" disabled={isSaving || !canBan} onClick={handleSave}>
-                    {isSaving ? (
-                        <span className="flex items-center leading-relaxed">
-                            <Loader2Icon className="inline h-4 animate-spin" /> Banning…
-                        </span>
-                    ) : (
-                        'Apply Ban'
-                    )}
-                </Button>
+                <div className="border-border/40 flex justify-end gap-2 border-t px-4 py-3">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isDisabled}
+                        onClick={() => {
+                            banFormRef.current?.clearData();
+                        }}
+                    >
+                        Clear
+                    </Button>
+                    <Button size="sm" variant="destructive" disabled={isDisabled} onClick={handleSave}>
+                        {isSaving ? (
+                            <span className="flex items-center gap-1.5 leading-relaxed">
+                                <Loader2Icon className="size-4 animate-spin" /> Banning…
+                            </span>
+                        ) : (
+                            'Apply Ban'
+                        )}
+                    </Button>
+                </div>
             </div>
         </div>
     );

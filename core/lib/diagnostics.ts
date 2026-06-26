@@ -9,6 +9,7 @@ import { txEnv, txHostConfig } from '@core/globalData';
 import si from 'systeminformation';
 import consoleFactory from '@lib/console';
 import { parseFxserverVersion } from '@lib/fxserver/fxsVersionParser';
+import { isHttpHealthCheckDisabled } from '@lib/fxserver/httpHealthCheck';
 import { getHeapStatistics } from 'node:v8';
 import bytes from 'bytes';
 import { msToDuration } from './misc';
@@ -44,6 +45,59 @@ type HostDataReturnType =
       }
     | { error: string };
 let _hostStaticDataCache: HostStaticDataType;
+let _hostStaticDataCachePromise: Promise<HostStaticDataType | null> | undefined;
+
+/**
+ * Loads and caches host static data (CPU, OS, etc.).
+ */
+const loadHostStaticDataCache = async (): Promise<HostStaticDataType | null> => {
+    if (_hostStaticDataCache) return _hostStaticDataCache;
+
+    //This errors out on pterodactyl egg
+    let osUsername = 'unknown';
+    try {
+        const userInfo = os.userInfo();
+        osUsername = userInfo.username;
+    } catch (error) {
+        /* os.userInfo() throws on Pterodactyl */
+    }
+
+    try {
+        const cpuStats = await si.cpu();
+        const cpuSpeed = cpuStats.speedMin ?? cpuStats.speed;
+
+        _hostStaticDataCache = {
+            nodeVersion: process.version,
+            username: osUsername,
+            osDistro: await getOsDistro(),
+            cpu: {
+                manufacturer: cpuStats.manufacturer,
+                brand: cpuStats.brand,
+                speedMin: cpuSpeed,
+                speedMax: cpuStats.speedMax,
+                physicalCores: cpuStats.physicalCores,
+                cores: cpuStats.cores,
+            },
+        };
+        return _hostStaticDataCache;
+    } catch (error) {
+        _hostStaticDataCachePromise = undefined;
+        console.error('Error getting Host static data.');
+        console.verbose.dir(error);
+        return null;
+    }
+};
+
+/**
+ * Ensures host static data is loaded. Deduplicates concurrent callers.
+ */
+export const ensureHostStaticDataCache = (): Promise<HostStaticDataType | null> => {
+    if (_hostStaticDataCache) return Promise.resolve(_hostStaticDataCache);
+    if (!_hostStaticDataCachePromise) {
+        _hostStaticDataCachePromise = loadHostStaticDataCache();
+    }
+    return _hostStaticDataCachePromise;
+};
 
 /**
  * Gets the Processes Data.
@@ -174,6 +228,15 @@ export const getFXServerData = async () => {
         return { error: 'Server has no network endpoint' };
     }
 
+    if (isHttpHealthCheckDisabled()) {
+        return {
+            error: false,
+            statusColor: 'success',
+            status: ' ONLINE ',
+            version: 'HTTP health check disabled',
+        };
+    }
+
     //Preparing request
     const url = `http://${childState.netEndpoint}/info.json`;
     const requestOptions = {
@@ -221,41 +284,11 @@ export const getFXServerData = async () => {
  * Gets the Host Data.
  */
 export const getHostData = async (): Promise<HostDataReturnType> => {
-    //Get and cache static information
-    if (!_hostStaticDataCache) {
-        //This errors out on pterodactyl egg
-        let osUsername = 'unknown';
-        try {
-            const userInfo = os.userInfo();
-            osUsername = userInfo.username;
-        } catch (error) {
-            /* os.userInfo() throws on Pterodactyl */
-        }
-
-        try {
-            const cpuStats = await si.cpu();
-            const cpuSpeed = cpuStats.speedMin ?? cpuStats.speed;
-
-            _hostStaticDataCache = {
-                nodeVersion: process.version,
-                username: osUsername,
-                osDistro: await getOsDistro(),
-                cpu: {
-                    manufacturer: cpuStats.manufacturer,
-                    brand: cpuStats.brand,
-                    speedMin: cpuSpeed,
-                    speedMax: cpuStats.speedMax,
-                    physicalCores: cpuStats.physicalCores,
-                    cores: cpuStats.cores,
-                },
-            };
-        } catch (error) {
-            console.error('Error getting Host static data.');
-            console.verbose.dir(error);
-            return {
-                error: 'Failed to retrieve host static data. <br>Check the terminal for more information (if verbosity is enabled)',
-            };
-        }
+    const staticData = await ensureHostStaticDataCache();
+    if (!staticData) {
+        return {
+            error: 'Failed to retrieve host static data. <br>Check the terminal for more information (if verbosity is enabled)',
+        };
     }
 
     //Get dynamic info (mem/cpu usage) and prepare output

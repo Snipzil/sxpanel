@@ -1,23 +1,18 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangleIcon, GavelIcon, ClockIcon } from 'lucide-react';
-import PageCalloutRow, { PageCalloutProps } from '@/components/PageCalloutRow';
-import { PageHeader } from '@/components/page-header';
+import { memo, useCallback, useMemo, useState } from 'react';
+import type { HistoryTableSearchType } from '@shared/historyApiTypes';
 import {
-    HistorySearchBox,
-    HistorySearchBoxReturnStateType,
-    SEARCH_ANY_STRING,
     availableSearchTypes,
-} from './HistorySearchBox';
-import HistoryTable from './HistoryTable';
-import { HistoryStatsResp, HistoryTableSearchType } from '@shared/historyApiTypes';
-import { useBackendApi } from '@/hooks/fetch';
+    SEARCH_ANY_STRING,
+    type HistorySearchReturnState,
+} from '@/pages/History/historySearchConfig';
+import { HistoryHeaderBand } from './HistoryHeaderBand';
+import { HistorySearchBar } from './HistorySearchBar';
+import { HistoryList } from './HistoryList';
+import { useHistoryStats } from './useHistoryStats';
 
-//Memoized components
-const HistorySearchBoxMemo = memo(HistorySearchBox);
-const HistoryTableMemo = memo(HistoryTable);
-const PageCalloutRowMemo = memo(PageCalloutRow);
+const HistorySearchBarMemo = memo(HistorySearchBar);
+const HistoryListMemo = memo(HistoryList);
 
-//Helpers for storing search and filters in URL
 const updateUrlSearchParams = (
     search: HistoryTableSearchType,
     filterByType: string | undefined,
@@ -31,21 +26,21 @@ const updateUrlSearchParams = (
         newUrl.searchParams.delete('searchType');
         newUrl.searchParams.delete('searchQuery');
     }
-    if (filterByType && filterByType !== '!any') {
+    if (filterByType && filterByType !== SEARCH_ANY_STRING) {
         newUrl.searchParams.set('filterbyType', filterByType);
     } else {
         newUrl.searchParams.delete('filterbyType');
     }
-    if (filterByAdmin && filterByAdmin !== '!any') {
+    if (filterByAdmin && filterByAdmin !== SEARCH_ANY_STRING) {
         newUrl.searchParams.set('filterbyAdmin', filterByAdmin);
     } else {
         newUrl.searchParams.delete('filterbyAdmin');
     }
     window.history.replaceState({}, '', newUrl);
 };
+
 const getInitialState = () => {
     const params = new URLSearchParams(window.location.search);
-    //NOTE: unlike the PlayersPage, I'm not really validating the filters here
     const validSearchTypes = availableSearchTypes.map((f) => f.value) as string[];
     const searchType = params.get('searchType');
     const searchQuery = params.get('searchQuery');
@@ -62,29 +57,13 @@ const getInitialState = () => {
                   },
         filterByType: params.get('filterbyType') ?? SEARCH_ANY_STRING,
         filterByAdmin: params.get('filterbyAdmin') ?? SEARCH_ANY_STRING,
-    } satisfies HistorySearchBoxReturnStateType;
+    } satisfies HistorySearchReturnState;
 };
 
 export default function HistoryPage() {
-    const [calloutData, setCalloutData] = useState<HistoryStatsResp | undefined>(undefined);
-    const [searchBoxReturn, setSearchBoxReturn] = useState<HistorySearchBoxReturnStateType | undefined>(undefined);
-    const statsApi = useBackendApi<HistoryStatsResp>({
-        method: 'GET',
-        path: '/history/stats',
-        abortOnUnmount: true,
-    });
+    const { stats, isLoading: statsLoading } = useHistoryStats();
+    const [searchBoxReturn, setSearchBoxReturn] = useState<HistorySearchReturnState | undefined>(undefined);
 
-    //Callout data
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only fetch; statsApi identity changes each render
-    useEffect(() => {
-        statsApi({
-            success(data) {
-                setCalloutData(data);
-            },
-        });
-    }, []);
-
-    //HistorySearchBox handlers
     const doSearch = useCallback(
         (search: HistoryTableSearchType, filterByType: string | undefined, filterByAdmin: string | undefined) => {
             setSearchBoxReturn({ search, filterByType, filterByAdmin });
@@ -94,50 +73,24 @@ export default function HistoryPage() {
     );
     const initialState = useMemo(getInitialState, []);
 
-    const calloutRowData = useMemo(() => {
-        const hasCalloutData = calloutData && !('error' in calloutData);
-        return [
-            {
-                label: 'Total Warns',
-                value: hasCalloutData ? calloutData.totalWarns : false,
-                icon: <AlertTriangleIcon />,
-            },
-            {
-                label: 'New Warns Last 7d',
-                value: hasCalloutData ? calloutData.warnsLast7d : false,
-                icon: <AlertTriangleIcon />,
-                prefix: '+',
-            },
-            {
-                label: 'Total Bans',
-                value: hasCalloutData ? calloutData.totalBans : false,
-                icon: <GavelIcon />,
-            },
-            {
-                label: 'New Bans Last 7d',
-                value: hasCalloutData ? calloutData.bansLast7d : false,
-                icon: <GavelIcon />,
-                prefix: '+',
-            },
-        ] satisfies PageCalloutProps[];
-    }, [calloutData]);
+    const adminStats = stats && !('error' in stats) ? stats.groupedByAdmins : [];
 
     return (
         <div className="h-contentvh flex w-full min-w-96 flex-col">
-            <PageHeader title="History" icon={<ClockIcon className="size-5" />} />
+            <HistoryHeaderBand
+                totalWarns={stats && !('error' in stats) ? stats.totalWarns : undefined}
+                warnsLast7d={stats && !('error' in stats) ? stats.warnsLast7d : undefined}
+                totalBans={stats && !('error' in stats) ? stats.totalBans : undefined}
+                bansLast7d={stats && !('error' in stats) ? stats.bansLast7d : undefined}
+                statsLoading={statsLoading}
+            />
 
-            <PageCalloutRowMemo callouts={calloutRowData} />
-
-            {calloutData && !('error' in calloutData) ? (
-                <HistorySearchBoxMemo
-                    doSearch={doSearch}
-                    initialState={initialState}
-                    adminStats={calloutData.groupedByAdmins}
-                />
+            {stats && !('error' in stats) ? (
+                <HistorySearchBarMemo doSearch={doSearch} initialState={initialState} adminStats={adminStats} />
             ) : null}
 
             {searchBoxReturn ? (
-                <HistoryTableMemo
+                <HistoryListMemo
                     search={searchBoxReturn.search}
                     filterByType={searchBoxReturn.filterByType}
                     filterByAdmin={searchBoxReturn.filterByAdmin}

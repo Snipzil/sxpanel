@@ -1,21 +1,10 @@
 /**
- * fxPanel Addon — Starter Template (Discord slash command with bridge)
+ * Discord command that reuses server routes (starter-greeting → POST /greeting).
  *
- * This command demonstrates the current addon Discord ergonomics surface.
- * It uses:
- * - autocomplete helpers for slash-command options
- * - namespaced button and modal helpers
- * - a bridge-backed addon route so privileged logic stays on the server side
+ * Bot runs in the standalone `bot/` process; privileged work stays in server/index.js.
+ * `createAddonDiscordSdk` handles namespaced button/modal IDs and requester payloads.
  *
- * Why this pattern exists:
- * - Discord commands run inside the standalone `bot/` runtime.
- * - Your addon's privileged logic should usually stay in `server/index.js`.
- * - `createAddonDiscordSdk({ addonId, bridge }).addonRoute(...)` lets the
- *   command ask fxPanel core to proxy a request into your addon's existing
- *   server routes without rebuilding the requester payload by hand.
- *
- * That means permission checks, storage access, and other addon logic can live
- * in one place instead of being duplicated inside Discord command files.
+ * Docs: addon-development.md → Discord Bot Addons
  */
 
 import { createAddonDiscordSdk } from 'addon-sdk/discord';
@@ -30,7 +19,7 @@ import {
     TextInputStyle,
 } from 'discord.js';
 
-// Update this when you copy/rename the starter template.
+// Keep in sync with addon.json → id
 const ADDON_ID = 'addon-starter-template';
 const presetGreetingNames = ['fxPanel', 'Discord', 'Server Owner', 'there'];
 
@@ -56,12 +45,9 @@ const buildCustomizeButton = (discord, name) => {
 export default {
     data: new SlashCommandBuilder()
         .setName('starter-greeting')
-        .setDescription('Example command that uses addon autocomplete, buttons, modals, and bridge routes.')
+        .setDescription('Ping the shift board greeting route (autocomplete + modal demo).')
         .addStringOption((option) => {
-            return option
-                .setName('name')
-                .setDescription('Who should the greeting mention?')
-                .setAutocomplete(true);
+            return option.setName('name').setDescription('Who should the greeting mention?').setAutocomplete(true);
         }),
 
     async autocomplete(interaction, bridge) {
@@ -77,7 +63,6 @@ export default {
     async execute(interaction, bridge) {
         const discord = createAddonDiscordSdk({ addonId: ADDON_ID, bridge });
         const requestedName = interaction.options.getString('name') ?? interaction.member?.displayName ?? 'there';
-
         const response = await buildGreetingPayload(discord, interaction, requestedName);
 
         if (response?.status !== 200) {
@@ -99,9 +84,11 @@ export default {
     buttons: {
         async editGreeting(interaction, bridge, context) {
             const discord = createAddonDiscordSdk({ addonId: ADDON_ID, bridge });
-            const currentName = typeof context?.state?.name === 'string' && context.state.name.trim().length
-                ? context.state.name.trim().slice(0, 32)
-                : interaction.member?.displayName ?? 'there';
+            const currentName =
+                typeof context?.state?.name === 'string' && context.state.name.trim().length
+                    ? context.state.name.trim().slice(0, 32)
+                    : (interaction.member?.displayName ?? 'there');
+
             const modal = discord.interactions.modal(new ModalBuilder(), 'submitGreeting', {
                 title: 'Customize greeting',
                 state: { previousName: currentName },

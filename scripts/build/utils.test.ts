@@ -8,6 +8,7 @@ import {
     copyDirectoryIfDifferent,
     shouldCopyStaticEntry,
     shouldSyncStaticContents,
+    shouldWipeCopyDestination,
 } from './utils';
 
 const tempDirs: string[] = [];
@@ -35,7 +36,7 @@ suite('clearCopyDestination', () => {
 
         fs.mkdirSync(srcDir, { recursive: true });
         fs.mkdirSync(path.join(destDir, 'nested', '.git', 'objects'), { recursive: true });
-        fs.writeFileSync(path.join(srcDir, 'addon.lua'), 'print(\'new\')');
+        fs.writeFileSync(path.join(srcDir, 'addon.lua'), "print('new')");
         fs.writeFileSync(path.join(destDir, 'stale.txt'), 'old');
         fs.writeFileSync(path.join(destDir, 'nested', 'stale.lua'), 'old');
         fs.writeFileSync(path.join(destDir, 'nested', '.git', 'objects', 'keep-me-out'), 'old');
@@ -58,7 +59,7 @@ suite('shouldCopyStaticEntry', () => {
 
         fs.mkdirSync(path.join(srcDir, 'scripts', '.git', 'objects'), { recursive: true });
         fs.writeFileSync(path.join(srcDir, 'scripts', '.git', 'config'), '[core]');
-        fs.writeFileSync(path.join(srcDir, 'scripts', 'runtime.lua'), 'print(\'ok\')');
+        fs.writeFileSync(path.join(srcDir, 'scripts', 'runtime.lua'), "print('ok')");
 
         fs.cpSync(srcDir, destDir, { recursive: true, filter: shouldCopyStaticEntry });
 
@@ -68,13 +69,21 @@ suite('shouldCopyStaticEntry', () => {
 });
 
 suite('shouldSyncStaticContents', () => {
-    it('skips addon contents for dev sync events', () => {
-        expect(shouldSyncStaticContents('addons/', 'change')).toBe(false);
-        expect(shouldSyncStaticContents('addons/', 'init')).toBe(false);
-    });
-
-    it('still syncs addon contents for publish events', () => {
+    it('syncs addon contents for dev and publish events', () => {
+        expect(shouldSyncStaticContents('addons/', 'change')).toBe(true);
+        expect(shouldSyncStaticContents('addons/', 'init')).toBe(true);
         expect(shouldSyncStaticContents('addons/', 'publish')).toBe(true);
+    });
+});
+
+suite('shouldWipeCopyDestination', () => {
+    it('merge-copies addons during dev but wipes them on publish', () => {
+        expect(shouldWipeCopyDestination('addons/', 'init')).toBe(false);
+        expect(shouldWipeCopyDestination('addons/', 'change')).toBe(false);
+        expect(shouldWipeCopyDestination('addons/', 'add')).toBe(false);
+        expect(shouldWipeCopyDestination('addons/', 'unlink')).toBe(false);
+        expect(shouldWipeCopyDestination('addons/', 'publish')).toBe(true);
+        expect(shouldWipeCopyDestination('resource/', 'change')).toBe(true);
     });
 });
 

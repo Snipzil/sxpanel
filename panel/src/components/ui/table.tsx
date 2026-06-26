@@ -20,11 +20,7 @@ const TableBody = ({ className, ref, ...props }: React.ComponentPropsWithRef<'tb
 TableBody.displayName = 'TableBody';
 
 const TableFooter = ({ className, ref, ...props }: React.ComponentPropsWithRef<'tfoot'>) => (
-    <tfoot
-        ref={ref}
-        className={cn('bg-muted/50 border-t font-medium last:[&>tr]:border-b-0', className)}
-        {...props}
-    />
+    <tfoot ref={ref} className={cn('bg-muted/50 border-t font-medium last:[&>tr]:border-b-0', className)} {...props} />
 );
 TableFooter.displayName = 'TableFooter';
 

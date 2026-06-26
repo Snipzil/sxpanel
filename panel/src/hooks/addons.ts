@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback, useRef } from 'react';
+import { useEffect, useReducer, useCallback, useRef, useState } from 'react';
 import React from 'react';
 import { useAuthedFetcher } from '@/hooks/fetch';
 import { useCsrfToken, useAdminPerms } from '@/hooks/auth';
@@ -56,11 +56,18 @@ type AddonLoaderState = {
 };
 
 type AddonLoaderAction =
+    | { type: 'loading' }
     | { type: 'loaded'; addons: LoadedAddon[] }
     | { type: 'failed'; error: string };
 
 function addonLoaderReducer(state: AddonLoaderState, action: AddonLoaderAction): AddonLoaderState {
     switch (action.type) {
+        case 'loading':
+            return {
+                ...state,
+                loading: true,
+                error: null,
+            };
         case 'loaded':
             if (state.addons === action.addons && !state.loading && state.error === null) {
                 return state;
@@ -100,17 +107,41 @@ function resolveNamedComponent(
     return matchedKey ? map[matchedKey] : undefined;
 }
 
+const RESERVED_ADDON_EXPORT_KEYS = new Set(['default', 'pages', 'widgets', 'settings']);
+
+function collectNamedComponentExports(raw: unknown): Record<string, React.ComponentType<any>> {
+    if (!raw || typeof raw !== 'object') return {};
+
+    const map: Record<string, React.ComponentType<any>> = {};
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+        if (RESERVED_ADDON_EXPORT_KEYS.has(key)) continue;
+        if (typeof value === 'function') {
+            map[key] = value as React.ComponentType<any>;
+        }
+    }
+    return map;
+}
+
 function normalizeAddonModuleExports(raw: any): AddonPanelModule {
     const rawDefault = raw?.default;
+    const namedExports = collectNamedComponentExports(raw);
 
-    const pages = asComponentMap(
+    let pages = asComponentMap(
         raw?.pages ??
             rawDefault?.pages ??
             // Legacy shape: module exports page components directly
             (rawDefault && typeof rawDefault === 'object' ? rawDefault : undefined),
     );
 
-    const widgets = asComponentMap(raw?.widgets ?? rawDefault?.widgets);
+    let widgets = asComponentMap(raw?.widgets ?? rawDefault?.widgets);
+
+    // Starter templates and older addons may export components by name only.
+    if (Object.keys(pages).length === 0 && Object.keys(namedExports).length > 0) {
+        pages = { ...namedExports };
+    }
+    if (Object.keys(widgets).length === 0 && Object.keys(namedExports).length > 0) {
+        widgets = { ...namedExports };
+    }
 
     const settings = raw?.settings ?? rawDefault?.settings;
 
@@ -285,6 +316,8 @@ async function importAddonEntry(entryUrl: string): Promise<any> {
 // Singleton state so we don't re-fetch on every mount
 let cachedAddons: LoadedAddon[] | null = null;
 let loadPromise: Promise<LoadedAddon[]> | null = null;
+let cacheGeneration = 0;
+const addonReloadSubscribers = new Set<() => void>();
 const loadedAddonStyleUrls = new Set<string>();
 // Module-level token updated by the hook so the txAddonApi getter always returns the live value
 let currentCsrfToken: string | null = null;
@@ -326,13 +359,13 @@ function ensureAddonPanelStyleLoaded(addonId: string, stylesUrl: string | null |
 export function useAddonLoader() {
     const fetcher = useAuthedFetcher();
     const csrfToken = useCsrfToken();
+    const [reloadGeneration, setReloadGeneration] = useState(cacheGeneration);
     const [state, dispatch] = useReducer(addonLoaderReducer, {
         addons: cachedAddons ?? [],
         loading: !cachedAddons,
         error: null,
     });
     const mountedRef = useRef(true);
-    const hydratedCachedAddonsRef = useRef(false);
     const { addons, loading, error } = state;
 
     useEffect(() => {
@@ -348,11 +381,27 @@ export function useAddonLoader() {
     }, [csrfToken]);
 
     useEffect(() => {
-        if (cachedAddons) {
-            if (!hydratedCachedAddonsRef.current) {
-                hydratedCachedAddonsRef.current = true;
-                dispatch({ type: 'loaded', addons: cachedAddons });
-            }
+        const bumpReload = () => setReloadGeneration(cacheGeneration);
+        addonReloadSubscribers.add(bumpReload);
+        return () => {
+            addonReloadSubscribers.delete(bumpReload);
+        };
+    }, []);
+
+    useEffect(() => {
+        const socket = getSocket();
+        const handleAddonReload = () => {
+            resetAddonCache();
+        };
+        socket.on('addonReloaded', handleAddonReload);
+        return () => {
+            socket.off('addonReloaded', handleAddonReload);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (cachedAddons && reloadGeneration === cacheGeneration) {
+            dispatch({ type: 'loaded', addons: cachedAddons });
             return;
         }
 
@@ -365,6 +414,9 @@ export function useAddonLoader() {
             return;
         }
 
+        if (mountedRef.current) {
+            dispatch({ type: 'loading' });
+        }
         loadPromise = (async () => {
             try {
                 const resp = await fetcher<{ addons: AddonPanelDescriptor[] }>('/addons/panel-manifest');
@@ -397,43 +449,47 @@ export function useAddonLoader() {
 
                 const loaded = await Promise.all(
                     resp.addons.map(async (descriptor) => {
-                    try {
-                        ensureAddonPanelStyleLoaded(descriptor.id, descriptor.stylesUrl);
+                        try {
+                            ensureAddonPanelStyleLoaded(descriptor.id, descriptor.stylesUrl);
 
-                        const entryUrl = descriptor.entryUrl;
-                        if (!entryUrl) {
-                            throw new Error(`Addon ${descriptor.id} missing panel entryUrl in manifest payload.`);
+                            const entryUrl = descriptor.entryUrl;
+                            if (!entryUrl) {
+                                throw new Error(`Addon ${descriptor.id} missing panel entryUrl in manifest payload.`);
+                            }
+
+                            // Load the bundled addon entry module from the backend.
+                            const mod = await importAddonEntry(entryUrl);
+                            const normalized = normalizeAddonModuleExports(mod);
+
+                            return {
+                                descriptor,
+                                module: {
+                                    pages: normalized.pages ?? {},
+                                    widgets: normalized.widgets ?? {},
+                                    settings: descriptor.settingsComponent
+                                        ? (resolveNamedComponent(
+                                              normalized.widgets ?? {},
+                                              descriptor.settingsComponent,
+                                          ) ??
+                                          resolveNamedComponent(normalized.pages ?? {}, descriptor.settingsComponent) ??
+                                          normalized.settings ??
+                                          mod?.[descriptor.settingsComponent])
+                                        : undefined,
+                                },
+                            } satisfies LoadedAddon;
+                        } catch (err) {
+                            console.error(`[AddonLoader] Failed to load addon ${descriptor.id}:`, err);
+                            return {
+                                descriptor,
+                                module: { pages: {}, widgets: {} },
+                                error: (err as Error).message,
+                            } satisfies LoadedAddon;
                         }
-
-                        // Load the bundled addon entry module from the backend.
-                        const mod = await importAddonEntry(entryUrl);
-                        const normalized = normalizeAddonModuleExports(mod);
-
-                        return {
-                            descriptor,
-                            module: {
-                                pages: normalized.pages ?? {},
-                                widgets: normalized.widgets ?? {},
-                                settings: descriptor.settingsComponent
-                                    ? (resolveNamedComponent(normalized.widgets ?? {}, descriptor.settingsComponent) ??
-                                      resolveNamedComponent(normalized.pages ?? {}, descriptor.settingsComponent) ??
-                                      normalized.settings ??
-                                      mod?.[descriptor.settingsComponent])
-                                    : undefined,
-                            },
-                        } satisfies LoadedAddon;
-                    } catch (err) {
-                        console.error(`[AddonLoader] Failed to load addon ${descriptor.id}:`, err);
-                        return {
-                            descriptor,
-                            module: { pages: {}, widgets: {} },
-                            error: (err as Error).message,
-                        } satisfies LoadedAddon;
-                    }
                     }),
                 );
 
                 cachedAddons = loaded;
+                cacheGeneration = reloadGeneration;
                 return loaded;
             } catch (err) {
                 console.error('[AddonLoader] Failed to fetch addon manifest:', err);
@@ -441,7 +497,10 @@ export function useAddonLoader() {
                     dispatch({ type: 'failed', error: (err as Error).message });
                 }
                 cachedAddons = [];
+                cacheGeneration = reloadGeneration;
                 return [];
+            } finally {
+                loadPromise = null;
             }
         })();
 
@@ -450,7 +509,7 @@ export function useAddonLoader() {
                 dispatch({ type: 'loaded', addons: result });
             }
         });
-    }, [fetcher]);
+    }, [fetcher, reloadGeneration]);
 
     // Resolve pages from all loaded addons
     const pages: AddonPageRoute[] = [];
@@ -460,7 +519,13 @@ export function useAddonLoader() {
         for (const page of addon.descriptor.pages) {
             const Component =
                 resolveNamedComponent(addon.module.pages ?? {}, page.component) ??
-                getAddonFallbackPage(addonId, page.title, addon.error);
+                getAddonFallbackPage(
+                    addonId,
+                    page.title,
+                    addon.error ??
+                        `Component "${page.component}" was not exported from the addon panel entry ` +
+                            `(expected pages.${page.component}, default.pages.${page.component}, or a matching named export).`,
+                );
             pages.push({
                 addonId,
                 path: `/addon/${addonId}${page.path}`,
@@ -526,4 +591,8 @@ export function useAddonSettings(addonId: string): React.ComponentType<any> | un
 export function resetAddonCache() {
     cachedAddons = null;
     loadPromise = null;
+    cacheGeneration += 1;
+    for (const notify of addonReloadSubscribers) {
+        notify();
+    }
 }

@@ -80,7 +80,11 @@ const main = async () => {
             process.exit(1);
         }
         console.log(`Downloading recipe from ${recipeUrl.href}...`);
-        recipeText = await got(recipeUrl, { timeout: { request: 30_000 }, followRedirect: true, maxRedirects: 5 }).text();
+        recipeText = await got(recipeUrl, {
+            timeout: { request: 30_000 },
+            followRedirect: true,
+            maxRedirects: 5,
+        }).text();
     } else {
         const recipePath = path.resolve(args.recipe);
         console.log(`Loading recipe from ${recipePath}...`);

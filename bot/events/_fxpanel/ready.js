@@ -26,7 +26,7 @@ module.exports = {
 
             const guildId = snapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? undefined;
             const guild = guildId
-                ? client.guilds.cache.get(guildId) ?? (await client.guilds.fetch(guildId).catch(() => null))
+                ? (client.guilds.cache.get(guildId) ?? (await client.guilds.fetch(guildId).catch(() => null)))
                 : null;
             if (!guildId || !guild) {
                 sendFatalStatus(bridge, {

@@ -1,5 +1,5 @@
 const modulename = 'WebServer:Intercom';
-import { txEnv } from '@core/globalData';
+import { txEnv, txHostConfig } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import {
@@ -27,13 +27,95 @@ import { resolveScreenshot } from './player/screenshot';
 import { handleSpectateFrame } from './player/liveSpectate';
 import { z } from 'zod';
 import { reportTypes, reportStatuses, ticketStatuses, ticketPriorities } from '@shared/ticketApiTypes';
+import { getDisplayPlayerCount } from '@lib/fxserver/httpHealthCheck';
+import { applyPlayerTagChange } from '@lib/player/playerTags';
 import got from '@lib/got';
+import { resolveTelemetryPanelUrl } from '@lib/panelPublicUrl';
+import { fetchFreshResourceReport, isValidResourceName } from './resources/shared';
 import { randomUUID } from 'node:crypto';
 const console = consoleFactory(modulename);
+
+const STATS_INVENTORY_REPORT_TIMEOUT_MS = 5000;
+
+const isString = (val: unknown): val is string => typeof val === 'string' && val.length > 0;
 
 const STATS_ENDPOINT = 'https://fxapi.fxpanel.org/api/stats';
 
 let statsInstallId: string | null = null;
+
+type TelemetryGameName = 'fivem' | 'redm';
+
+const resolveTelemetryGameName = (): TelemetryGameName | undefined => {
+    const cached = txCore.cacheStore.get('fxsRuntime:gameName');
+    if (cached === 'fivem' || cached === 'redm') return cached;
+
+    if (txHostConfig.forceGameName === 'fivem' || txHostConfig.forceGameName === 'redm') {
+        return txHostConfig.forceGameName;
+    }
+
+    const dataPath = String(txConfig.server.dataPath ?? '').toLowerCase();
+    if (dataPath.includes('redm') || dataPath.includes('rdr3')) return 'redm';
+
+    const recipe = txCore.cacheStore.get('deployer:recipe');
+    if (typeof recipe === 'string' && /redm|rdr3/i.test(recipe)) return 'redm';
+
+    return undefined;
+};
+
+const buildDashboardTelemetry = async ():
+    | {
+          fxsVersion?: number;
+          locale?: string;
+          panelUptimeSeconds?: number;
+          panelUrl?: string;
+          adminCount?: number;
+          features?: {
+              discordBot: boolean;
+              banlist: boolean;
+              whitelist: boolean;
+              menuEnabled: boolean;
+          };
+          moderation?: {
+              bans: number;
+              warns: number;
+              kicks: number;
+              whitelists: number;
+          };
+      }
+    | undefined => {
+    const locale = txCore.cacheStore.get('fxsRuntime:locale');
+    const adminCount = Array.isArray(txCore.adminStore.admins) ? txCore.adminStore.admins.length : 1;
+
+    let moderation: { bans: number; warns: number; kicks: number; whitelists: number } | undefined;
+    try {
+        const dbStats = txCore.database.stats.getDatabaseStats();
+        moderation = {
+            bans: dbStats.bans,
+            warns: dbStats.warns,
+            kicks: dbStats.kicks,
+            whitelists: dbStats.whitelists,
+        };
+    } catch {
+        moderation = undefined;
+    }
+
+    const panelUrl = await resolveTelemetryPanelUrl();
+
+    return {
+        fxsVersion: txEnv.fxsVersion,
+        ...(typeof locale === 'string' && locale.length ? { locale } : {}),
+        panelUptimeSeconds: Math.round(process.uptime()),
+        ...(panelUrl ? { panelUrl } : {}),
+        adminCount,
+        features: {
+            discordBot: txConfig.discordBot.enabled,
+            banlist: txConfig.banlist.enabled,
+            whitelist: txConfig.whitelist.enabled,
+            menuEnabled: txConfig.gameFeatures.menuEnabled,
+        },
+        ...(moderation ? { moderation } : {}),
+    };
+};
 
 const sendStatsToFxApi = async () => {
     if (!txConfig.general.enableTelemetry) return;
@@ -45,7 +127,7 @@ const sendStatsToFxApi = async () => {
         }
     }
 
-    const playerCount = txCore.fxPlayerlist.getPlayerList().length;
+    const playerCount = getDisplayPlayerCount();
     const maxClients = txCore.cacheStore.get('fxsRuntime:maxClients') as number | null;
 
     let dbStats = { players: 0, playTime: 0 };
@@ -55,7 +137,21 @@ const sendStatsToFxApi = async () => {
         // database not ready yet
     }
 
-    const payload = {
+    const projectName = txCore.cacheStore.get('fxsRuntime:projectName') as string | undefined;
+    const gameName = resolveTelemetryGameName();
+    const cfxId = txCore.cacheStore.getTyped('fxsRuntime:cfxId', isString) ?? undefined;
+    const dashboard = await buildDashboardTelemetry();
+
+    if (txCore.fxRunner.child?.isAlive) {
+        const reportResult = await fetchFreshResourceReport(STATS_INVENTORY_REPORT_TIMEOUT_MS);
+        if (!reportResult.ok) {
+            console.verbose.warn('Stats inventory refresh skipped', { reason: reportResult.error });
+        }
+    }
+
+    const inventory = buildTelemetryInventory();
+
+    const payload: Record<string, unknown> = {
         installId: statsInstallId,
         version: txEnv.txaVersion,
         timestamp: Date.now(),
@@ -64,18 +160,72 @@ const sendStatsToFxApi = async () => {
             name: txConfig.general.serverName,
             playerSlots: maxClients ?? 0,
             currentPlayers: playerCount,
+            ...(projectName ? { projectName } : {}),
+            ...(gameName ? { gameName } : {}),
+            ...(cfxId ? { cfxId } : {}),
         },
         stats: {
             totalUniquePlayers: dbStats.players,
             totalPlayTimeSeconds: dbStats.playTime,
         },
+        ...(inventory ? { inventory } : {}),
+        ...(dashboard ? { dashboard } : {}),
     };
 
     try {
-        await got.post(STATS_ENDPOINT, { json: payload, timeout: { send: 5000, response: 10000 } });
+        await got.post(STATS_ENDPOINT, {
+            json: payload,
+            timeout: { send: 5000, response: 30_000 },
+            retry: { limit: 0 },
+        });
     } catch (error) {
         console.verbose.warn('Failed to send stats to fxapi.fxpanel.org', { error: (error as Error).message });
     }
+};
+
+const buildTelemetryInventory = ():
+    | {
+          total: number;
+          started: number;
+          stopped: number;
+          labels: string[];
+          entries: { name: string; status: 'started' | 'stopped' }[];
+      }
+    | undefined => {
+    const report = txCore.fxResources.resourceReport;
+    if (!report?.resources || !Array.isArray(report.resources)) {
+        return undefined;
+    }
+
+    const entries = report.resources
+        .filter((r: { name?: string }) => r?.name && isValidResourceName(r.name))
+        .map((entry: { name: string; status?: string }) => {
+            const status = entry.status === 'started' ? 'started' : 'stopped';
+            return { name: entry.name, status };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (!entries.length) return undefined;
+
+    let started = 0;
+    let stopped = 0;
+    for (const entry of entries) {
+        if (entry.status === 'started') {
+            started++;
+        } else {
+            stopped++;
+        }
+    }
+
+    const capped = entries.slice(0, 200);
+
+    return {
+        total: entries.length,
+        started,
+        stopped,
+        labels: capped.map((entry) => entry.name),
+        entries: capped,
+    };
 };
 
 // Send stats every 5 minutes
@@ -150,6 +300,15 @@ const spectateFrameSchema = z
 const statsSchema = z
     .object({
         ...baseIntercomSchema,
+    })
+    .strict();
+
+const playerTagSchema = z
+    .object({
+        ...baseIntercomSchema,
+        action: z.enum(['add', 'remove']),
+        netId: z.number().int().positive(),
+        tagId: z.string().min(1).max(32),
     })
     .strict();
 
@@ -351,6 +510,7 @@ const scopeValidators = {
     screenshotResult: screenshotResultSchema,
     spectateFrame: spectateFrameSchema,
     stats: statsSchema,
+    playerTag: playerTagSchema,
 } as const;
 
 type IntercomScope = keyof typeof scopeValidators;
@@ -375,6 +535,26 @@ const validateScopeData = <S extends IntercomScope>(
     }
 
     return { success: true, data: result.data as ScopeData<S> };
+};
+
+const INTERCOM_REPORTS_PERM = 'players.reports';
+
+/**
+ * Binds intercom `adminName` to a real admin with reports permission.
+ * Prevents callers with only `luaComToken` from impersonating arbitrary admins.
+ */
+const resolveIntercomAdminName = (adminName: string): { ok: true; name: string } | { ok: false; error: string } => {
+    const stored = txCore.adminStore.getAdminByName(adminName);
+    if (!stored) {
+        console.warn(`Intercom rejected unknown adminName: ${adminName}`);
+        return { ok: false, error: 'Invalid admin.' };
+    }
+    const authed = stored.getAuthed();
+    if (!authed.hasPermission(INTERCOM_REPORTS_PERM)) {
+        console.warn(`Intercom rejected admin without ${INTERCOM_REPORTS_PERM}: ${adminName}`);
+        return { ok: false, error: 'Permission denied.' };
+    }
+    return { ok: true, name: authed.name };
 };
 
 /**
@@ -414,6 +594,12 @@ export default async function Intercom(ctx: InitializedCtx) {
         // prevents accidental logging or forwarding of the secret value.
         (result.data as Record<string, unknown>).txAdminToken = true;
         return { ok: true, data: result.data };
+    };
+
+    const requireIntercomAdmin = (adminName: string) => {
+        const resolved = resolveIntercomAdminName(adminName);
+        if (!resolved.ok) return { error: resolved.error } as const;
+        return { adminName: resolved.name } as const;
     };
 
     //Delegate to the specific scope functions
@@ -458,22 +644,30 @@ export default async function Intercom(ctx: InitializedCtx) {
         case 'reportAdminList': {
             const v = validateBody('reportAdminList');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
             return ctx.send(reportsAdminList());
         }
         case 'reportAdminDetail': {
             const v = validateBody('reportAdminDetail');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
             return ctx.send(reportsAdminDetail(v.data.reportId));
         }
         case 'reportAdminMessage': {
             const v = validateBody('reportAdminMessage');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            return ctx.send(reportsAdminMessage(v.data.reportId, v.data.adminName, v.data.content));
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
+            return ctx.send(reportsAdminMessage(v.data.reportId, admin.adminName, v.data.content));
         }
         case 'reportAdminStatus': {
             const v = validateBody('reportAdminStatus');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            return ctx.send(reportsAdminStatus(v.data.reportId, v.data.status, v.data.adminName));
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
+            return ctx.send(reportsAdminStatus(v.data.reportId, v.data.status, admin.adminName));
         }
         case 'ticketCreate': {
             const v = validateBody('ticketCreate');
@@ -516,32 +710,44 @@ export default async function Intercom(ctx: InitializedCtx) {
         case 'ticketAdminList': {
             const v = validateBody('ticketAdminList');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
             return ctx.send(ticketAdminList());
         }
         case 'ticketAdminDetail': {
             const v = validateBody('ticketAdminDetail');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
             return ctx.send(ticketAdminDetail(v.data.ticketId));
         }
         case 'ticketAdminMessage': {
             const v = validateBody('ticketAdminMessage');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            return ctx.send(ticketAdminMessage(v.data.ticketId, v.data.adminName, v.data.content, v.data.imageUrls));
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
+            return ctx.send(ticketAdminMessage(v.data.ticketId, admin.adminName, v.data.content, v.data.imageUrls));
         }
         case 'ticketAdminStatus': {
             const v = validateBody('ticketAdminStatus');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            return ctx.send(ticketAdminStatus(v.data.ticketId, v.data.status, v.data.adminName));
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
+            return ctx.send(ticketAdminStatus(v.data.ticketId, v.data.status, admin.adminName));
         }
         case 'ticketAdminNote': {
             const v = validateBody('ticketAdminNote');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            return ctx.send(ticketAdminNote(v.data.ticketId, v.data.adminName, v.data.content));
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
+            return ctx.send(ticketAdminNote(v.data.ticketId, admin.adminName, v.data.content));
         }
         case 'ticketAdminClaim': {
             const v = validateBody('ticketAdminClaim');
             if (!v.ok) return ctx.utils.error(400, v.errorMsg);
-            return ctx.send(ticketAdminClaim(v.data.ticketId, v.data.adminName));
+            const admin = requireIntercomAdmin(v.data.adminName);
+            if ('error' in admin) return ctx.send({ error: admin.error });
+            return ctx.send(ticketAdminClaim(v.data.ticketId, admin.adminName));
         }
         case 'ticketScreenshotUpload': {
             const v = validateBody('ticketScreenshotUpload');
@@ -562,6 +768,18 @@ export default async function Intercom(ctx: InitializedCtx) {
             );
             handleSpectateFrame(v.data.sessionId, v.data.frameData);
             return ctx.send({ success: true });
+        }
+        case 'playerTag': {
+            const v = validateBody('playerTag');
+            if (!v.ok) return ctx.utils.error(400, v.errorMsg);
+            try {
+                applyPlayerTagChange(v.data.netId, v.data.tagId, v.data.action === 'add');
+                return ctx.send({ success: true });
+            } catch (error) {
+                const message = emsg(error);
+                console.warn(`Intercom playerTag failed (netId=${v.data.netId}, tag=${v.data.tagId}): ${message}`);
+                return ctx.send({ success: false, error: message });
+            }
         }
         default: {
             // All keys of scopeValidators are handled above; this is a compile-time exhaustiveness guard.

@@ -1,5 +1,9 @@
 const { ActionRowBuilder, UserSelectMenuBuilder } = require('discord.js');
-const { normalizeInteractionUpdatePayload, normalizeMessageEditPayload, normalizeMessagePayload } = require('../../componentsV2');
+const {
+    normalizeInteractionUpdatePayload,
+    normalizeMessageEditPayload,
+    normalizeMessagePayload,
+} = require('../../componentsV2');
 const { request } = require('../../bridge/requests');
 const { buildReply, getRequesterPayload, translateBot } = require('../../commands/_fxpanel/common');
 const {
@@ -102,11 +106,17 @@ const handleAddonAutocomplete = async (interaction, client, bridge) => {
     }
 
     try {
-        await command.autocomplete(interaction, bridge, addonCommand ? {
-            addonId: addonCommand.addonId,
-            commandName: interaction.commandName,
-            filePath: addonCommand.filePath,
-        } : undefined);
+        await command.autocomplete(
+            interaction,
+            bridge,
+            addonCommand
+                ? {
+                      addonId: addonCommand.addonId,
+                      commandName: interaction.commandName,
+                      filePath: addonCommand.filePath,
+                  }
+                : undefined,
+        );
     } catch (error) {
         if (addonCommand) {
             recordAddonRuntimeIssue(client, {
@@ -322,7 +332,9 @@ const handlePlayerListPageButton = async (interaction) => {
 const handleTicketButton = async (interaction) => {
     const parsed = parseTicketInteractionId(interaction.customId);
     if (!parsed || parsed.action === ticketAssignSelectAction) {
-        await interaction.reply(buildReply('warning', t(interaction, 'interaction.ticket.invalid_request'), true)).catch(() => {});
+        await interaction
+            .reply(buildReply('warning', t(interaction, 'interaction.ticket.invalid_request'), true))
+            .catch(() => {});
         return;
     }
 
@@ -350,7 +362,9 @@ const handleTicketButton = async (interaction) => {
             return;
         }
 
-        await interaction.reply(buildReply('warning', t(interaction, 'interaction.ticket.no_updated_payload'), true)).catch(() => {});
+        await interaction
+            .reply(buildReply('warning', t(interaction, 'interaction.ticket.no_updated_payload'), true))
+            .catch(() => {});
     } catch (error) {
         const message = t(interaction, 'interaction.ticket.action_failed', {
             message: error instanceof Error ? error.message : String(error),
@@ -369,7 +383,11 @@ const handleTicketAssignSelect = async (interaction) => {
     const assigneeDiscordId = Array.isArray(interaction.values) ? interaction.values[0] : undefined;
     if (!parsed || parsed.action !== ticketAssignSelectAction || !assigneeDiscordId) {
         await interaction
-            .update(toInteractionUpdatePayload(buildReply('warning', t(interaction, 'interaction.ticket.select_member'), true)))
+            .update(
+                toInteractionUpdatePayload(
+                    buildReply('warning', t(interaction, 'interaction.ticket.select_member'), true),
+                ),
+            )
             .catch(() => {});
         return;
     }
@@ -397,7 +415,11 @@ const handleTicketAssignSelect = async (interaction) => {
             await interaction
                 .update(
                     toInteractionUpdatePayload(
-                        buildReply('success', t(interaction, 'interaction.ticket.updated', { ticketId: parsed.ticketId }), true),
+                        buildReply(
+                            'success',
+                            t(interaction, 'interaction.ticket.updated', { ticketId: parsed.ticketId }),
+                            true,
+                        ),
                     ),
                 )
                 .catch(() => {});
@@ -516,7 +538,9 @@ module.exports = {
                         filePath: addonCommand.filePath,
                         message: `/${interaction.commandName} exceeded the configured rate limit.`,
                     });
-                    await interaction.reply(buildAddonRateLimitReply('command', rateLimitResult.resetAt)).catch(() => {});
+                    await interaction
+                        .reply(buildAddonRateLimitReply('command', rateLimitResult.resetAt))
+                        .catch(() => {});
                     return;
                 }
             }

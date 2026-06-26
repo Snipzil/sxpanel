@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AddonDeferralManifestSchema } from './deferralAddonTypes';
 
 //============================================
 // Addon Permissions (hoisted for manifest schema)
@@ -17,11 +18,12 @@ import { z } from 'zod';
  * - `players.read`  — gates read access to player data and player events
  * - `players.write` — gates the players.addTag / removeTag API calls
  * - `ws.push`       — gates server → client WebSocket push events
+ * - `deferral`      — gates dynamic deferral token resolution and deferral-present IPC
  *
  * Approval of an addon still implies full trust: an approved addon is equivalent to code
  * running inside the txAdmin host process for purposes that are not on an IPC boundary.
  */
-export const ADDON_PERMISSIONS = ['storage', 'players.read', 'players.write', 'ws.push'] as const;
+export const ADDON_PERMISSIONS = ['storage', 'players.read', 'players.write', 'ws.push', 'deferral'] as const;
 
 export type AddonPermission = (typeof ADDON_PERMISSIONS)[number];
 const AddonPermissionSchema = z.enum(ADDON_PERMISSIONS);
@@ -184,6 +186,9 @@ export const AddonManifestSchema = z.object({
             defaultPort: z.number().int().min(1).max(65535),
         })
         .optional(),
+
+    /** Declares deferral scenarios and dynamic token keys for the shared Deferral Studio. */
+    deferral: AddonDeferralManifestSchema.optional(),
 });
 
 export type AddonManifest = z.infer<typeof AddonManifestSchema>;
@@ -270,11 +275,33 @@ export type CoreToAddonMessage =
     | { type: 'storage-response'; id: string; payload: { data: unknown; error?: string } }
     | { type: 'api-call-response'; id: string; payload: { data: unknown; error?: string } }
     | { type: 'ws-subscribe'; payload: { sessionId: string } }
-    | { type: 'ws-unsubscribe'; payload: { sessionId: string } };
+    | { type: 'ws-unsubscribe'; payload: { sessionId: string } }
+    | {
+          type: 'deferral-resolve-tokens';
+          id: string;
+          payload: import('./deferralAddonTypes').DeferralResolveTokensContext;
+      };
 
 // Addon → Core messages
+export type AddonDeferralReadyDescriptor = {
+    scenarios: Array<{
+        id: string;
+        label: string;
+        description?: string;
+        group?: string;
+    }>;
+    tokens: string[];
+};
+
 export type AddonToCoreMessage =
-    | { type: 'ready'; payload: { routes: AddonRouteDescriptor[]; publicRoutes?: AddonRouteDescriptor[] } }
+    | {
+          type: 'ready';
+          payload: {
+              routes: AddonRouteDescriptor[];
+              publicRoutes?: AddonRouteDescriptor[];
+              deferral?: AddonDeferralReadyDescriptor;
+          };
+      }
     | {
           type: 'http-response';
           id: string;
@@ -288,7 +315,21 @@ export type AddonToCoreMessage =
     | { type: 'api-call'; id: string; payload: { method: string; args: unknown[] } }
     | { type: 'ws-push'; payload: { event: string; data: unknown } }
     | { type: 'log'; payload: { level: 'info' | 'warn' | 'error'; message: string } }
-    | { type: 'error'; payload: { message: string; stack?: string } };
+    | { type: 'error'; payload: { message: string; stack?: string } }
+    | {
+          type: 'deferral-token-response';
+          id: string;
+          payload: { values: Record<string, string>; error?: string };
+      }
+    | {
+          type: 'deferral-present';
+          payload: {
+              license: string;
+              scenarioId: string;
+              customMessage?: string;
+              playerName?: string;
+          };
+      };
 
 //============================================
 // Panel Manifest API Response
@@ -304,6 +345,10 @@ export interface AddonPanelDescriptor {
     pages: z.infer<typeof AddonPageSchema>[];
     widgets: z.infer<typeof AddonWidgetSchema>[];
     settingsComponent: string | null;
+    deferral: {
+        scenarios: import('./deferralAddonTypes').DeferralAddonScenarioMeta[];
+        tokens: import('./deferralAddonTypes').DeferralAddonTokenMeta[];
+    } | null;
 }
 
 export interface AddonNuiDescriptor {

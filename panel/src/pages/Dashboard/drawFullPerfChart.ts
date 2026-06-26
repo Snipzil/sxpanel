@@ -1,4 +1,12 @@
-import * as d3 from 'd3';
+import { bisector, max, range } from 'd3-array';
+import { axisBottom, axisLeft, axisRight } from 'd3-axis';
+import { color } from 'd3-color';
+import { scaleBand, scaleLinear, scaleSequential, scaleTime } from 'd3-scale';
+import { interpolateCool, interpolateViridis } from 'd3-scale-chromatic';
+import { pointer, select, type BaseType, type Selection } from 'd3-selection';
+import { curveNatural, line } from 'd3-shape';
+import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomTransform } from 'd3-zoom';
+import 'd3-transition';
 import { PerfLifeSpanType, PerfSnapType } from './chartingUtils';
 import { msToShortDuration } from '@/lib/dateTime';
 import { throttle } from 'throttle-debounce';
@@ -55,12 +63,12 @@ export default function drawFullPerfChart({
     showNodeMemory,
 }: drawFullPerfChartProps) {
     //Clear SVG
-    d3.select(svgRef).selectAll('*').remove();
+    select(svgRef).selectAll('*').remove();
 
     //Setup selectors
-    const svg = d3.select<SVGElement, PerfLifeSpanType>(svgRef);
+    const svg = select<SVGElement, PerfLifeSpanType>(svgRef);
     if (svg.empty()) throw new Error('SVG selection failed.');
-    const canvas = d3.select(canvasRef)!;
+    const canvas = select(canvasRef)!;
     if (canvas.empty()) throw new Error('Canvas selection failed.');
     if (!canvasRef?.getContext) {
         throw new Error(`Canvas not supported.`);
@@ -86,28 +94,27 @@ export default function drawFullPerfChart({
         .attr('transform', translate(margins.left, 0));
 
     //Fixed Scales
-    const timeScale = d3.scaleTime().domain([dataStart, dataEnd]).range([0, drawableAreaWidth]);
+    const timeScale = scaleTime().domain([dataStart, dataEnd]).range([0, drawableAreaWidth]);
 
-    const tickBucketsScale = d3
-        .scaleBand()
+    const tickBucketsScale = scaleBand()
         .domain(bucketLabels)
         .range([height - margins.bottom, 0]);
 
-    const histColor = d3.scaleSequential(isDarkMode ? d3.interpolateViridis : d3.interpolateCool).domain([0, 1]);
+    const histColor = scaleSequential(isDarkMode ? interpolateViridis : interpolateCool).domain([0, 1]);
 
     //Line Scales
-    const maxPlayers = d3.max(lifespans, (lspn) => d3.max(lspn.log, (log) => log.players))!;
-    const maxFxsMemory = d3.max(lifespans, (lspn) => d3.max(lspn.log, (log) => log.fxsMemory)) ?? 0;
-    const maxNodeMemory = d3.max(lifespans, (lspn) => d3.max(lspn.log, (log) => log.nodeMemory)) ?? 0;
+    const maxPlayers = max(lifespans, (lspn) => max(lspn.log, (log) => log.players))!;
+    const maxFxsMemory = max(lifespans, (lspn) => max(lspn.log, (log) => log.fxsMemory)) ?? 0;
+    const maxNodeMemory = max(lifespans, (lspn) => max(lspn.log, (log) => log.nodeMemory)) ?? 0;
     const maxPlayersDomain = Math.ceil((maxPlayers + 1) / 5) * 5;
     const lineScalesRange = [height - margins.bottom, margins.top];
-    const playersScale = d3.scaleLinear([0, maxPlayersDomain], lineScalesRange);
-    const fxsMemoryScale = d3.scaleLinear([0, maxFxsMemory || 1], lineScalesRange);
-    const nodeMemoryScale = d3.scaleLinear([0, maxNodeMemory || 1], lineScalesRange);
+    const playersScale = scaleLinear([0, maxPlayersDomain], lineScalesRange);
+    const fxsMemoryScale = scaleLinear([0, maxFxsMemory || 1], lineScalesRange);
+    const nodeMemoryScale = scaleLinear([0, maxNodeMemory || 1], lineScalesRange);
 
     //Axis
-    const timeAxisTicksScale = d3.scaleLinear([382, 1350], [7, 16]);
-    const timeAxis = d3.axisBottom(timeScale).ticks(timeAxisTicksScale(width));
+    const timeAxisTicksScale = scaleLinear([382, 1350], [7, 16]);
+    const timeAxis = axisBottom(timeScale).ticks(timeAxisTicksScale(width));
     // .tickFormat(d3.timeFormat('%H:%M'));
     const timeAxisGroup = svg
         .append('g')
@@ -115,15 +122,14 @@ export default function drawFullPerfChart({
         .attr('class', 'time-axis')
         .call(timeAxis);
 
-    const bucketsAxis = d3.axisRight(tickBucketsScale);
+    const bucketsAxis = axisRight(tickBucketsScale);
     svg.append('g')
         .attr('class', 'buckets-axis')
         .attr('transform', translate(width - margins.right + margins.axis, margins.top))
         .call(bucketsAxis);
 
-    const playersAxisTickValues = maxPlayersDomain <= 7 ? d3.range(maxPlayersDomain + 1) : null;
-    const playersAxis = d3
-        .axisLeft(playersScale)
+    const playersAxisTickValues = maxPlayersDomain <= 7 ? range(maxPlayersDomain + 1) : null;
+    const playersAxis = axisLeft(playersScale)
         .tickFormat((t) => t.toString())
         .tickValues(playersAxisTickValues as any); //integer values only
     if (showPlayerCount) {
@@ -134,7 +140,7 @@ export default function drawFullPerfChart({
     }
 
     if (showFxsMemory && maxFxsMemory) {
-        const fxsMemoryAxis = d3.axisLeft(fxsMemoryScale).tickFormat((t) => t.toString() + ' MB');
+        const fxsMemoryAxis = axisLeft(fxsMemoryScale).tickFormat((t) => t.toString() + ' MB');
         svg.append('g')
             .attr('class', 'fxsmem-axis')
             .attr('transform', translate(margins.left - margins.axis, 0))
@@ -142,7 +148,7 @@ export default function drawFullPerfChart({
     }
 
     if (showNodeMemory && maxNodeMemory) {
-        const nodeMemoryAxis = d3.axisLeft(nodeMemoryScale).tickFormat((t) => t.toString() + ' MB');
+        const nodeMemoryAxis = axisLeft(nodeMemoryScale).tickFormat((t) => t.toString() + ' MB');
         svg.append('g')
             .attr('class', 'nodemem-axis')
             .attr('transform', translate(margins.left - margins.axis, 0))
@@ -153,12 +159,12 @@ export default function drawFullPerfChart({
     let snapshotsDrawn: PerfSnapType[] = [];
     const bucketYCoords = bucketLabels.map((b) => Math.floor(tickBucketsScale(b)!));
     const bucketHeight = Math.ceil(tickBucketsScale.bandwidth());
-    const emptyBucketColor = d3.color(histColor(0))!.darker(1.15).formatHsl();
+    const emptyBucketColor = color(histColor(0))!.darker(1.15).formatHsl();
     // const cssBgHslVar = getComputedStyle(document.documentElement)
     //     .getPropertyValue('--background')
     //     .split(' ').join(', ');
-    // const cssBgParsed = d3.color(`hsl(${cssBgHslVar})`)!;
-    // // const cssBgParsed = d3.color(`#F5F6FA`)!;
+    // const cssBgParsed = color(`hsl(${cssBgHslVar})`)!;
+    // // const cssBgParsed = color(`#F5F6FA`)!;
     // // const canvasBgColor = cssBgParsed.formatHsl();
     // const canvasBgColor = cssBgParsed.darker(1.05).formatHsl();
     // // const canvasBgColor = cssBgParsed.brighter(1.05).formatHsl();
@@ -222,9 +228,7 @@ export default function drawFullPerfChart({
         ];
     };
 
-    const drawLifespan = (
-        lifespanGSel: d3.Selection<d3.BaseType | SVGGElement, PerfLifeSpanType, SVGElement, unknown>,
-    ) => {
+    const drawLifespan = (lifespanGSel: Selection<BaseType | SVGGElement, PerfLifeSpanType, SVGElement, unknown>) => {
         // Close Reason
         lifespanGSel
             .selectAll('text.closeReason')
@@ -244,19 +248,18 @@ export default function drawFullPerfChart({
 
         //FXServer memory
         if (showFxsMemory && maxFxsMemory) {
-            const fxsMemoryLineGenerator = d3
-                .line<PerfSnapType>()
+            const fxsMemoryLineGenerator = line<PerfSnapType>()
                 .defined((d) => d.fxsMemory !== null)
                 .x((d) => timeScale(d.end))
                 .y((d) => fxsMemoryScale(d.fxsMemory as number))
-                .curve(d3.curveNatural);
+                .curve(curveNatural);
             lifespanGSel
                 .selectAll('path.fxsmem-line')
                 .data(prepareLifespanDataItem)
                 .join('path')
                 .attr('class', 'fxsmem-line')
                 .each((d, i, nodes) => {
-                    d3.select(nodes[i])
+                    select(nodes[i])
                         .attr('fill', 'none')
                         .attr('opacity', 0.75)
                         .attr('stroke-dasharray', '4 6')
@@ -270,19 +273,18 @@ export default function drawFullPerfChart({
 
         //Node memory
         if (showNodeMemory && maxNodeMemory) {
-            const nodeMemoryLineGenerator = d3
-                .line<PerfSnapType>()
+            const nodeMemoryLineGenerator = line<PerfSnapType>()
                 .defined((d) => d.nodeMemory !== null)
                 .x((d) => timeScale(d.end))
                 .y((d) => nodeMemoryScale(d.nodeMemory as number))
-                .curve(d3.curveNatural);
+                .curve(curveNatural);
             lifespanGSel
                 .selectAll('path.nodemem-line')
                 .data(prepareLifespanDataItem)
                 .join('path')
                 .attr('class', 'nodemem-line')
                 .each((d, i, nodes) => {
-                    d3.select(nodes[i])
+                    select(nodes[i])
                         .attr('fill', 'none')
                         .attr('opacity', 0.75)
                         .attr('stroke-dasharray', '4 6')
@@ -295,12 +297,12 @@ export default function drawFullPerfChart({
         }
 
         //Player lines
-        const playerLineGenerator = d3.line<PerfSnapType>(
+        const playerLineGenerator = line<PerfSnapType>(
             (d) => timeScale(d.end),
             (d) => playersScale(d.players),
         );
         if (maxPlayers <= 20) {
-            playerLineGenerator.curve(d3.curveNatural);
+            playerLineGenerator.curve(curveNatural);
         }
         if (showPlayerCount) {
             lifespanGSel
@@ -309,7 +311,7 @@ export default function drawFullPerfChart({
                 .join('path')
                 .attr('class', 'players-line-bg')
                 .each((d, i, nodes) => {
-                    d3.select(nodes[i])
+                    select(nodes[i])
                         .attr('fill', 'none')
                         .attr('stroke-linejoin', 'round')
                         .attr('stroke-linecap', 'round')
@@ -323,7 +325,7 @@ export default function drawFullPerfChart({
                 .join('path')
                 .attr('class', 'players-line')
                 .each((d, i, nodes) => {
-                    d3.select(nodes[i])
+                    select(nodes[i])
                         .attr('fill', 'none')
                         .attr('stroke-linejoin', 'round')
                         .attr('stroke-linecap', 'round')
@@ -373,7 +375,7 @@ export default function drawFullPerfChart({
     // }
     // drawDayNightMarkers();
 
-    // let referenceX: d3.Selection<SVGLineElement, PerfLifeSpanType, null, undefined>;
+    // let referenceX: Selection<SVGLineElement, PerfLifeSpanType, null, undefined>;
     // const drawReferenceLines = () => {
     //     if (referenceX) referenceX.remove();
     //     const referenceLineX = timeScale(new Date(2024, 7, 25, 2, 0, 0, 0));
@@ -431,7 +433,7 @@ export default function drawFullPerfChart({
 
     //Find the closest data point for a given X value
     const maxAllowedGap = 20 * 60 * 1000;
-    const timeBisector = d3.bisector((lfspn: PerfSnapType) => lfspn.end).center;
+    const timeBisector = bisector((lfspn: PerfSnapType) => lfspn.end).center;
     const getClosestData = (x: number) => {
         if (!snapshotsDrawn.length) return;
         const xPosDate = timeScale.invert(x);
@@ -503,7 +505,7 @@ export default function drawFullPerfChart({
         .attr('height', drawableAreaHeight)
         .attr('fill', 'transparent')
         .on('mousemove', function (event) {
-            const [pointerX, pointerY] = d3.pointer(event);
+            const [pointerX, pointerY] = pointer(event);
             if (!isEventInCooldown) {
                 isEventInCooldown = true;
                 handleMouseMove(pointerX, pointerY);
@@ -543,10 +545,10 @@ export default function drawFullPerfChart({
         .attr('fill', arrowColor);
     leftArrow
         .on('mouseenter', function () {
-            d3.select(this).select('polygon').attr('fill', arrowHoverColor);
+            select(this).select('polygon').attr('fill', arrowHoverColor);
         })
         .on('mouseleave', function () {
-            d3.select(this).select('polygon').attr('fill', arrowColor);
+            select(this).select('polygon').attr('fill', arrowColor);
         });
 
     const rightArrow = svg
@@ -561,13 +563,13 @@ export default function drawFullPerfChart({
         .attr('fill', arrowColor);
     rightArrow
         .on('mouseenter', function () {
-            d3.select(this).select('polygon').attr('fill', arrowHoverColor);
+            select(this).select('polygon').attr('fill', arrowHoverColor);
         })
         .on('mouseleave', function () {
-            d3.select(this).select('polygon').attr('fill', arrowColor);
+            select(this).select('polygon').attr('fill', arrowColor);
         });
 
-    const updatePanArrows = (transform: d3.ZoomTransform) => {
+    const updatePanArrows = (transform: ZoomTransform) => {
         const canPanLeft = transform.x < 0;
         const maxTranslateX = -(transform.k - 1) * drawableAreaWidth;
         const canPanRight = transform.x > maxTranslateX;
@@ -579,7 +581,7 @@ export default function drawFullPerfChart({
      * Zoom
      */
     let wasZoomed = false;
-    const zoomedHandler = ({ transform }: d3.D3ZoomEvent<SVGElement, PerfLifeSpanType>) => {
+    const zoomedHandler = ({ transform }: D3ZoomEvent<SVGElement, PerfLifeSpanType>) => {
         //Prevent spamming re-renders when zoomed out
         if (transform.k === 1 && transform.x === 0) {
             if (!wasZoomed) return;
@@ -608,8 +610,7 @@ export default function drawFullPerfChart({
         [0, margins.top],
         [drawableAreaWidth, height - margins.top],
     ] satisfies [[number, number], [number, number]];
-    const zoomBehavior = d3
-        .zoom<SVGElement, PerfLifeSpanType>()
+    const zoomBehavior = zoom<SVGElement, PerfLifeSpanType>()
         .scaleExtent([1, 12])
         .translateExtent(zoomExtent)
         .extent(zoomExtent)
@@ -633,7 +634,7 @@ export default function drawFullPerfChart({
         const clampedScale = Math.min(initialScale, 12);
         const endX = drawableAreaWidth;
         const initialTranslateX = endX - endX * clampedScale;
-        const initialTransform = d3.zoomIdentity.translate(initialTranslateX, 0).scale(clampedScale);
+        const initialTransform = zoomIdentity.translate(initialTranslateX, 0).scale(clampedScale);
         svg.call(zoomBehavior.transform, initialTransform);
     }
 }

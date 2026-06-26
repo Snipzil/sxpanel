@@ -1,6 +1,6 @@
 {
     "name": "fxpanel-nui",
-    "version": "0.2.2",
+    "version": "0.4.0-Beta",
     "description": "The NUI package contains all the in-game interface (menu and warn page) of fxPanel.",
     "main": "index.js",
     "type": "module",

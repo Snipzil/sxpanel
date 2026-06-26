@@ -215,6 +215,7 @@ const forceGameName = hostVars.GAME_NAME;
 const hostApiToken = hostVars.API_TOKEN;
 const forceMaxClients = hostVars.MAX_SLOTS;
 const forceQuietMode = hostVars.QUIET_MODE ?? false;
+const artifactCustomDownloadEnabled = hostVars.ARTIFACT_CUSTOM_DOWNLOAD ?? true;
 
 /**
  * MARK: PROVIDER
@@ -340,6 +341,7 @@ export const txHostConfig = Object.freeze({
     forceGameName,
     forceMaxClients,
     forceQuietMode,
+    artifactCustomDownloadEnabled,
     hostApiToken,
 
     //Networking

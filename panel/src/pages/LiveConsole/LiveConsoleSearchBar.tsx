@@ -4,6 +4,7 @@ import type { ISearchDecorationOptions, ISearchOptions, SearchAddon } from '@xte
 import { ArrowDownIcon, ArrowUpIcon, CaseSensitiveIcon, RegexIcon, WholeWordIcon, XIcon } from 'lucide-react';
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useEventListener } from 'usehooks-ts';
+import { useLocale } from '@/hooks/locale';
 
 type ButtonProps = {
     title?: string;
@@ -29,7 +30,6 @@ function SearchBarButton({ title, onClick, isActive, children }: ButtonProps) {
     );
 }
 
-const labelNoResults = 'No results';
 const xtermDecorations = {
     activeMatchBackground: '#FF00DC',
     activeMatchColorOverviewRuler: '#FF00DC',
@@ -43,6 +43,8 @@ type LiveConsoleSearchBarProps = {
 };
 
 export default function LiveConsoleSearchBar({ setShow, searchAddon }: LiveConsoleSearchBarProps) {
+    const { t } = useLocale();
+    const labelNoResults = t('panel.live_console.search.no_results');
     const [caseSensitive, setCaseSensitive] = useState(false);
     const [wholeWord, setWholeWord] = useState(false);
     const [regex, setRegex] = useState(false);
@@ -72,7 +74,7 @@ export default function LiveConsoleSearchBar({ setShow, searchAddon }: LiveConso
         return () => {
             clearSearchState(labelNoResults);
         };
-    }, [searchAddon]);
+    }, [searchAddon, labelNoResults]);
 
     //listens to the result count change
     useEffect(() => {
@@ -87,7 +89,7 @@ export default function LiveConsoleSearchBar({ setShow, searchAddon }: LiveConso
         return () => {
             dispose.dispose();
         };
-    }, []);
+    }, [searchAddon, labelNoResults]);
 
     //Handlers
     const handlePrevious = () => {
@@ -151,7 +153,7 @@ export default function LiveConsoleSearchBar({ setShow, searchAddon }: LiveConso
                 <Input
                     ref={handleInputRef}
                     className="h-8"
-                    placeholder="Search string"
+                    placeholder={t('panel.live_console.search.placeholder')}
                     onKeyDown={handleInputKeyDown}
                     onChange={handleInputChange}
                     onBlur={() => {
@@ -159,27 +161,39 @@ export default function LiveConsoleSearchBar({ setShow, searchAddon }: LiveConso
                     }}
                 />
                 <div className="text-muted-foreground absolute top-1/2 right-1 flex -translate-y-1/2 transform gap-2">
-                    <SearchBarButton title="Case Sensitive" isActive={caseSensitive} onClick={handleCaseSensitiveMode}>
+                    <SearchBarButton
+                        title={t('panel.live_console.search.case_sensitive')}
+                        isActive={caseSensitive}
+                        onClick={handleCaseSensitiveMode}
+                    >
                         <CaseSensitiveIcon className="size-5" />
                     </SearchBarButton>
-                    <SearchBarButton title="Whole Word" isActive={wholeWord} onClick={handleWholeWordMode}>
+                    <SearchBarButton
+                        title={t('panel.live_console.search.whole_word')}
+                        isActive={wholeWord}
+                        onClick={handleWholeWordMode}
+                    >
                         <WholeWordIcon className="size-5" />
                     </SearchBarButton>
-                    <SearchBarButton title="Regex" isActive={regex} onClick={handleRegexMode}>
+                    <SearchBarButton
+                        title={t('panel.live_console.search.regex')}
+                        isActive={regex}
+                        onClick={handleRegexMode}
+                    >
                         <RegexIcon className="h-4 w-5" />
                     </SearchBarButton>
                 </div>
             </div>
-            <div className="text-muted-foreground flex min-w-[8ch] grow text-sm whitespace-nowrap">{resultCount}</div>
+            <div className="text-muted-foreground flex min-w-[8ch] grow text-sm">{resultCount}</div>
             <div className="text-muted-foreground flex gap-2">
-                <SearchBarButton title="Previous" onClick={handlePrevious}>
+                <SearchBarButton title={t('panel.live_console.search.previous')} onClick={handlePrevious}>
                     <ArrowUpIcon className="size-5" />
                 </SearchBarButton>
-                <SearchBarButton title="Next" onClick={handleNext}>
+                <SearchBarButton title={t('panel.live_console.search.next')} onClick={handleNext}>
                     <ArrowDownIcon className="size-5" />
                 </SearchBarButton>
                 <SearchBarButton
-                    title="Close"
+                    title={t('panel.live_console.search.close')}
                     onClick={() => {
                         clearSearchState(labelNoResults);
                         setShow(false);

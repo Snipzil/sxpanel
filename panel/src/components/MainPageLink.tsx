@@ -40,12 +40,7 @@ function MainPageLink({ isActive, href, children, className, disabled, ref }: Ma
     };
 
     return (
-        <a
-            ref={ref}
-            href={href}
-            onClick={checkOnClick}
-            className={className}
-        >
+        <a ref={ref} href={href} onClick={checkOnClick} className={className}>
             {children}
         </a>
     );

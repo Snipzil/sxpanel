@@ -34,11 +34,11 @@ local function resetTicketOpenState()
     isTicketOpen = false
 end
 
---- Open the ticket UI (/ticket command)
-RegisterCommand('ticket', function()
-    if not GetConvarBool('txAdmin-reportsEnabled') then
-        return
-    end
+local TICKET_COMMAND = 'ticket'
+local REPORT_COMMAND = 'report'
+local ticketCommandsRegistered = false
+
+local function runTicketCommand()
     if isTicketOpen then
         return
     end
@@ -57,12 +57,62 @@ RegisterCommand('ticket', function()
         ticketOpenTimeoutId = nil
         isTicketOpen = false
     end)
-end, false)
+end
 
---- Backward-compat alias
-RegisterCommand('report', function()
-    ExecuteCommand('ticket')
-end, false)
+--- FiveM has no script API to unregister commands; stub handlers when reports are disabled.
+local function registerDisabledTicketCommands()
+    RegisterCommand(TICKET_COMMAND, function() end, false)
+    RegisterCommand(REPORT_COMMAND, function() end, false)
+end
+
+local function registerTicketCommands()
+    RegisterCommand(TICKET_COMMAND, runTicketCommand, false)
+    RegisterCommand(REPORT_COMMAND, function()
+        ExecuteCommand(TICKET_COMMAND)
+    end, false)
+    ticketCommandsRegistered = true
+end
+
+local function updateTicketChatSuggestions(enabled)
+    if enabled then
+        TriggerEvent(
+            'chat:addSuggestion',
+            '/' .. TICKET_COMMAND,
+            translator.t('nui_menu.chat.ticket_description')
+        )
+        TriggerEvent(
+            'chat:addSuggestion',
+            '/' .. REPORT_COMMAND,
+            translator.t('nui_menu.chat.report_description')
+        )
+    else
+        TriggerEvent('chat:removeSuggestion', '/' .. TICKET_COMMAND)
+        TriggerEvent('chat:removeSuggestion', '/' .. REPORT_COMMAND)
+    end
+end
+
+local function syncTicketChatCommands()
+    local enabled = GetConvarBool('txAdmin-reportsEnabled')
+    if enabled then
+        registerTicketCommands()
+        updateTicketChatSuggestions(true)
+    else
+        if ticketCommandsRegistered then
+            registerDisabledTicketCommands()
+        end
+        updateTicketChatSuggestions(false)
+    end
+end
+
+-- txAdmin starts before the chat resource; wait before add/remove suggestions (see cl_base.lua).
+CreateThread(function()
+    Wait(1000)
+    syncTicketChatCommands()
+end)
+
+AddStateBagChangeHandler('txAdminServerCtx', 'global', function()
+    syncTicketChatCommands()
+end)
 
 --- Close ticket UI callback
 RegisterSecureNuiCallback('ticketClose', function(data, cb)
@@ -77,12 +127,12 @@ RegisterSecureNuiCallback('ticketSubmit', function(data, cb)
         or type(data.category) ~= 'string' or #data.category == 0
         or type(data.description) ~= 'string'
     then
-        cb({ success = false, error = 'Invalid ticket data' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_ticket_data' })
         return
     end
     local description = data.description:gsub('^%s+', ''):gsub('%s+$', '')
     if #description == 0 then
-        cb({ success = false, error = 'Description is required' })
+        cb({ success = false, error = 'nui_reports.errors.description_required' })
         return
     end
     local payload = {
@@ -117,7 +167,7 @@ RegisterSecureNuiCallback('ticketSendMessage', function(data, cb)
         or type(data.ticketId) ~= 'string' or #data.ticketId == 0
         or type(data.content) ~= 'string'
     then
-        cb({ success = false, error = 'Invalid message data' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_message_data' })
         return
     end
     local content = data.content:gsub('^%s+', ''):gsub('%s+$', '')
@@ -131,7 +181,7 @@ RegisterSecureNuiCallback('ticketSendMessage', function(data, cb)
         end
     end
     if #content == 0 and #imageUrls == 0 then
-        cb({ success = false, error = 'Message must have content or an image' })
+        cb({ success = false, error = 'nui_reports.errors.message_required' })
         return
     end
     TriggerServerEvent('txsv:ticketPlayerMessage', {
@@ -145,7 +195,7 @@ end)
 --- Fetch messages for a specific ticket callback
 RegisterSecureNuiCallback('ticketFetchMessages', function(data, cb)
     if type(data) ~= 'table' or type(data.ticketId) ~= 'string' or #data.ticketId == 0 then
-        cb({ success = false, error = 'Invalid ticketId' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_ticket_id' })
         return
     end
     TriggerServerEvent('txsv:ticketFetchMessages', data.ticketId)
@@ -158,7 +208,7 @@ RegisterSecureNuiCallback('ticketFeedback', function(data, cb)
         or type(data.ticketId) ~= 'string' or #data.ticketId == 0
         or type(data.rating) ~= 'number' or data.rating ~= data.rating -- NaN check
     then
-        cb({ success = false, error = 'invalid input' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_input' })
         return
     end
     local rating = math.floor(math.max(1, math.min(5, data.rating)))
@@ -270,7 +320,7 @@ end)
 --- Admin: fetch ticket detail
 RegisterSecureNuiCallback('ticketAdminDetail', function(data, cb)
     if type(data) ~= 'table' or type(data.ticketId) ~= 'string' or #data.ticketId == 0 then
-        cb({ success = false, error = 'Invalid ticketId' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_ticket_id' })
         return
     end
     TriggerServerEvent('txsv:ticketAdminDetail', data.ticketId)
@@ -280,16 +330,16 @@ end)
 --- Admin: send message to a ticket
 RegisterSecureNuiCallback('ticketAdminMessage', function(data, cb)
     if type(data) ~= 'table' or type(data.ticketId) ~= 'string' or #data.ticketId == 0 then
-        cb({ success = false, error = 'Invalid ticketId' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_ticket_id' })
         return
     end
     if type(data.content) ~= 'string' or #data.content == 0 then
-        cb({ success = false, error = 'Invalid content' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_content' })
         return
     end
     local content = data.content:gsub('^%s+', ''):gsub('%s+$', '')
     if #content == 0 then
-        cb({ success = false, error = 'Invalid content' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_content' })
         return
     end
     TriggerServerEvent('txsv:ticketAdminMessage', {
@@ -302,11 +352,11 @@ end)
 --- Admin: change ticket status
 RegisterSecureNuiCallback('ticketAdminStatus', function(data, cb)
     if type(data) ~= 'table' or type(data.ticketId) ~= 'string' or #data.ticketId == 0 then
-        cb({ success = false, error = 'Invalid ticketId' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_ticket_id' })
         return
     end
     if type(data.status) ~= 'string' or #data.status == 0 then
-        cb({ success = false, error = 'Invalid status' })
+        cb({ success = false, error = 'nui_reports.errors.invalid_status' })
         return
     end
     TriggerServerEvent('txsv:ticketAdminStatus', {

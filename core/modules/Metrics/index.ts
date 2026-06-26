@@ -10,7 +10,7 @@ const console = consoleFactory(modulename);
  * It is broken down into sub-modules for each specific area.
  */
 export default class Metrics {
-    static readonly configKeysWatched = ['server.dataPath', 'server.cfgPath', 'whitelist.mode'];
+    static readonly configKeysWatched = ['server.dataPath', 'server.cfgPath', 'whitelist.enabled'];
 
     public readonly svRuntime: SvRuntimeMetrics;
     public readonly playerDrop: PlayerDropMetrics;
@@ -25,7 +25,7 @@ export default class Metrics {
      */
     public handleConfigUpdate(updatedConfigs: UpdateConfigKeySet) {
         //TxRuntime
-        if (updatedConfigs.hasMatch('whitelist.mode')) {
+        if (updatedConfigs.hasMatch('whitelist.enabled')) {
             txManager.txRuntime.whitelistCheckTime.clear();
         }
 

@@ -88,7 +88,9 @@ async function findAddonDirByIdCompat(addonId: string): Promise<string | null> {
         try {
             const stat = await fs.promises.stat(managerManifestPath);
             if (stat.isFile() && stat.size <= 1024 * 1024) {
-                const manifest = JSON.parse(await fs.promises.readFile(managerManifestPath, 'utf-8')) as { id?: string };
+                const manifest = JSON.parse(await fs.promises.readFile(managerManifestPath, 'utf-8')) as {
+                    id?: string;
+                };
                 if (manifest?.id === addonId) {
                     return managerDir;
                 }

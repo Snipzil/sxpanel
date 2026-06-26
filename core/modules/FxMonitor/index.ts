@@ -20,6 +20,18 @@ import { secsToShortestDuration } from '@lib/misc';
 import { setRuntimeFile } from '@lib/fxserver/runtimeFiles';
 import { FxMonitorHealth } from '@shared/enums';
 import cleanPlayerName from '@shared/cleanPlayerName';
+import {
+    getEffectiveFxMonitorHealth,
+    isHttpHealthCheckDisabled,
+    syncHttpRuntimeMetadata,
+    clearHttpRuntimePlayerCache,
+    syncHttpPlayersToResource,
+    fetchAndCachePlayersJson,
+    refreshHttpPlayerlistViews,
+    isHttpPlayerlistBypassEnabled,
+    getCachedHttpPlayerCount,
+} from '@lib/fxserver/httpHealthCheck';
+import type { UpdateConfigKeySet } from '@modules/ConfigStore/utils';
 const console = consoleFactory(modulename);
 
 //MARK: Consts
@@ -95,6 +107,8 @@ class LimitedArray<T> extends Array<T> {
  * Module responsible for monitoring the FXServer health and status, restarting it if necessary.
  */
 export default class FxMonitor {
+    static readonly configKeysWatched = ['restarter.disableHealthCheck', 'restarter.httpPlayerlistHost'];
+
     public readonly timers: ReturnType<typeof setInterval>[] = [];
 
     //Status tracking
@@ -116,11 +130,47 @@ export default class FxMonitor {
     private readonly healthCheckMonitor = new HealthEventMonitor(HC_CONFIG.delayLimit, HC_CONFIG.fatalLimit);
     private readonly swLastFD3 = new Stopwatch();
     private readonly swLastHTTP = new Stopwatch();
+    private readonly swLastPlayerlistResync = new Stopwatch(true);
+    private healthCheckInFlight = false;
 
     constructor() {
         // Cron functions
         this.timers.push(setInterval(() => this.performHealthCheck(), HC_CONFIG.requestInterval));
         this.timers.push(setInterval(() => this.updateStatus(), 1000));
+    }
+
+    private getHealthCheckStatus() {
+        if (isHttpHealthCheckDisabled()) {
+            return {
+                state: MonitorState.HEALTHY,
+                secsSinceLast: 0,
+                secsSinceFirst: 0,
+            };
+        }
+        return this.healthCheckMonitor.status;
+    }
+
+    handleConfigUpdate(_updatedConfigs: UpdateConfigKeySet) {
+        this.lastHealthCheckError = null;
+        if (isHttpHealthCheckDisabled()) {
+            this.healthCheckMonitor.markHealthy();
+            clearHttpRuntimePlayerCache();
+            txCore.fxPlayerlist?.broadcastPlayerlistState();
+        } else {
+            txCore.fxPlayerlist?.clearManualPlayers();
+            clearHttpRuntimePlayerCache();
+            syncHttpPlayersToResource();
+            const netEndpoint = txCore.fxRunner.child?.netEndpoint;
+            if (netEndpoint) {
+                syncHttpRuntimeMetadata(netEndpoint, HC_CONFIG.requestTimeout)
+                    .then(() => txCore.fxPlayerlist?.broadcastPlayerlistState())
+                    .catch(() => {});
+            } else {
+                txCore.fxPlayerlist?.broadcastPlayerlistState();
+            }
+        }
+        txCore.discordBot?.updateBotStatus().catch(() => {});
+        txCore.webServer?.webSocket?.pushRefresh('status');
     }
 
     //MARK: State Helpers
@@ -154,6 +204,8 @@ export default class FxMonitor {
         this.healthCheckMonitor.reset();
         this.swLastFD3.reset();
         this.swLastHTTP.reset();
+        this.swLastPlayerlistResync.reset();
+        clearHttpRuntimePlayerCache();
     }
 
     /**
@@ -271,7 +323,7 @@ export default class FxMonitor {
 
         //Get elapsed times & process status
         const heartBeat = this.heartBeatMonitor.status;
-        const healthCheck = this.healthCheckMonitor.status;
+        const healthCheck = this.getHealthCheckStatus();
         const processUptime = Math.floor((txCore.fxRunner.child?.uptime ?? 0) / 1000);
         const timeTags = getMonitorTimeTags(heartBeat, healthCheck, processUptime);
         // console.dir({
@@ -484,12 +536,24 @@ export default class FxMonitor {
      * Sends a HTTP GET request to the /dynamic.json endpoint of FXServer to check if it's healthy.
      */
     private async performHealthCheck() {
+        if (this.healthCheckInFlight) return;
+
         //Check if the server is supposed to be offline
         const childState = txCore.fxRunner.child;
         if (!childState?.isAlive || !childState?.netEndpoint) return;
 
-        //Make request
-        const reqResult = await fetchDynamicJson(childState.netEndpoint, HC_CONFIG.requestTimeout);
+        if (isHttpHealthCheckDisabled()) {
+            return;
+        }
+
+        this.healthCheckInFlight = true;
+        let reqResult;
+        try {
+            //Make request
+            reqResult = await fetchDynamicJson(childState.netEndpoint, HC_CONFIG.requestTimeout);
+        } finally {
+            this.healthCheckInFlight = false;
+        }
         if (!reqResult.success) {
             this.lastHealthCheckError = reqResult;
             return;
@@ -517,6 +581,10 @@ export default class FxMonitor {
                 );
             }
         }
+
+        txCore.cacheStore.set('fxsRuntime:httpReportedClients', dynamicJson.clients);
+        await fetchAndCachePlayersJson(childState.netEndpoint, HC_CONFIG.requestTimeout);
+        refreshHttpPlayerlistViews();
     }
 
     /**
@@ -524,6 +592,11 @@ export default class FxMonitor {
      */
     public handleHeartBeat(source: 'fd3' | 'http') {
         this.heartBeatMonitor.markHealthy();
+        if (source === 'fd3' && isHttpHealthCheckDisabled() && this.swLastPlayerlistResync.isOver(15)) {
+            this.swLastPlayerlistResync.restart();
+            txCore.fxPlayerlist.broadcastPlayerlistState();
+            txCore.webServer.webSocket.pushRefresh('status');
+        }
         if (source === 'fd3') {
             if (this.swLastHTTP.started && this.swLastHTTP.elapsed > 15 && this.swLastFD3.elapsed < 5) {
                 txManager.txRuntime.registerFxserverHealthIssue('http');
@@ -551,13 +624,12 @@ export default class FxMonitor {
         txCore.metrics.svRuntime.logServerBoot(bootDuration);
         txCore.fxRunner.signalSpawnBackoffRequired(false);
 
-        //Fetching runtime data
+        //Fetching runtime data (optional — boot must not depend on HTTP when health check is disabled)
         const infoJson = await fetchInfoJson(childState.netEndpoint);
-        if (!infoJson) return;
 
         //Save icon base64 to file
         const iconCacheKey = 'fxsRuntime:iconFilename';
-        if (infoJson.icon) {
+        if (infoJson?.icon) {
             try {
                 const iconHash = crypto
                     .createHash('shake256', { outputLength: 8 })
@@ -575,17 +647,26 @@ export default class FxMonitor {
         // cached filename (e.g. from `load_server_icon` in server.cfg) so the login
         // page and panel branding do not lose the configured icon after boot.
 
-        //Upserts the runtime data
-        txCore.cacheStore.upsert('fxsRuntime:bannerConnecting', infoJson.bannerConnecting);
-        txCore.cacheStore.upsert('fxsRuntime:bannerDetail', infoJson.bannerDetail);
-        txCore.cacheStore.upsert('fxsRuntime:locale', infoJson.locale);
-        txCore.cacheStore.upsert('fxsRuntime:projectDesc', infoJson.projectDesc);
-        if (infoJson.projectName) {
-            txCore.cacheStore.set('fxsRuntime:projectName', cleanPlayerName(infoJson.projectName).displayName);
-        } else {
-            txCore.cacheStore.delete('fxsRuntime:projectName');
+        if (infoJson) {
+            //Upserts the runtime data
+            txCore.cacheStore.upsert('fxsRuntime:bannerConnecting', infoJson.bannerConnecting);
+            txCore.cacheStore.upsert('fxsRuntime:bannerDetail', infoJson.bannerDetail);
+            txCore.cacheStore.upsert('fxsRuntime:locale', infoJson.locale);
+            txCore.cacheStore.upsert('fxsRuntime:projectDesc', infoJson.projectDesc);
+            if (infoJson.projectName) {
+                txCore.cacheStore.set('fxsRuntime:projectName', cleanPlayerName(infoJson.projectName).displayName);
+            } else {
+                txCore.cacheStore.delete('fxsRuntime:projectName');
+            }
+            txCore.cacheStore.upsert('fxsRuntime:tags', infoJson.tags);
         }
-        txCore.cacheStore.upsert('fxsRuntime:tags', infoJson.tags);
+
+        const netEndpoint = childState.netEndpoint;
+        if (netEndpoint) {
+            await syncHttpRuntimeMetadata(netEndpoint, HC_CONFIG.requestTimeout).catch(() => {});
+        }
+        txCore.fxPlayerlist.broadcastPlayerlistState();
+        txCore.discordBot.updateBotStatus().catch(() => {});
     }
 
     //MARK: Getters
@@ -603,9 +684,16 @@ export default class FxMonitor {
             }
             healthReason = healthReasonLines.join('\n');
         }
+        const isChildAlive = txCore.fxRunner.child?.isAlive ?? false;
+        const isHeartBeatHealthy = this.heartBeatMonitor.status.state === MonitorState.HEALTHY;
+        const health = getEffectiveFxMonitorHealth(this.currentStatus, isHeartBeatHealthy, isChildAlive);
+        const effectiveHealthReason =
+            isHttpHealthCheckDisabled() && isChildAlive && isHeartBeatHealthy
+                ? 'HTTP health check disabled. Server status from monitor heartbeat.'
+                : healthReason;
         return {
-            health: this.currentStatus,
-            healthReason,
+            health,
+            healthReason: effectiveHealthReason,
             uptime: this.tsServerBooted ? Date.now() - this.tsServerBooted : 0,
         };
     }

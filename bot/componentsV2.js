@@ -38,16 +38,18 @@ const normalizeString = (value) => {
 const buildHeadingDisplays = (embed) => {
     const displays = [];
     if (isPlainObject(embed.author) && typeof embed.author.name === 'string' && embed.author.name.length) {
-        const authorLine = typeof embed.author.url === 'string' && embed.author.url.length
-            ? `**[${embed.author.name}](${embed.author.url})**`
-            : `**${embed.author.name}**`;
+        const authorLine =
+            typeof embed.author.url === 'string' && embed.author.url.length
+                ? `**[${embed.author.name}](${embed.author.url})**`
+                : `**${embed.author.name}**`;
         displays.push(authorLine);
     }
 
     if (typeof embed.title === 'string' && embed.title.length) {
-        const titleLine = typeof embed.url === 'string' && embed.url.length
-            ? `## [${embed.title}](${embed.url})`
-            : `## ${embed.title}`;
+        const titleLine =
+            typeof embed.url === 'string' && embed.url.length
+                ? `## [${embed.title}](${embed.url})`
+                : `## ${embed.title}`;
         displays.push(titleLine);
     } else if (typeof embed.url === 'string' && embed.url.length) {
         displays.push(embed.url);
@@ -74,9 +76,10 @@ const buildFooterText = (embed) => {
         footerParts.push(embed.footer.text);
     }
 
-    const parsedTimestamp = typeof embed.timestamp === 'string' || typeof embed.timestamp === 'number'
-        ? Date.parse(String(embed.timestamp))
-        : NaN;
+    const parsedTimestamp =
+        typeof embed.timestamp === 'string' || typeof embed.timestamp === 'number'
+            ? Date.parse(String(embed.timestamp))
+            : NaN;
     if (Number.isFinite(parsedTimestamp)) {
         footerParts.push(`<t:${Math.floor(parsedTimestamp / 1000)}:F>`);
     }
@@ -103,9 +106,10 @@ const addSeparator = (container) => {
 };
 
 const addEmbedMedia = (container, embed) => {
-    const imageUrl = isPlainObject(embed.image) && typeof embed.image.url === 'string' && embed.image.url.length
-        ? embed.image.url
-        : null;
+    const imageUrl =
+        isPlainObject(embed.image) && typeof embed.image.url === 'string' && embed.image.url.length
+            ? embed.image.url
+            : null;
     if (!imageUrl) return false;
 
     const mediaItem = new MediaGalleryItemBuilder().setURL(imageUrl);
@@ -172,9 +176,7 @@ const buildCardMessage = (options = {}) => {
     }
 
     const sectionTexts = Array.isArray(options.sections)
-        ? options.sections
-            .map((section) => normalizeString(section))
-            .filter((section) => section.length)
+        ? options.sections.map((section) => normalizeString(section)).filter((section) => section.length)
         : [];
     for (const sectionText of sectionTexts) {
         if (hasContent) {
@@ -218,9 +220,10 @@ const embedToComponent = (embed) => {
 
     let hasContent = false;
     const headingDisplays = buildHeadingDisplays(embed);
-    const thumbnailUrl = isPlainObject(embed.thumbnail) && typeof embed.thumbnail.url === 'string' && embed.thumbnail.url.length
-        ? embed.thumbnail.url
-        : null;
+    const thumbnailUrl =
+        isPlainObject(embed.thumbnail) && typeof embed.thumbnail.url === 'string' && embed.thumbnail.url.length
+            ? embed.thumbnail.url
+            : null;
     if (headingDisplays.length && thumbnailUrl) {
         const section = new SectionBuilder();
         for (const content of headingDisplays.slice(0, 3)) {
@@ -241,8 +244,8 @@ const embedToComponent = (embed) => {
 
     const fieldTexts = Array.isArray(embed.fields)
         ? embed.fields
-            .map((field) => buildFieldText(field))
-            .filter((fieldText) => typeof fieldText === 'string' && fieldText.length)
+              .map((field) => buildFieldText(field))
+              .filter((fieldText) => typeof fieldText === 'string' && fieldText.length)
         : [];
     for (const fieldText of fieldTexts) {
         if (hasContent) {

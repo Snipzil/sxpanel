@@ -125,8 +125,8 @@ export class SessionMemoryStorage {
      * Persist session data to disk (called on shutdown).
      *
      * SECURITY: password-authenticated sessions (and pending-2FA sessions) carry
-     * the admin's bcrypt `password_hash` on the session object so the auth layer
-     * can invalidate sessions when a password changes. Persisting those hashes
+     * a `password_revision` counter so the auth layer can invalidate sessions when
+     * a password changes. Persisting those sessions
      * to a JSON file on disk would expose them to any filesystem compromise
      * (backup leaks, shared hosting, path traversal). Those sessions are
      * therefore stripped on persist — affected users simply have to re-login
@@ -146,12 +146,17 @@ export class SessionMemoryStorage {
                     droppedSensitive++;
                     continue;
                 }
-                // Belt-and-braces: strip any unexpected password_hash fields
+                // Belt-and-braces: strip any unexpected password auth fields
                 // before serialising, in case the session shape evolves.
                 const sanitisedData = { ...sess.data };
-                if (sanitisedData.auth && 'password_hash' in sanitisedData.auth) {
-                    const { password_hash: _ph, ...restAuth } = sanitisedData.auth as Record<string, unknown>;
-                    void _ph;
+                if (sanitisedData.auth && typeof sanitisedData.auth === 'object') {
+                    const {
+                        password_hash: _legacyHash,
+                        password_revision: _legacyRevision,
+                        ...restAuth
+                    } = sanitisedData.auth as Record<string, unknown>;
+                    void _legacyHash;
+                    void _legacyRevision;
                     sanitisedData.auth = restAuth as ValidSessionType['auth'];
                 }
                 entries.push([key, { expires: sess.expires, data: sanitisedData }]);
@@ -202,8 +207,13 @@ export class SessionMemoryStorage {
                         typeof sanitisedData.auth === 'object' &&
                         !Array.isArray(sanitisedData.auth)
                     ) {
-                        const { password_hash: _ph, ...restAuth } = sanitisedData.auth as Record<string, unknown>;
-                        void _ph;
+                        const {
+                            password_hash: _legacyHash,
+                            password_revision: _legacyRevision,
+                            ...restAuth
+                        } = sanitisedData.auth as Record<string, unknown>;
+                        void _legacyHash;
+                        void _legacyRevision;
                         sanitisedData.auth = restAuth;
                     }
                     this.sessions.set(key, {

@@ -6,12 +6,14 @@ import { nolookalikes } from 'nanoid-dictionary';
 import consoleFactory from '@lib/console';
 import { resolveCFGFilePath, validateFixServerConfig } from '@lib/fxserver/fxsConfigHelper';
 import { msToShortishDuration } from '@lib/misc';
+import { bootstrapPresetAces } from '@lib/presetSlotDirective';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import { UpdateConfigKeySet } from '@modules/ConfigStore/utils';
 import {
     childProcessEventBlackHole,
     getFxSpawnVariables,
     getMutableConvars,
+    getRuntimeConvars,
     isValidChildProcess,
     mutableConvarConfigDependencies,
     setupCustomLocaleFile,
@@ -59,6 +61,14 @@ export default class FxRunner {
      */
     public handleConfigUpdate(updatedConfigs: UpdateConfigKeySet) {
         this.updateMutableConvars().catch(() => {});
+
+        const tagConfigTouched = updatedConfigs.hasMatch([
+            'gameFeatures.customTags',
+            'gameFeatures.newplayerThreshold',
+        ]);
+        if (tagConfigTouched && txCore.fxPlayerlist) {
+            txCore.fxPlayerlist.resyncAllPlayerTagsAfterConfigChange().catch(() => {});
+        }
     }
 
     /**
@@ -256,6 +266,10 @@ export default class FxRunner {
         childProc.stderr.on('error', childProcessEventBlackHole);
         childProc.stdio[3].on('error', childProcessEventBlackHole);
 
+        setTimeout(() => {
+            bootstrapPresetAces();
+        }, 1500);
+
         return {
             success: true as const,
             pid: this.proc.pid,
@@ -389,10 +403,11 @@ export default class FxRunner {
         console.log('Updating FXServer ConVars.');
         try {
             await setupCustomLocaleFile();
-            const convarList = getMutableConvars(false);
+            const convarList = getRuntimeConvars(false);
             for (const [set, convar, value] of convarList) {
                 this.sendCommand(set, [convar, value], SYM_SYSTEM_AUTHOR);
             }
+            bootstrapPresetAces();
             return this.sendEvent('configChanged');
         } catch (error) {
             console.verbose.error('Error updating FXServer ConVars');
@@ -437,6 +452,18 @@ export default class FxRunner {
         return this.sendRawCommand(rawInput, author);
     }
 
+    public writeStdinLine(command: string) {
+        if (!this.proc?.isAlive) return false;
+        if (typeof command !== 'string') throw new Error('Expected command as String!');
+        try {
+            return this.proc.stdin?.write(command + '\n');
+        } catch (error) {
+            console.error("Error writing to fxChild's stdin.");
+            console.verbose.dir(error);
+            return false;
+        }
+    }
+
     /**
      * Writes to fxchild's stdin.
      * NOTE: do not send commands with \n at the end, this function will add it.
@@ -449,10 +476,15 @@ export default class FxRunner {
         }
         try {
             const success = this.proc.stdin?.write(command + '\n');
-            if (author === SYM_SYSTEM_AUTHOR) {
-                txCore.logger.fxserver.logSystemCommand(command);
-            } else {
-                txCore.logger.fxserver.logAdminCommand(author, command);
+            const isSilentSystemCommand =
+                command.startsWith('txaSendEvent "txsv:updateSyntheticPlayers"') ||
+                command.startsWith('txaSyncHttpPlayers ');
+            if (!isSilentSystemCommand) {
+                if (author === SYM_SYSTEM_AUTHOR) {
+                    txCore.logger.fxserver.logSystemCommand(command);
+                } else {
+                    txCore.logger.fxserver.logAdminCommand(author, command);
+                }
             }
             return success;
         } catch (error) {

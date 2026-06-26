@@ -20,11 +20,7 @@ export function assertSafeRemoteRecipeUrl(raw: string): URL {
     }
 
     const host = url.hostname.toLowerCase();
-    const isLoopback =
-        host === 'localhost' ||
-        host === '127.0.0.1' ||
-        host === '[::1]' ||
-        host === '::1';
+    const isLoopback = host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1';
 
     if (protocol === 'http:' && !isLoopback) {
         throw new Error('Recipe download over http:// is only allowed for localhost / 127.0.0.1 / ::1');

@@ -32,11 +32,16 @@ import ScreenshotDialog from './ScreenshotDialog';
 import LiveSpectateDialog from './LiveSpectateDialog';
 import type { AddonWidgetEntry } from '@/hooks/addons';
 import { ErrorBoundary } from 'react-error-boundary';
+import { cn } from '@/lib/utils';
+import { useLocale } from '@/hooks/locale';
+import { translateApiError } from '@/lib/translateApiError';
 
 type PlayerModalFooterProps = {
     playerRef: PlayerModalRefType;
     player?: PlayerModalPlayerData;
     addonActions?: AddonWidgetEntry[];
+    /** Dev redesign: wider footer layout for V2 modal shell */
+    designVariant?: 'original' | 'redesign';
 };
 
 type PlayerModalFooterState = {
@@ -82,9 +87,19 @@ function PlayerFooterActions({
     onScreenshot,
     onLiveSpectate,
     onDeletePlayer,
-}: PlayerFooterActionsProps) {
+    designVariant = 'original',
+}: PlayerFooterActionsProps & { designVariant?: 'original' | 'redesign' }) {
+    const { t } = useLocale();
+
     return (
-        <DialogFooter className="grid max-w-2xl grid-cols-2 gap-2 border-t p-2 sm:flex md:p-4">
+        <DialogFooter
+            className={cn(
+                'grid grid-cols-2 gap-2 p-2 sm:flex md:p-4',
+                designVariant === 'redesign'
+                    ? 'border-border/60 bg-muted/15 max-w-none gap-2.5 border-0 px-4 py-3 md:px-5'
+                    : 'max-w-2xl border-t',
+            )}
+        >
             <Button
                 variant="outline"
                 size="sm"
@@ -92,7 +107,7 @@ function PlayerFooterActions({
                 onClick={onDm}
                 className="pl-2"
             >
-                <MailIcon className="mr-1 h-5" /> DM
+                <MailIcon className="mr-1 h-5" /> {t('panel.player_modal.footer.dm')}
             </Button>
             <Button
                 variant="outline"
@@ -109,7 +124,7 @@ function PlayerFooterActions({
                         fill: 'currentcolor',
                     }}
                 />{' '}
-                Kick
+                {t('panel.player_modal.footer.kick')}
             </Button>
             <Button
                 variant="outline"
@@ -118,32 +133,32 @@ function PlayerFooterActions({
                 onClick={onWarn}
                 className="pl-2"
             >
-                <AlertTriangleIcon className="mr-1 h-5" /> Warn
+                <AlertTriangleIcon className="mr-1 h-5" /> {t('panel.player_modal.footer.warn')}
             </Button>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" disabled={!player} className="pl-2">
-                        <MoreHorizontalIcon className="mr-1 h-5" /> More
+                        <MoreHorizontalIcon className="mr-1 h-5" /> {t('panel.player_modal.footer.more')}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuItem disabled={!hasPerm('manage.admins') || !player?.ids.length} onClick={onGiveAdmin}>
-                        <ShieldCheckIcon className="mr-2 size-4" /> Give Admin
+                        <ShieldCheckIcon className="mr-2 size-4" /> {t('panel.player_modal.footer.give_admin')}
                     </DropdownMenuItem>
                     <DropdownMenuItem disabled={!hasPerm('players.heal') || !player?.isConnected} onClick={onHeal}>
-                        <HeartIcon className="mr-2 size-4" /> Heal
+                        <HeartIcon className="mr-2 size-4" /> {t('panel.player_modal.footer.heal')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         disabled={!hasPerm('players.spectate') || !player?.isConnected}
                         onClick={onScreenshot}
                     >
-                        <CameraIcon className="mr-2 size-4" /> Screenshot
+                        <CameraIcon className="mr-2 size-4" /> {t('panel.player_modal.footer.screenshot')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         disabled={!hasPerm('players.spectate') || !player?.isConnected}
                         onClick={onLiveSpectate}
                     >
-                        <EyeIcon className="mr-2 size-4" /> Watch Live
+                        <EyeIcon className="mr-2 size-4" /> {t('panel.player_modal.footer.watch_live')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -151,7 +166,7 @@ function PlayerFooterActions({
                         onClick={onDeletePlayer}
                         className="text-destructive focus:text-destructive"
                     >
-                        <Trash2Icon className="mr-2 size-4" /> Delete Player
+                        <Trash2Icon className="mr-2 size-4" /> {t('panel.player_modal.footer.delete_player')}
                     </DropdownMenuItem>
                     {addonActions && addonActions.length > 0 && (
                         <>
@@ -169,7 +184,13 @@ function PlayerFooterActions({
     );
 }
 
-export default function PlayerModalFooter({ playerRef, player, addonActions }: PlayerModalFooterProps) {
+export default function PlayerModalFooter({
+    playerRef,
+    player,
+    addonActions,
+    designVariant = 'original',
+}: PlayerModalFooterProps) {
+    const { t } = useLocale();
     const { hasPerm } = useAdminPerms();
     const openPromptDialog = useOpenPromptDialog();
     const openConfirmDialog = useOpenConfirmDialog();
@@ -262,17 +283,17 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
     const handleDm = () => {
         if (!player) return;
         openPromptDialog({
-            title: `Direct Message ${player.displayName}`,
-            message: 'Type direct message below',
-            placeholder: 'whatever you wanna say',
-            submitLabel: 'Send',
+            title: t('panel.player_modal.prompts.dm_title', { name: player.displayName }),
+            message: t('panel.player_modal.prompts.dm_message'),
+            placeholder: t('panel.player_modal.prompts.dm_placeholder'),
+            submitLabel: t('panel.common.send'),
             required: true,
             onSubmit: (input) => {
                 playerMessageApi({
                     queryParams: playerRef,
                     data: { message: input },
-                    genericHandler: { successMsg: 'Direct message sent.' },
-                    toastLoadingMessage: 'Sending direct message...',
+                    genericHandler: { successMsg: t('panel.player_modal.toasts.dm_sent') },
+                    toastLoadingMessage: t('panel.player_modal.toasts.dm_sending'),
                     success: closeOnSuccess,
                 });
             },
@@ -282,16 +303,16 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
     const handleKick = () => {
         if (!player) return;
         openPromptDialog({
-            title: `Kick ${player.displayName}`,
-            message: 'Type the kick reason or leave it blank (press enter)',
-            placeholder: 'any reason you want',
-            submitLabel: 'Send',
+            title: t('panel.player_modal.prompts.kick_title', { name: player.displayName }),
+            message: t('panel.player_modal.prompts.kick_message'),
+            placeholder: t('panel.player_modal.prompts.kick_placeholder'),
+            submitLabel: t('panel.common.send'),
             onSubmit: (input) => {
                 playerKickApi({
                     queryParams: playerRef,
                     data: { reason: input },
-                    genericHandler: { successMsg: 'Player kicked.' },
-                    toastLoadingMessage: 'Kicking player...',
+                    genericHandler: { successMsg: t('panel.player_modal.toasts.player_kicked') },
+                    toastLoadingMessage: t('panel.player_modal.toasts.kicking'),
                     success: closeOnSuccess,
                 });
             },
@@ -301,22 +322,22 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
     const handleWarn = () => {
         if (!player) return;
         openPromptDialog({
-            title: `Warn ${player.displayName}`,
+            title: t('panel.player_modal.prompts.warn_title', { name: player.displayName }),
             message: (
                 <p>
-                    Type below the warn reason. <br />
-                    Offline players will receive the warning when they come back online.
+                    {t('panel.player_modal.prompts.warn_message')} <br />
+                    {t('panel.player_modal.prompts.warn_offline_hint')}
                 </p>
             ),
-            placeholder: 'The reason for the warn, rule violated, etc.',
-            submitLabel: 'Send',
+            placeholder: t('panel.player_modal.prompts.warn_placeholder'),
+            submitLabel: t('panel.common.send'),
             required: true,
             onSubmit: (input) => {
                 playerWarnApi({
                     queryParams: playerRef,
                     data: { reason: input },
-                    genericHandler: { successMsg: 'Warning sent.' },
-                    toastLoadingMessage: 'Sending warning...',
+                    genericHandler: { successMsg: t('panel.player_modal.toasts.warning_sent') },
+                    toastLoadingMessage: t('panel.player_modal.toasts.warning_sending'),
                     success: closeOnSuccess,
                 });
             },
@@ -328,8 +349,8 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
         playerHealApi({
             queryParams: playerRef,
             data: {},
-            genericHandler: { successMsg: `Healed ${player.displayName}.` },
-            toastLoadingMessage: 'Healing player...',
+            genericHandler: { successMsg: t('panel.player_modal.toasts.healed', { name: player.displayName }) },
+            toastLoadingMessage: t('panel.player_modal.toasts.healing'),
         });
     };
 
@@ -350,13 +371,14 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
                 if (data.imageData) {
                     dispatch({ screenshotData: data.imageData });
                 } else if (data.error) {
-                    dispatch({ screenshotError: data.error });
+                    dispatch({ screenshotError: translateApiError(t, data.errorCode, data.error) });
                 }
             },
             error: (errorMsg) => {
                 dispatch({
                     screenshotLoading: false,
-                    screenshotError: typeof errorMsg === 'string' ? errorMsg : 'Failed to capture screenshot.',
+                    screenshotError:
+                        typeof errorMsg === 'string' ? errorMsg : t('panel.player_modal.toasts.screenshot_failed'),
                 });
             },
         });
@@ -377,12 +399,13 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
                 if (data.sessionId) {
                     dispatch({ spectateSessionId: data.sessionId });
                 } else if (data.error) {
-                    dispatch({ spectateError: data.error });
+                    dispatch({ spectateError: translateApiError(t, data.errorCode, data.error) });
                 }
             },
             error: (errorMsg) => {
                 dispatch({
-                    spectateError: typeof errorMsg === 'string' ? errorMsg : 'Failed to start live spectate.',
+                    spectateError:
+                        typeof errorMsg === 'string' ? errorMsg : t('panel.player_modal.toasts.spectate_failed'),
                 });
             },
         });
@@ -400,22 +423,22 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
     const handleDeletePlayer = () => {
         if (!player) return;
         openConfirmDialog({
-            title: `Delete Player`,
+            title: t('panel.player_modal.prompts.delete_title'),
             message: (
                 <p>
-                    Are you sure you want to permanently delete <strong>{player.displayName}</strong> from the database?
+                    {t('panel.player_modal.prompts.delete_message', { name: player.displayName })}
                     <br />
-                    This will remove all their data including play time, join date, notes, and identifier history.
+                    {t('panel.player_modal.prompts.delete_detail')}
                     <br />
-                    <strong>This action cannot be undone.</strong>
+                    <strong>{t('panel.player_modal.prompts.delete_irreversible')}</strong>
                 </p>
             ),
             onConfirm: () => {
                 playerDeleteApi({
                     queryParams: playerRef,
                     data: {},
-                    genericHandler: { successMsg: 'Player deleted from database.' },
-                    toastLoadingMessage: 'Deleting player...',
+                    genericHandler: { successMsg: t('panel.player_modal.toasts.player_deleted') },
+                    toastLoadingMessage: t('panel.player_modal.toasts.deleting'),
                     success: (data) => {
                         if ('success' in data) {
                             closeModal();
@@ -441,6 +464,7 @@ export default function PlayerModalFooter({ playerRef, player, addonActions }: P
                 onScreenshot={handleScreenshot}
                 onLiveSpectate={handleLiveSpectate}
                 onDeletePlayer={handleDeletePlayer}
+                designVariant={designVariant}
             />
             <ScreenshotDialog
                 open={screenshotOpen}

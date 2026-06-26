@@ -17,6 +17,7 @@ import {
 } from '../utils';
 import SettingsCardShell from '../SettingsCardShell';
 import { txToast } from '@/components/TxToaster';
+import { useLocale } from '@/hooks/locale';
 
 export const pageConfigs = {
     checkingEnabled: getPageConfig('banlist', 'enabled', undefined, true),
@@ -26,6 +27,7 @@ export const pageConfigs = {
 } as const;
 
 export default function ConfigCardBans({ cardCtx, pageCtx }: SettingsCardProps) {
+    const { t } = useLocale();
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [states, dispatch] = useReducer(configsReducer<typeof pageConfigs>, null, () =>
         getConfigEmptyState(pageConfigs),
@@ -70,9 +72,9 @@ export default function ConfigCardBans({ cardCtx, pageCtx }: SettingsCardProps) 
 
         if (localConfigs.banlist?.rejectionMessage && localConfigs.banlist.rejectionMessage.length > 512) {
             return txToast.error({
-                title: 'The Ban Rejection Message is too big.',
+                title: t('panel.settings.bans.rejection_too_big_title'),
                 md: true,
-                msg: 'The message must be 512 characters or less.',
+                msg: t('panel.settings.bans.rejection_too_big_msg'),
             });
         }
         pageCtx.saveChanges(cardCtx, localConfigs);
@@ -86,36 +88,37 @@ export default function ConfigCardBans({ cardCtx, pageCtx }: SettingsCardProps) 
             advancedVisible={showAdvanced}
             advancedSetter={setShowAdvanced}
         >
-            <SettingItem label="Ban Checking">
+            <SettingItem label={t('panel.settings.bans.checking_label')}>
                 <SwitchText
                     id={cfg.checkingEnabled.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     checked={states.checkingEnabled}
                     onCheckedChange={cfg.checkingEnabled.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>
-                    Enable checking for ban status on player join. <br />
-                    <strong>Note:</strong> fxPanel bans will not work if this option is disabled.
+                    {t('panel.settings.bans.checking_desc')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong> {t('panel.settings.bans.checking_note')}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Ban Templates">
+            <SettingItem label={t('panel.settings.bans.templates_label')}>
                 <Link asChild href="/settings/ban-templates">
                     <Button size={'sm'} variant="secondary" disabled={pageCtx.isReadOnly}>
-                        <PencilIcon className="mr-1.5 inline-block size-4" /> Edit Ban Templates
+                        <PencilIcon className="mr-1.5 inline-block size-4" /> {t('panel.settings.bans.edit_templates')}
                     </Button>
                 </Link>
-                <SettingItemDesc>
-                    Configure ban reasons and durations that will appear as dropdown options when banning a player. This
-                    is useful for common reasons that happen frequently, like violation of your server rules.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.bans.templates_desc')}</SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Ban Rejection Message" htmlFor={cfg.rejectionMessage.eid} showOptional>
+            <SettingItem
+                label={t('panel.settings.bans.rejection_label')}
+                htmlFor={cfg.rejectionMessage.eid}
+                showOptional
+            >
                 <AutosizeTextarea
                     id={cfg.rejectionMessage.eid}
                     ref={rejectionMessageRef}
-                    placeholder="You can join http://discord.gg/example to appeal this ban."
+                    placeholder={t('panel.settings.bans.rejection_placeholder')}
                     defaultValue={cfg.rejectionMessage.initialValue}
                     onInput={updatePageState}
                     autoComplete="off"
@@ -124,37 +127,37 @@ export default function ConfigCardBans({ cardCtx, pageCtx }: SettingsCardProps) 
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>
-                    Optional message to display to a player on the rejection message that shows when they try to connect
-                    while being banned. <br />
-                    If you have a ban appeal process, you can use this field to inform the players.
+                    {t('panel.settings.bans.rejection_desc')} <br />
+                    {t('panel.settings.bans.rejection_appeal')}
                 </SettingItemDesc>
             </SettingItem>
 
             {showAdvanced && <AdvancedDivider />}
 
-            <SettingItem label="Required Ban HWID Matches" htmlFor={cfg.requiredHwids.eid} showIf={showAdvanced}>
+            <SettingItem
+                label={t('panel.settings.bans.hwid_label')}
+                htmlFor={cfg.requiredHwids.eid}
+                showIf={showAdvanced}
+            >
                 <Select
                     value={selectNumberUtil.toUi(states.requiredHwids)}
                     onValueChange={(val) => cfg.requiredHwids.state.set(selectNumberUtil.toCfg(val))}
                     disabled={pageCtx.isReadOnly}
                 >
                     <SelectTrigger id={cfg.requiredHwids.eid}>
-                        <SelectValue placeholder="Select..." />
+                        <SelectValue placeholder={t('panel.common.select_placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="1">1 - recommended</SelectItem>
-                        <SelectItem value="2">2 - lax</SelectItem>
-                        <SelectItem value="3">3 - very lax</SelectItem>
-                        <SelectItem value="4">4 - virtually disabled</SelectItem>
-                        <SelectItem value="0">Disable HWID Bans</SelectItem>
+                        <SelectItem value="1">{t('panel.settings.bans.hwid_option_1')}</SelectItem>
+                        <SelectItem value="2">{t('panel.settings.bans.hwid_option_2')}</SelectItem>
+                        <SelectItem value="3">{t('panel.settings.bans.hwid_option_3')}</SelectItem>
+                        <SelectItem value="4">{t('panel.settings.bans.hwid_option_4')}</SelectItem>
+                        <SelectItem value="0">{t('panel.settings.bans.hwid_option_0')}</SelectItem>
                     </SelectContent>
                 </Select>
                 <SettingItemDesc>
-                    This option configures how many HWID tokens must match between a player and an existing ban for the
-                    player join to be blocked, or can disable HWID Bans entirely. <br />
-                    Since Hardware ID Tokens are not guaranteed to be unique, there is the possibility of tokens from
-                    two players matching without them being related to each other. <br />
-                    <strong>Note:</strong> Most players have 3 to 6 HWID tokens.
+                    {t('panel.settings.bans.hwid_desc')} <br />
+                    {t('panel.settings.bans.hwid_note')}
                 </SettingItemDesc>
             </SettingItem>
         </SettingsCardShell>

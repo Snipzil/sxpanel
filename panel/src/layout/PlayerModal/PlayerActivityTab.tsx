@@ -1,6 +1,7 @@
 import { PlayerModalPlayerData } from '@shared/playerApiTypes';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/hooks/locale';
 
 type DayData = {
     date: string; //YYYY-MM-DD
@@ -8,7 +9,15 @@ type DayData = {
     total: number;
 };
 
-const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const dayLabelKeys = [
+    'panel.player_modal.activity.days.sun',
+    'panel.player_modal.activity.days.mon',
+    'panel.player_modal.activity.days.tue',
+    'panel.player_modal.activity.days.wed',
+    'panel.player_modal.activity.days.thu',
+    'panel.player_modal.activity.days.fri',
+    'panel.player_modal.activity.days.sat',
+] as const;
 
 const getIntensityClass = (minutes: number) => {
     if (minutes === 0) return 'bg-secondary/40';
@@ -32,6 +41,7 @@ type PlayerActivityTabProps = {
 };
 
 export default function PlayerActivityTab({ player, serverTime }: PlayerActivityTabProps) {
+    const { t } = useLocale();
     const { dayGrid, peakHours, activeDays, avgDailyMinutes } = useMemo(() => {
         const history = player.sessionHistory ?? [];
         if (!history.length) {
@@ -126,7 +136,7 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
     if (!player.sessionHistory?.length) {
         return (
             <div className="flex h-full items-center justify-center p-4">
-                <span className="text-muted-foreground text-sm">No activity data available.</span>
+                <span className="text-muted-foreground text-sm">{t('panel.player_modal.activity.no_data')}</span>
             </div>
         );
     }
@@ -150,17 +160,17 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
             <div className="grid grid-cols-3 gap-3">
                 <div className="bg-secondary/30 rounded-md p-2 text-center">
                     <div className="text-lg font-semibold">{activeDays}/28</div>
-                    <div className="text-muted-foreground text-xs">Active Days</div>
+                    <div className="text-muted-foreground text-xs">{t('panel.player_modal.activity.active_days')}</div>
                 </div>
                 <div className="bg-secondary/30 rounded-md p-2 text-center">
                     <div className="text-lg font-semibold">{formatMinutes(avgDailyMinutes)}</div>
-                    <div className="text-muted-foreground text-xs">Avg / Day</div>
+                    <div className="text-muted-foreground text-xs">{t('panel.player_modal.activity.avg_per_day')}</div>
                 </div>
                 <div className="bg-secondary/30 rounded-md p-2 text-center">
                     <div className="text-lg font-semibold">
                         {peakHours.length > 0 ? formatHour(peakHours[0].hour) : '--'}
                     </div>
-                    <div className="text-muted-foreground text-xs">Peak Hour</div>
+                    <div className="text-muted-foreground text-xs">{t('panel.player_modal.activity.peak_hour')}</div>
                 </div>
             </div>
 
@@ -168,7 +178,7 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
             {peakHours.length > 0 && (
                 <div>
                     <div className="text-muted-foreground mb-1 text-xs font-medium tracking-wider uppercase">
-                        Most Active Hours
+                        {t('panel.player_modal.activity.most_active_hours')}
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {peakHours.map(({ hour, total }) => (
@@ -177,7 +187,11 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
                                 className="bg-secondary inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs"
                             >
                                 <span className="font-medium">{formatHour(hour)}</span>
-                                <span className="text-muted-foreground">({formatMinutes(total)} total)</span>
+                                <span className="text-muted-foreground">
+                                    {t('panel.player_modal.activity.total_suffix', {
+                                        time: formatMinutes(total),
+                                    })}
+                                </span>
                             </span>
                         ))}
                     </div>
@@ -187,12 +201,12 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
             {/* Day grid — last 28 days */}
             <div>
                 <div className="text-muted-foreground mb-1 text-xs font-medium tracking-wider uppercase">
-                    Last 28 Days
+                    {t('panel.player_modal.activity.last_28_days')}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
-                    {dayLabels.map((label) => (
-                        <div key={label} className="text-muted-foreground text-center text-[10px]">
-                            {label}
+                    {dayLabelKeys.map((key) => (
+                        <div key={key} className="text-muted-foreground text-center text-[10px]">
+                            {t(key)}
                         </div>
                     ))}
                     {/* Pad first week to align with day of week */}
@@ -211,13 +225,13 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
                     ))}
                 </div>
                 <div className="mt-1.5 flex items-center justify-end gap-1 text-[10px]">
-                    <span className="text-muted-foreground">Less</span>
+                    <span className="text-muted-foreground">{t('panel.player_modal.activity.less')}</span>
                     <div className={cn('size-2.5 rounded-sm', 'bg-secondary/40')} />
                     <div className={cn('size-2.5 rounded-sm', 'bg-emerald-900/60')} />
                     <div className={cn('size-2.5 rounded-sm', 'bg-emerald-700/70')} />
                     <div className={cn('size-2.5 rounded-sm', 'bg-emerald-500/80')} />
                     <div className={cn('size-2.5 rounded-sm', 'bg-emerald-400')} />
-                    <span className="text-muted-foreground">More</span>
+                    <span className="text-muted-foreground">{t('panel.player_modal.activity.more')}</span>
                 </div>
             </div>
 
@@ -225,7 +239,7 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
             {dayGrid.length > 0 && dayGrid.at(-1)!.total > 0 && (
                 <div>
                     <div className="text-muted-foreground mb-1 text-xs font-medium tracking-wider uppercase">
-                        Today&apos;s Hourly Breakdown
+                        {t('panel.player_modal.activity.today_breakdown')}
                     </div>
                     <div className="grid grid-cols-12 gap-0.5">
                         {Array.from(dayGrid.at(-1)!.hours.entries()).map(([hour, mins]) => (
@@ -234,7 +248,9 @@ export default function PlayerActivityTab({ player, serverTime }: PlayerActivity
                                 className={cn('flex flex-col items-center rounded-sm py-0.5', getIntensityClass(mins))}
                                 title={`${formatHour(hour)}: ${mins}m`}
                             >
-                                <span className="text-[8px] leading-none opacity-70">{String(hour).padStart(2, '0')}</span>
+                                <span className="text-[8px] leading-none opacity-70">
+                                    {String(hour).padStart(2, '0')}
+                                </span>
                             </div>
                         ))}
                     </div>

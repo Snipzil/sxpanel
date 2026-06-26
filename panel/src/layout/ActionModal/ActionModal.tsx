@@ -1,52 +1,45 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { useActionModalStateValue } from '@/hooks/actionModal';
-import { InfoIcon, ListIcon, PencilIcon, Undo2Icon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { InfoIcon, ListIcon, PencilIcon, Undo2Icon } from 'lucide-react';
+import { useActionModalStateValue } from '@/hooks/actionModal';
 import GenericSpinner from '@/components/GenericSpinner';
-import { cn } from '@/lib/utils';
-import { useBackendApi } from '@/hooks/fetch';
 import ModalCentralMessage from '@/components/ModalCentralMessage';
-import { HistoryActionModalResp, HistoryActionModalSuccess } from '@shared/historyApiTypes';
-import ActionIdsTab from './ActionIdsTab';
-import ActionInfoTab from './ActionInfoTab';
-import ActionEditTab from './ActionEditTab';
-import ActionModifyTab from './ActionModifyTab';
+import { useBackendApi } from '@/hooks/fetch';
+import type { HistoryActionModalResp, HistoryActionModalSuccess } from '@shared/historyApiTypes';
+import ActionIdsTab from '@/layout/ActionModal/ActionIdsTab';
+import ActionInfoTab from '@/layout/ActionModal/ActionInfoTab';
+import ActionEditTab from '@/layout/ActionModal/ActionEditTab';
+import ActionModifyTab from '@/layout/ActionModal/ActionModifyTab';
 import type { DatabaseActionType } from '../../../../core/modules/Database/databaseTypes';
+import { cn } from '@/lib/utils';
+import { getActionTypeMeta } from '@/pages/History/historyRowUtils';
+import { ModalShell, type ModalShellTab } from '@/components/modals/ModalShell';
 
-type ModalTab = {
-    title: string;
-    icon: React.ReactNode;
-    className?: string;
-};
-
-const baseTabs: ModalTab[] = [
-    {
-        title: 'Info',
-        icon: <InfoIcon className="xs:block mr-2 hidden size-5" />,
-    },
-    {
-        title: 'IDs',
-        icon: <ListIcon className="xs:block mr-2 hidden size-5" />,
-    },
+const BASE_TABS: ModalShellTab[] = [
+    { id: 'action-modal-tab-info', value: 'Info', label: 'Info', shortLabel: 'Info', icon: InfoIcon },
+    { id: 'action-modal-tab-ids', value: 'IDs', label: 'IDs', shortLabel: 'IDs', icon: ListIcon },
 ];
 
-const editTab: ModalTab = {
-    title: 'Edit',
-    icon: <PencilIcon className="xs:block mr-2 hidden size-5" />,
+const EDIT_TAB: ModalShellTab = {
+    id: 'action-modal-tab-edit',
+    value: 'Edit',
+    label: 'Edit',
+    shortLabel: 'Edit',
+    icon: PencilIcon,
 };
 
-const revokeTab: ModalTab = {
-    title: 'Revoke',
-    icon: <Undo2Icon className="xs:block mr-2 hidden size-5" />,
-    className: 'hover:bg-destructive hover:text-destructive-foreground',
+const REVOKE_TAB: ModalShellTab = {
+    id: 'action-modal-tab-revoke',
+    value: 'Revoke',
+    label: 'Revoke',
+    shortLabel: 'Revoke',
+    icon: Undo2Icon,
+    danger: true,
 };
 
-const getTabsForAction = (action?: DatabaseActionType): ModalTab[] => {
-    if (!action) return [...baseTabs, revokeTab];
-    if (action.type === 'ban') return [...baseTabs, editTab, revokeTab];
-    return [...baseTabs, revokeTab];
+const getTabsForAction = (action?: DatabaseActionType): ModalShellTab[] => {
+    if (!action) return [...BASE_TABS, REVOKE_TAB];
+    if (action.type === 'ban') return [...BASE_TABS, EDIT_TAB, REVOKE_TAB];
+    return [...BASE_TABS, REVOKE_TAB];
 };
 
 export default function ActionModal() {
@@ -62,12 +55,10 @@ export default function ActionModal() {
         abortOnUnmount: true,
     });
 
-    //Helper for tabs to be able to refresh the modal data
     const refreshModalData = () => {
-        setCurrRefreshKey(currRefreshKey + 1);
+        setCurrRefreshKey((k) => k + 1);
     };
 
-    //Querying Action data when reference is available
     useEffect(() => {
         if (!actionRef) return;
         setModalData(undefined);
@@ -88,14 +79,20 @@ export default function ActionModal() {
         });
     }, [actionRef, currRefreshKey]);
 
-    //Resetting selected tab when modal is closed
     useEffect(() => {
         if (!isModalOpen) {
-            setTimeout(() => {
-                setSelectedTab('Info');
-            }, 200);
+            const timer = setTimeout(() => setSelectedTab('Info'), 200);
+            return () => clearTimeout(timer);
         }
     }, [isModalOpen]);
+
+    const modalTabs = useMemo(() => getTabsForAction(modalData?.action), [modalData?.action]);
+
+    useEffect(() => {
+        if (!modalTabs.some((t) => t.value === selectedTab)) {
+            setSelectedTab(modalTabs[0]?.value ?? 'Info');
+        }
+    }, [modalTabs, selectedTab]);
 
     const handleOpenClose = (newOpenState: boolean) => {
         if (isModalOpen && !newOpenState) {
@@ -103,127 +100,106 @@ export default function ActionModal() {
         }
     };
 
-    const modalTabs = useMemo(() => getTabsForAction(modalData?.action), [modalData?.action]);
+    const action = modalData?.action;
+    const typeMeta = action ? getActionTypeMeta(action.type) : null;
+    const TypeIcon = typeMeta?.icon;
 
-    //move to tab up or down
-    const handleTabButtonKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-            e.preventDefault();
-            const currentIndex = modalTabs.findIndex((tab) => tab.title === selectedTab);
-            const nextIndex = e.key === 'ArrowUp' ? currentIndex - 1 : currentIndex + 1;
-            const nextTab = modalTabs[nextIndex];
-            if (nextTab) {
-                setSelectedTab(nextTab.title);
-                const nextButton = document.getElementById(`action-modal-tab-${nextTab.title}`);
-                if (nextButton) {
-                    nextButton.focus();
-                }
-            }
-        }
-    };
-
-    let pageTitle: JSX.Element;
-    if (modalData) {
-        const displayName =
-            modalData.action.playerName !== false ? (
-                <span>{modalData.action.playerName}</span>
+    const header = (
+        <div className="flex min-w-0 items-start gap-3">
+            {typeMeta && TypeIcon ? (
+                <div
+                    className={cn(
+                        'flex size-11 shrink-0 items-center justify-center rounded-xl border',
+                        typeMeta.badgeClass,
+                    )}
+                >
+                    <TypeIcon className="size-5" aria-hidden />
+                </div>
             ) : (
-                <span className="italic opacity-75">unknown player</span>
-            );
-        if (modalData.action.type === 'ban') {
-            pageTitle = (
-                <>
-                    <span className="text-destructive-inline mr-2 font-mono">[{modalData.action.id}]</span>
-                    Banned {displayName}
-                </>
-            );
-        } else if (modalData.action.type === 'warn') {
-            pageTitle = (
-                <>
-                    <span className="text-warning-inline mr-2 font-mono">[{modalData.action.id}]</span>
-                    Warned {displayName}
-                </>
-            );
-        } else if (modalData.action.type === 'kick') {
-            pageTitle = (
-                <>
-                    <span className="text-muted-foreground mr-2 font-mono">[{modalData.action.id}]</span>
-                    Kicked {displayName}
-                </>
-            );
-        } else {
-            throw new Error(`Unknown action type: ${modalData.action.type}`);
-        }
-    } else if (modalError) {
-        pageTitle = <span className="text-destructive-inline">Error!</span>;
+                <div className="bg-muted flex size-11 shrink-0 items-center justify-center rounded-xl">
+                    <InfoIcon className="text-muted-foreground size-5" />
+                </div>
+            )}
+            <div className="min-w-0 flex-1">
+                {!modalData && !modalError ? (
+                    <p className="text-muted-foreground text-sm italic">Loading action…</p>
+                ) : modalError ? (
+                    <p className="text-destructive-inline text-sm font-semibold">Error: {modalError}</p>
+                ) : action && typeMeta ? (
+                    <>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span
+                                className={cn(
+                                    'inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-widest uppercase',
+                                    typeMeta.badgeClass,
+                                )}
+                            >
+                                {typeMeta.label}
+                            </span>
+                            <code className="text-foreground truncate font-mono text-sm tracking-wide">
+                                {action.id}
+                            </code>
+                            {action.revocation?.timestamp ? (
+                                <span className="border-border bg-muted/50 text-muted-foreground inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase">
+                                    Revoked
+                                </span>
+                            ) : null}
+                        </div>
+                        <p className="text-muted-foreground mt-1 truncate text-sm">
+                            {action.playerName !== false ? (
+                                <span className="text-foreground font-medium">{action.playerName}</span>
+                            ) : (
+                                <span className="italic">Unknown player</span>
+                            )}
+                            <span className="mx-1.5 opacity-40">·</span>
+                            <span>{action.author}</span>
+                        </p>
+                    </>
+                ) : null}
+            </div>
+        </div>
+    );
+
+    let tabBody: React.ReactNode;
+    if (!modalData) {
+        tabBody = (
+            <ModalCentralMessage>
+                {modalError ? (
+                    <span className="text-destructive-inline text-sm">Error: {modalError}</span>
+                ) : (
+                    <GenericSpinner msg="Loading..." />
+                )}
+            </ModalCentralMessage>
+        );
     } else {
-        pageTitle = <span className="text-muted-foreground italic">Loading...</span>;
+        tabBody = (
+            <>
+                {selectedTab === 'Info' && (
+                    <ActionInfoTab action={modalData.action} serverTime={modalData.serverTime} tsFetch={tsFetch} />
+                )}
+                {selectedTab === 'IDs' && <ActionIdsTab action={modalData.action} />}
+                {selectedTab === 'Edit' && modalData.action.type === 'ban' && (
+                    <ActionEditTab action={modalData.action} refreshModalData={refreshModalData} />
+                )}
+                {selectedTab === 'Revoke' && (
+                    <ActionModifyTab action={modalData.action} refreshModalData={refreshModalData} />
+                )}
+            </>
+        );
     }
 
     return (
-        <Dialog open={isModalOpen} onOpenChange={handleOpenClose}>
-            <DialogContent
-                className="flex h-full max-h-full max-w-2xl flex-col gap-1 p-0 sm:h-auto sm:gap-4"
-                // onOpenAutoFocus={(e) => e.preventDefault()}
-            >
-                <DialogHeader className="border-b px-4 py-3">
-                    <DialogTitle className="mr-6 line-clamp-1 leading-7 tracking-wide break-all">
-                        {pageTitle}
-                    </DialogTitle>
-                </DialogHeader>
-
-                <div className="flex h-full flex-col md:flex-row md:px-4">
-                    <div className="bg-muted mx-2 flex flex-row gap-1 rounded-md p-1 md:mx-0 md:flex-col md:bg-transparent md:p-0">
-                        {modalTabs.map((tab) => (
-                            <Button
-                                id={`action-modal-tab-${tab.title}`}
-                                key={tab.title}
-                                variant={selectedTab === tab.title ? 'secondary' : 'ghost'}
-                                className={cn(
-                                    'w-full justify-center tracking-wider md:justify-start',
-                                    'h-7 rounded-sm px-2 text-sm',
-                                    'md:h-10 md:text-base',
-                                    // @ts-ignore annoying, remove this when adding some class to any of the tabs
-                                    tab.className,
-                                )}
-                                onClick={() => setSelectedTab(tab.title)}
-                                onKeyDown={handleTabButtonKeyDown}
-                            >
-                                {tab.icon} {tab.title}
-                            </Button>
-                        ))}
-                    </div>
-                    {/* NOTE: consistent height: sm:h-66 */}
-                    <ScrollArea className="max-h-[calc(100dvh-3.125rem-4rem)] min-h-66 w-full px-4 py-2 md:max-h-[50vh] md:py-0">
-                        {!modalData ? (
-                            <ModalCentralMessage>
-                                {modalError ? (
-                                    <span className="text-destructive-inline">Error: {modalError}</span>
-                                ) : (
-                                    <GenericSpinner msg="Loading..." />
-                                )}
-                            </ModalCentralMessage>
-                        ) : (
-                            <>
-                                {selectedTab === 'Info' && (
-                                    <ActionInfoTab
-                                        action={modalData.action}
-                                        serverTime={modalData.serverTime}
-                                        tsFetch={tsFetch}
-                                    />
-                                )}
-                                {selectedTab === 'IDs' && <ActionIdsTab action={modalData.action} />}
-                                {selectedTab === 'Edit' && modalData.action.type === 'ban' && (
-                                    <ActionEditTab action={modalData.action} refreshModalData={refreshModalData} />
-                                )}
-                                {selectedTab === 'Revoke' && (
-                                    <ActionModifyTab action={modalData.action} refreshModalData={refreshModalData} />
-                                )}
-                            </>
-                        )}
-                    </ScrollArea>
-                </div>
-            </DialogContent>
-        </Dialog>
+        <ModalShell
+            open={isModalOpen}
+            onOpenChange={handleOpenClose}
+            srTitle={action?.id ?? 'Action'}
+            srDescription="Action details"
+            header={header}
+            tabs={modalTabs}
+            selectedTab={selectedTab}
+            onSelectTab={setSelectedTab}
+        >
+            <div className={cn(!modalData && 'min-h-32')}>{tabBody}</div>
+        </ModalShell>
     );
 }

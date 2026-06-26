@@ -1,17 +1,41 @@
 {
     "id": "addon-starter-template",
-    "name": "Starter Template",
-    "description": "A minimal fxPanel addon template with examples of routes, storage, events, panel pages, and widgets.",
+    "name": "Shift Board (Starter)",
+    "description": "Example staff shift board — pulse meter, pins, roster, live traffic. Copy and rename.",
     "version": "1.0.0",
     "author": "fxPanel Community",
     "license": "MIT",
     "fxpanel": {
-        "minVersion": "0.2.1-Beta"
+        "minVersion": "0.4.0-Beta"
     },
     "permissions": {
         "required": ["storage"],
-        "optional": ["ws.push", "players.read"]
+        "optional": ["ws.push", "players.read", "players.write", "deferral"]
     },
+    "deferral": {
+        "scenarios": [
+            {
+                "id": "shift_closed",
+                "label": "Shift board — closed",
+                "description": "Example addon deferral card (edit in Deferral Studio).",
+                "group": "addon"
+            }
+        ],
+        "tokens": [
+            {
+                "key": "shiftNote",
+                "label": "Shift note",
+                "sample": "Shift applications are closed right now."
+            }
+        ]
+    },
+    "adminPermissions": [
+        {
+            "id": "addon-starter-template.view-duty-hours",
+            "label": "View Duty Hours",
+            "description": "See cumulative on-duty time for all staff on the shift board"
+        }
+    ],
     "server": {
         "entry": "server/index.js"
     },
@@ -22,13 +46,21 @@
             "windowMs": 15000
         }
     },
+    "nui": {
+        "entry": "nui/index.js",
+        "styles": "nui/index.css"
+    },
+    "resource": {
+        "server_scripts": ["resource/sv_shift.lua"],
+        "client_scripts": ["resource/cl_shift.lua"]
+    },
     "panel": {
         "entry": "panel/index.js",
         "pages": [
             {
-                "path": "/home",
-                "title": "Starter Home",
-                "icon": "Sparkles",
+                "path": "/shift",
+                "title": "Shift Board",
+                "icon": "Radio",
                 "sidebar": true,
                 "sidebarGroup": "Addons",
                 "component": "StarterPage"
@@ -38,7 +70,7 @@
             {
                 "slot": "dashboard.main",
                 "component": "StarterWidget",
-                "title": "Starter Widget",
+                "title": "Server pulse",
                 "defaultSize": "half"
             }
         ]

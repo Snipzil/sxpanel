@@ -1,16 +1,27 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { ScrollTextIcon, Loader2Icon, ArrowDownIcon } from 'lucide-react';
+import { Loader2Icon, ArrowDownIcon, FilterXIcon, RadioTowerIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { PageHeader, PageHeaderChangelog } from '@/components/page-header';
-import useActionLog from './useActionLog';
-import ActionLogToolbar from './ActionLogToolbar';
-import ActionLogEntry from './ActionLogEntry';
+import useActionLog from '@/pages/ActionLog/useActionLog';
+import ActionLogToolbar from '@/pages/ActionLog/ActionLogToolbar';
 import AdminStatsDialog from '@/pages/AdminManager/AdminStatsDialog';
 import type { ConfigChangelogEntry } from '@shared/otherTypes';
 import { useBackendApi } from '@/hooks/fetch';
+import { useLocale } from '@/hooks/locale';
+import { ActionLogHeaderBand } from './ActionLogHeaderBand';
+import ActionLogEntry from './ActionLogEntry';
 
+/**
+ * Action Log V2 — redesign goals over V1:
+ * - V2 header band (icon tile + connection/event stat pills + changelog
+ *   popover) replacing PageHeader, matching the Server Log V2 band.
+ * - Light/dark adaptive category colorway in entries (V1 used dark-only
+ *   `*-400` shades).
+ * - Richer empty/connecting states with icons, mirroring Server Log V2.
+ * - Labeled scroll-to-bottom FAB.
+ */
 export default function ActionLogPage() {
+    const { t } = useLocale();
     const log = useActionLog();
     const scrollRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -70,11 +81,17 @@ export default function ActionLogPage() {
         return () => observer.disconnect();
     }, [log.loadOlder]);
 
+    const [statsAdmin, setStatsAdmin] = useState<string | null>(null);
+
     const handleAdminClick = useCallback((name: string) => {
         setStatsAdmin(name);
     }, []);
 
-    const [statsAdmin, setStatsAdmin] = useState<string | null>(null);
+    const handleClearFilters = useCallback(() => {
+        log.setAllFilters(true);
+        log.setSearchText('');
+        log.setAdminFilter(null);
+    }, [log.setAllFilters, log.setSearchText, log.setAdminFilter]);
 
     const scrollToBottom = () => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,14 +99,16 @@ export default function ActionLogPage() {
     };
 
     return (
-        <div className="h-contentvh mx-auto flex w-full max-w-(--breakpoint-xl) flex-col gap-4 px-2 md:px-0">
-            <PageHeader
-                title="Action Log"
-                description="Review administrative activity and configuration changes."
-                icon={<ScrollTextIcon />}
-            >
-                <PageHeaderChangelog changelogData={configChangelog} />
-            </PageHeader>
+        <div className="h-contentvh mx-auto flex w-full max-w-(--tx-page-max-width) flex-col px-2 md:px-0">
+            <ActionLogHeaderBand
+                title={t('panel.routes.action_log')}
+                isLive={log.isLive}
+                isConnected={log.isConnected}
+                totalEvents={log.allEventsCount}
+                eventCounts={log.eventCounts}
+                activeSession={log.activeSession}
+                changelogData={configChangelog}
+            />
 
             <TooltipProvider delayDuration={300}>
                 <div className="bg-card border-border/60 relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
@@ -135,7 +154,9 @@ export default function ActionLogPage() {
 
                         {/* No older data indicator */}
                         {!log.hasOlderData && (
-                            <div className="text-muted-foreground py-2 text-center text-xs">Beginning of log</div>
+                            <div className="text-muted-foreground/70 py-2 text-center text-xs tracking-wider uppercase">
+                                Beginning of log
+                            </div>
                         )}
 
                         {/* Log entries */}
@@ -143,30 +164,38 @@ export default function ActionLogPage() {
                             <div className="divide-border/50 divide-y">
                                 {log.events.map((event) => (
                                     <ActionLogEntry
-                                        key={event.actionId ?? `${event.ts}-${event.category}-${event.author}-${event.action}`}
+                                        key={
+                                            event.actionId ??
+                                            `${event.ts}-${event.category}-${event.author}-${event.action}`
+                                        }
                                         event={event}
                                         onAdminClick={handleAdminClick}
                                     />
                                 ))}
                             </div>
                         ) : log.allEventsCount > 0 ? (
-                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 py-16">
-                                <p className="text-sm">No events match your filters</p>
-                                <Button
-                                    variant="ghost"
-                                    size="xs"
-                                    onClick={() => {
-                                        log.setAllFilters(true);
-                                        log.setSearchText('');
-                                        log.setAdminFilter(null);
-                                    }}
-                                >
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                                <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                    <FilterXIcon className="size-6" />
+                                </div>
+                                <p className="text-sm font-medium">No events match your filters</p>
+                                <Button variant="outline" size="sm" onClick={handleClearFilters}>
                                     Clear all filters
                                 </Button>
                             </div>
                         ) : (
-                            <div className="text-muted-foreground flex items-center justify-center py-16 text-sm">
-                                {log.isConnected ? 'Waiting for events…' : 'Connecting…'}
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                                <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                    <RadioTowerIcon className="size-6" />
+                                </div>
+                                <p className="text-sm font-medium">
+                                    {log.isConnected ? 'Waiting for events…' : 'Connecting…'}
+                                </p>
+                                <p className="text-muted-foreground/70 max-w-xs text-center text-xs">
+                                    {log.isConnected
+                                        ? 'New admin activity will appear here as it happens.'
+                                        : 'Establishing a live connection to the action log stream.'}
+                                </p>
                             </div>
                         )}
 
@@ -181,6 +210,7 @@ export default function ActionLogPage() {
                                 variant="secondary"
                                 size="icon"
                                 className="size-8 rounded-full shadow-lg"
+                                aria-label="Scroll to latest events"
                                 onClick={scrollToBottom}
                             >
                                 <ArrowDownIcon className="size-4" />

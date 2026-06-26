@@ -11,6 +11,9 @@ import AddonStorage from './addonStorage';
 import AddonProcess from './addonProcess';
 import AddonFileWatcher from './addonFileWatcher';
 import AddonPublicServer from './addonPublicServer';
+import { AddonDeferralRegistry } from './deferralAddon';
+import type { DeferralAddonMetaResponse, DeferralResolveTokensPlayerContext } from '@shared/deferralAddonTypes';
+import { parseAddonDeferralScenarioId } from '@shared/deferralAddonTypes';
 import {
     topologicalSort as topoSort,
     getMissingDependencies as getMissingDeps,
@@ -63,6 +66,7 @@ export default class AddonManager {
     private fileWatcher: AddonFileWatcher | null = null;
     private publicServer: AddonPublicServer | null = null;
     private readonly crashRestartTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private readonly deferralRegistry = new AddonDeferralRegistry();
 
     constructor() {
         // Resolve paths
@@ -255,8 +259,8 @@ export default class AddonManager {
                 // Validated paths within addon dir — prevent path traversal (including
                 // sibling-prefix escapes and symlinks out of the addon tree).
                 if (!this.isSafeAddonPath(addonDir, manifest.server?.entry)) {
-                        console.warn(`Addon ${manifest.id}: server entry path escapes addon directory, skipping`);
-                        continue;
+                    console.warn(`Addon ${manifest.id}: server entry path escapes addon directory, skipping`);
+                    continue;
                 }
                 if (!this.isSafeAddonPath(addonDir, manifest.discordBot?.commands)) {
                     console.warn(`Addon ${manifest.id}: discord bot commands path escapes addon directory, skipping`);
@@ -390,6 +394,7 @@ export default class AddonManager {
                 addon.state = 'running';
                 addon.lastError = undefined;
                 this.registerAddonPerms(addon);
+                this.registerAddonDeferral(addon);
                 continue;
             }
 
@@ -401,6 +406,7 @@ export default class AddonManager {
                 permissions: addon.grantedPermissions,
                 storage: this.storage.getScope(addon.manifest.id),
                 onWsPush: this.handleWsPush.bind(this),
+                onDeferralPresent: this.handleDeferralPresent.bind(this),
                 onCrash: this.handleAddonCrash.bind(this),
             });
 
@@ -409,6 +415,7 @@ export default class AddonManager {
                 addon.state = 'running';
                 addon.lastError = undefined;
                 this.registerAddonPerms(addon);
+                this.registerAddonDeferral(addon);
                 console.log(`Addon ${addon.manifest.id}: process started successfully`);
             } else {
                 addon.state = 'failed';
@@ -534,6 +541,20 @@ export default class AddonManager {
     }
 
     /**
+     * Cache-bust query for addon panel/NUI entry URLs so browsers do not keep stale
+     * entry modules after hot edits (panel static files are served with max-age=300).
+     */
+    private getAddonAssetCacheBust(addon: AddonDescriptor, relativeEntry: string): string {
+        const entryPath = path.join(addon.dir, relativeEntry);
+        try {
+            const stat = fs.statSync(entryPath);
+            return String(Math.floor(stat.mtimeMs));
+        } catch {
+            return addon.manifest.version;
+        }
+    }
+
+    /**
      * Get panel manifest for the frontend loader.
      */
     getPanelManifest(): AddonPanelDescriptor[] {
@@ -541,21 +562,114 @@ export default class AddonManager {
         for (const addon of this.addons.values()) {
             if (addon.state !== 'running' || !addon.manifest.panel) continue;
 
+            const panelEntry = addon.manifest.panel.entry;
+            const panelCacheBust = this.getAddonAssetCacheBust(addon, panelEntry);
+            const panelEntryBase = `/addons/${addon.manifest.id}/panel/${path.basename(panelEntry)}`;
+
+            const deferralMeta = this.getAddonDeferralPanelSlice(addon.manifest.id);
+
             result.push({
                 id: addon.manifest.id,
                 name: addon.manifest.name,
                 version: addon.manifest.version,
                 fxpanelMinVersion: addon.manifest.fxpanel.minVersion,
-                entryUrl: `/addons/${addon.manifest.id}/panel/${path.basename(addon.manifest.panel.entry)}`,
+                entryUrl: `${panelEntryBase}?v=${panelCacheBust}`,
                 stylesUrl: addon.manifest.panel.styles
-                    ? `/addons/${addon.manifest.id}/panel/${path.basename(addon.manifest.panel.styles)}`
+                    ? `/addons/${addon.manifest.id}/panel/${path.basename(addon.manifest.panel.styles)}?v=${this.getAddonAssetCacheBust(addon, addon.manifest.panel.styles)}`
                     : null,
                 pages: addon.manifest.panel.pages,
                 widgets: addon.manifest.panel.widgets,
                 settingsComponent: addon.manifest.panel.settingsComponent ?? null,
+                deferral: deferralMeta,
             });
         }
         return result;
+    }
+
+    private registerAddonDeferral(addon: AddonDescriptor): void {
+        const addonId = addon.manifest.id;
+        this.deferralRegistry.clearAddon(addonId);
+        this.deferralRegistry.registerFromManifest(addonId, addon.manifest.deferral);
+        if (addon.process?.deferralReady) {
+            this.deferralRegistry.registerRuntime(addonId, addon.process.deferralReady);
+        }
+    }
+
+    private handleDeferralPresent(
+        addonId: string,
+        payload: { license: string; scenarioId: string; customMessage?: string; playerName?: string },
+    ): void {
+        const parsed = parseAddonDeferralScenarioId(payload.scenarioId);
+        if (!parsed || parsed.addonId !== addonId) {
+            console.warn(`[addon:${addonId}] deferral-present ignored: invalid scenarioId ${payload.scenarioId}`);
+            return;
+        }
+        if (!this.deferralRegistry.getScenario(payload.scenarioId)) {
+            console.warn(`[addon:${addonId}] deferral-present ignored: unknown scenario ${payload.scenarioId}`);
+            return;
+        }
+        this.deferralRegistry.setPendingDeferral({
+            addonId,
+            license: payload.license.trim(),
+            scenarioId: payload.scenarioId,
+            customMessage: payload.customMessage,
+            playerName: payload.playerName,
+        });
+    }
+
+    getDeferralAddonMeta(): DeferralAddonMetaResponse {
+        const installedAddonIds = [...this.addons.values()]
+            .filter((a) => a.state === 'running')
+            .map((a) => a.manifest.id);
+        return {
+            scenarios: this.deferralRegistry.listScenarioMeta(),
+            tokens: this.deferralRegistry.listTokenMeta(),
+            installedAddonIds,
+        };
+    }
+
+    private getAddonDeferralPanelSlice(addonId: string): {
+        scenarios: DeferralAddonMetaResponse['scenarios'];
+        tokens: DeferralAddonMetaResponse['tokens'];
+    } | null {
+        const scenarios = this.deferralRegistry.listScenarioMeta().filter((s) => s.addonId === addonId);
+        const tokens = this.deferralRegistry.listTokenMeta().filter((t) => t.addonId === addonId);
+        if (!scenarios.length && !tokens.length) return null;
+        return { scenarios, tokens };
+    }
+
+    consumePendingAddonDeferral(license: string | undefined) {
+        return this.deferralRegistry.consumePendingDeferral(license);
+    }
+
+    async resolveDeferralDynamicTokens(
+        scenarioId: string,
+        tokenKeys: string[],
+        player: DeferralResolveTokensPlayerContext,
+    ): Promise<Record<string, string>> {
+        const addonId = this.deferralRegistry.resolveAddonIdForScenario(scenarioId);
+        if (!addonId || !tokenKeys.length) return {};
+
+        const ownedKeys = tokenKeys.filter((key) => {
+            const row = this.deferralRegistry.listTokenMeta().find((t) => t.key === key && t.addonId === addonId);
+            return !!row;
+        });
+        if (!ownedKeys.length) return {};
+
+        const addon = this.addons.get(addonId);
+        if (!addon?.process || addon.state !== 'running') return {};
+
+        return addon.process.resolveDeferralTokens(
+            this.deferralRegistry.buildResolveContext(scenarioId, ownedKeys, player),
+        );
+    }
+
+    getAddonDeferralDefaultTemplate(scenarioId: string) {
+        return this.deferralRegistry.getDefaultTemplate(scenarioId);
+    }
+
+    isKnownDeferralScenario(scenarioId: string): boolean {
+        return !!this.deferralRegistry.getScenario(scenarioId);
     }
 
     /**
@@ -707,7 +821,8 @@ export default class AddonManager {
             this.broadcastReloadEvent(addonId, 'reloaded');
             return {
                 success: true,
-                warning: 'Revoke scheduled: addon appears to be running without a managed process handle. Restart FXServer to unload it.',
+                warning:
+                    'Revoke scheduled: addon appears to be running without a managed process handle. Restart FXServer to unload it.',
                 requiresRestart: true,
                 stoppedNow: false,
             };
@@ -774,7 +889,8 @@ export default class AddonManager {
             this.broadcastReloadEvent(addonId, 'reloaded');
             return {
                 success: true,
-                warning: 'Stop scheduled: addon appears to be running without a managed process handle. Restart FXServer to unload it.',
+                warning:
+                    'Stop scheduled: addon appears to be running without a managed process handle. Restart FXServer to unload it.',
                 requiresRestart: true,
                 stoppedNow: false,
             };
@@ -797,6 +913,7 @@ export default class AddonManager {
         }
 
         addon.state = 'stopped';
+        this.deferralRegistry.clearAddon(addonId);
         this.setAddonDisabled(addonId, true);
         txCore.adminStore.unregisterAddonPermissions(addonId);
         await this.maybeStopPublicServer();
@@ -842,6 +959,7 @@ export default class AddonManager {
             addon.lastError = undefined;
             addon.grantedPermissions = approval.granted;
             this.registerAddonPerms(addon);
+            this.registerAddonDeferral(addon);
             this.broadcastReloadEvent(addonId, 'reloaded');
             console.log(`Addon ${addonId} started (no server process)`);
             return { success: true };
@@ -856,6 +974,7 @@ export default class AddonManager {
             permissions: addon.grantedPermissions,
             storage: this.storage.getScope(addon.manifest.id),
             onWsPush: this.handleWsPush.bind(this),
+            onDeferralPresent: this.handleDeferralPresent.bind(this),
             onCrash: this.handleAddonCrash.bind(this),
         });
 
@@ -864,6 +983,7 @@ export default class AddonManager {
             addon.state = 'running';
             addon.lastError = undefined;
             this.registerAddonPerms(addon);
+            this.registerAddonDeferral(addon);
             await this.maybeStartPublicServer();
             console.log(`Addon ${addonId} started`);
             this.broadcastReloadEvent(addonId, 'reloaded');
@@ -991,7 +1111,10 @@ export default class AddonManager {
      * Reload a single addon: stop process → re-read manifest → re-validate → re-start → notify clients.
      * Returns a result object indicating success or failure.
      */
-    async reloadAddon(addonId: string, skipEnsure = false): Promise<{ success: boolean; error?: string; warning?: string; requiresRestart?: boolean }> {
+    async reloadAddon(
+        addonId: string,
+        skipEnsure = false,
+    ): Promise<{ success: boolean; error?: string; warning?: string; requiresRestart?: boolean }> {
         console.log(`Reloading addon: ${addonId}`);
 
         // Clear any pending debounce timer to prevent stale reloads
@@ -1024,6 +1147,7 @@ export default class AddonManager {
             }
             existing.process = null;
         }
+        this.deferralRegistry.clearAddon(addonId);
 
         // Unregister addon permissions (will re-register if start succeeds)
         txCore.adminStore.unregisterAddonPermissions(addonId);
@@ -1099,10 +1223,10 @@ export default class AddonManager {
         }
         if (!this.isSafeAddonPath(addonDir, manifest.discordBot?.events)) {
             console.warn(`Addon ${addonId}: discord bot events path escapes addon directory on reload`);
-                if (existing) {
-                    existing.state = 'invalid';
-                    existing.lastError = 'Discord bot events path escapes addon directory';
-                }
+            if (existing) {
+                existing.state = 'invalid';
+                existing.lastError = 'Discord bot events path escapes addon directory';
+            }
             return { success: false, error: 'Discord bot events path escapes addon directory' };
         }
 
@@ -1185,7 +1309,9 @@ export default class AddonManager {
                 process: null,
                 grantedPermissions,
             });
-            this.registerAddonPerms(this.addons.get(addonId)!);
+            const reloadedNoServer = this.addons.get(addonId)!;
+            this.registerAddonPerms(reloadedNoServer);
+            this.registerAddonDeferral(reloadedNoServer);
             console.log(`Addon ${addonId} reloaded (no server process)`);
             this.broadcastReloadEvent(addonId, 'reloaded');
             if (!skipEnsure && manifest.nui) await this.ensureMonitorResource();
@@ -1200,6 +1326,7 @@ export default class AddonManager {
             permissions: grantedPermissions,
             storage: this.storage.getScope(manifest.id),
             onWsPush: this.handleWsPush.bind(this),
+            onDeferralPresent: this.handleDeferralPresent.bind(this),
             onCrash: this.handleAddonCrash.bind(this),
         });
 
@@ -1213,7 +1340,9 @@ export default class AddonManager {
                 process: addonProcess,
                 grantedPermissions,
             });
-            this.registerAddonPerms(this.addons.get(addonId)!);
+            const reloaded = this.addons.get(addonId)!;
+            this.registerAddonPerms(reloaded);
+            this.registerAddonDeferral(reloaded);
             console.log(`Addon ${addonId} reloaded and running`);
             this.broadcastReloadEvent(addonId, 'reloaded');
             await this.maybeStartPublicServer();
@@ -1373,7 +1502,7 @@ export default class AddonManager {
         };
 
         await pruneStaleDirs(monitorNuiAddonsRoot);
-    if (staticRootIsAddonSourceRoot) {
+        if (staticRootIsAddonSourceRoot) {
             console.error(
                 `Refusing to prune static addon dirs because target root equals source addons dir: ${monitorStaticAddonsRoot}`,
             );

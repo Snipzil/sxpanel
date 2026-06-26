@@ -26,6 +26,9 @@ export type SettingsPageContext = {
     cardPendingSave: SettingsCardContext | null;
     setCardPendingSave: Dispatch<SetStateAction<SettingsCardContext | null>>;
     saveChanges: (card: SettingsCardContext, changes: PartialTxConfigs) => Promise<void>;
+    registerSaveHandler: (cardId: string, handler: () => void) => void;
+    unregisterSaveHandler: (cardId: string) => void;
+    triggerPendingSave: () => void;
 };
 
 export type SettingsCardProps = {

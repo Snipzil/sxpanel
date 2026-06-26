@@ -40,7 +40,7 @@ export default async function AuthAddMasterSave(ctx: InitializedCtx) {
 
     //Create admins file and log in admin
     try {
-        const vaultAdmin = txCore.adminStore.createAdminsFile(
+        const vaultAdmin = await txCore.adminStore.createAdminsFile(
             userInfo.name,
             userInfo.identifier,
             discordId,

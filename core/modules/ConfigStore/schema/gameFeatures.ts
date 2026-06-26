@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { typeDefinedConfig } from './utils';
 import { SYM_FIXER_DEFAULT } from '@lib/symbols';
 
+const AUTO_TAG_IDS = new Set(['staff', 'problematic', 'newplayer']);
+
 const customTagSchema = z.object({
     id: z
         .string()
@@ -9,9 +11,11 @@ const customTagSchema = z.object({
         .max(32)
         .regex(/^[a-z0-9_]+$/),
     label: z.string().min(1).max(24),
+    prefix: z.string().max(16).optional(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     priority: z.number().int().min(1).max(999),
     enabled: z.boolean().default(true),
+    discordRoleIds: z.array(z.string()).optional(),
 });
 export type CustomTagConfig = z.infer<typeof customTagSchema>;
 
@@ -83,6 +87,34 @@ const menuPageKey = typeDefinedConfig({
     fixer: SYM_FIXER_DEFAULT,
 });
 
+const menuPlayerIdDistance = typeDefinedConfig({
+    name: 'Overhead Player ID Distance (meters)',
+    default: 150,
+    validator: z.number().int().min(1).max(1000),
+    fixer: SYM_FIXER_DEFAULT,
+});
+
+const overheadTwoRowLayout = typeDefinedConfig({
+    name: 'Overhead Two-Row Layout',
+    default: true,
+    validator: z.boolean(),
+    fixer: SYM_FIXER_DEFAULT,
+});
+
+const overheadSeatIcons = typeDefinedConfig({
+    name: 'Overhead Vehicle Seat Icons',
+    default: true,
+    validator: z.boolean(),
+    fixer: SYM_FIXER_DEFAULT,
+});
+
+const overheadNoclipIcon = typeDefinedConfig({
+    name: 'Overhead Noclip Icon',
+    default: true,
+    validator: z.boolean(),
+    fixer: SYM_FIXER_DEFAULT,
+});
+
 const playerModePtfx = typeDefinedConfig({
     name: 'Player Mode Change Effect',
     default: true,
@@ -142,7 +174,29 @@ const newplayerThreshold = typeDefinedConfig({
 const customTags = typeDefinedConfig({
     name: 'Custom Player Tags',
     default: [] as CustomTagConfig[],
-    validator: z.array(customTagSchema).max(20),
+    validator: z
+        .array(customTagSchema)
+        .max(23)
+        .superRefine((tags, ctx) => {
+            const customCount = tags.filter((tag) => !AUTO_TAG_IDS.has(tag.id)).length;
+            if (customCount > 20) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'At most 20 custom (non built-in) tags are allowed.',
+                });
+            }
+            const seenIds = new Set<string>();
+            for (const tag of tags) {
+                if (seenIds.has(tag.id)) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: `Duplicate tag id: ${tag.id}`,
+                    });
+                    break;
+                }
+                seenIds.add(tag.id);
+            }
+        }),
     fixer: SYM_FIXER_DEFAULT,
 });
 
@@ -156,6 +210,10 @@ export default {
     menuEnabled,
     menuAlignRight,
     menuPageKey,
+    menuPlayerIdDistance,
+    overheadTwoRowLayout,
+    overheadSeatIcons,
+    overheadNoclipIcon,
     playerModePtfx,
     hideAdminInPunishments,
     hideAdminInMessages,

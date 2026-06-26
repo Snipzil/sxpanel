@@ -75,7 +75,7 @@ const sanitizeMessageImageUrls = (input: unknown): string[] | undefined => {
     return sanitized.length ? sanitized : undefined;
 };
 
-// - -  Helper - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - -  Helper - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /**
  * Pulls server log entries from the recent buffer within the time window
@@ -156,7 +156,7 @@ const notifyPlayerNewMessage = (ticketId: string, message: Omit<TicketMessage, '
     });
 };
 
-// - -  Web Panel endpoints - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - -  Web Panel endpoints - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /**
  * GET /reports/list - Returns all tickets (for web panel)
@@ -489,7 +489,7 @@ export const ticketsScreenshot = async (ctx: InitializedCtx) => {
     }
 };
 
-// - -  Intercom handlers - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - -  Intercom handlers - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /**
  * ticketCreate intercom - Player files a new ticket
@@ -832,7 +832,10 @@ function setTicketStatus(
             'action',
             { actionId: status === 'resolved' ? 'ticket.resolve' : 'ticket.close' },
         );
-    } else if (status === 'open' && (ticketBeforeUpdate.status === 'resolved' || ticketBeforeUpdate.status === 'closed')) {
+    } else if (
+        status === 'open' &&
+        (ticketBeforeUpdate.status === 'resolved' || ticketBeforeUpdate.status === 'closed')
+    ) {
         txCore.database.tickets.addActivityEntry(ticketId, {
             ts: now(),
             adminName,
@@ -884,7 +887,10 @@ function addStaffNote(ticketId: string, adminName: string, content: string): { s
  * Toggles a ticket's claim by `adminName`: clears it if already claimed by
  * this admin, otherwise assigns it.
  */
-function toggleClaim(ticketId: string, adminName: string): { success: true; claimedBy: string | null } | { error: string } {
+function toggleClaim(
+    ticketId: string,
+    adminName: string,
+): { success: true; claimedBy: string | null } | { error: string } {
     const lookup = fetchTicketOrError(ticketId);
     if (lookup.kind === 'error') return { error: lookup.message };
     const ticket = lookup.ticket;
@@ -1052,7 +1058,7 @@ export const ticketScreenshotUpload = async (
     }
 };
 
-// - -  Backward-compat exports (for any existing code still using old names) - - 
+// - -  Backward-compat exports (for any existing code still using old names) - -
 export const reportsList = ticketsList;
 export const reportsDetail = ticketsDetail;
 export const reportsMessage = ticketsMessage;

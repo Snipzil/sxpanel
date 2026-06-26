@@ -1,13 +1,19 @@
 const modulename = 'WebServer:PlayerActions';
 import humanizeDuration, { Unit } from 'humanize-duration';
 import playerResolver from '@lib/player/playerResolver';
-import { GenericApiResp } from '@shared/genericApiTypes';
+import { GenericApiErrorResp, GenericApiResp } from '@shared/genericApiTypes';
 import { PlayerClass, ServerPlayer } from '@lib/player/playerClasses';
 import { anyUndefined, calcExpirationFromDuration } from '@lib/misc';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { SYM_CURRENT_MUTEX } from '@lib/symbols';
+import { getAssignableCustomTagIds, getDiscordManagedTagIds, normalizePlayerTagId } from '@lib/player/playerTags';
 const console = consoleFactory(modulename);
+
+const apiError = (errorCode: string, error: string): GenericApiErrorResp => ({
+    errorCode,
+    error,
+});
 
 /**
  * Actions route for the player modal
@@ -27,7 +33,7 @@ export default async function PlayerActions(ctx: AuthedCtx) {
         const refMutex = mutex === 'current' ? SYM_CURRENT_MUTEX : mutex;
         player = playerResolver(refMutex, parseInt(netid as string), license);
     } catch (error) {
-        return sendTypedResp({ error: emsg(error) });
+        return sendTypedResp(apiError('player_action.player_not_found', emsg(error)));
     }
 
     //Delegate to the specific action handler
@@ -56,7 +62,7 @@ export default async function PlayerActions(ctx: AuthedCtx) {
     } else if (action === 'delete_player') {
         return sendTypedResp(await handleDeletePlayer(ctx, player));
     } else {
-        return sendTypedResp({ error: 'unknown action' });
+        return sendTypedResp(apiError('player_action.unknown_action', 'unknown action'));
     }
 }
 
@@ -66,16 +72,16 @@ export default async function PlayerActions(ctx: AuthedCtx) {
 export async function handleSaveNote(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
     if (anyUndefined(ctx.request.body, ctx.request.body.note) || typeof ctx.request.body.note !== 'string') {
-        return { error: 'Invalid request.' };
+        return apiError('player_action.invalid_request', 'Invalid request.');
     }
     const note = ctx.request.body.note.trim();
 
     try {
-        player.setNote(note, ctx.admin.name);
+        player.setNote(note, ctx.admin.getActionAuthor());
         ctx.admin.logAction(`Set notes for ${player.license}`, 'player.notes.save');
         return { success: true };
     } catch (error) {
-        return { error: `Failed to save note: ${emsg(error)}` };
+        return apiError('player_action.failed_save_note', `Failed to save note: ${emsg(error)}`);
     }
 }
 
@@ -85,33 +91,38 @@ export async function handleSaveNote(ctx: AuthedCtx, player: PlayerClass): Promi
 export async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
     if (anyUndefined(ctx.request.body, ctx.request.body.reason) || typeof ctx.request.body.reason !== 'string') {
-        return { error: 'Invalid request.' };
+        return apiError('player_action.invalid_request', 'Invalid request.');
     }
     const reason = ctx.request.body.reason.trim() || 'no reason provided';
 
     //Check permissions
     if (!ctx.admin.testPermission('players.warn', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     //Validating server & player
     const allIds = player.getAllIdentifiers();
     if (!allIds.length) {
-        return { error: 'Cannot warn a player with no identifiers.' };
+        return apiError('player_action.no_identifiers', 'Cannot warn a player with no identifiers.');
     }
 
     //Register action
     let actionId;
     try {
-        actionId = txCore.database.actions.registerWarn(allIds, ctx.admin.name, reason, player.displayName);
+        actionId = txCore.database.actions.registerWarn(
+            allIds,
+            ctx.admin.getActionAuthor(),
+            reason,
+            player.displayName,
+        );
     } catch (error) {
-        return { error: `Failed to warn player: ${emsg(error)}` };
+        return apiError('player_action.failed_warn', `Failed to warn player: ${emsg(error)}`);
     }
     ctx.admin.logAction(`Warned player "${player.displayName}" (${player.license}): ${reason}`, 'player.warn');
 
     // Dispatch `txAdmin:events:playerWarned`
     const warnEventData = {
-        author: ctx.admin.name,
+        author: ctx.admin.getActionAuthor(),
         reason,
         actionId,
         targetNetId: player instanceof ServerPlayer && player.isConnected ? player.netid : null,
@@ -124,7 +135,10 @@ export async function handleWarning(ctx: AuthedCtx, player: PlayerClass): Promis
     if (eventSent) {
         return { success: true };
     } else {
-        return { error: `Warn saved, but likely failed to send the warn in game (stdin error).` };
+        return apiError(
+            'player_action.warn_stdin_failed',
+            `Warn saved, but likely failed to send the warn in game (stdin error).`,
+        );
     }
 }
 
@@ -138,7 +152,7 @@ export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
         typeof ctx.request.body.duration !== 'string' ||
         typeof ctx.request.body.reason !== 'string'
     ) {
-        return { error: 'Invalid request.' };
+        return apiError('player_action.invalid_request', 'Invalid request.');
     }
     const durationInput = ctx.request.body.duration.trim();
     const reason = (ctx.request.body.reason as string).trim() || 'no reason provided';
@@ -148,20 +162,20 @@ export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
     try {
         calcResults = calcExpirationFromDuration(durationInput);
     } catch (error) {
-        return { error: emsg(error) };
+        return apiError('player_action.invalid_duration', emsg(error));
     }
     const { expiration, duration } = calcResults;
 
     //Check permissions
     if (!ctx.admin.testPermission('players.ban', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     //Validating player - hwids.length can be zero
     const allIds = player.getAllIdentifiers();
     const allHwids = player.getAllHardwareIdentifiers();
     if (!allIds.length) {
-        return { error: 'Cannot ban a player with no identifiers.' };
+        return apiError('player_action.no_identifiers', 'Cannot ban a player with no identifiers.');
     }
 
     //Register action
@@ -169,14 +183,17 @@ export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
     try {
         actionId = txCore.database.actions.registerBan(
             allIds,
-            ctx.admin.name,
+            ctx.admin.getActionAuthor(),
             reason,
             expiration,
             player.displayName,
             allHwids,
         );
     } catch (error) {
-        return { error: `Failed to ban player: ${emsg(error)}` };
+        return apiError('player_action.failed_ban', `Failed to ban player: ${emsg(error)}`);
+    }
+    if (!actionId) {
+        return apiError('player_action.failed_ban', 'Failed to register ban to database.');
     }
     ctx.admin.logAction(`Banned player "${player.displayName}" (${player.license}): ${reason}`, 'player.ban');
 
@@ -202,7 +219,7 @@ export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
 
     // Dispatch `txAdmin:events:playerBanned`
     const banEventData = {
-        author: ctx.admin.name,
+        author: ctx.admin.getActionAuthor(),
         reason,
         actionId,
         expiration,
@@ -220,7 +237,10 @@ export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
     if (eventSent) {
         return { success: true };
     } else {
-        return { error: `Player banned, but likely failed to kick player (stdin error).` };
+        return apiError(
+            'player_action.ban_stdin_failed',
+            `Player banned, but likely failed to kick player (stdin error).`,
+        );
     }
 }
 
@@ -230,13 +250,13 @@ export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
 async function handleSetWhitelist(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
     if (anyUndefined(ctx.request.body, ctx.request.body.status)) {
-        return { error: 'Invalid request.' };
+        return apiError('player_action.invalid_request', 'Invalid request.');
     }
     const status = ctx.request.body.status === 'true' || ctx.request.body.status === true;
 
     //Check permissions
     if (!ctx.admin.testPermission('players.whitelist', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     try {
@@ -252,12 +272,12 @@ async function handleSetWhitelist(ctx: AuthedCtx, player: PlayerClass): Promise<
             action: status ? 'added' : 'removed',
             license: player.license,
             playerName: player.displayName,
-            adminName: ctx.admin.name,
+            adminName: ctx.admin.getActionAuthor(),
         });
 
         return { success: true };
     } catch (error) {
-        return { error: `Failed to save whitelist status: ${emsg(error)}` };
+        return apiError('player_action.failed_whitelist', `Failed to save whitelist status: ${emsg(error)}`);
     }
 }
 
@@ -267,24 +287,33 @@ async function handleSetWhitelist(ctx: AuthedCtx, player: PlayerClass): Promise<
 async function handleSetTag(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
     if (anyUndefined(ctx.request.body, ctx.request.body.tagId, ctx.request.body.status)) {
-        return { error: 'Invalid request.' };
+        return apiError('player_action.invalid_request', 'Invalid request.');
     }
-    const tagId = ctx.request.body.tagId as string;
+    const tagId = normalizePlayerTagId(ctx.request.body.tagId as string);
     const status = ctx.request.body.status === 'true' || ctx.request.body.status === true;
+    if (!tagId.length) {
+        return apiError('player_action.invalid_request', 'Invalid tag id.');
+    }
 
     //Check permissions
-    if (!ctx.admin.testPermission('players.whitelist', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+    if (!ctx.admin.testPermission('players.write', modulename)) {
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     //Validate tag ID against config
-    const validIds = new Set((txConfig.gameFeatures.customTags ?? []).map((t) => t.id));
+    const validIds = getAssignableCustomTagIds();
     if (!validIds.has(tagId)) {
-        return { error: `Unknown custom tag: ${tagId}` };
+        return apiError('player_action.unknown_tag', `Unknown custom tag: ${tagId}`);
+    }
+    if (getDiscordManagedTagIds().has(tagId)) {
+        return apiError('player_action.discord_managed_tag', `Tag '${tagId}' is managed by Discord roles.`);
     }
 
     try {
         player.setCustomTag(tagId, status);
+        if (player instanceof ServerPlayer && player.isConnected) {
+            txCore.fxPlayerlist.syncPlayerTags(player.netid);
+        }
         const actionLabel = status ? 'Added' : 'Removed';
         ctx.admin.logAction(
             `${actionLabel} tag '${tagId}' for ${player.license}.`,
@@ -292,7 +321,7 @@ async function handleSetTag(ctx: AuthedCtx, player: PlayerClass): Promise<Generi
         );
         return { success: true };
     } catch (error) {
-        return { error: `Failed to save tag: ${emsg(error)}` };
+        return apiError('player_action.failed_save_tag', `Failed to save tag: ${emsg(error)}`);
     }
 }
 
@@ -302,24 +331,24 @@ async function handleSetTag(ctx: AuthedCtx, player: PlayerClass): Promise<Generi
 async function handleDirectMessage(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
     if (anyUndefined(ctx.request.body, ctx.request.body.message) || typeof ctx.request.body.message !== 'string') {
-        return { error: 'Invalid request.' };
+        return apiError('player_action.invalid_request', 'Invalid request.');
     }
     const message = ctx.request.body.message.trim();
     if (!message.length) {
-        return { error: 'Cannot send a DM with empty message.' };
+        return apiError('player_action.empty_message', 'Cannot send a DM with empty message.');
     }
 
     //Check permissions
     if (!ctx.admin.testPermission('players.direct_message', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     //Validating server & player
     if (!txCore.fxRunner.child?.isAlive) {
-        return { error: 'The server is not running.' };
+        return apiError('server_not_running', 'The server is not running.');
     }
     if (!(player instanceof ServerPlayer) || !player.isConnected) {
-        return { error: 'This player is not connected to the server.' };
+        return apiError('player_not_connected', 'This player is not connected to the server.');
     }
 
     try {
@@ -328,13 +357,13 @@ async function handleDirectMessage(ctx: AuthedCtx, player: PlayerClass): Promise
         // Dispatch `txAdmin:events:playerDirectMessage`
         txCore.fxRunner.sendEvent('playerDirectMessage', {
             target: player.netid,
-            author: ctx.admin.name,
+            author: ctx.admin.getActionAuthor(),
             message,
         });
 
         return { success: true };
     } catch (error) {
-        return { error: `Failed to save dm player: ${emsg(error)}` };
+        return apiError('player_action.failed_dm', `Failed to save dm player: ${emsg(error)}`);
     }
 }
 
@@ -344,29 +373,29 @@ async function handleDirectMessage(ctx: AuthedCtx, player: PlayerClass): Promise
 export async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Checking request
     if (anyUndefined(ctx.request.body, ctx.request.body.reason) || typeof ctx.request.body.reason !== 'string') {
-        return { error: 'Invalid request.' };
+        return apiError('player_action.invalid_request', 'Invalid request.');
     }
     const kickReason = ctx.request.body.reason.trim() || txCore.translator.t('kick_messages.unknown_reason');
 
     //Check permissions
     if (!ctx.admin.testPermission('players.kick', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     //Validating server & player
     if (!txCore.fxRunner.child?.isAlive) {
-        return { error: 'The server is not running.' };
+        return apiError('server_not_running', 'The server is not running.');
     }
     if (!(player instanceof ServerPlayer) || !player.isConnected) {
-        return { error: 'This player is not connected to the server.' };
+        return apiError('player_not_connected', 'This player is not connected to the server.');
     }
 
     //Register kick to DB
     const allIds = player.getAllIdentifiers();
     try {
-        txCore.database.actions.registerKick(allIds, ctx.admin.name, kickReason, player.displayName);
+        txCore.database.actions.registerKick(allIds, ctx.admin.getActionAuthor(), kickReason, player.displayName);
     } catch (error) {
-        return { error: `Failed to register kick: ${emsg(error)}` };
+        return apiError('player_action.failed_kick', `Failed to register kick: ${emsg(error)}`);
     }
 
     try {
@@ -376,7 +405,7 @@ export async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<G
         // Dispatch `txAdmin:events:playerKicked`
         const kickEventData = {
             target: player.netid,
-            author: ctx.admin.name,
+            author: ctx.admin.getActionAuthor(),
             reason: kickReason,
             dropMessage,
         };
@@ -385,7 +414,7 @@ export async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<G
 
         return { success: true };
     } catch (error) {
-        return { error: `Failed to save kick player: ${emsg(error)}` };
+        return apiError('player_action.failed_kick', `Failed to save kick player: ${emsg(error)}`);
     }
 }
 
@@ -395,26 +424,26 @@ export async function handleKick(ctx: AuthedCtx, player: PlayerClass): Promise<G
 async function handleHeal(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Check permissions
     if (!ctx.admin.testPermission('players.heal', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     //Validating server & player
     if (!txCore.fxRunner.child?.isAlive) {
-        return { error: 'The server is not running.' };
+        return apiError('server_not_running', 'The server is not running.');
     }
     if (!(player instanceof ServerPlayer) || !player.isConnected) {
-        return { error: 'This player is not connected to the server.' };
+        return apiError('player_not_connected', 'This player is not connected to the server.');
     }
 
     try {
         ctx.admin.logAction(`Healed "${player.displayName}" (${player.license}) from web panel.`, 'player.heal');
         txCore.fxRunner.sendEvent('webPlayerHealed', {
             target: player.netid,
-            author: ctx.admin.name,
+            author: ctx.admin.getActionAuthor(),
         });
         return { success: true };
     } catch (error) {
-        return { error: `Failed to heal player: ${emsg(error)}` };
+        return apiError('player_action.failed_heal', `Failed to heal player: ${emsg(error)}`);
     }
 }
 
@@ -425,15 +454,15 @@ async function handleHeal(ctx: AuthedCtx, player: PlayerClass): Promise<GenericA
 async function handleSpectate(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     //Check permissions
     if (!ctx.admin.testPermission('players.spectate', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
 
     //Validating server & player
     if (!txCore.fxRunner.child?.isAlive) {
-        return { error: 'The server is not running.' };
+        return apiError('server_not_running', 'The server is not running.');
     }
     if (!(player instanceof ServerPlayer) || !player.isConnected) {
-        return { error: 'This player is not connected to the server.' };
+        return apiError('player_not_connected', 'This player is not connected to the server.');
     }
 
     try {
@@ -443,11 +472,11 @@ async function handleSpectate(ctx: AuthedCtx, player: PlayerClass): Promise<Gene
         );
         txCore.fxRunner.sendEvent('webSpectatePlayer', {
             target: player.netid,
-            adminName: ctx.admin.name,
+            adminName: ctx.admin.getActionAuthor(),
         });
         return { success: true };
     } catch (error) {
-        return { error: `Failed to spectate player: ${emsg(error)}` };
+        return apiError('player_action.failed_spectate', `Failed to spectate player: ${emsg(error)}`);
     }
 }
 
@@ -456,17 +485,17 @@ async function handleSpectate(ctx: AuthedCtx, player: PlayerClass): Promise<Gene
  */
 async function handleWipeIds(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     if (!ctx.admin.testPermission('players.delete', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
     if (!player.license) {
-        return { error: 'Cannot wipe IDs for a player without a license.' };
+        return apiError('player_action.no_license', 'Cannot wipe IDs for a player without a license.');
     }
     try {
         txCore.database.players.wipePlayerIds(player.license);
         ctx.admin.logAction(`Wiped IDs for ${player.license}`, 'player.ids.wipe');
         return { success: true };
     } catch (error) {
-        return { error: `Failed to wipe player IDs: ${emsg(error)}` };
+        return apiError('player_action.failed_wipe_ids', `Failed to wipe player IDs: ${emsg(error)}`);
     }
 }
 
@@ -475,17 +504,17 @@ async function handleWipeIds(ctx: AuthedCtx, player: PlayerClass): Promise<Gener
  */
 async function handleWipeHwids(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     if (!ctx.admin.testPermission('players.delete', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
     if (!player.license) {
-        return { error: 'Cannot wipe HWIDs for a player without a license.' };
+        return apiError('player_action.no_license', 'Cannot wipe HWIDs for a player without a license.');
     }
     try {
         txCore.database.players.wipePlayerHwids(player.license);
         ctx.admin.logAction(`Wiped HWIDs for ${player.license}`, 'player.hwids.wipe');
         return { success: true };
     } catch (error) {
-        return { error: `Failed to wipe player HWIDs: ${emsg(error)}` };
+        return apiError('player_action.failed_wipe_hwids', `Failed to wipe player HWIDs: ${emsg(error)}`);
     }
 }
 
@@ -494,16 +523,16 @@ async function handleWipeHwids(ctx: AuthedCtx, player: PlayerClass): Promise<Gen
  */
 async function handleDeletePlayer(ctx: AuthedCtx, player: PlayerClass): Promise<GenericApiResp> {
     if (!ctx.admin.testPermission('players.delete', modulename)) {
-        return { error: "You don't have permission to execute this action." };
+        return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
     if (!player.license) {
-        return { error: 'Cannot delete a player without a license.' };
+        return apiError('player_action.no_license', 'Cannot delete a player without a license.');
     }
     try {
         txCore.database.players.deletePlayer(player.license);
         ctx.admin.logAction(`Deleted player ${player.displayName} (${player.license}) from database`, 'player.delete');
         return { success: true };
     } catch (error) {
-        return { error: `Failed to delete player: ${emsg(error)}` };
+        return apiError('player_action.failed_delete', `Failed to delete player: ${emsg(error)}`);
     }
 }

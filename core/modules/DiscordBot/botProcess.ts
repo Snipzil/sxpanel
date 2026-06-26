@@ -1,14 +1,39 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
+import { Worker } from 'node:worker_threads';
 import { txDevEnv, txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
-import { resolveFxChildNodeSpawn } from '@lib/resolveFxChildNode';
+import {
+    formatFxChildNodeResolutionDiagnostics,
+    getFxChildNodeRuntimeResolution,
+    resolveFxChildNodeSpawn,
+} from '@lib/resolveFxChildNode';
 import { emsg } from '@shared/emsg';
 
 const console = consoleFactory('DiscordBot:process');
 const INITIAL_RESTART_DELAY_MS = 5_000;
 const MAX_RESTART_DELAY_MS = 60_000;
+
+/**
+ * Controls how the Discord bot runtime is hosted.
+ * - `node`: spawn a child Node process (legacy behaviour); fail if no Node binary is found.
+ * - `worker`: always run the bot inside a worker thread of the host process.
+ * - `auto` (default): use a child Node process when a Node binary is resolvable,
+ *   otherwise transparently fall back to a worker thread so the bot still starts
+ *   on hosts that ship no standalone Node (e.g. FXServer.exe on Windows).
+ */
+type BotRuntimePreference = 'node' | 'worker' | 'auto';
+
+function resolveBotRuntimePreference(): BotRuntimePreference {
+    const raw = String(process.env.FXPANEL_BOT_RUNTIME ?? '')
+        .trim()
+        .toLowerCase();
+    if (raw === 'node' || raw === 'worker' || raw === 'auto') {
+        return raw;
+    }
+    return 'auto';
+}
 
 export type BotProcessStartConfig = {
     token: string;
@@ -32,6 +57,7 @@ export default class BotProcess {
     readonly #fallbackBotDir = path.resolve(txEnv.txaPath, '..', 'bot');
     readonly #options: BotProcessOptions;
     #proc: ChildProcessWithoutNullStreams | undefined;
+    #worker: Worker | undefined;
     #restartDelayMs = INITIAL_RESTART_DELAY_MS;
     #restartTimer: NodeJS.Timeout | undefined;
     #pendingRestartDelayMs: number | undefined;
@@ -47,7 +73,7 @@ export default class BotProcess {
     }
 
     get isRunning() {
-        return !!this.#proc && !this.#proc.killed;
+        return (!!this.#proc && !this.#proc.killed) || !!this.#worker;
     }
 
     get hasPendingRestart() {
@@ -97,6 +123,15 @@ export default class BotProcess {
         }
         this.#pendingRestartDelayMs = undefined;
 
+        if (this.#worker) {
+            const worker = this.#worker;
+            this.#worker = undefined;
+            worker.removeAllListeners();
+            // terminate() returns a promise; we intentionally do not await it during
+            // synchronous stop. The worker has no listeners left, so a late exit is a no-op.
+            void worker.terminate();
+        }
+
         if (!this.#proc) return;
         this.#proc.removeAllListeners();
         this.#proc.kill();
@@ -120,9 +155,7 @@ export default class BotProcess {
             return this.#fallbackBotDir;
         }
 
-        throw new Error(
-            `Discord bot folder not found at ${this.#preferredBotDir} or ${this.#fallbackBotDir}.`,
-        );
+        throw new Error(`Discord bot folder not found at ${this.#preferredBotDir} or ${this.#fallbackBotDir}.`);
     }
 
     #buildNodePath(botDir: string) {
@@ -218,16 +251,23 @@ export default class BotProcess {
 
                 // Addon ESM modules resolve from <monitor>/addons/... and must be able
                 // to walk up to <monitor>/node_modules for shared bot dependencies.
-                symlinkSync(
-                    sourcePath,
-                    link.targetPath,
-                    process.platform === 'win32' ? 'junction' : 'dir',
-                );
+                symlinkSync(sourcePath, link.targetPath, process.platform === 'win32' ? 'junction' : 'dir');
                 console.warn(`Linked ${link.targetPath} to ${sourcePath} for Discord bot runtime dependencies.`);
             }
         } catch (error) {
             console.warn(`Failed to prepare Discord bot node_modules link: ${emsg(error)}`);
         }
+    }
+
+    #buildChildEnv(config: BotProcessStartConfig, nodePath: string): NodeJS.ProcessEnv {
+        return {
+            ...process.env,
+            BOT_TOKEN: config.token,
+            BOT_SECRET: config.secret,
+            BOT_BRIDGE_PORT: String(config.bridgePort),
+            BOT_GUILD_ID: config.guild ?? '',
+            ...(nodePath ? { NODE_PATH: nodePath } : {}),
+        };
     }
 
     #spawn() {
@@ -242,26 +282,55 @@ export default class BotProcess {
         this.#lastOutputLine = undefined;
         this.#lastErrorLine = undefined;
 
-        const spawnCmd = resolveFxChildNodeSpawn(['index.js']);
-        if (!spawnCmd) {
-            const reason =
-                'Discord bot: no Node.js binary found for this FXServer environment. Set FXPANEL_BOT_NODE_PATH or FXPANEL_ADDON_NODE_PATH to an absolute path to `node`, or install Node on PATH.';
-            console.error(reason);
-            this.#fatalSpawnError = true;
-            this.#options.onError?.({ reason });
+        const preference = resolveBotRuntimePreference();
+        const spawnCmd = preference === 'worker' ? null : resolveFxChildNodeSpawn(['index.js']);
+
+        if (spawnCmd) {
+            this.#spawnChild(config, botDir, nodePath, spawnCmd);
             return;
         }
 
+        // No Node binary resolvable (or worker explicitly requested).
+        //
+        // The worker-thread fallback is NOT safe to auto-enable on Linux: on
+        // cfx-server's embedded musl Node, terminating a worker (which stop()/
+        // restart() do routinely) crashes the V8 isolate and takes FXServer down.
+        // Linux cfx-server artifacts always ship a resolvable embedded Node, so
+        // the child-process path above is used there in practice. Only honour the
+        // worker runtime on Linux when the operator explicitly opted in.
+        const allowWorkerFallback = preference === 'worker' || (preference === 'auto' && process.platform !== 'linux');
+        if (!allowWorkerFallback) {
+            const resolution = getFxChildNodeRuntimeResolution();
+            const diagnostics = formatFxChildNodeResolutionDiagnostics(resolution);
+            const hint =
+                preference === 'node'
+                    ? ' Unset FXPANEL_BOT_RUNTIME=node to allow the worker-thread fallback.'
+                    : process.platform === 'linux'
+                      ? ' Set FXPANEL_BOT_RUNTIME=worker to force the worker-thread runtime (note: unsafe on cfx-server musl hosts).'
+                      : '';
+            const reason =
+                'Discord bot: no Node.js binary found for this FXServer environment. ' +
+                'Set FXPANEL_BOT_NODE_PATH or FXPANEL_ADDON_NODE_PATH to an absolute path to `node`, or install Node on PATH.' +
+                hint;
+            console.error(reason);
+            console.error(`Discord bot Node resolution: ${diagnostics}`);
+            this.#fatalSpawnError = true;
+            this.#options.onError?.({ reason: `${reason} ${diagnostics}` });
+            return;
+        }
+
+        this.#spawnWorker(config, botDir, nodePath);
+    }
+
+    #spawnChild(
+        config: BotProcessStartConfig,
+        botDir: string,
+        nodePath: string,
+        spawnCmd: { file: string; args: string[] },
+    ) {
         this.#proc = spawn(spawnCmd.file, spawnCmd.args, {
             cwd: botDir,
-            env: {
-                ...process.env,
-                BOT_TOKEN: config.token,
-                BOT_SECRET: config.secret,
-                BOT_BRIDGE_PORT: String(config.bridgePort),
-                BOT_GUILD_ID: config.guild ?? '',
-                ...(nodePath ? { NODE_PATH: nodePath } : {}),
-            },
+            env: this.#buildChildEnv(config, nodePath),
             stdio: ['ignore', 'pipe', 'pipe'],
             windowsHide: true,
         });
@@ -279,7 +348,9 @@ export default class BotProcess {
                     'Discord bot spawn ENOENT — the resolved Node binary could not be executed. Check FXPANEL_BOT_NODE_PATH / FXPANEL_ADDON_NODE_PATH.',
                 );
             }
-            this.#options.onError?.({ reason: this.#lastErrorLine ? `${reason} Last error: ${this.#lastErrorLine}` : reason });
+            this.#options.onError?.({
+                reason: this.#lastErrorLine ? `${reason} Last error: ${this.#lastErrorLine}` : reason,
+            });
             if (!this.#fatalSpawnError) {
                 this.#scheduleRestart();
             }
@@ -298,6 +369,61 @@ export default class BotProcess {
         });
 
         console.ok(`Started Discord bot process in ${botDir}.`);
+    }
+
+    #spawnWorker(config: BotProcessStartConfig, botDir: string, nodePath: string) {
+        const entryPath = path.join(botDir, 'index.js');
+        console.warn(
+            'Discord bot: no standalone Node binary found; running the bot in a worker thread of the host process. ' +
+                'Set FXPANEL_BOT_NODE_PATH (or install Node on PATH) to use a dedicated child process instead.',
+        );
+
+        let worker: Worker;
+        try {
+            worker = new Worker(entryPath, {
+                env: this.#buildChildEnv(config, nodePath),
+                // Avoid inheriting host inspector/debug flags into the bot worker.
+                execArgv: [],
+                stdout: true,
+                stderr: true,
+            });
+        } catch (error) {
+            const reason = `Discord bot worker failed to start: ${emsg(error)}`;
+            console.error(reason);
+            this.#options.onError?.({ reason });
+            this.#scheduleRestart();
+            return;
+        }
+
+        this.#worker = worker;
+        this.#pipeOutput(worker.stdout, 'log');
+        this.#pipeOutput(worker.stderr, 'error');
+
+        worker.on('error', (error) => {
+            if (this.#worker !== worker) return;
+            const reason = `Discord bot worker failed: ${emsg(error)}`;
+            console.error(reason);
+            this.#worker = undefined;
+            this.#options.onError?.({
+                reason: this.#lastErrorLine ? `${reason} Last error: ${this.#lastErrorLine}` : reason,
+            });
+            this.#scheduleRestart();
+        });
+        worker.on('exit', (code) => {
+            if (this.#worker !== worker) return;
+            this.#worker = undefined;
+            if (this.#shuttingDown || this.#fatalSpawnError) return;
+
+            const exitReason = `code ${code ?? 'unknown'}`;
+            console.warn(`Discord bot worker exited with ${exitReason}.`);
+            const reason = this.#lastErrorLine
+                ? `Discord bot worker exited with ${exitReason}. Last error: ${this.#lastErrorLine}`
+                : `Discord bot worker exited with ${exitReason}.`;
+            this.#options.onExit?.({ reason });
+            this.#scheduleRestart();
+        });
+
+        console.ok(`Started Discord bot worker thread in ${botDir}.`);
     }
 
     #scheduleRestart() {

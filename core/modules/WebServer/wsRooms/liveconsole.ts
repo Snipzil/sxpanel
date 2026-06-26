@@ -1,3 +1,5 @@
+import { resolveAdminDisplayName } from '@lib/adminAttribution';
+import { adminMatchesPresetRow } from '@lib/presetRowMaterial';
 import type { RoomType } from '@modules/WebServer/webSocket';
 import { AuthedAdminType } from '@modules/WebServer/authLogic';
 import type { LiveConsoleInitialData } from '@shared/consoleBlock';
@@ -29,12 +31,16 @@ export default {
             handler: (admin: AuthedAdminType, command: string) => {
                 if (typeof command !== 'string' || !command) return;
                 const sanitized = command.replaceAll(/\n/g, ' ');
+                if (adminMatchesPresetRow(admin)) {
+                    txCore.fxRunner.writeStdinLine(sanitized);
+                    return;
+                }
                 admin.logCommand(sanitized, 'console.command');
-                txCore.fxRunner.sendRawCommand(sanitized, admin.name);
+                txCore.fxRunner.sendRawCommand(sanitized, admin.getCommandAuthor());
                 txCore.fxRunner.sendEvent('consoleCommand', {
                     channel: 'fxPanel',
                     command: sanitized,
-                    author: admin.name,
+                    author: resolveAdminDisplayName(admin),
                 });
             },
         },

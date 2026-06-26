@@ -37,8 +37,7 @@ const timeoutLimit = 47 * 1000; //REQ_TIMEOUT_REALLY_REALLY_LONG is 45s
 const topLevelMw = async (ctx: RawKoaCtx, next: Next) => {
     ctx.set('Server', `fxPanel v${txEnv.txaVersion}`);
     const incomingRid = (ctx.get('x-request-id') ?? '').trim();
-    const requestId =
-        incomingRid.length > 0 && incomingRid.length <= 128 ? incomingRid : crypto.randomUUID();
+    const requestId = incomingRid.length > 0 && incomingRid.length <= 128 ? incomingRid : crypto.randomUUID();
     ctx.set('X-Request-Id', requestId);
 
     let timerId;

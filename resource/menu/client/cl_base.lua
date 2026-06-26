@@ -18,6 +18,10 @@ local awaitingReauth = false
 local function displayAuthRejectedError()
     if noMenuReason == 'nui_admin_not_found' then
         SendSnackbarMessage('error', 'nui_menu.misc.menu_not_admin', true)
+    elseif noMenuReason == 'two_factor_required' then
+        SendSnackbarMessage('error', 'nui_menu.misc.two_factor_required', true)
+    elseif noMenuReason == 'temp_password_change_required' then
+        SendSnackbarMessage('error', 'nui_menu.misc.temp_password_required', true)
     else
         SendSnackbarMessage('error', 'nui_menu.misc.menu_auth_failed', true, { reason = noMenuReason })
     end
@@ -136,7 +140,7 @@ RegisterSecureNuiCallback('reactLoaded', function(_, cb)
         while TX_SERVER_CTX == false do
             if GetGameTimer() - waitStart > timeoutMs then
                 DebugPrint('^1[ERROR] Timed out waiting for TX_SERVER_CTX after ' .. timeoutMs .. 'ms^0')
-                SendMenuMessage('setServerCtx', { error = 'Timed out loading server context after ' .. timeoutMs .. 'ms' })
+                SendSnackbarMessage('error', 'nui_menu.misc.ctx_timeout', true, { ms = timeoutMs })
                 return
             end
             Wait(100)
@@ -169,21 +173,25 @@ RegisterNetEvent('txcl:setAdmin', function(username, perms, rejectReason)
         DebugPrint("^2[AUTH] logged in as '" .. username .. "' with perms: " .. json.encode(perms or 'nil'))
         TX_MENU_ACCESSIBLE = true
         TX_MENU_PERMISSIONS = perms
+        if type(UpdateServerCtx) == 'function' then
+            UpdateServerCtx()
+        end
         if IS_FIVEM then
             --NOTE: appending # to the desc so the sorting shows it at the top
-            RegisterKeyMapping('txadmin', 'Open Main Page', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:openPlayersPage', 'Open Players page', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:clearArea', 'Clear Area', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:healMyself', 'Heal Yourself', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:tpBack', 'Teleport: go Back', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:tpToCoords', 'Teleport: to Coords', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:tpToWaypoint', 'Teleport: to Waypoint', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:noClipToggle', 'Toggle NoClip', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:togglePlayerIDs', 'Toggle Player IDs', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:boostVehicle', 'Vehicle: Boost', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:deleteVehicle', 'Vehicle: Delete', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:fixVehicle', 'Vehicle: Fix', 'KEYBOARD', '')
-            RegisterKeyMapping('txAdmin:menu:spawnVehicle', 'Vehicle: Spawn', 'KEYBOARD', '')
+            RegisterKeyMapping('txadmin', translator.t('nui_menu.keybinds.open_main'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:openPlayersPage', translator.t('nui_menu.keybinds.open_players'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:clearArea', translator.t('nui_menu.keybinds.clear_area'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:healMyself', translator.t('nui_menu.keybinds.heal_self'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:tpBack', translator.t('nui_menu.keybinds.teleport_back'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:tpToCoords', translator.t('nui_menu.keybinds.teleport_coords'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:tpToWaypoint', translator.t('nui_menu.keybinds.teleport_waypoint'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:noClipToggle', translator.t('nui_menu.keybinds.toggle_noclip'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:togglePlayerIDs', translator.t('nui_menu.keybinds.toggle_player_ids'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:toggleMapBlips', translator.t('nui_menu.keybinds.toggle_map_blips'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:boostVehicle', translator.t('nui_menu.keybinds.vehicle_boost'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:deleteVehicle', translator.t('nui_menu.keybinds.vehicle_delete'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:fixVehicle', translator.t('nui_menu.keybinds.vehicle_fix'), 'KEYBOARD', '')
+            RegisterKeyMapping('txAdmin:menu:spawnVehicle', translator.t('nui_menu.keybinds.vehicle_spawn'), 'KEYBOARD', '')
         end
     else
         noMenuReason = tostring(rejectReason)
@@ -209,7 +217,7 @@ local function retryAuthentication()
 end
 RegisterNetEvent('txcl:reAuth', retryAuthentication)
 RegisterCommand('txAdmin-reauth', function()
-    SendSnackbarMessage('info', 'Retrying menu authentication.', false)
+    SendSnackbarMessage('info', 'nui_menu.misc.auth_retry', true)
     awaitingReauth = true
     retryAuthentication()
 end, false)
@@ -221,40 +229,40 @@ CreateThread(function()
     TriggerEvent(
         'chat:addSuggestion',
         '/tx',
-        'Opens the main txAdmin Menu or specific for a player.',
-        { { name = 'player ID/name', help = '(Optional) Open player modal for specific ID or name.' } }
+        translator.t('nui_menu.chat.tx_description'),
+        { { name = 'player ID/name', help = translator.t('nui_menu.chat.tx_arg_help') } }
     )
-    TriggerEvent('chat:addSuggestion', '/txAdmin-reauth', 'Retries to authenticate the menu NUI.')
+    TriggerEvent('chat:addSuggestion', '/txAdmin-reauth', translator.t('nui_menu.chat.tx_reauth'))
     TriggerEvent(
         'chat:addSuggestion',
         '/goto',
-        'Teleport to a player by their server ID.',
-        { { name = 'player ID', help = 'The server ID of the target player.' } }
+        translator.t('nui_menu.chat.goto_description'),
+        { { name = 'player ID', help = translator.t('nui_menu.chat.goto_arg_help') } }
     )
-    TriggerEvent('chat:addSuggestion', '/tpm', 'Teleport to the waypoint set on the map.')
+    TriggerEvent('chat:addSuggestion', '/tpm', translator.t('nui_menu.chat.tpm_description'))
     TriggerEvent(
         'chat:addSuggestion',
         '/ban',
-        'Open the ban modal for a player.',
-        { { name = 'player ID/name', help = 'The server ID or name of the target player.' } }
+        translator.t('nui_menu.chat.ban_description'),
+        { { name = 'player ID/name', help = translator.t('nui_menu.chat.ban_arg_help') } }
     )
     TriggerEvent(
         'chat:addSuggestion',
         '/kick',
-        'Open the kick dialog for a player.',
-        { { name = 'player ID/name', help = 'The server ID or name of the target player.' } }
+        translator.t('nui_menu.chat.kick_description'),
+        { { name = 'player ID/name', help = translator.t('nui_menu.chat.kick_arg_help') } }
     )
     TriggerEvent(
         'chat:addSuggestion',
         '/warn',
-        'Open the warn dialog for a player.',
-        { { name = 'player ID/name', help = 'The server ID or name of the target player.' } }
+        translator.t('nui_menu.chat.warn_description'),
+        { { name = 'player ID/name', help = translator.t('nui_menu.chat.warn_arg_help') } }
     )
     TriggerEvent(
         'chat:addSuggestion',
         '/announce',
-        'Send a server-wide announcement.',
-        { { name = 'message', help = 'The announcement message to broadcast.' } }
+        translator.t('nui_menu.chat.announce_description'),
+        { { name = 'message', help = translator.t('nui_menu.chat.announce_arg_help') } }
     )
 end)
 

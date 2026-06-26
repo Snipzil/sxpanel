@@ -62,8 +62,7 @@ function PeakHoursHeatmap({ cells, maxAvg }: Props) {
                                     style={{ backgroundColor: getHeatColor(value, maxAvg) }}
                                 >
                                     <div className="bg-card text-card-foreground border-border absolute bottom-full left-1/2 z-50 mb-1 hidden -translate-x-1/2 rounded border px-2 py-1 text-xs whitespace-nowrap shadow-md group-hover:block">
-                                        {label} {String(hour).padStart(2, '0')}:00, <strong>{value}</strong> avg
-                                        players
+                                        {label} {String(hour).padStart(2, '0')}:00, <strong>{value}</strong> avg players
                                     </div>
                                 </div>
                             );

@@ -7,10 +7,7 @@ import {
     defaultPlayerListEmbedJson,
 } from '@modules/DiscordBot/defaultJsons';
 import { SYM_FIXER_DEFAULT } from '@lib/symbols';
-import {
-    isDiscordLogRouteKey,
-    normalizeDiscordLogRoutes,
-} from '@shared/discordLogRoutes';
+import { isDiscordLogRouteKey, normalizeDiscordLogRoutes } from '@shared/discordLogRoutes';
 
 const enabled = typeDefinedConfig({
     name: 'Bot Enabled',

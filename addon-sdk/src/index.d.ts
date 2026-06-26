@@ -62,6 +62,25 @@ export interface AddonLog {
     error(message: string): void;
 }
 
+export type DeferralResolveContext = {
+    scenarioId: string;
+    player: {
+        license?: string;
+        playerName?: string;
+        discordId?: string;
+        identifiers?: string[];
+    };
+    tokens: string[];
+};
+
+export type DeferralPresentInput = {
+    license: string;
+    /** Full id (`addon-id:scenario_key`) or short key registered via registerDeferralScenario. */
+    scenarioId: string;
+    customMessage?: string;
+    playerName?: string;
+};
+
 export interface Addon {
     readonly id: string;
     /** The permissions granted to this addon by the admin. */
@@ -79,6 +98,13 @@ export interface Addon {
     /** Remove an event handler. If no handler is given, removes all handlers for the event. */
     off(event: string, handler?: (data: unknown) => void | Promise<void>): void;
     log: AddonLog;
+    registerDeferralScenario(opts: { id: string; label: string; description?: string; group?: string }): void;
+    registerDeferralToken(opts: {
+        key: string;
+        label?: string;
+        resolve: (ctx: DeferralResolveContext) => string | Promise<string>;
+    }): void;
+    deferPresent(input: DeferralPresentInput): void;
     ready(): void;
 }
 

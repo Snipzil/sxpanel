@@ -4,6 +4,7 @@ import { Loader2Icon } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getSocket } from '@/lib/utils';
 import type { SpectateFrameEventData } from '@shared/spectateApiTypes';
+import { useLocale } from '@/hooks/locale';
 
 type LiveSpectateDialogProps = {
     open: boolean;
@@ -22,6 +23,7 @@ export default function LiveSpectateDialog({
     onStop,
     error,
 }: LiveSpectateDialogProps) {
+    const { t } = useLocale();
     const [currentFrame, setCurrentFrame] = useState<string | null>(null);
     const [connectionTimedOut, setConnectionTimedOut] = useState(false);
     const cleanupRef = useRef<(() => void) | null>(null);
@@ -87,12 +89,12 @@ export default function LiveSpectateDialog({
             <DialogContent className="max-w-5xl [&>button.absolute]:hidden">
                 <DialogHeader>
                     <div className="flex items-center justify-between">
-                        <DialogTitle>Live Spectate: {playerName}</DialogTitle>
+                        <DialogTitle>{t('panel.player_modal.spectate.title', { name: playerName })}</DialogTitle>
                         <DialogDescription className="sr-only">
-                            Live spectate stream of player {playerName}
+                            {t('panel.player_modal.spectate.description', { name: playerName })}
                         </DialogDescription>
                         <Button variant="destructive" size="sm" onClick={handleStop}>
-                            Stop
+                            {t('panel.common.stop')}
                         </Button>
                     </div>
                 </DialogHeader>
@@ -100,18 +102,18 @@ export default function LiveSpectateDialog({
                     {!currentFrame && !error && !connectionTimedOut && (
                         <div className="text-muted-foreground flex flex-col items-center gap-2">
                             <Loader2Icon className="size-8 animate-spin" />
-                            <span className="text-sm">Connecting to live stream…</span>
+                            <span className="text-sm">{t('panel.player_modal.spectate.connecting')}</span>
                         </div>
                     )}
                     {(error || connectionTimedOut) && (
                         <p className="text-destructive text-center">
-                            {error ?? 'Connection timed out — no frames received from the player.'}
+                            {error ?? t('panel.player_modal.spectate.timeout')}
                         </p>
                     )}
                     {currentFrame && (
                         <img
                             src={currentFrame}
-                            alt={`Live spectate of ${playerName}`}
+                            alt={t('panel.player_modal.spectate.alt', { name: playerName })}
                             className="max-h-[75vh] max-w-full"
                         />
                     )}

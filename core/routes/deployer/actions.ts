@@ -164,20 +164,24 @@ async function handleSetVariables(ctx: AuthedCtx) {
     //Setting identifiers array
     const admin = txCore.adminStore.getAdminByName(ctx.admin.name);
     if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
-    const addPrincipalLines: string[] = [];
-    if (admin.providers.citizenfx?.identifier) {
-        addPrincipalLines.push(
-            `add_principal identifier.${admin.providers.citizenfx.identifier} group.admin #${ctx.admin.name}`,
-        );
+    if (admin.passwordRevision < 0) {
+        userVars.addPrincipalsMaster = '# Deployer: no automatic principals for this account.';
+    } else {
+        const addPrincipalLines: string[] = [];
+        if (admin.providers.citizenfx?.identifier) {
+            addPrincipalLines.push(
+                `add_principal identifier.${admin.providers.citizenfx.identifier} group.admin #${ctx.admin.name}`,
+            );
+        }
+        if (admin.providers.discord?.identifier) {
+            addPrincipalLines.push(
+                `add_principal identifier.${admin.providers.discord.identifier} group.admin #${ctx.admin.name}`,
+            );
+        }
+        userVars.addPrincipalsMaster = addPrincipalLines.length
+            ? addPrincipalLines.join('\n')
+            : '# Deployer Note: this admin master has no identifiers to be automatically added.\n# add_principal identifier.discord:111111111111111111 group.admin #example';
     }
-    if (admin.providers.discord?.identifier) {
-        addPrincipalLines.push(
-            `add_principal identifier.${admin.providers.discord.identifier} group.admin #${ctx.admin.name}`,
-        );
-    }
-    userVars.addPrincipalsMaster = addPrincipalLines.length
-        ? addPrincipalLines.join('\n')
-        : '# Deployer Note: this admin master has no identifiers to be automatically added.\n# add_principal identifier.discord:111111111111111111 group.admin #example';
 
     //Start deployer
     try {

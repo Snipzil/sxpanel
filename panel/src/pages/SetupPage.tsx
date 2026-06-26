@@ -17,8 +17,9 @@ import {
 import useSWR from 'swr';
 import { navigate as setLocation } from 'wouter/use-browser-location';
 import { ApiTimeout } from '@/hooks/fetch';
+import { useLocale } from '@/hooks/locale';
 
-// - -  Types - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - -  Types - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 type SetupDataResp = {
     redirect?: string;
     error?: string;
@@ -79,24 +80,14 @@ const reduceSetupPageState = (state: SetupPageState, action: Partial<SetupPageSt
     };
 };
 
-// - -  Helpers - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-function buildDeployName(templateName: string) {
-    const sanitized = templateName
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .substring(0, 12)
-        .toLowerCase();
-    const ts = Date.now().toString(16);
-    const id = `${sanitized}_${ts}`;
-    return { id, path: '' }; // path is filled in step 4
-}
-
+// - -  Helpers - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 function tagColor(tag: string) {
     if (tag === 'fivem') return 'bg-orange-500 text-white';
     if (tag === 'redm') return 'bg-red-600 text-white';
     return 'bg-muted text-muted-foreground';
 }
 
-// - -  Step Components - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - -  Step Components - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 /** Step 1: Server Name */
 function StepServerName({
@@ -108,24 +99,23 @@ function StepServerName({
     setServerName: (v: string) => void;
     onNext: () => void;
 }) {
+    const { t } = useLocale();
     const valid = serverName.length >= 3 && serverName.length <= 22;
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Server Name</h2>
-            <p className="text-muted-foreground text-sm">
-                Choose a name for your server. This can be changed later in Settings.
-            </p>
+            <h2 className="text-xl font-semibold">{t('panel.setup.server_name.title')}</h2>
+            <p className="text-muted-foreground text-sm">{t('panel.setup.server_name.description')}</p>
             <Input
                 value={serverName}
                 onChange={(e) => setServerName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && valid && onNext()}
-                placeholder="Happy Server"
+                placeholder={t('panel.setup.server_name.placeholder')}
                 maxLength={22}
                 minLength={3}
             />
             <div className="flex justify-end">
                 <Button onClick={onNext} disabled={!valid}>
-                    Next <ChevronRightIcon className="ml-1 size-4" />
+                    {t('panel.setup.server_name.next')} <ChevronRightIcon className="ml-1 size-4" />
                 </Button>
             </div>
         </div>
@@ -134,38 +124,39 @@ function StepServerName({
 
 /** Step 2: Deployment Type */
 function StepDeploymentType({ onSelect }: { onSelect: (t: DeploymentType) => void }) {
+    const { t } = useLocale();
     const cards: { type: DeploymentType; icon: React.ReactNode; title: string; desc: string; badge?: string }[] = [
         {
             type: 'popular',
             icon: <ServerIcon className="size-8" />,
-            title: 'Popular Recipes',
-            desc: 'Choose from a list of popular community recipes.',
-            badge: 'RECOMMENDED',
+            title: t('panel.setup.deployment_type.popular_title'),
+            desc: t('panel.setup.deployment_type.popular_desc'),
+            badge: t('panel.setup.deployment_type.recommended'),
         },
         {
             type: 'local',
             icon: <FolderOpenIcon className="size-8" />,
-            title: 'Existing Server Data',
-            desc: 'Point to an existing server data folder with a server.cfg.',
+            title: t('panel.setup.deployment_type.local_title'),
+            desc: t('panel.setup.deployment_type.local_desc'),
         },
         {
             type: 'remote',
             icon: <GlobeIcon className="size-8" />,
-            title: 'Remote URL Template',
-            desc: 'Provide a URL to a recipe YAML file.',
+            title: t('panel.setup.deployment_type.remote_title'),
+            desc: t('panel.setup.deployment_type.remote_desc'),
         },
         {
             type: 'custom',
             icon: <FileCodeIcon className="size-8" />,
-            title: 'Custom Template',
-            desc: 'Start with a blank recipe and paste your own in the deployer.',
+            title: t('panel.setup.deployment_type.custom_title'),
+            desc: t('panel.setup.deployment_type.custom_desc'),
         },
     ];
 
     return (
         <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Deployment Type</h2>
-            <p className="text-muted-foreground text-sm">How would you like to set up your server?</p>
+            <h2 className="text-xl font-semibold">{t('panel.setup.deployment_type.title')}</h2>
+            <p className="text-muted-foreground text-sm">{t('panel.setup.deployment_type.description')}</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {cards.map((c) => (
                     <button
@@ -200,6 +191,7 @@ function StepPopularTemplates({
     onSelect: (recipe: RecipeEntry) => void;
     onBack: () => void;
 }) {
+    const { t } = useLocale();
     const recipesKey = `setupRecipeIndex:${forceGameName || 'all'}`;
     const {
         data: recipes,
@@ -210,9 +202,12 @@ function StepPopularTemplates({
         const timeout = setTimeout(() => controller.abort(), 10_000);
 
         try {
-            const response = await fetch('https://raw.githubusercontent.com/citizenfx/txAdmin-recipes/main/indexv4.json', {
-                signal: controller.signal,
-            });
+            const response = await fetch(
+                'https://raw.githubusercontent.com/citizenfx/txAdmin-recipes/main/indexv4.json',
+                {
+                    signal: controller.signal,
+                },
+            );
             if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
             const data = (await response.json()) as RecipeEntry[];
@@ -221,7 +216,7 @@ function StepPopularTemplates({
             return data.filter((recipe) => recipe.tags.includes(forceGameName));
         } catch (error) {
             if (error instanceof DOMException && error.name === 'AbortError') {
-                throw new Error('Request timed out while loading recipes.');
+                throw new Error(t('panel.setup.popular.timeout'));
             }
             throw error;
         } finally {
@@ -229,9 +224,9 @@ function StepPopularTemplates({
         }
     });
     const fetchError = recipesError
-        ? recipesError.message === 'Request timed out while loading recipes.'
+        ? recipesError.message === t('panel.setup.popular.timeout')
             ? recipesError.message
-            : `Failed to load recipes index: ${recipesError.message}`
+            : t('panel.setup.popular.fetch_failed', { error: recipesError.message })
         : '';
 
     return (
@@ -240,12 +235,12 @@ function StepPopularTemplates({
                 <Button variant="outline" size="sm" onClick={onBack}>
                     <ChevronLeftIcon className="size-4" />
                 </Button>
-                <h2 className="text-xl font-semibold">Select a Template</h2>
+                <h2 className="text-xl font-semibold">{t('panel.setup.popular.title')}</h2>
             </div>
             {fetchError && <p className="text-destructive">{fetchError}</p>}
             {isLoadingRecipes && !fetchError && (
                 <div className="flex items-center gap-2">
-                    <Loader2Icon className="animate-spin" /> Loading recipesâ€¦
+                    <Loader2Icon className="animate-spin" /> {t('panel.setup.popular.loading')}
                 </div>
             )}
             {recipes && (
@@ -261,13 +256,13 @@ function StepPopularTemplates({
                             >
                                 <span className="font-semibold">{r.name}</span>
                                 <span className="text-muted-foreground text-xs">
-                                    by {r.author} &middot; v{r.version}
+                                    {t('panel.setup.popular.by_author', { author: r.author, version: r.version })}
                                 </span>
                                 <span className="text-muted-foreground text-sm">{r.description}</span>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {incompatible && (
                                         <span className="rounded bg-red-700 px-2 py-0.5 text-xs text-white">
-                                            INCOMPATIBLE
+                                            {t('panel.setup.popular.incompatible')}
                                         </span>
                                     )}
                                     {r.tags.map((t) => (
@@ -293,6 +288,7 @@ function StepRemoteURL({
     onValidated: (url: string, name: string) => void;
     onBack: () => void;
 }) {
+    const { t } = useLocale();
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -311,7 +307,7 @@ function StepRemoteURL({
                 if (data.success && data.name) {
                     onValidated(url.trim(), data.name);
                 } else {
-                    txToast.error(data.message || 'Invalid recipe URL.');
+                    txToast.error(data.message || t('panel.setup.remote.invalid_url'));
                 }
             },
             error(msg) {
@@ -327,26 +323,23 @@ function StepRemoteURL({
                 <Button variant="outline" size="sm" onClick={onBack}>
                     <ChevronLeftIcon className="size-4" />
                 </Button>
-                <h2 className="text-xl font-semibold">Remote Template URL</h2>
+                <h2 className="text-xl font-semibold">{t('panel.setup.remote.title')}</h2>
             </div>
-            <p className="text-muted-foreground text-sm">Paste the URL of a recipe YAML file (must be a raw URL).</p>
+            <p className="text-muted-foreground text-sm">{t('panel.setup.remote.description')}</p>
             <Alert variant="destructive">
-                <AlertTitle>Untrusted recipes</AlertTitle>
-                <AlertDescription>
-                    A recipe is executable configuration (including SQL). Only load templates from sources you trust.
-                    Arbitrary URLs or third-party raw files can compromise your server or database if the YAML is malicious.
-                </AlertDescription>
+                <AlertTitle>{t('panel.setup.remote.untrusted_title')}</AlertTitle>
+                <AlertDescription>{t('panel.setup.remote.untrusted_description')}</AlertDescription>
             </Alert>
             <Input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleValidate()}
-                placeholder="https://raw.githubusercontent.com/..."
+                placeholder={t('panel.setup.remote.placeholder')}
             />
             <div className="flex justify-end">
                 <Button onClick={handleValidate} disabled={loading || !url.trim()}>
                     {loading && <Loader2Icon className="mr-1 size-4 animate-spin" />}
-                    Validate
+                    {t('panel.setup.remote.validate')}
                 </Button>
             </div>
         </div>
@@ -361,6 +354,7 @@ function StepLocalDataFolder({
     onValidated: (dataFolder: string, detectedConfig?: string) => void;
     onBack: () => void;
 }) {
+    const { t } = useLocale();
     const [folder, setFolder] = useState('');
     const [loading, setLoading] = useState(false);
     const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -383,9 +377,9 @@ function StepLocalDataFolder({
                     onValidated(f, data.detectedConfig);
                 } else if (data.suggestion) {
                     setSuggestion(data.suggestion);
-                    txToast.warning(data.message || 'Found a suggestion.');
+                    txToast.warning(data.message || t('panel.setup.local.found_suggestion'));
                 } else {
-                    txToast.error(data.message || 'Invalid folder.');
+                    txToast.error(data.message || t('panel.setup.local.invalid_folder'));
                 }
             },
             error(msg) {
@@ -408,31 +402,29 @@ function StepLocalDataFolder({
                 <Button variant="outline" size="sm" onClick={onBack}>
                     <ChevronLeftIcon className="size-4" />
                 </Button>
-                <h2 className="text-xl font-semibold">Existing Server Data Folder</h2>
+                <h2 className="text-xl font-semibold">{t('panel.setup.local.title')}</h2>
             </div>
-            <p className="text-muted-foreground text-sm">
-                Provide the path to your existing server data folder (containing server.cfg and resources/).
-            </p>
+            <p className="text-muted-foreground text-sm">{t('panel.setup.local.description')}</p>
             <Input
                 value={folder}
                 onChange={(e) => setFolder(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleValidate()}
-                placeholder="/path/to/server-data"
+                placeholder={t('panel.setup.local.placeholder')}
             />
             {suggestion && (
                 <div className="border-warning/30 bg-warning-hint flex items-center gap-2 rounded-lg border p-3 text-sm">
                     <span>
-                        Suggestion: <code className="font-mono text-xs">{suggestion}</code>
+                        {t('panel.setup.local.suggestion')} <code className="font-mono text-xs">{suggestion}</code>
                     </span>
                     <Button size="sm" variant="outline" onClick={acceptSuggestion}>
-                        Accept Fix
+                        {t('panel.setup.local.accept_fix')}
                     </Button>
                 </div>
             )}
             <div className="flex justify-end">
                 <Button onClick={() => handleValidate()} disabled={loading || !folder.trim()}>
                     {loading && <Loader2Icon className="mr-1 size-4 animate-spin" />}
-                    Validate
+                    {t('panel.setup.local.validate')}
                 </Button>
             </div>
         </div>
@@ -441,32 +433,31 @@ function StepLocalDataFolder({
 
 /** Step 3: Custom template info */
 function StepCustomInfo({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+    const { t } = useLocale();
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={onBack}>
                     <ChevronLeftIcon className="size-4" />
                 </Button>
-                <h2 className="text-xl font-semibold">Custom Template</h2>
+                <h2 className="text-xl font-semibold">{t('panel.setup.custom.title')}</h2>
             </div>
+            <p className="text-muted-foreground text-sm">{t('panel.setup.custom.description')}</p>
             <p className="text-muted-foreground text-sm">
-                You will be able to paste or write your own recipe YAML in the deployer editor on the next page.
-            </p>
-            <p className="text-muted-foreground text-sm">
-                For recipe documentation and examples, check the{' '}
+                {t('panel.setup.custom.docs_prefix')}{' '}
                 <a
                     href="https://fxpanel.org/docs/recipe"
                     target="_blank"
                     rel="noreferrer"
                     className="text-primary underline"
                 >
-                    fxPanel docs
+                    {t('panel.setup.custom.docs_link')}
                 </a>
                 .
             </p>
             <div className="flex justify-end">
                 <Button onClick={onNext}>
-                    Next <ChevronRightIcon className="ml-1 size-4" />
+                    {t('panel.setup.custom.next')} <ChevronRightIcon className="ml-1 size-4" />
                 </Button>
             </div>
         </div>
@@ -485,8 +476,8 @@ function StepDeployTarget({
     onValidated: (deployPath: string) => void;
     onBack: () => void;
 }) {
-    const initialDeployPathRef = useRef(defaultPath);
-    const [deployPath, setDeployPath] = useState(initialDeployPathRef.current);
+    const { t } = useLocale();
+    const [deployPath, setDeployPath] = useState(defaultPath);
     const [editable, setEditable] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -505,7 +496,7 @@ function StepDeployTarget({
                 if (data.success) {
                     onValidated(deployPath.trim());
                 } else {
-                    txToast.error(data.message || 'Invalid deploy path.');
+                    txToast.error(data.message || t('panel.setup.deploy_target.invalid_path'));
                 }
             },
             error(msg) {
@@ -521,9 +512,9 @@ function StepDeployTarget({
                 <Button variant="outline" size="sm" onClick={onBack}>
                     <ChevronLeftIcon className="size-4" />
                 </Button>
-                <h2 className="text-xl font-semibold">Deploy Target</h2>
+                <h2 className="text-xl font-semibold">{t('panel.setup.deploy_target.title')}</h2>
             </div>
-            <p className="text-muted-foreground text-sm">Where should the server data be deployed?</p>
+            <p className="text-muted-foreground text-sm">{t('panel.setup.deploy_target.description')}</p>
             <div className="flex items-center gap-2">
                 <Input
                     value={deployPath}
@@ -534,19 +525,17 @@ function StepDeployTarget({
                 />
                 {!editable && (
                     <Button variant="outline" size="sm" onClick={() => setEditable(true)}>
-                        Change Path
+                        {t('panel.setup.deploy_target.change_path')}
                     </Button>
                 )}
             </div>
             {hasCustomDataPath && (
-                <p className="text-muted-foreground text-xs">
-                    This path is based on your custom data path configuration.
-                </p>
+                <p className="text-muted-foreground text-xs">{t('panel.setup.deploy_target.custom_path_hint')}</p>
             )}
             <div className="flex justify-end">
                 <Button onClick={handleValidate} disabled={loading || !deployPath.trim()}>
                     {loading && <Loader2Icon className="mr-1 size-4 animate-spin" />}
-                    Validate & Continue
+                    {t('panel.setup.deploy_target.validate_continue')}
                 </Button>
             </div>
         </div>
@@ -565,6 +554,7 @@ function StepServerCFG({
     onValidated: (cfgFile: string) => void;
     onBack: () => void;
 }) {
+    const { t } = useLocale();
     const [cfgFile, setCfgFile] = useState(detectedConfig || '');
     const [loading, setLoading] = useState(false);
 
@@ -583,7 +573,7 @@ function StepServerCFG({
                 if (data.success) {
                     onValidated(cfgFile.trim());
                 } else {
-                    txToast.error(data.message || 'Invalid CFG file.');
+                    txToast.error(data.message || t('panel.setup.server_cfg.invalid_cfg'));
                 }
             },
             error(msg) {
@@ -599,28 +589,26 @@ function StepServerCFG({
                 <Button variant="outline" size="sm" onClick={onBack}>
                     <ChevronLeftIcon className="size-4" />
                 </Button>
-                <h2 className="text-xl font-semibold">Server CFG File</h2>
+                <h2 className="text-xl font-semibold">{t('panel.setup.server_cfg.title')}</h2>
             </div>
-            <p className="text-muted-foreground text-sm">
-                Provide the server.cfg file name (relative to your data folder).
-            </p>
+            <p className="text-muted-foreground text-sm">{t('panel.setup.server_cfg.description')}</p>
             <Input
                 value={cfgFile}
                 onChange={(e) => setCfgFile(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleValidate()}
-                placeholder="server.cfg"
+                placeholder={t('panel.setup.server_cfg.placeholder')}
             />
             <div className="flex justify-end">
                 <Button onClick={handleValidate} disabled={loading || !cfgFile.trim()}>
                     {loading && <Loader2Icon className="mr-1 size-4 animate-spin" />}
-                    Validate
+                    {t('panel.setup.server_cfg.validate')}
                 </Button>
             </div>
         </div>
     );
 }
 
-// - -  Main Setup Page - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - -  Main Setup Page - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 type SetupStepContentProps = {
     step: number;
     data: SetupDataResp;
@@ -668,6 +656,7 @@ const SetupStepContent = ({
     onValidateDeployPath,
     onSave,
 }: SetupStepContentProps) => {
+    const { t } = useLocale();
     if (step === 0) {
         return <StepServerName serverName={serverName} setServerName={setServerName} onNext={() => onSetStep(1)} />;
     }
@@ -735,33 +724,37 @@ const SetupStepContent = ({
                     <Button variant="outline" size="sm" onClick={() => onSetStep(3)}>
                         <ChevronLeftIcon className="size-4" />
                     </Button>
-                    <h2 className="text-xl font-semibold">Ready to Go</h2>
+                    <h2 className="text-xl font-semibold">{t('panel.setup.ready.title')}</h2>
                 </div>
                 <div className="bg-muted/50 space-y-2 rounded-lg p-4 text-sm">
                     <div>
-                        <strong>Server Name:</strong> {serverName}
+                        <strong>{t('panel.setup.ready.server_name')}</strong> {serverName}
                     </div>
                     <div>
-                        <strong>Type:</strong> {deployType}
+                        <strong>{t('panel.setup.ready.type')}</strong> {deployType}
                     </div>
                     {isLocal ? (
                         <>
                             <div>
-                                <strong>Data Folder:</strong> <code className="text-xs">{dataFolder}</code>
+                                <strong>{t('panel.setup.ready.data_folder')}</strong>{' '}
+                                <code className="text-xs">{dataFolder}</code>
                             </div>
                             <div>
-                                <strong>CFG File:</strong> <code className="text-xs">{cfgFile}</code>
+                                <strong>{t('panel.setup.ready.cfg_file')}</strong>{' '}
+                                <code className="text-xs">{cfgFile}</code>
                             </div>
                         </>
                     ) : (
                         <>
                             {(selectedRecipe || recipeName) && (
                                 <div>
-                                    <strong>Recipe:</strong> {selectedRecipe?.name || recipeName}
+                                    <strong>{t('panel.setup.ready.recipe')}</strong>{' '}
+                                    {selectedRecipe?.name || recipeName}
                                 </div>
                             )}
                             <div>
-                                <strong>Deploy Path:</strong> <code className="text-xs">{deployPath}</code>
+                                <strong>{t('panel.setup.ready.deploy_path')}</strong>{' '}
+                                <code className="text-xs">{deployPath}</code>
                             </div>
                         </>
                     )}
@@ -771,11 +764,11 @@ const SetupStepContent = ({
                         {saving && <Loader2Icon className="mr-1 size-4 animate-spin" />}
                         {isLocal ? (
                             <>
-                                <CheckIcon className="mr-1 size-4" /> Save & Start Server
+                                <CheckIcon className="mr-1 size-4" /> {t('panel.setup.ready.save_start')}
                             </>
                         ) : (
                             <>
-                                Go to Recipe Deployer <ChevronRightIcon className="ml-1 size-4" />
+                                {t('panel.setup.ready.go_deployer')} <ChevronRightIcon className="ml-1 size-4" />
                             </>
                         )}
                     </Button>
@@ -788,7 +781,8 @@ const SetupStepContent = ({
 };
 
 export default function SetupPage() {
-    // - -  Data fetch - - 
+    const { t } = useLocale();
+    // - -  Data fetch - -
     const dataApi = useBackendApi<SetupDataResp>({
         method: 'GET',
         path: '/setup/data',
@@ -804,7 +798,7 @@ export default function SetupPage() {
     };
     const { data, isLoading } = useSWR('/setup/data', swrFetcher, { revalidateOnFocus: false });
 
-    // - -  Wizard state - - 
+    // - -  Wizard state - -
     const [state, dispatch] = useReducer(reduceSetupPageState, {
         step: 0,
         serverName: '',
@@ -819,7 +813,20 @@ export default function SetupPage() {
         saving: false,
         errorMessage: null,
     });
-    const { step, serverName, deployType, selectedRecipe, recipeURL, recipeName, dataFolder, detectedConfig, deployPath, cfgFile, saving, errorMessage } = state;
+    const {
+        step,
+        serverName,
+        deployType,
+        selectedRecipe,
+        recipeURL,
+        recipeName,
+        dataFolder,
+        detectedConfig,
+        deployPath,
+        cfgFile,
+        saving,
+        errorMessage,
+    } = state;
     const initRef = useRef(false);
 
     const saveApi = useBackendApi<SaveResp>({
@@ -869,7 +876,7 @@ export default function SetupPage() {
         return `${sanitized}_${deploymentTs}`;
     }, [recipeName, selectedRecipe?.name, deploymentTs]);
 
-    // - -  Save handler - - 
+    // - -  Save handler - -
     const performSave = useCallback(() => {
         if (!deployType) return;
         dispatch({ saving: true });
@@ -913,18 +920,18 @@ export default function SetupPage() {
         saveApi({
             data: payload,
             timeout: ApiTimeout.LONG,
-            toastLoadingMessage: 'Savingâ€¦',
+            toastLoadingMessage: t('panel.setup.saving'),
             success(resp) {
                 dispatch({ saving: false });
                 if (resp.success) {
                     if (deployType === 'local') {
-                        txToast.success('Server saved. Startingâ€¦');
+                        txToast.success(t('panel.setup.server_saved_starting'));
                         setLocation('/server/console');
                     } else {
                         setLocation('/server/deployer');
                     }
                 } else {
-                    txToast.error(resp.message || 'Save failed.');
+                    txToast.error(resp.message || t('panel.setup.save_failed'));
                 }
             },
             error(msg) {
@@ -932,9 +939,9 @@ export default function SetupPage() {
                 txToast.error(msg);
             },
         });
-    }, [deployType, serverName, selectedRecipe, recipeURL, deployPath, deploymentID, dataFolder, cfgFile, saveApi]);
+    }, [deployType, serverName, selectedRecipe, recipeURL, deployPath, deploymentID, dataFolder, cfgFile, saveApi, t]);
 
-    // - -  Loading state - - 
+    // - -  Loading state - -
     if (isLoading || !data) {
         return (
             <div className="flex h-full items-center justify-center">
@@ -943,28 +950,38 @@ export default function SetupPage() {
         );
     }
 
-    // - -  Error state - - 
+    // - -  Error state - -
     if (errorMessage) {
         return (
             <div className="flex h-full flex-col items-center justify-center gap-3">
-                <p className="text-destructive text-lg font-semibold">Setup Error</p>
+                <p className="text-destructive text-lg font-semibold">{t('panel.setup.error_title')}</p>
                 <p className="text-muted-foreground text-sm">{errorMessage}</p>
             </div>
         );
     }
 
-    // - -  Step progress indicator - - 
+    // - -  Step progress indicator - -
     const totalSteps = deployType === 'local' ? 4 : 4; // name, type, template/path, target/cfg â†’ save
     const stepLabels =
         deployType === 'local'
-            ? ['Server Name', 'Type', 'Data Folder', 'CFG File']
-            : ['Server Name', 'Type', 'Template', 'Deploy Target'];
+            ? [
+                  t('panel.setup.steps.server_name'),
+                  t('panel.setup.steps.type'),
+                  t('panel.setup.steps.data_folder'),
+                  t('panel.setup.steps.cfg_file'),
+              ]
+            : [
+                  t('panel.setup.steps.server_name'),
+                  t('panel.setup.steps.type'),
+                  t('panel.setup.steps.template'),
+                  t('panel.setup.steps.deploy_target'),
+              ];
 
     return (
         <div className="mx-auto w-full max-w-(--breakpoint-md) space-y-6 px-2 py-4 md:px-0">
             <div className="px-2 md:px-0">
-                <h1 className="mb-2 text-3xl">Server Setup</h1>
-                <p className="text-muted-foreground text-sm">Follow the steps below to set up your server.</p>
+                <h1 className="mb-2 text-3xl">{t('panel.setup.title')}</h1>
+                <p className="text-muted-foreground text-sm">{t('panel.setup.subtitle')}</p>
             </div>
 
             {/* Step Progress */}

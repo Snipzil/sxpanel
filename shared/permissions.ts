@@ -103,6 +103,12 @@ export const registeredPermissions: PermissionDefinition[] = [
         category: 'server',
     },
     {
+        id: 'commands.resources.download',
+        label: 'Download Resources',
+        description: 'Zip and download a resource folder from the server host.',
+        category: 'server',
+    },
+    {
         id: 'server.cfg.editor',
         label: 'server.cfg Editor',
         description: 'Read and write the server.cfg file.',
@@ -154,6 +160,12 @@ export const registeredPermissions: PermissionDefinition[] = [
         id: 'menu.viewids',
         label: 'View Player IDs',
         description: 'See player IDs overhead in-game.',
+        category: 'ingame',
+    },
+    {
+        id: 'menu.mapblips',
+        label: 'View Map Blips',
+        description: 'See all players on the in-game map via map blips.',
         category: 'ingame',
     },
 

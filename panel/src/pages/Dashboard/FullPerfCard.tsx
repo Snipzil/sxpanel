@@ -3,7 +3,8 @@ import React, { ReactNode, memo, useEffect, useMemo, useReducer, useRef } from '
 import DebouncedResizeContainer from '@/components/DebouncedResizeContainer';
 import drawFullPerfChart from './drawFullPerfChart';
 import { useBackendApi } from '@/hooks/fetch';
-import type { PerfChartApiResp, PerfChartApiSuccessResp, SvRtPerfThreadNamesType } from '@shared/otherTypes';
+import type { PerfChartApiResp, SvRtPerfThreadNamesType } from '@shared/otherTypes';
+import type { PerfChartApiSuccessShape } from './chartingUtils';
 import useSWR from 'swr';
 import {
     PerfSnapType,
@@ -11,6 +12,7 @@ import {
     getBucketTicketsEstimatedTime,
     getServerStatsData,
     getTimeWeightedHistogram,
+    isPerfChartApiSuccess,
     processPerfLog,
 } from './chartingUtils';
 import { dashServerStatsAtom, useThrottledSetCursor } from './dashboardHooks';
@@ -25,7 +27,7 @@ import { isDevMockStatusOptInEnabled } from '@/lib/devFlags';
 
 type FullPerfChartProps = {
     threadName: SvRtPerfThreadNamesType;
-    apiData: PerfChartApiSuccessResp;
+    apiData: PerfChartApiSuccessShape;
     apiDataAge: number;
     width: number;
     height: number;
@@ -40,10 +42,7 @@ type FullPerfChartRenderState = {
     errorRetry: number;
 };
 
-type FullPerfChartRenderAction =
-    | { type: 'drawSuccess' }
-    | { type: 'drawError'; error: string }
-    | { type: 'retry' };
+type FullPerfChartRenderAction = { type: 'drawSuccess' } | { type: 'drawError'; error: string } | { type: 'retry' };
 
 function reduceFullPerfChartRenderState(
     state: FullPerfChartRenderState,
@@ -145,10 +144,10 @@ const FullPerfChart = memo(
 
         //Process data only once
         const processedData = useMemo(() => {
-            if (!apiData) return null;
-            const parsed = processPerfLog(apiData.threadPerfLog, (perfLog) => {
+            if (!isPerfChartApiSuccess(apiData)) return null;
+            const parsed = processPerfLog(apiData.threadPerfLog, (threadPerf) => {
                 const bucketTicketsEstimatedTime = getBucketTicketsEstimatedTime(apiData.boundaries);
-                return getTimeWeightedHistogram(perfLog.buckets, bucketTicketsEstimatedTime);
+                return getTimeWeightedHistogram(threadPerf.buckets, bucketTicketsEstimatedTime);
             });
             if (!parsed) return null;
 
@@ -329,6 +328,9 @@ export default function FullPerfCard() {
                 dispatch({ type: 'patch', patch: { apiFailReason: data.fail_reason } });
                 return null;
             }
+            if (!isPerfChartApiSuccess(data)) {
+                throw new Error('invalid_chart_response');
+            }
             dispatch({ type: 'patch', patch: { apiDataAge: Date.now() } });
             return data;
         },
@@ -413,10 +415,10 @@ export default function FullPerfCard() {
             <DebouncedResizeContainer
                 onDebouncedResize={(nextChartSize) => dispatch({ type: 'patch', patch: { chartSize: nextChartSize } })}
             >
-                {swrChartApiResp.data ? (
+                {isPerfChartApiSuccess(swrChartApiResp.data) ? (
                     <FullPerfChart
                         threadName={selectedThread}
-                        apiData={swrChartApiResp.data as PerfChartApiSuccessResp}
+                        apiData={swrChartApiResp.data}
                         apiDataAge={apiDataAge}
                         width={chartSize.width}
                         height={chartSize.height}

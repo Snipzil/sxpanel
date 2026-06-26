@@ -5,7 +5,7 @@
 author('SomeAussieGamer')
 description('fxPanel - A Replacement for txAdmin built on its source code.')
 repository('https://github.com/SomeAussieGaymer/fxPanel')
-version '0.3.0-Beta'
+version '0.4.0-Alpha-04'
 ui_label 'fxPanel'
 fx_version('cerulean')
 game('common')
@@ -56,6 +56,7 @@ client_scripts({
     'resource/menu/client/cl_main_page.lua',
     'resource/menu/client/cl_vehicle.lua',
     'resource/menu/client/cl_player_ids.lua',
+    'resource/menu/client/cl_map_blips.lua',
     'resource/menu/client/cl_ptfx.lua', --must run before cl_player_mode
     'resource/menu/client/cl_player_mode.lua',
     'resource/menu/client/cl_spectate.lua',

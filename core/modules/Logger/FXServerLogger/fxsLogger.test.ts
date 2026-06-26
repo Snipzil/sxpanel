@@ -1,5 +1,5 @@
 //@ts-nocheck
-import { test, expect, suite, it, vitest, vi } from 'vitest';
+import { test, expect, suite, it, vitest, vi, beforeEach, afterEach } from 'vitest';
 import { prefixMultiline, splitFirstLine, stripLastEol } from './fxsLoggerUtils';
 import ConsoleTransformer, { FORCED_EOL } from './ConsoleTransformer';
 import ConsoleLineEnum from './ConsoleLineEnum';
@@ -133,6 +133,18 @@ suite('transformer: marker', () => {
 
 //MARK: Transformer ingest
 const jp = (arr: string[]) => arr.join('');
+const FROZEN_TIME_MS = 1_718_452_800_000; // 2024-06-15T12:00:00.000Z
+const getExpectedTimeMarker = () => `{§${Math.floor(FROZEN_TIME_MS / 1000).toString(16)}}`;
+
+const useFrozenConsoleTime = () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        vi.setSystemTime(FROZEN_TIME_MS);
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+};
 const getPatchedTransformer = () => {
     const t = new ConsoleTransformer();
     t.STYLES = {
@@ -205,27 +217,31 @@ suite('transformer: shortcuts', () => {
 });
 
 suite('transformer: new line', () => {
-    const expectedTimeMarker = `{§${Math.floor(Date.now() / 1000).toString(16)}}`;
+    useFrozenConsoleTime();
 
     test('single line same src', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         const result = transformer.process(ConsoleLineEnum.StdOut, 'test');
         expect(result.webBuffer).toEqual(jp([expectedTimeMarker, 'test']));
         expect(transformer.lastEol).toEqual(false);
     });
     test('single line diff src', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         const result = transformer.process(ConsoleLineEnum.StdErr, 'test');
         expect(result.webBuffer).toEqual(jp([expectedTimeMarker, '- ', 'test']));
         expect(transformer.lastEol).toEqual(false);
     });
     test('multi line same src', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         const result = transformer.process(ConsoleLineEnum.StdOut, 'test\ntest2');
         expect(result.webBuffer).toEqual(jp([expectedTimeMarker, 'test\ntest2']));
         expect(transformer.lastEol).toEqual(false);
     });
     test('multi line diff src', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         const result = transformer.process(ConsoleLineEnum.StdErr, 'test\ntest2');
         expect(result.webBuffer).toEqual(jp([expectedTimeMarker, '- ', 'test\n', '- ', 'test2']));
@@ -234,7 +250,7 @@ suite('transformer: new line', () => {
 });
 
 suite('transformer: postfix', () => {
-    const expectedTimeMarker = `{§${Math.floor(Date.now() / 1000).toString(16)}}`;
+    useFrozenConsoleTime();
 
     test('same source incomplete line', () => {
         const transformer = getPatchedTransformer();
@@ -251,6 +267,7 @@ suite('transformer: postfix', () => {
         expect(transformer.lastEol).toEqual(true);
     });
     test('same source multi line', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         transformer.lastEol = false;
         const result = transformer.process(ConsoleLineEnum.StdOut, 'test\nxx\n');
@@ -260,6 +277,7 @@ suite('transformer: postfix', () => {
     });
 
     test('diff source incomplete line', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         transformer.lastEol = false;
         const result = transformer.process(ConsoleLineEnum.StdErr, 'test');
@@ -267,6 +285,7 @@ suite('transformer: postfix', () => {
         expect(transformer.lastEol).toEqual(false);
     });
     test('diff source complete line', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         transformer.lastEol = false;
         const result = transformer.process(ConsoleLineEnum.StdErr, 'test\n');
@@ -274,6 +293,7 @@ suite('transformer: postfix', () => {
         expect(transformer.lastEol).toEqual(true);
     });
     test('diff source multi line', () => {
+        const expectedTimeMarker = getExpectedTimeMarker();
         const transformer = getPatchedTransformer();
         transformer.lastEol = false;
         const result = transformer.process(ConsoleLineEnum.StdErr, 'test\nabcde\n');

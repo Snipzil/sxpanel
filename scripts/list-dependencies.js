@@ -141,14 +141,21 @@ const resolveLocalImport = (fromFile, specifier) => {
 //Process file and extract all dependencies
 const processFile = (filePath) => {
     const fileContent = fs.readFileSync(filePath, 'utf8');
-    const importMatches = [...fileContent.matchAll(importRegex)].map((m) => m[1]);
-    const requireMatches = [...fileContent.matchAll(requireRegex)].map((m) => m[1]);
+    const importMatches = [...fileContent.matchAll(importRegex)].map((m) => ({
+        specifier: m[1],
+        isTypeOnly: /^\s*import\s+type\b/.test(m[0]),
+    }));
+    const requireMatches = [...fileContent.matchAll(requireRegex)].map((m) => ({
+        specifier: m[1],
+        isTypeOnly: false,
+    }));
     const allMatches = [...importMatches, ...requireMatches];
     const localImports = [];
 
-    for (const importedModule of allMatches) {
+    for (const { specifier: importedModule, isTypeOnly } of allMatches) {
         //Handle relative imports for circular detection
         if (importedModule.startsWith('./') || importedModule.startsWith('../') || importedModule === '.') {
+            if (isTypeOnly) continue;
             const resolved = resolveLocalImport(filePath, importedModule);
             if (resolved) localImports.push(resolved);
             continue;

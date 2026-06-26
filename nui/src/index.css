@@ -1,9 +1,21 @@
 @import '@fontsource-variable/inter';
 
+html {
+    /* Match the web panel's 12px rem base so typography feels consistent. */
+    font-size: 12px;
+    height: 100%;
+    overflow: hidden;
+    --menu-tabbar-gap: 10px;
+}
+
 body {
     margin: 0;
     font-family: 'Inter Variable', 'Inter', 'Segoe UI', sans-serif;
-    padding: 52px 40px 20px;
+    /* matches txAdmin's NUI placement (20px top/bottom, 40px sides) */
+    padding: 20px 40px;
+    /* border-box so the padding doesn't push the page past 100vh and
+       cause the window to scroll the menu chrome off-screen */
+    box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     height: 100vh;

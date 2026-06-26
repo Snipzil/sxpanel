@@ -17,6 +17,7 @@ export type SvRtPerfBoundariesType = Array<number | '+Inf'>;
  */
 export type GlobalStatusType = {
     serverTime: number;
+    language: string;
     configState: TxConfigState;
     discord: DiscordBotStatus;
     runner: {
@@ -26,6 +27,7 @@ export type GlobalStatusType = {
     server: {
         name: string;
         uptime: number;
+        playerCount: number;
         health: FxMonitorHealth;
         healthReason: string;
         whitelist: 'disabled' | 'adminOnly' | 'approvedLicense' | 'discordMember' | 'discordRoles';
@@ -73,17 +75,45 @@ export type TagDefinition = {
     id: string;
     label: string;
     color: string;
+    /** Shown before the player name in overhead IDs (e.g. "[S] "). */
+    prefix?: string;
     priority: number;
     enabled?: boolean;
+    /** Nearest FiveM HUD colour index for in-game overhead tags (computed server-side). */
+    hudColor?: number;
+    discordRoleIds?: string[];
 };
 
 export const AUTO_TAG_DEFINITIONS: TagDefinition[] = [
-    { id: 'staff', label: 'Staff', color: '#EF4444', priority: 10, enabled: true },
-    { id: 'problematic', label: 'Problematic', color: '#FB923C', priority: 20, enabled: true },
-    { id: 'newplayer', label: 'Newcomer', color: '#A3E635', priority: 30, enabled: true },
+    { id: 'staff', label: 'Staff', color: '#EF4444', prefix: '[S] ', priority: 10, enabled: true },
+    { id: 'problematic', label: 'Problematic', color: '#FB923C', prefix: '[!] ', priority: 20, enabled: true },
+    { id: 'newplayer', label: 'Newcomer', color: '#A3E635', prefix: '[N] ', priority: 30, enabled: true },
 ];
 
 export type PlayerTag = string;
+
+/**
+ * Returns the highest-priority tag id from a player's tags that exists in the lookup.
+ * Lower `priority` values rank higher. Tags missing from the lookup are ignored.
+ */
+export const getPrimaryPlayerTag = (
+    tags: PlayerTag[],
+    lookup: Record<string, Pick<TagDefinition, 'priority'>>,
+): string | undefined => {
+    let bestTag: string | undefined;
+    let bestPriority = Infinity;
+
+    for (const tagId of tags) {
+        const definition = lookup[tagId];
+        if (!definition) continue;
+        if (definition.priority < bestPriority) {
+            bestPriority = definition.priority;
+            bestTag = tagId;
+        }
+    }
+
+    return bestTag;
+};
 
 /**
  * Playerlist channel
@@ -135,6 +165,7 @@ export type ListenEventsMap = {
     logout: (reason?: string) => void;
     refreshToUpdate: () => void;
     txAdminShuttingDown: () => void;
+    fxpAdminShuttingDown: () => void;
     status: (status: GlobalStatusType) => void;
     playerlist: (playerlistData: PlayerlistEventType[]) => void;
     updateAuthData: (authData: ReactAuthDataType) => void;
@@ -143,6 +174,7 @@ export type ListenEventsMap = {
     dashboard: (data: DashboardDataEventType) => void;
     banTemplatesUpdate: (data: BanTemplatesDataType[]) => void;
     resources: (data: ResourcesWsEventType) => void;
+    addonReloaded: (data: { addonId: string; action: string }) => void;
 
     //Standalone events
     updateAvailable: (event: UpdateAvailableEventType) => void;

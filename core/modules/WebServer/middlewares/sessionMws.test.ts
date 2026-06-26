@@ -65,14 +65,14 @@ suite('SessionMemoryStorage', () => {
             username: 'admin1',
             csrfToken: 'csrf1',
             expiresAt: false as const,
-            password_hash: 'hash1',
+            password_revision: 0,
         };
         const passAuth2 = {
             type: 'password' as const,
             username: 'admin2',
             csrfToken: 'csrf2',
             expiresAt: false as const,
-            password_hash: 'hash2',
+            password_revision: 1,
         };
         store.set('sess-1', { auth: passAuth });
         store.set('sess-1', { auth: passAuth2 });

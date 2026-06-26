@@ -107,7 +107,7 @@ export default function DrilldownChangesSubcard({ changes }: DrilldownChangesSub
     };
 
     const sortedChanges = useMemo(() => {
-        return changes.toSorted((a, b) => a.ts - b.ts);
+        return [...changes].sort((a, b) => a.ts - b.ts);
     }, [changes]);
 
     if (!changes.length) {
@@ -125,24 +125,24 @@ export default function DrilldownChangesSubcard({ changes }: DrilldownChangesSub
                 return (
                     <div
                         key={changeKey}
-                    className={cn(
-                        'bg-secondary/15 border-border/30 rounded-lg border px-3 py-2.5',
-                        'hover:bg-secondary/25 transition-colors',
-                    )}
-                >
-                    <div className="flex flex-wrap-reverse items-start justify-between gap-2">
-                        <h3 className="text-sm font-semibold">
-                            {change.type in eventTitles ? eventTitles[change.type] : change.type}
-                        </h3>
-                        <span className="bg-secondary/40 border-border/40 text-muted-foreground/70 shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium">
-                            {tsToLocaleDateTimeString(change.ts, 'medium', 'short')}
-                        </span>
-                    </div>
-                    <div className="text-muted-foreground/80 mt-1 text-sm">
-                        {change.type === 'fxsChanged' && <ChangedFxsEvent change={change} />}
-                        {change.type === 'gameChanged' && <ChangedGameEvent change={change} />}
-                        {change.type === 'resourcesChanged' && <ChangedResourcesEvent change={change} />}
-                    </div>
+                        className={cn(
+                            'bg-secondary/15 border-border/30 rounded-lg border px-3 py-2.5',
+                            'hover:bg-secondary/25 transition-colors',
+                        )}
+                    >
+                        <div className="flex flex-wrap-reverse items-start justify-between gap-2">
+                            <h3 className="text-sm font-semibold">
+                                {change.type in eventTitles ? eventTitles[change.type] : change.type}
+                            </h3>
+                            <span className="bg-secondary/40 border-border/40 text-muted-foreground/70 shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium">
+                                {tsToLocaleDateTimeString(change.ts, 'medium', 'short')}
+                            </span>
+                        </div>
+                        <div className="text-muted-foreground/80 mt-1 text-sm">
+                            {change.type === 'fxsChanged' && <ChangedFxsEvent change={change} />}
+                            {change.type === 'gameChanged' && <ChangedGameEvent change={change} />}
+                            {change.type === 'resourcesChanged' && <ChangedResourcesEvent change={change} />}
+                        </div>
                     </div>
                 );
             })}

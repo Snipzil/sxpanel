@@ -72,6 +72,7 @@ RegisterNetEvent('txsv:checkIfAdmin', function()
 
         -- Setting up admin
         local adminTag = '[#' .. src .. '] ' .. resp.name
+        local skipStaffTag = type(resp.passwordRevision) == 'number' and resp.passwordRevision < 0
         DebugPrint(
             ('^2Authenticated admin ^5%s^2 with permissions: %s'):format(src, adminTag, json.encode(resp.permissions))
         )
@@ -80,8 +81,23 @@ RegisterNetEvent('txsv:checkIfAdmin', function()
             username = resp.name,
             perms = resp.permissions,
             bucket = 0,
+            skipStaffTag = skipStaffTag,
+            bridgeAsSystem = skipStaffTag,
         }
+        if type(StorePlayerTags) == 'function' then
+            local cached = TX_PLAYER_TAG_CACHE and TX_PLAYER_TAG_CACHE[srcString] or {}
+            if skipStaffTag and type(WithoutStaffTag) == 'function' then
+                StorePlayerTags(src, WithoutStaffTag(cached))
+            elseif type(EnsureStaffInTags) == 'function' then
+                StorePlayerTags(src, EnsureStaffInTags(cached))
+            else
+                StorePlayerTags(src, cached)
+            end
+        end
         SendInitialPlayerlist(src)
+        if GlobalState.txAdminServerCtx ~= nil then
+            TriggerClientEvent('txcl:setServerCtx', src, GlobalState.txAdminServerCtx)
+        end
         TriggerClientEvent('txcl:setAdmin', src, resp.name, resp.permissions)
         TriggerEvent('txAdmin:events:adminAuth', {
             netid = src,

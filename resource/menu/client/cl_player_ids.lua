@@ -52,17 +52,34 @@ local autoTagHudColors = {
 }
 local defaultCustomHudColor = 4 -- HUD_COLOUR_BLUE for custom tags
 
+local function refreshOverheadConvars()
+    distanceToCheck = GetConvarInt('txAdmin-menuPlayerIdDistance', 150)
+    if distanceToCheck < 1 then
+        distanceToCheck = 150
+    end
+end
+refreshOverheadConvars()
+
+local function resolveTagPrefix(def)
+    if type(def.prefix) == 'string' and def.prefix ~= '' then
+        return def.prefix
+    end
+    if type(def.label) == 'string' and def.label ~= '' then
+        return '[' .. string.upper(string.sub(def.label, 1, 1)) .. '] '
+    end
+    return ''
+end
+
 --- Builds the tag display config and priority list from TX_SERVER_CTX.tagDefinitions
 local tagDisplayConfig = {}
 local tagPriority = {}
 
 local function rebuildTagConfig()
-    local defs = TX_SERVER_CTX and TX_SERVER_CTX.tagDefinitions or {}
+    local defs = (type(TX_SERVER_CTX) == 'table' and TX_SERVER_CTX.tagDefinitions) or {}
     local newConfig = {}
     local newPriority = {}
 
     if #defs > 0 then
-        -- Sort a copy by priority (lower = higher priority), excluding disabled tags
         local sorted = {}
         for _, d in ipairs(defs) do
             if d.enabled ~= false then
@@ -72,9 +89,8 @@ local function rebuildTagConfig()
         table.sort(sorted, function(a, b) return a.priority < b.priority end)
 
         for _, d in ipairs(sorted) do
-            local prefix = '[' .. string.upper(string.sub(d.label, 1, 1)) .. '] '
-            local hudColor = autoTagHudColors[d.id] or defaultCustomHudColor
-            newConfig[d.id] = { prefix = prefix, hudColor = hudColor }
+            local hudColor = d.hudColor or autoTagHudColors[d.id] or defaultCustomHudColor
+            newConfig[d.id] = { prefix = resolveTagPrefix(d), hudColor = hudColor }
             newPriority[#newPriority + 1] = d.id
         end
     else
@@ -92,11 +108,46 @@ local function rebuildTagConfig()
 end
 rebuildTagConfig()
 
+local function resolveTagPrefixForId(tagId)
+    if type(tagId) ~= 'string' or tagId == '' then
+        return ''
+    end
+    local cfg = tagDisplayConfig[tagId]
+    if cfg and type(cfg.prefix) == 'string' and cfg.prefix ~= '' then
+        return cfg.prefix
+    end
+    return '[' .. string.upper(string.sub(tagId, 1, 1)) .. '] '
+end
+
+local function formatDistanceStr(distanceM, isSelf)
+    if isSelf then
+        return '0m'
+    end
+    if distanceM < 0 then
+        return '??m'
+    end
+    return tostring(distanceM) .. 'm'
+end
+
+local function buildPlayerLabel(tagPrefix, serverId, playerName, distStr)
+    local suffix = '  ' .. distStr
+    local maxNameLen = math.max(1, 75 - #suffix - #tagPrefix - #(' [' .. serverId .. ']'))
+    local trimmedName = string.sub(playerName or 'unknown', 1, maxNameLen)
+    return tagPrefix .. trimmedName .. ' [' .. serverId .. ']' .. suffix
+end
+
 --- Gets the highest-priority tag for a player from TX_LOCAL_PLAYERLIST
 local function getPlayerTopTag(serverId)
+    if type(TX_LOCAL_PLAYERLIST) ~= 'table' then
+        return nil
+    end
     local pidStr = tostring(serverId)
-    if TX_LOCAL_PLAYERLIST[pidStr] == nil then return nil end
-    local tags = TX_LOCAL_PLAYERLIST[pidStr].tags
+    local playerEntry = TX_LOCAL_PLAYERLIST[pidStr]
+    if playerEntry == nil then return nil end
+    local tags = playerEntry.tags
+    if tags == nil and playerEntry.admin == true then
+        return 'staff'
+    end
     if tags == nil then return nil end
     local tagSet = {}
     for _, t in ipairs(tags) do
@@ -105,7 +156,7 @@ local function getPlayerTopTag(serverId)
     for _, t in ipairs(tagPriority) do
         if tagSet[t] then return t end
     end
-    return nil
+    return tags[1]
 end
 
 --- Removes all cached tags
@@ -124,7 +175,11 @@ local function cleanAllGamerTags()
 end
 
 --- Draws a single gamer tag (fivem)
-local function setGamerTagFivem(targetTag, pid)
+local function setGamerTagFivem(targetTag, pid, cached)
+    if cached and cached.label and type(SetMpGamerTagName) == 'function' then
+        SetMpGamerTagName(targetTag, cached.label)
+    end
+
     -- Setup name
     ---@diagnostic disable-next-line: param-type-mismatch
     SetMpGamerTagVisibility(targetTag, fivemGamerTagCompsEnum.GamerName, 1)
@@ -189,26 +244,12 @@ local clearGamerTagFunc = IS_FIVEM and clearGamerTagFivem or clearGamerTagRedm
 
 --- Loops through every player, checks distance and draws or hides the tag
 local function showGamerTags()
-    rebuildTagConfig()
     local curCoords = GetEntityCoords(PlayerPedId())
-    -- Per infinity this will only return players within 300m
     local allActivePlayers = GetActivePlayers()
 
     for _, pid in ipairs(allActivePlayers) do
-        -- Resolving player
         local targetPed = GetPlayerPed(pid)
-        local serverId = GetPlayerServerId(pid)
-        local topTag = getPlayerTopTag(serverId)
-        local tagPrefix = topTag and tagDisplayConfig[topTag] and tagDisplayConfig[topTag].prefix or ''
-
-        -- If we have not yet indexed this player or their tag has somehow dissapeared (pause, etc)
-        if
-            not playerGamerTags[pid]
-            or playerGamerTags[pid].ped ~= targetPed --ped can change if it leaves the networked area and back
-            or not IsMpGamerTagActive(playerGamerTags[pid].gamerTag)
-            or playerGamerTags[pid].topTag ~= topTag
-        then
-            -- Clean up old tag if it exists
+        if not targetPed or targetPed == 0 or not DoesEntityExist(targetPed) then
             if playerGamerTags[pid] and IsMpGamerTagActive(playerGamerTags[pid].gamerTag) then
                 if IS_FIVEM then
                     RemoveMpGamerTag(playerGamerTags[pid].gamerTag)
@@ -216,23 +257,56 @@ local function showGamerTags()
                     Citizen.InvokeNative(0x839BFD7D7E49FE09, Citizen.PointerValueIntInitialized(playerGamerTags[pid].gamerTag))
                 end
             end
-            local playerName = string.sub(GetPlayerName(pid) or 'unknown', 1, 75)
-            local playerStr = tagPrefix .. '[' .. serverId .. ']' .. ' ' .. playerName
-            playerGamerTags[pid] = {
-                ---@diagnostic disable-next-line: param-type-mismatch
-                gamerTag = CreateFakeMpGamerTag(targetPed, playerStr, false, false, nil, 0),
-                ped = targetPed,
-                topTag = topTag,
-            }
-        end
-        local targetTag = playerGamerTags[pid].gamerTag
-
-        -- Distance Check
-        local targetPedCoords = GetEntityCoords(targetPed)
-        if #(targetPedCoords - curCoords) <= distanceToCheck then
-            setGamerTagFunc(targetTag, pid)
+            playerGamerTags[pid] = nil
         else
-            clearGamerTagFunc(targetTag)
+            local serverId = GetPlayerServerId(pid)
+            local topTag = getPlayerTopTag(serverId)
+            local tagPrefix = topTag and resolveTagPrefixForId(topTag) or ''
+            local targetPedCoords = GetEntityCoords(targetPed)
+            local distanceM = math.floor(#(targetPedCoords - curCoords))
+            local isSelf = pid == PlayerId()
+            local distStr = formatDistanceStr(distanceM, isSelf)
+            local playerName = string.sub(GetPlayerName(pid) or 'unknown', 1, 75)
+            local label = buildPlayerLabel(tagPrefix, serverId, playerName, distStr)
+
+            local cached = playerGamerTags[pid]
+            if
+                not cached
+                or cached.ped ~= targetPed
+                or not IsMpGamerTagActive(cached.gamerTag)
+                or cached.topTag ~= topTag
+                or cached.playerName ~= playerName
+            then
+                if cached and IsMpGamerTagActive(cached.gamerTag) then
+                    if IS_FIVEM then
+                        RemoveMpGamerTag(cached.gamerTag)
+                    else
+                        Citizen.InvokeNative(0x839BFD7D7E49FE09, Citizen.PointerValueIntInitialized(cached.gamerTag))
+                    end
+                end
+                playerGamerTags[pid] = {
+                    ---@diagnostic disable-next-line: param-type-mismatch
+                    gamerTag = CreateFakeMpGamerTag(targetPed, label, false, false, nil, 0),
+                    ped = targetPed,
+                    topTag = topTag,
+                    playerName = playerName,
+                    label = label,
+                }
+            else
+                cached.label = label
+            end
+
+            local targetTag = playerGamerTags[pid].gamerTag
+
+            if distanceM <= distanceToCheck then
+                if IS_FIVEM then
+                    setGamerTagFunc(targetTag, pid, playerGamerTags[pid])
+                else
+                    setGamerTagFunc(targetTag, pid)
+                end
+            else
+                clearGamerTagFunc(targetTag)
+            end
         end
     end
 end
@@ -243,8 +317,14 @@ end
 local function createGamerTagThread()
     DebugPrint('Starting gamer tag thread')
     CreateThread(function()
+        local lastDetailedRefresh = 0
         while isPlayerIdsEnabled do
             showGamerTags()
+            local now = GetGameTimer()
+            if now - lastDetailedRefresh >= 10000 then
+                lastDetailedRefresh = now
+                TriggerServerEvent('txsv:req:plist:getDetailed', true)
+            end
             Wait(250)
         end
 
@@ -264,6 +344,12 @@ function toggleShowPlayerIDs(enabled, showNotification)
     local snackMessage
     if isPlayerIdsEnabled then
         snackMessage = 'nui_menu.page_main.player_ids.alert_show'
+        refreshOverheadConvars()
+        if type(UpdateServerCtx) == 'function' then
+            UpdateServerCtx()
+        end
+        rebuildTagConfig()
+        TriggerServerEvent('txsv:req:plist:getDetailed', true)
         createGamerTagThread()
     else
         snackMessage = 'nui_menu.page_main.player_ids.alert_hide'
@@ -279,6 +365,15 @@ end
 RegisterNetEvent('txcl:showPlayerIDs', function(enabled)
     DebugPrint('Received showPlayerIDs event')
     toggleShowPlayerIDs(enabled, true)
+end)
+
+RegisterNetEvent('txcl:setServerCtx', function()
+    rebuildTagConfig()
+    refreshOverheadConvars()
+    if not isPlayerIdsEnabled then
+        return
+    end
+    TriggerServerEvent('txsv:req:plist:getDetailed', true)
 end)
 
 --- Sends perms request to the server to enable player ids

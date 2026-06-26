@@ -95,7 +95,7 @@ end
 RegisterNetEvent('txsv:ticketOpen', function()
     local src = source
     if not GetConvarBool('txAdmin-reportsEnabled') then
-        return TriggerClientEvent('txcl:ticketResult', src, { error = 'Support tickets are disabled on this server.' })
+        return TriggerClientEvent('txcl:ticketResult', src, { error = 'nui_reports.server.tickets_disabled' })
     end
 
     local license = getPlayerLicense(src)
@@ -132,19 +132,19 @@ end)
 RegisterNetEvent('txsv:ticketCreate', function(data)
     local src = source
     if not GetConvarBool('txAdmin-reportsEnabled') then
-        return TriggerClientEvent('txcl:ticketResult', src, { error = 'Support tickets are disabled on this server.' })
+        return TriggerClientEvent('txcl:ticketResult', src, { error = 'nui_reports.server.tickets_disabled' })
     end
     if type(data) ~= 'table'
         or type(data.category) ~= 'string'
         or type(data.description) ~= 'string'
         or #data.description == 0
     then
-        return TriggerClientEvent('txcl:ticketResult', src, { error = 'Invalid ticket data.' })
+        return TriggerClientEvent('txcl:ticketResult', src, { error = 'nui_reports.errors.invalid_ticket_data' })
     end
 
     local license = getPlayerLicense(src)
     if not license then
-        return TriggerClientEvent('txcl:ticketResult', src, { error = 'Could not identify your license.' })
+        return TriggerClientEvent('txcl:ticketResult', src, { error = 'nui_reports.server.could_not_identify' })
     end
 
     local reporter = {
@@ -197,7 +197,7 @@ RegisterNetEvent('txsv:ticketGetMine', function()
     local src = source
     local license = getPlayerLicense(src)
     if not license then
-        return TriggerClientEvent('txcl:ticketMyList', src, { error = 'Could not identify your license.' })
+        return TriggerClientEvent('txcl:ticketMyList', src, { error = 'nui_reports.server.could_not_identify' })
     end
 
     intercomRequest('ticketPlayerList', { playerLicense = license }, function(result)
@@ -217,18 +217,18 @@ end)
 RegisterNetEvent('txsv:ticketPlayerMessage', function(data)
     local src = source
     if type(data) ~= 'table' or type(data.ticketId) ~= 'string' or type(data.content) ~= 'string' then
-        return TriggerClientEvent('txcl:ticketMessageResult', src, { error = 'Invalid message data.' })
+        return TriggerClientEvent('txcl:ticketMessageResult', src, { error = 'nui_reports.errors.invalid_message_data' })
     end
 
     local hasContent = data.content ~= ''
     local hasImages = type(data.imageUrls) == 'table' and #data.imageUrls > 0
     if not hasContent and not hasImages then
-        return TriggerClientEvent('txcl:ticketMessageResult', src, { error = 'Message must have content or an image.' })
+        return TriggerClientEvent('txcl:ticketMessageResult', src, { error = 'nui_reports.errors.message_required' })
     end
 
     local license = getPlayerLicense(src)
     if not license then
-        return TriggerClientEvent('txcl:ticketMessageResult', src, { error = 'Could not identify your license.' })
+        return TriggerClientEvent('txcl:ticketMessageResult', src, { error = 'nui_reports.server.could_not_identify' })
     end
 
     local reqData = {
@@ -313,12 +313,12 @@ RegisterNetEvent('txsv:ticketAdminList', function()
     local srcString = tostring(src)
     local admin = TX_ADMINS[srcString]
     if not admin or not hasReportsPermission(admin) then
-        TriggerClientEvent('txcl:ticketAdminListData', src, { error = 'Permission denied.' })
+        TriggerClientEvent('txcl:ticketAdminListData', src, { error = 'nui_reports.server.permission_denied' })
         return
     end
 
     intercomRequest('ticketAdminList', { adminName = admin.username }, function(result)
-        TriggerClientEvent('txcl:ticketAdminListData', src, result or { error = 'Failed to fetch tickets.' })
+        TriggerClientEvent('txcl:ticketAdminListData', src, result or { error = 'nui_reports.server.failed_fetch' })
     end)
 end)
 
@@ -331,11 +331,11 @@ RegisterNetEvent('txsv:ticketAdminDetail', function(ticketId)
     local srcString = tostring(src)
     local admin = TX_ADMINS[srcString]
     if not admin or not hasReportsPermission(admin) then
-        TriggerClientEvent('txcl:ticketAdminDetailData', src, { error = 'Permission denied.' })
+        TriggerClientEvent('txcl:ticketAdminDetailData', src, { error = 'nui_reports.server.permission_denied' })
         return
     end
     if type(ticketId) ~= 'string' then
-        TriggerClientEvent('txcl:ticketAdminDetailData', src, { error = 'Invalid ticket ID.' })
+        TriggerClientEvent('txcl:ticketAdminDetailData', src, { error = 'nui_reports.errors.invalid_ticket_id' })
         return
     end
 
@@ -343,7 +343,7 @@ RegisterNetEvent('txsv:ticketAdminDetail', function(ticketId)
         adminName = admin.username,
         ticketId = ticketId,
     }, function(result)
-        TriggerClientEvent('txcl:ticketAdminDetailData', src, result or { error = 'Failed to fetch ticket.' })
+        TriggerClientEvent('txcl:ticketAdminDetailData', src, result or { error = 'nui_reports.server.failed_fetch_ticket' })
     end)
 end)
 

@@ -27,6 +27,17 @@ const baseConfig = {
                 entryFileNames: `[name].js`,
                 chunkFileNames: `[name].js`,
                 assetFileNames: '[name].[ext]',
+                manualChunks(id) {
+                    if (id.includes('node_modules/@mui/') || id.includes('node_modules/@emotion/')) {
+                        return 'mui';
+                    }
+                    if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+                        return 'react-vendor';
+                    }
+                    if (id.includes('node_modules/notistack')) {
+                        return 'notistack';
+                    }
+                },
             },
         },
     },

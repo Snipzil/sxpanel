@@ -28,7 +28,10 @@ const percentile = (values: number[], ratio: number) => {
     return sorted[index];
 };
 
-const recordOutcome = (target: Record<'success' | 'denied' | 'failed' | 'timedOut', number>, outcome: BotCommandOutcome) => {
+const recordOutcome = (
+    target: Record<'success' | 'denied' | 'failed' | 'timedOut', number>,
+    outcome: BotCommandOutcome,
+) => {
     if (outcome === 'timed_out') {
         target.timedOut += 1;
         return;
@@ -146,7 +149,10 @@ export default class BotAnalyticsDao {
 
             recordOutcome(overview, event.outcome);
             if (event.outcome === 'denied') {
-                denialMap.set(event.denialReason ?? 'unknown', (denialMap.get(event.denialReason ?? 'unknown') ?? 0) + 1);
+                denialMap.set(
+                    event.denialReason ?? 'unknown',
+                    (denialMap.get(event.denialReason ?? 'unknown') ?? 0) + 1,
+                );
             }
 
             const commandEntry = commandMap.get(event.commandName) ?? {
@@ -212,7 +218,10 @@ export default class BotAnalyticsDao {
             });
 
         const denialReasons = Array.from(denialMap.entries())
-            .map(([reason, count]) => ({ reason: reason as BotCommandEvent['denialReason'] extends infer T ? Extract<T, string> : never, count }))
+            .map(([reason, count]) => ({
+                reason: reason as BotCommandEvent['denialReason'] extends infer T ? Extract<T, string> : never,
+                count,
+            }))
             .sort((left, right) => {
                 if (right.count !== left.count) return right.count - left.count;
                 return left.reason.localeCompare(right.reason);

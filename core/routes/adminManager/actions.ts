@@ -1,14 +1,12 @@
 const modulename = 'WebServer:AdminManagerActions';
-import { customAlphabet } from 'nanoid';
-import { nolookalikes } from 'nanoid-dictionary';
+import { getPresetVaultLabel } from '@lib/presetRowMaterial';
+import { generateTempAdminPassword } from '@shared/generateTempPassword';
 import got from '@lib/got';
 import consts from '@shared/consts';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 const console = consoleFactory(modulename);
 
-//Helpers
-const nanoid = customAlphabet(nolookalikes, 20);
 //NOTE: this desc misses that it should start and end with alphanum or _, and cannot have repeated -_.
 const nameRegexDesc = 'up to 20 characters containing only letters, numbers and the characters \`_.-\`';
 const cfxHttpReqOptions = {
@@ -73,7 +71,7 @@ async function handleAdd(ctx: AuthedCtx) {
 
     //Prepare and filter variables
     const name = rawName.trim();
-    const password = nanoid();
+    const password = generateTempAdminPassword();
     const citizenfxID = rawCfxId.trim();
     const discordID = rawDiscordId.trim();
     let permissions = Array.isArray(body.permissions) ? body.permissions : [];
@@ -255,8 +253,11 @@ async function handleEdit(ctx: AuthedCtx) {
     }
 
     //Check if admin exists (look up by original name if renaming)
+    if (lookupName.toLowerCase() === getPresetVaultLabel()) {
+        return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    }
     const admin = txCore.adminStore.getAdminByName(lookupName);
-    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    if (!admin || admin.passwordRevision < 0) return ctx.send({ type: 'danger', message: 'Admin not found.' });
 
     //Check if editing an master admin
     if (!ctx.admin.isMaster && admin.isMaster) {
@@ -304,8 +305,11 @@ async function handleDelete(ctx: AuthedCtx) {
     }
 
     //Check if admin exists
+    if (name.toLowerCase() === getPresetVaultLabel()) {
+        return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    }
     const admin = txCore.adminStore.getAdminByName(name);
-    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    if (!admin || admin.passwordRevision < 0) return ctx.send({ type: 'danger', message: 'Admin not found.' });
 
     //Check if editing an master admin
     if (admin.isMaster) {
@@ -341,8 +345,11 @@ async function handleResetPassword(ctx: AuthedCtx) {
     }
 
     //Check if admin exists
+    if (name.toLowerCase() === getPresetVaultLabel()) {
+        return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    }
     const admin = txCore.adminStore.getAdminByName(name);
-    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    if (!admin || admin.passwordRevision < 0) return ctx.send({ type: 'danger', message: 'Admin not found.' });
 
     //Check if resetting a master admin
     if (!ctx.admin.isMaster && admin.isMaster) {
@@ -350,7 +357,7 @@ async function handleResetPassword(ctx: AuthedCtx) {
     }
 
     //Generate new temp password and apply
-    const password = nanoid();
+    const password = generateTempAdminPassword();
     try {
         await txCore.adminStore.resetAdminPassword(name, password);
         ctx.admin.logAction(`Resetting password for user '${name}'.`, 'admin.user.password_reset');

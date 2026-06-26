@@ -1,6 +1,7 @@
 import { banDurationToString, cn } from '@/lib/utils';
 import { BanDurationType } from '@shared/otherTypes';
-import { Settings2Icon, XIcon } from 'lucide-react';
+import { PencilIcon, Trash2Icon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type BanTemplatesListItemProps = {
     id: string;
@@ -11,6 +12,10 @@ type BanTemplatesListItemProps = {
     disabled: boolean;
 };
 
+/**
+ * V2 list row for a ban template — theme-token duration chips (no more
+ * `bg-black/40`), labeled icon buttons, and consistent action sizing.
+ */
 export default function BanTemplatesListItem({
     id,
     reason,
@@ -21,40 +26,40 @@ export default function BanTemplatesListItem({
 }: BanTemplatesListItemProps) {
     return (
         <>
-            <div className="grow items-center justify-items-start gap-2 sm:flex">
-                <span className="line-clamp-5 md:line-clamp-3">{reason}</span>
-                <div
+            <div className="flex min-w-0 grow flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                <span className="line-clamp-5 text-sm md:line-clamp-3">{reason}</span>
+                <span
                     className={cn(
-                        'my-1 w-max shrink-0 rounded border bg-black/40 px-2 py-0.5 text-sm uppercase select-none sm:my-0',
+                        'w-max shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wider uppercase select-none',
                         duration === 'permanent'
-                            ? 'border-destructive bg-destructive-hint text-destructive'
-                            : 'border-primary text-primary opacity-85',
+                            ? 'border-destructive/40 bg-destructive/10 text-destructive-inline'
+                            : 'border-primary/40 bg-primary/10 text-primary',
                     )}
                 >
                     {banDurationToString(duration)}
-                </div>
+                </span>
             </div>
-            <div className="flex gap-2">
-                <button
-                    className={cn(
-                        'text-muted-foreground',
-                        disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-primary hover:scale-110',
-                    )}
+            <div className="flex shrink-0 items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-primary size-8"
+                    aria-label={`Edit template: ${reason}`}
                     onClick={() => onEdit(id)}
                     disabled={disabled}
                 >
-                    <Settings2Icon className="size-6" />
-                </button>
-                <button
-                    className={cn(
-                        'text-muted-foreground',
-                        disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-destructive hover:scale-110',
-                    )}
+                    <PencilIcon className="size-4" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive size-8"
+                    aria-label={`Remove template: ${reason}`}
                     onClick={() => onRemove(id)}
                     disabled={disabled}
                 >
-                    <XIcon className="size-6" />
-                </button>
+                    <Trash2Icon className="size-4" />
+                </Button>
             </div>
         </>
     );

@@ -43,6 +43,16 @@ const baseDiagnostics = {
         addonRuntimeIssues: [],
         updatedAt: 250,
     },
+    nodeRuntime: {
+        hostExecPath: '/opt/cfx-server/ld-musl-x86_64.so.1',
+        resolved: true,
+        resolvedChildLabel: '/opt/cfx-server/citizen/scripting/v8/node20/bin/node',
+        resolvedViaMuslLoader: true,
+        candidateCount: 4,
+        candidateSample: ['/opt/cfx-server/citizen/scripting/v8/node20/bin/node'],
+        cfxRoot: '/opt/cfx-server',
+        suggestedBotNodePath: null,
+    },
 };
 
 const baseBotCommandAnalytics = {

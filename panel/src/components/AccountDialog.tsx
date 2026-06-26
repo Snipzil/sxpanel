@@ -13,9 +13,10 @@ import {
     ApiTotpDisableResp,
 } from '@shared/authApiTypes';
 import { useAccountModal, useCloseAccountModal } from '@/hooks/dialogs';
+import { useLocale } from '@/hooks/locale';
 import { GenericApiOkResp } from '@shared/genericApiTypes';
-import { ApiTimeout, fetchWithTimeout, useAuthedFetcher, useBackendApi } from '@/hooks/fetch';
-import consts from '@shared/consts';
+import { fetchWithTimeout, useAuthedFetcher, useBackendApi } from '@/hooks/fetch';
+import { PASSWORD_POLICY_DESCRIPTION, validateAdminPassword } from '@shared/passwordPolicy';
 import { txToast } from './TxToaster';
 import useSWR from 'swr';
 import TxAnchor from './TxAnchor';
@@ -64,35 +65,40 @@ function TwoFactorStatusStep({
     enabled,
     error,
     isProcessing,
+    canDisable,
     onStartSetup,
     onStartDisable,
 }: {
     enabled: boolean;
     error: string;
     isProcessing: boolean;
+    canDisable: boolean;
     onStartSetup: () => void;
     onStartDisable: () => void;
 }) {
+    const { t } = useLocale();
+
     return (
         <div>
-            <p className="text-muted-foreground text-sm">
-                Two-factor authentication adds an extra layer of security to your account by requiring a code from your
-                authenticator app when logging in.
-            </p>
+            <p className="text-muted-foreground text-sm">{t('panel.account.two_factor.status_description')}</p>
             <div className="mt-4 flex items-center justify-between rounded-md border p-3">
                 <div>
-                    <p className="text-sm font-medium">2FA Status</p>
+                    <p className="text-sm font-medium">{t('panel.account.two_factor.status_label')}</p>
                     <p className={`text-sm ${enabled ? 'text-success' : 'text-muted-foreground'}`}>
-                        {enabled ? 'Enabled' : 'Disabled'}
+                        {enabled ? t('panel.common.enabled') : t('panel.common.disabled')}
                     </p>
                 </div>
                 {enabled ? (
-                    <Button variant="destructive" size="sm" onClick={onStartDisable}>
-                        Disable 2FA
-                    </Button>
+                    canDisable ? (
+                        <Button variant="destructive" size="sm" onClick={onStartDisable}>
+                            {t('panel.account.two_factor.disable_btn')}
+                        </Button>
+                    ) : (
+                        <p className="text-muted-foreground text-xs">{t('panel.account.two_factor.required_policy')}</p>
+                    )
                 ) : (
                     <Button size="sm" onClick={onStartSetup} disabled={isProcessing}>
-                        {isProcessing ? 'Loading...' : 'Enable 2FA'}
+                        {isProcessing ? t('panel.common.loading') : t('panel.account.two_factor.enable_btn')}
                     </Button>
                 )}
             </div>
@@ -120,27 +126,32 @@ function TwoFactorSetupStep({
     onCancel: () => void;
     onConfirm: () => void;
 }) {
+    const { t } = useLocale();
+
     return (
         <div>
-            <p className="text-muted-foreground mb-3 text-sm">
-                Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.), then enter the
-                6-digit code to verify.
-            </p>
+            <p className="text-muted-foreground mb-3 text-sm">{t('panel.account.two_factor.setup_description')}</p>
             <div className="mb-3 flex justify-center">
                 {qrDataUrl ? (
-                    <img src={qrDataUrl} alt="TOTP QR Code" className="rounded-md border" width={200} height={200} />
+                    <img
+                        src={qrDataUrl}
+                        alt={t('panel.account.two_factor.qr_alt')}
+                        className="rounded-md border"
+                        width={200}
+                        height={200}
+                    />
                 ) : (
-                    <p className="text-muted-foreground text-sm">QR code unavailable. Enter the key manually below.</p>
+                    <p className="text-muted-foreground text-sm">{t('panel.account.two_factor.qr_unavailable')}</p>
                 )}
             </div>
             <div className="mb-3">
-                <p className="text-muted-foreground mb-1 text-xs">Can't scan? Enter this key manually:</p>
+                <p className="text-muted-foreground mb-1 text-xs">{t('panel.account.two_factor.manual_key')}</p>
                 <code className="bg-muted block rounded p-2 text-center font-mono text-xs break-all select-all">
                     {setupSecret}
                 </code>
             </div>
             <div className="space-y-2">
-                <Label htmlFor="totp-verify-code">Verification Code</Label>
+                <Label htmlFor="totp-verify-code">{t('panel.account.two_factor.verify_label')}</Label>
                 <Input
                     id="totp-verify-code"
                     type="text"
@@ -154,10 +165,12 @@ function TwoFactorSetupStep({
             {error && <p className="text-destructive mt-2 text-center text-sm">{error}</p>}
             <div className="mt-4 flex gap-2">
                 <Button variant="ghost" className="flex-1" onClick={onCancel}>
-                    Cancel
+                    {t('panel.common.cancel')}
                 </Button>
                 <Button className="flex-1" onClick={onConfirm} disabled={isProcessing}>
-                    {isProcessing ? 'Verifying...' : 'Verify & Enable'}
+                    {isProcessing
+                        ? t('panel.account.two_factor.verifying')
+                        : t('panel.account.two_factor.verify_enable')}
                 </Button>
             </div>
         </div>
@@ -173,11 +186,12 @@ function TwoFactorBackupStep({
     onCopy: () => void;
     onFinish: () => void;
 }) {
+    const { t } = useLocale();
+
     return (
         <div>
             <p className="text-warning-inline mb-3 text-sm font-medium">
-                Save these backup codes in a safe place. Each code can only be used once. You won't be able to see them
-                again.
+                {t('panel.account.two_factor.backup_warning')}
             </p>
             <div className="bg-muted mb-3 rounded-md p-3">
                 <div className="grid grid-cols-2 gap-1 font-mono text-sm">
@@ -190,10 +204,10 @@ function TwoFactorBackupStep({
             </div>
             <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={onCopy}>
-                    Copy Codes
+                    {t('panel.account.two_factor.copy_codes')}
                 </Button>
                 <Button className="flex-1" onClick={onFinish}>
-                    Finish setup
+                    {t('panel.account.two_factor.finish_setup')}
                 </Button>
             </div>
         </div>
@@ -219,24 +233,24 @@ function TwoFactorDisableStep({
     onCancel: () => void;
     onDisable: () => void;
 }) {
+    const { t } = useLocale();
+
     return (
         <div>
-            <p className="text-muted-foreground mb-3 text-sm">
-                To disable two-factor authentication, enter your current password and a 2FA code.
-            </p>
+            <p className="text-muted-foreground mb-3 text-sm">{t('panel.account.two_factor.disable_description')}</p>
             <div className="space-y-3 pb-4">
                 <div className="space-y-1">
-                    <Label htmlFor="disable-password">Password</Label>
+                    <Label htmlFor="disable-password">{t('panel.account.two_factor.password_label')}</Label>
                     <Input
                         id="disable-password"
                         type="password"
-                        placeholder="Enter your password"
+                        placeholder={t('panel.account.two_factor.password_placeholder')}
                         value={disablePassword}
                         onChange={(e) => onPasswordChange(e.target.value)}
                     />
                 </div>
                 <div className="space-y-1">
-                    <Label htmlFor="disable-code">2FA Code</Label>
+                    <Label htmlFor="disable-code">{t('panel.account.two_factor.code_label')}</Label>
                     <Input
                         id="disable-code"
                         type="text"
@@ -251,10 +265,10 @@ function TwoFactorDisableStep({
             {error && <p className="text-destructive -mt-2 mb-4 text-center text-sm">{error}</p>}
             <div className="flex gap-2">
                 <Button variant="ghost" className="flex-1" onClick={onCancel}>
-                    Cancel
+                    {t('panel.common.cancel')}
                 </Button>
                 <Button variant="destructive" className="flex-1" onClick={onDisable} disabled={isProcessing}>
-                    {isProcessing ? 'Disabling...' : 'Disable 2FA'}
+                    {isProcessing ? t('panel.account.two_factor.disabling') : t('panel.account.two_factor.disable_btn')}
                 </Button>
             </div>
         </div>
@@ -265,6 +279,7 @@ function TwoFactorDisableStep({
  * Change Password tab
  */
 const ChangePasswordTab = memo(function () {
+    const { t } = useLocale();
     const { authData, setAuthData } = useAuth();
     const { setAccountModalTab } = useAccountModal();
     const closeAccountModal = useCloseAccountModal();
@@ -284,13 +299,13 @@ const ChangePasswordTab = memo(function () {
         if (!authData) return;
         setError('');
 
-        if (newPassword.length < consts.adminPasswordMinLength || newPassword.length > consts.adminPasswordMaxLength) {
-            setError(
-                `The password must be between ${consts.adminPasswordMinLength} and ${consts.adminPasswordMaxLength} digits long.`,
-            );
+        const policyResult = validateAdminPassword(newPassword);
+        if (!policyResult.ok) {
+            setError(policyResult.error);
             return;
-        } else if (newPassword !== newPasswordConfirm) {
-            setError('The passwords do not match.');
+        }
+        if (newPassword !== newPasswordConfirm) {
+            setError(t('panel.account.password.mismatch'));
             return;
         }
 
@@ -318,7 +333,7 @@ const ChangePasswordTab = memo(function () {
                                 : prev,
                         );
                     } else {
-                        txToast.success('Password changed successfully!');
+                        txToast.success(t('panel.account.password.success'));
                         closeAccountModal();
                     }
                 } else {
@@ -334,23 +349,20 @@ const ChangePasswordTab = memo(function () {
             <form onSubmit={handleSubmit}>
                 {authData.isTempPassword ? (
                     <p className="text-warning-inline text-sm">
-                        Your account has a temporary password that needs to be changed before you can use this web
-                        panel. <br />
-                        <strong>Make sure to take note of your new password before saving.</strong>
+                        {t('panel.account.password.temp_warning')} <br />
+                        <strong>{t('panel.account.password.temp_note')}</strong>
                     </p>
                 ) : (
-                    <p className="text-muted-foreground text-sm">
-                        You can use your password to login to the fxPanel interface even without using the Cfx.re login
-                        button.
-                    </p>
+                    <p className="text-muted-foreground text-sm">{t('panel.account.password.description')}</p>
                 )}
+                <p className="text-muted-foreground pt-2 text-xs">{PASSWORD_POLICY_DESCRIPTION}</p>
                 <div className="space-y-3 pt-2 pb-6">
                     {!authData.isTempPassword && (
                         <div className="space-y-1">
-                            <Label htmlFor="current-password">Current Password</Label>
+                            <Label htmlFor="current-password">{t('panel.account.password.current_label')}</Label>
                             <Input
                                 id="current-password"
-                                placeholder="Enter current password"
+                                placeholder={t('panel.account.password.current_placeholder')}
                                 type="password"
                                 value={oldPassword}
                                 required
@@ -362,11 +374,11 @@ const ChangePasswordTab = memo(function () {
                         </div>
                     )}
                     <div className="space-y-1">
-                        <Label htmlFor="new-password">New Password</Label>
+                        <Label htmlFor="new-password">{t('panel.account.password.new_label')}</Label>
                         <Input
                             id="new-password"
                             autoComplete="new-password"
-                            placeholder="Enter new password"
+                            placeholder={t('panel.account.password.new_placeholder')}
                             type="password"
                             value={newPassword}
                             required
@@ -377,11 +389,11 @@ const ChangePasswordTab = memo(function () {
                         />
                     </div>
                     <div className="space-y-1">
-                        <Label htmlFor="confirm-password">Confirm Password</Label>
+                        <Label htmlFor="confirm-password">{t('panel.account.password.confirm_label')}</Label>
                         <Input
                             id="confirm-password"
                             autoComplete="new-password"
-                            placeholder="Repeat new password"
+                            placeholder={t('panel.account.password.confirm_placeholder')}
                             type="password"
                             required
                             onChange={(e) => {
@@ -394,7 +406,11 @@ const ChangePasswordTab = memo(function () {
 
                 {error && <p className="text-destructive -mt-2 mb-4 text-center">{error}</p>}
                 <Button className="w-full" type="submit" disabled={isSaving}>
-                    {isSaving ? 'Saving...' : authData.isTempPassword ? 'Save & Next' : 'Change Password'}
+                    {isSaving
+                        ? t('panel.common.saving')
+                        : authData.isTempPassword
+                          ? t('panel.account.password.save_next')
+                          : t('panel.account.password.change_btn')}
                 </Button>
             </form>
         </TabsContent>
@@ -405,6 +421,7 @@ const ChangePasswordTab = memo(function () {
  * Change Identifiers tab
  */
 function ChangeIdentifiersTab() {
+    const { t } = useLocale();
     const authedFetcher = useAuthedFetcher();
     const [state, dispatch] = useReducer(reduceChangeIdentifiersState, {
         cfxreId: '',
@@ -453,7 +470,7 @@ function ChangeIdentifiersTab() {
             },
             success: (data) => {
                 if ('success' in data) {
-                    txToast.success('Identifiers changed successfully!');
+                    txToast.success(t('panel.account.identifiers.success'));
                     closeAccountModal();
                 } else {
                     dispatch({ error: data.error, isSaving: false });
@@ -470,14 +487,16 @@ function ChangeIdentifiersTab() {
         } else if (!trimmed.startsWith('fivem:')) {
             try {
                 dispatch({ isConvertingFivemId: true });
-                const forumData = await fetchWithTimeout(`https://forum.cfx.re/u/${trimmed}.json`);
+                const forumData = await fetchWithTimeout<{ user?: { id?: number } }>(
+                    `https://forum.cfx.re/u/${trimmed}.json`,
+                );
                 if (forumData.user && typeof forumData.user.id === 'number') {
                     dispatch({ cfxreId: `fivem:${forumData.user.id}` });
                 } else {
-                    dispatch({ error: 'Could not find the user in the forum. Make sure you typed the username correctly.' });
+                    dispatch({ error: t('panel.account.identifiers.forum_not_found') });
                 }
             } catch {
-                dispatch({ error: 'Failed to check the identifiers on the forum API.' });
+                dispatch({ error: t('panel.account.identifiers.forum_api_failed') });
             } finally {
                 dispatch({ isConvertingFivemId: false });
             }
@@ -500,22 +519,26 @@ function ChangeIdentifiersTab() {
         <TabsContent value="identifiers" tabIndex={undefined}>
             <form onSubmit={handleSubmit}>
                 <p className="text-muted-foreground text-sm">
-                    The identifiers are optional for accessing the <strong>Web Panel</strong> but required for you to be
-                    able to use the <strong>In Game Menu</strong> and the <strong>Discord Bot</strong>. <br />
-                    <strong>It is recommended that you configure at least one.</strong>
+                    {t('panel.account.identifiers.description')} <br />
+                    <strong>{t('panel.account.identifiers.recommended')}</strong>
                 </p>
                 <div className="space-y-3 pt-2 pb-6">
                     <div className="space-y-1">
                         <Label htmlFor="cfxreId">
-                            FiveM identifier <span className="text-info text-sm opacity-75">(optional)</span>
+                            {t('panel.account.identifiers.fivem_label')}{' '}
+                            <span className="text-info text-sm opacity-75">({t('panel.common.optional')})</span>
                         </Label>
                         <Input
                             id="cfxreId"
                             autoCapitalize="none"
                             autoComplete="off"
                             autoCorrect="off"
-                            placeholder="fivem:000000"
-                            value={currIdsResp.isLoading || isConvertingFivemId ? 'loading...' : cfxreId}
+                            placeholder={t('panel.account.identifiers.fivem_placeholder')}
+                            value={
+                                currIdsResp.isLoading || isConvertingFivemId
+                                    ? t('panel.common.loading_ellipsis')
+                                    : cfxreId
+                            }
                             disabled={currIdsResp.isLoading || isConvertingFivemId}
                             onBlur={handleCfxreIdBlur}
                             onChange={(e) => {
@@ -523,26 +546,24 @@ function ChangeIdentifiersTab() {
                             }}
                         />
                         <p className="text-muted-foreground text-sm">
-                            Your identifier can be found by clicking in your name in the playerlist and going to the IDs
-                            page. <br />
-                            You can also type in your <TxAnchor href="https://forum.cfx.re/">
-                                forum.cfx.re
-                            </TxAnchor>{' '}
-                            username and it will be converted automatically. <br />
-                            This is required if you want to login using the Cfx.re button.
+                            {t('panel.account.identifiers.fivem_help')} <br />
+                            {t('panel.account.identifiers.fivem_forum')}{' '}
+                            <TxAnchor href="https://forum.cfx.re/">forum.cfx.re</TxAnchor>. <br />
+                            {t('panel.account.identifiers.fivem_required')}
                         </p>
                     </div>
                     <div className="space-y-1">
                         <Label htmlFor="discordId">
-                            Discord identifier <span className="text-info text-sm opacity-75">(optional)</span>
+                            {t('panel.account.identifiers.discord_label')}{' '}
+                            <span className="text-info text-sm opacity-75">({t('panel.common.optional')})</span>
                         </Label>
                         <Input
                             id="discordId"
                             autoCapitalize="none"
                             autoComplete="off"
                             autoCorrect="off"
-                            placeholder="discord:000000000000000000"
-                            value={currIdsResp.isLoading ? 'loading...' : discordId}
+                            placeholder={t('panel.account.identifiers.discord_placeholder')}
+                            value={currIdsResp.isLoading ? t('panel.common.loading_ellipsis') : discordId}
                             disabled={currIdsResp.isLoading}
                             onBlur={handleDiscordIdBlur}
                             onChange={(e) => {
@@ -550,19 +571,19 @@ function ChangeIdentifiersTab() {
                             }}
                         />
                         <p className="text-muted-foreground text-sm">
-                            You can get your Discord User ID by following{' '}
+                            {t('panel.account.identifiers.discord_help')}{' '}
                             <TxAnchor href="https://support.discordapp.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID">
                                 this guide
                             </TxAnchor>
                             . <br />
-                            This is required if you want to use the Discord Bot slash commands.
+                            {t('panel.account.identifiers.discord_required')}
                         </p>
                     </div>
                 </div>
 
                 {error && <p className="text-destructive -mt-2 mb-4 text-center">{error}</p>}
                 <Button className="w-full" type="submit" disabled={!currIdsResp || isSaving}>
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                    {isSaving ? t('panel.common.saving') : t('panel.account.identifiers.save_btn')}
                 </Button>
             </form>
         </TabsContent>
@@ -573,8 +594,8 @@ function ChangeIdentifiersTab() {
  * Two-Factor Authentication tab
  */
 function TwoFactorTab() {
+    const { t } = useLocale();
     const { authData, setAuthData } = useAuth();
-    const closeAccountModal = useCloseAccountModal();
 
     const [state, dispatch] = useReducer(reduceTwoFactorState, {
         step: 'status',
@@ -617,7 +638,7 @@ function TwoFactorTab() {
                 });
             }
         } catch {
-            dispatch({ error: 'Failed to start 2FA setup.' });
+            dispatch({ error: t('panel.account.two_factor.setup_failed') });
         } finally {
             dispatch({ isProcessing: false });
         }
@@ -645,7 +666,7 @@ function TwoFactorTab() {
                 );
             }
         } catch {
-            dispatch({ error: 'Failed to confirm 2FA setup.' });
+            dispatch({ error: t('panel.account.two_factor.confirm_failed') });
         } finally {
             dispatch({ isProcessing: false });
         }
@@ -676,10 +697,10 @@ function TwoFactorTab() {
                     disableCode: '',
                     error: '',
                 });
-                txToast.success('Two-factor authentication disabled.');
+                txToast.success(t('panel.account.two_factor.disabled_success'));
             }
         } catch {
-            dispatch({ error: 'Failed to disable 2FA.' });
+            dispatch({ error: t('panel.account.two_factor.disable_failed') });
         } finally {
             dispatch({ isProcessing: false });
         }
@@ -687,7 +708,7 @@ function TwoFactorTab() {
 
     const handleCopyBackupCodes = () => {
         navigator.clipboard.writeText(backupCodes.join('\n'));
-        txToast.success('Backup codes copied to clipboard.');
+        txToast.success(t('panel.account.two_factor.backup_copied'));
     };
 
     if (!authData) return null;
@@ -695,13 +716,21 @@ function TwoFactorTab() {
     return (
         <TabsContent value="security" tabIndex={undefined}>
             {step === 'status' && (
-                <TwoFactorStatusStep
-                    enabled={is2faEnabled}
-                    error={error}
-                    isProcessing={isProcessing}
-                    onStartSetup={handleStartSetup}
-                    onStartDisable={() => dispatch({ step: 'disable' })}
-                />
+                <>
+                    {window.txConsts.requireAdminTwoFactor && !is2faEnabled && (
+                        <p className="text-warning-inline mb-3 text-sm">
+                            {t('panel.account.two_factor.required_warning')}
+                        </p>
+                    )}
+                    <TwoFactorStatusStep
+                        enabled={is2faEnabled}
+                        error={error}
+                        isProcessing={isProcessing}
+                        canDisable={!window.txConsts.requireAdminTwoFactor}
+                        onStartSetup={handleStartSetup}
+                        onStartDisable={() => dispatch({ step: 'disable' })}
+                    />
+                </>
             )}
 
             {step === 'setup' && (
@@ -760,6 +789,7 @@ function TwoFactorTab() {
  * Account Dialog
  */
 export default function AccountDialog() {
+    const { t } = useLocale();
     const { authData } = useAuth();
     const { hasPerm } = useAdminPerms();
     const { isAccountModalOpen, setAccountModalOpen, accountModalTab, setAccountModalTab } = useAccountModal();
@@ -772,8 +802,13 @@ export default function AccountDialog() {
         }
     }, []);
 
+    const mustEnableTwoFactor = Boolean(authData && window.txConsts.requireAdminTwoFactor && !authData.totpEnabled);
+
     const dialogSetIsClose = (newState: boolean) => {
-        if (!newState && authData && !authData.isTempPassword) {
+        if (!newState && authData && (authData.isTempPassword || mustEnableTwoFactor)) {
+            return;
+        }
+        if (!newState && authData) {
             setAccountModalOpen(false);
             setTimeout(() => {
                 setAccountModalTab('password');
@@ -788,19 +823,23 @@ export default function AccountDialog() {
             <DialogContent className="sm:max-w-lg" tabIndex={undefined}>
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold">
-                        {authData.isTempPassword ? 'Welcome to fxPanel!' : `Your Account - ${authData.name}`}
+                        {authData.isTempPassword
+                            ? t('panel.account.welcome_title')
+                            : t('panel.account.your_account', { name: authData.name })}
                     </DialogTitle>
                 </DialogHeader>
                 <Tabs defaultValue="password" value={accountModalTab} onValueChange={setAccountModalTab}>
                     <TabsList className={`mb-4 grid w-full ${canEditIdentifiers ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                        <TabsTrigger value="password">Password</TabsTrigger>
+                        <TabsTrigger value="password">{t('panel.account.tabs.password')}</TabsTrigger>
                         {canEditIdentifiers && (
                             <TabsTrigger value="identifiers" disabled={authData.isTempPassword}>
-                                Identifiers
+                                {t('panel.account.tabs.identifiers')}
                             </TabsTrigger>
                         )}
                         <TabsTrigger value="security" disabled={authData.isTempPassword}>
-                            Security
+                            {mustEnableTwoFactor
+                                ? t('panel.account.tabs.security_required')
+                                : t('panel.account.tabs.security')}
                         </TabsTrigger>
                     </TabsList>
                     <ChangePasswordTab />

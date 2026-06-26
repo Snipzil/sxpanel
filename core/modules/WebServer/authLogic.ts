@@ -12,7 +12,7 @@ const console = consoleFactory(modulename);
 /**
  * Return type helper - null reason indicates nothing to print
  */
-type AuthLogicReturnType =
+export type AuthLogicReturnType =
     | {
           success: true;
           admin: AuthedAdmin;
@@ -75,27 +75,33 @@ export const resolveEffectiveAuthedAdmin = async (admin: StoredAdmin | AuthedAdm
         const { mappedRolePermissions, permissions } = resolveEffectiveAdminPermissions(baseAuthedAdmin, memberRoles);
 
         if (typeof txCore.adminStore.syncAdminDiscordRolePermissions === 'function') {
-            txCore.adminStore.syncAdminDiscordRolePermissions(
-                discordId,
-                mappedRolePermissions
-                    ? {
-                          permissions: mappedRolePermissions.permissions,
-                          presetIds: mappedRolePermissions.presetIds,
-                          roleIds: Array.isArray(memberRoles)
-                              ? memberRoles.filter((roleId): roleId is string => typeof roleId === 'string' && roleId.length > 0)
-                              : [],
-                      }
-                    : false,
-            ).catch((error: unknown) => {
-                console.verbose.debug(
-                    `Failed to persist Discord-linked permissions for '${storedEffectiveAdmin.name}': ${emsg(error)}`,
-                );
-            });
+            txCore.adminStore
+                .syncAdminDiscordRolePermissions(
+                    discordId,
+                    mappedRolePermissions
+                        ? {
+                              permissions: mappedRolePermissions.permissions,
+                              presetIds: mappedRolePermissions.presetIds,
+                              roleIds: Array.isArray(memberRoles)
+                                  ? memberRoles.filter(
+                                        (roleId): roleId is string => typeof roleId === 'string' && roleId.length > 0,
+                                    )
+                                  : [],
+                          }
+                        : false,
+                )
+                .catch((error: unknown) => {
+                    console.verbose.debug(
+                        `Failed to persist Discord-linked permissions for '${storedEffectiveAdmin.name}': ${emsg(error)}`,
+                    );
+                });
         }
 
         return applyPermissionOverrides(storedEffectiveAdmin, permissions);
     } catch (error) {
-        console.verbose.debug(`Failed to resolve Discord-linked permissions for '${storedEffectiveAdmin.name}': ${emsg(error)}`);
+        console.verbose.debug(
+            `Failed to resolve Discord-linked permissions for '${storedEffectiveAdmin.name}': ${emsg(error)}`,
+        );
         return storedEffectiveAdmin;
     }
 };
@@ -108,9 +114,18 @@ const validPassSessAuthSchema = z.object({
     username: z.string(),
     csrfToken: z.string(),
     expiresAt: z.literal(false),
-    password_hash: z.string(),
+    password_revision: z.number().int().nonnegative(),
 });
 export type PassSessAuthType = z.infer<typeof validPassSessAuthSchema>;
+
+/** @deprecated Pre-v0.3.1 sessions; still accepted until the cookie is rotated. */
+const validPassSessLegacySchema = z.object({
+    type: z.literal('password'),
+    username: z.string(),
+    csrfToken: z.string(),
+    expiresAt: z.literal(false),
+    password_hash: z.string(),
+});
 
 const validCfxreSessAuthSchema = z.object({
     type: z.literal('cfxre'),
@@ -134,12 +149,13 @@ export type DiscordSessAuthType = z.infer<typeof validDiscordSessAuthSchema>;
 const validPending2faSessSchema = z.object({
     type: z.literal('pending_2fa'),
     username: z.string(),
-    password_hash: z.string(),
+    password_revision: z.number().int().nonnegative(),
 });
 export type Pending2faSessAuthType = z.infer<typeof validPending2faSessSchema>;
 
-const validSessAuthSchema = z.discriminatedUnion('type', [
+const validSessAuthSchema = z.union([
     validPassSessAuthSchema,
+    validPassSessLegacySchema,
     validCfxreSessAuthSchema,
     validDiscordSessAuthSchema,
 ]);
@@ -152,7 +168,7 @@ export const checkRequestAuth = (
     reqIp: string,
     isLocalRequest: boolean,
     sessTools: SessToolsType,
-) => {
+): AuthLogicReturnType => {
     return typeof reqHeader['x-txadmin-token'] === 'string'
         ? nuiAuthLogic(reqIp, isLocalRequest, reqHeader)
         : normalAuthLogic(sessTools);
@@ -189,7 +205,11 @@ export const normalAuthLogic = (sessTools: SessToolsType): AuthLogicReturnType =
 
         // Checking for auth types
         if (sessAuth.type === 'password') {
-            if (storedAdmin.passwordHash !== sessAuth.password_hash) {
+            if ('password_revision' in sessAuth) {
+                if (storedAdmin.passwordRevision !== sessAuth.password_revision) {
+                    return failResp(`Password revision doesn't match for '${sessAuth.username}'.`);
+                }
+            } else if (storedAdmin.passwordHash !== sessAuth.password_hash) {
                 return failResp(`Password hash doesn't match for '${sessAuth.username}'.`);
             }
             return successResp(storedAdmin, sessAuth.csrfToken);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isEmbeddedInNuiMenu } from '@/lib/nuiEmbed';
 
 type ScaledViewportMode = 'default' | 'compact' | 'expanded';
 
@@ -6,7 +7,16 @@ const clampNumber = (value: number, min: number, max: number) => {
     return Math.min(max, Math.max(min, value));
 };
 
+/**
+ * Root font size tiers: preserve ~12px at 1080p/1920, scale up on QHD/4K viewports.
+ */
 const getResolutionFontSizePx = (width: number) => {
+    if (width >= 3840) {
+        return 20;
+    }
+    if (width >= 2560) {
+        return clampNumber(14 + (width - 2560) * 0.002, 14, 18);
+    }
     return clampNumber(8 + width * 0.0021, 12, 16);
 };
 
@@ -53,22 +63,30 @@ export const getViewportMetricsFromSnapshot = (snapshot: ViewportSnapshot) => {
     const hasScaledViewportMismatch = scaledViewportMode !== 'default';
     const hasZoomScaleMismatch =
         !usesMobileShell &&
-                zoomNeutralWidth >= 1280 &&
+        zoomNeutralWidth >= 1280 &&
         physicalViewportWidth >= Math.round(referenceWidth * 0.94) &&
-                Math.abs(snapshot.innerWidth / zoomNeutralWidth - 1) >= 0.08;
-    const effectiveWidth = usesMobileShell ? snapshot.visualViewportWidth : hasScaledViewportMismatch ? referenceWidth : snapshot.innerWidth;
+        Math.abs(snapshot.innerWidth / zoomNeutralWidth - 1) >= 0.08;
+    /** Actual CSS layout width — drives shell chrome and Tailwind-aligned breakpoints. */
+    const layoutWidth = usesMobileShell ? snapshot.visualViewportWidth : snapshot.innerWidth;
     const resolutionWidth = usesMobileShell
         ? snapshot.visualViewportWidth
         : hasZoomScaleMismatch || scaledViewportMode === 'expanded'
-                    ? zoomNeutralWidth || effectiveWidth
-                    : effectiveWidth;
-    const uiScale = usesMobileShell || !hasZoomScaleMismatch
-        ? 1
-                : clampNumber(snapshot.innerWidth / zoomNeutralWidth, 0.8, 1.25);
+          ? zoomNeutralWidth || layoutWidth
+          : referenceWidth;
+    const layoutToScreenRatio = zoomNeutralWidth > 0 ? layoutWidth / zoomNeutralWidth : 1;
+    const uiScale =
+        usesMobileShell || !hasZoomScaleMismatch
+            ? 1
+            : layoutToScreenRatio > 1
+              ? clampNumber(layoutToScreenRatio, 1, 5)
+              : clampNumber(layoutToScreenRatio, 0.8, 1);
     const baseFontSizePx = getResolutionFontSizePx(Math.max(resolutionWidth, 320));
 
     return {
-        effectiveWidth,
+        /** @deprecated Use layoutWidth for layout breakpoints. Kept for diagnostics. */
+        effectiveWidth: layoutWidth,
+        layoutWidth,
+        referenceWidth,
         hasScaledViewportMismatch,
         hasZoomScaleMismatch,
         scaledViewportMode,
@@ -82,6 +100,8 @@ const getViewportMetrics = () => {
     if (typeof window === 'undefined') {
         return {
             effectiveWidth: 0,
+            layoutWidth: 0,
+            referenceWidth: 0,
             hasScaledViewportMismatch: false,
             hasZoomScaleMismatch: false,
             scaledViewportMode: 'default' as const,
@@ -95,7 +115,7 @@ const getViewportMetrics = () => {
     const innerHeight = window.innerHeight || document.documentElement.clientHeight || 0;
     const hasCoarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
 
-    return getViewportMetricsFromSnapshot({
+    const snapshot: ViewportSnapshot = {
         innerWidth,
         visualViewportWidth: Math.round(window.visualViewport?.width || innerWidth),
         visualViewportHeight: Math.round(window.visualViewport?.height || innerHeight),
@@ -106,25 +126,50 @@ const getViewportMetrics = () => {
         screenHeight: window.screen?.height || 0,
         txIsMobile: window.txIsMobile,
         hasCoarsePointer,
-    });
+    };
+
+    // In the menu iframe, CEF still reports monitor dimensions via screen.*.
+    // Use only the iframe's inner size so breakpoints match a resized browser window.
+    if (isEmbeddedInNuiMenu()) {
+        return getViewportMetricsFromSnapshot({
+            ...snapshot,
+            outerWidth: innerWidth,
+            screenWidth: innerWidth,
+            screenAvailWidth: innerWidth,
+            screenHeight: innerHeight,
+            devicePixelRatio: 1,
+        });
+    }
+
+    return getViewportMetricsFromSnapshot(snapshot);
 };
 
 const getBreakpoints = () => {
-    const { effectiveWidth, hasScaledViewportMismatch, hasZoomScaleMismatch, scaledViewportMode, baseFontSizePx, uiScale, usesMobileShell } =
-        getViewportMetrics();
-
-    return {
-        effectiveWidth,
+    const {
+        layoutWidth,
+        referenceWidth,
         hasScaledViewportMismatch,
         hasZoomScaleMismatch,
         scaledViewportMode,
         baseFontSizePx,
         uiScale,
         usesMobileShell,
-        isSm: effectiveWidth >= 640,
-        isLg: !usesMobileShell && effectiveWidth >= 1024,
-        isXl: !usesMobileShell && effectiveWidth >= 1280,
-        is2xl: !usesMobileShell && effectiveWidth >= 1400,
+    } = getViewportMetrics();
+
+    return {
+        effectiveWidth: layoutWidth,
+        layoutWidth,
+        referenceWidth,
+        hasScaledViewportMismatch,
+        hasZoomScaleMismatch,
+        scaledViewportMode,
+        baseFontSizePx,
+        uiScale,
+        usesMobileShell,
+        isSm: layoutWidth >= 640,
+        isLg: !usesMobileShell && layoutWidth >= 1024,
+        isXl: !usesMobileShell && layoutWidth >= 1280,
+        is2xl: !usesMobileShell && layoutWidth >= 1400,
     };
 };
 
@@ -134,7 +179,7 @@ export const useShellBreakpoints = () => {
     useEffect(() => {
         const updateBreakpoints = () => setBreakpoints(getBreakpoints());
         const viewport = window.visualViewport;
-        const passiveListenerOptions = { passive: true } as const;
+        const passiveListenerOptions: AddEventListenerOptions = { passive: true };
 
         updateBreakpoints();
         window.addEventListener('resize', updateBreakpoints, passiveListenerOptions);

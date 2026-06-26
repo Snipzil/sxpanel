@@ -8,7 +8,7 @@ import { PlayerDropsLoadingSpinner } from './PlayerDropsGenericSubcards';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DrilldownChangesSubcard from './DrilldownChangesSubcard';
 import DrilldownOverviewSubcard from './DrilldownOverviewSubcard';
-import { DisplayLodType, DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
+import { DisplayLodType, DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/playerDropsTypes';
 import InlineCode from '@/components/InlineCode';
 import DrilldownResourcesSubcard from './DrilldownResourcesSubcard';
 import { Card, CardContent } from '@/components/ui/card';

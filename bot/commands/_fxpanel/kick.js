@@ -1,6 +1,12 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { request } = require('../../bridge/requests');
-const { getNoReplyPayloadError, getRequesterPayload, resolveBridgeReply, resolveSearchId, sendBridgeError } = require('./common');
+const {
+    getNoReplyPayloadError,
+    getRequesterPayload,
+    resolveBridgeReply,
+    resolveSearchId,
+    sendBridgeError,
+} = require('./common');
 const { addTargetSubcommands } = require('./moderationCommon');
 
 module.exports = {

@@ -157,9 +157,7 @@ export type ApiTicketDeleteResp = { success: true } | { error: string };
 
 // POST /reports/retention-exclusion
 export type ApiTicketRetentionExclusionReq = { id: string; excludeFromAutoDeletion: boolean };
-export type ApiTicketRetentionExclusionResp =
-    | { success: true; excludeFromAutoDeletion: boolean }
-    | { error: string };
+export type ApiTicketRetentionExclusionResp = { success: true; excludeFromAutoDeletion: boolean } | { error: string };
 
 // POST /reports/status
 export type ApiTicketStatusReq = { id: string; status: TicketStatus };

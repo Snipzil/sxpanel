@@ -124,3 +124,21 @@ export const getNumFontVariantsLoaded = (cssVar: string, label: string) => {
     console.groupEnd();
     return loadedCount;
 };
+
+export type TerminalLineWriter = {
+    writeln: (data: string) => void;
+};
+
+/**
+ * Writes a stdout/stderr chunk to an xterm instance, one line at a time.
+ * Shared by Live Console and System Log to avoid duplicated split/write logic.
+ */
+export function writePlainTerminalChunk(term: TerminalLineWriter, data: string) {
+    const lines = data.split(/\r?\n/);
+    if (lines.length && !lines[lines.length - 1]) {
+        lines.pop();
+    }
+    for (const line of lines) {
+        term.writeln(line);
+    }
+}

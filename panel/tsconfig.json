@@ -23,6 +23,7 @@
         /* From shadcn docs */
         "paths": {
             "@shared/*": ["../shared/*"],
+            "@locale/*": ["../locale/*"],
             "@/*": ["./src/*"]
         }
     },

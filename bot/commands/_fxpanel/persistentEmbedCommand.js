@@ -1,16 +1,7 @@
-const {
-    ChannelType,
-    SlashCommandBuilder,
-} = require('discord.js');
+const { ChannelType, SlashCommandBuilder } = require('discord.js');
 const { normalizeMessageEditPayload } = require('../../componentsV2');
 const { request } = require('../../bridge/requests');
-const {
-    buildReply,
-    getRequesterPayload,
-    resolveBridgeReply,
-    sendBridgeError,
-    translateBot,
-} = require('./common');
+const { buildReply, getRequesterPayload, resolveBridgeReply, sendBridgeError, translateBot } = require('./common');
 
 const deleteStoredEmbedMessage = async (source, client, channelId, messageId, embedLabel) => {
     const oldChannel = await client.channels.fetch(channelId).catch(() => null);
@@ -19,9 +10,7 @@ const deleteStoredEmbedMessage = async (source, client, channelId, messageId, em
     }
 
     if (oldChannel.type !== ChannelType.GuildText && oldChannel.type !== ChannelType.GuildAnnouncement) {
-        throw new Error(
-            translateBot(source, 'persistent_embed.stored_channel_not_supported', { embedLabel }),
-        );
+        throw new Error(translateBot(source, 'persistent_embed.stored_channel_not_supported', { embedLabel }));
     }
 
     await oldChannel.messages.delete(messageId);
@@ -116,11 +105,7 @@ const createPersistentEmbedCommand = ({
                     interaction.channel?.type !== ChannelType.GuildAnnouncement
                 ) {
                     await interaction.reply(
-                        buildReply(
-                            'danger',
-                            translateBot(interaction, 'common.channel_type_not_supported'),
-                            true,
-                        ),
+                        buildReply('danger', translateBot(interaction, 'common.channel_type_not_supported'), true),
                     );
                     return;
                 }
@@ -150,16 +135,11 @@ const createPersistentEmbedCommand = ({
                 });
                 if (await resolveBridgeReply(interaction, messageResponse)) return;
                 if (!messageResponse?.messagePayload) {
-                    throw new Error(
-                        translateBot(interaction, 'persistent_embed.no_bridge_payload', { embedLabel }),
-                    );
+                    throw new Error(translateBot(interaction, 'persistent_embed.no_bridge_payload', { embedLabel }));
                 }
 
                 const newMessage = await interaction.channel.send(
-                    buildReply(
-                        'warning',
-                        translateBot(interaction, 'persistent_embed.placeholder_message'),
-                    ),
+                    buildReply('warning', translateBot(interaction, 'persistent_embed.placeholder_message')),
                 );
                 await newMessage.edit(normalizeMessageEditPayload(messageResponse.messagePayload));
 

@@ -3,11 +3,34 @@ import { ServerPlayer } from '@lib/player/playerClasses.js';
 import { buildPlayerSessionId } from '@lib/player/playerSessionId.js';
 import { DatabaseActionWarnType, DatabasePlayerType } from '@modules/Database/databaseTypes';
 import consoleFactory from '@lib/console';
+import { queueSlotPresetAces } from '@lib/presetSlotDirective';
 import { now } from '@lib/misc';
-import { PlayerDroppedEventType, PlayerJoiningEventType } from '@shared/socketioTypes';
-import { computePlayerTags } from '@lib/player/playerTags';
+import { PlayerDroppedEventType, PlayerJoiningEventType, PlayerlistPlayerType } from '@shared/socketioTypes';
+import {
+    computePlayerTags,
+    getTagDefinitions,
+    hasDiscordManagedTagMappings,
+    refreshPlayerDiscordTags,
+} from '@lib/player/playerTags';
+import { emsg } from '@shared/emsg';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
+import {
+    getCachedHttpPlayers,
+    isHttpPlayerlistBypassEnabled,
+    isHttpPlayerlistPushMode,
+    clearHttpRuntimePlayerCache,
+    syncReportedPlayersToResource,
+} from '@lib/fxserver/httpHealthCheck';
+import { buildHttpPrimaryPlayerlist } from '@lib/fxserver/httpPlayerlist';
 const console = consoleFactory(modulename);
+
+export type ManualPlayerUpdateEntry = {
+    id: number;
+    name: string;
+    endpoint: string;
+    ping: number;
+    identifiers: string[];
+} & ReportedPlayerSnapshotInput;
 
 export type PlayerDropEvent = {
     type: 'txAdminPlayerlistEvent';
@@ -41,10 +64,37 @@ export default class FxPlayerlist {
     joinLeaveLogLimitTime = 30 * 60 * 1000; //30 mins, [ts+isJoin] * 100_000 = ~4.3mb
     #highestSeenNetid = 0;
     #rolloverCount = 0;
+    #manuallyAddedPlayerIds = new Set<number>();
+    #lastPlayerlistBroadcastJson: string | undefined;
+    readonly #playtimeTickTimer: ReturnType<typeof setInterval>;
+
+    constructor() {
+        this.#playtimeTickTimer = setInterval(() => this.#tickConnectedPlaytime(), 60_000);
+    }
+
+    /** Single global playtime tick — replaces per-player setInterval timers. */
+    #tickConnectedPlaytime() {
+        const connected = this.getConnectedPlayers();
+        if (!connected.length) return;
+
+        txCore.database.beginWriteBatch();
+        try {
+            for (const player of connected) {
+                if (player.isRegistered) {
+                    player.tickPlaytimeMinute();
+                }
+            }
+        } finally {
+            txCore.database.endWriteBatch();
+        }
+    }
 
     /**
-     * Number of online/connected players.
+     * Whether a netid belongs to a CFXBOT push-mode synthetic player.
      */
+    isManualPlayer(netid: number) {
+        return this.#manuallyAddedPlayerIds.has(netid);
+    }
     get onlineCount() {
         return this.#playerlist.filter((p) => p && p.isConnected).length;
     }
@@ -86,6 +136,9 @@ export default class FxPlayerlist {
         this.joinLeaveLog = [];
         this.#highestSeenNetid = 0;
         this.#rolloverCount = 0;
+        this.#manuallyAddedPlayerIds.clear();
+        this.#lastPlayerlistBroadcastJson = undefined;
+        clearHttpRuntimePlayerCache();
         txCore.webServer.webSocket!.buffer('playerlist', {
             mutex: oldMutex,
             type: 'fullPlayerlist',
@@ -112,12 +165,33 @@ export default class FxPlayerlist {
     }
 
     /**
+     * Returns all connected ServerPlayer instances.
+     */
+    getConnectedPlayers() {
+        return this.#playerlist.filter(
+            (player): player is ServerPlayer => player instanceof ServerPlayer && player.isConnected,
+        );
+    }
+
+    /**
+     * Returns connected players matching a Discord snowflake identifier.
+     */
+    getConnectedPlayersByDiscordId(discordId: string) {
+        const normalized = discordId.trim();
+        if (!normalized.length) return [] as ServerPlayer[];
+
+        return this.getConnectedPlayers().filter((player) =>
+            player.ids.some((identifier) => identifier === `discord:${normalized}`),
+        );
+    }
+
+    /**
      * Returns a playerlist array with ServerPlayer data of all connected players.
      * The data is cloned to prevent pollution.
      */
     getPlayerList() {
         const currentTs = now();
-        return this.#playerlist
+        const fd3Players = this.#playerlist
             .filter((p) => p?.isConnected)
             .map((p) => {
                 return {
@@ -131,6 +205,12 @@ export default class FxPlayerlist {
                     tags: computePlayerTags(p!),
                 };
             });
+
+        if (isHttpPlayerlistPushMode() || !isHttpPlayerlistBypassEnabled()) return fd3Players;
+
+        const httpPlayers = getCachedHttpPlayers();
+        if (!httpPlayers.length) return fd3Players;
+        return buildHttpPrimaryPlayerlist(fd3Players, httpPlayers);
     }
 
     /**
@@ -178,6 +258,167 @@ export default class FxPlayerlist {
         txCore.fxRunner.sendCommand('txaInitialData', [cmdData], SYM_SYSTEM_AUTHOR);
     }
 
+    /** Panel websocket payload — omits volatile playtime/session fields the sidebar does not render. */
+    #getWsPlayerlist(): PlayerlistPlayerType[] {
+        return this.getPlayerList().map(({ netid, displayName, pureName, ids, license, tags }) => ({
+            netid,
+            displayName,
+            pureName,
+            ids,
+            license,
+            tags,
+        }));
+    }
+
+    /** Push current playerlist + tag definitions to the panel websocket. */
+    broadcastPlayerlistState() {
+        const payload = {
+            mutex: txCore.fxRunner.child?.mutex ?? null,
+            type: 'fullPlayerlist' as const,
+            playerlist: this.#getWsPlayerlist(),
+            tagDefinitions: getTagDefinitions(),
+        };
+        const serialized = JSON.stringify(payload);
+        if (serialized === this.#lastPlayerlistBroadcastJson) return;
+        this.#lastPlayerlistBroadcastJson = serialized;
+        txCore.webServer.webSocket?.buffer('playerlist', payload);
+    }
+
+    /** Recompute and push tags for every connected player (e.g. after tag config changes). */
+    resyncAllPlayerTags() {
+        for (const player of this.getConnectedPlayers()) {
+            this.dispatchInitialPlayerData(player.netid);
+        }
+        this.broadcastPlayerlistState();
+    }
+
+    /**
+     * Refreshes discord-managed tags from the Discord API when configured,
+     * then recomputes and pushes tags for every connected player.
+     */
+    async resyncAllPlayerTagsAfterConfigChange() {
+        if (hasDiscordManagedTagMappings()) {
+            for (const player of this.getConnectedPlayers()) {
+                if (!player.isRegistered) continue;
+                await refreshPlayerDiscordTags(player);
+            }
+        }
+        this.resyncAllPlayerTags();
+    }
+
+    /** Re-sync discord-managed tags for connected players, then refresh playerlist state. */
+    async resyncDiscordManagedPlayerTags() {
+        if (!hasDiscordManagedTagMappings()) {
+            this.resyncAllPlayerTags();
+            return;
+        }
+
+        for (const player of this.getConnectedPlayers()) {
+            if (!player.isRegistered) continue;
+            const changed = await refreshPlayerDiscordTags(player);
+            if (changed) {
+                this.dispatchInitialPlayerData(player.netid);
+            }
+        }
+        this.broadcastPlayerlistState();
+    }
+
+    /** Push recomputed tags to the FXServer resource + panel websocket after tag edits. */
+    syncPlayerTags(netid: number) {
+        const player = this.#playerlist[netid];
+        if (!(player instanceof ServerPlayer) || !player.isConnected) return;
+
+        this.dispatchInitialPlayerData(netid);
+        this.broadcastPlayerlistState();
+    }
+
+    /**
+     * CFXBOT push-mode: replace the synthetic player roster from POST /dev/addPlayers.
+     * Real FD3 players are untouched; only #manuallyAddedPlayerIds slots are replaced.
+     */
+    handleManualPlayerUpdate(players: ManualPlayerUpdateEntry[]) {
+        const mutex = txCore.fxRunner.child?.mutex ?? 'manual-update';
+        const currTs = Date.now();
+        const resourcePlayers = players.map((player) => ({
+            id: player.id,
+            name: player.name,
+            health: player.health,
+            x: player.x,
+            y: player.y,
+            vType: player.vType,
+        }));
+
+        syncReportedPlayersToResource(resourcePlayers);
+
+        for (const playerId of this.#manuallyAddedPlayerIds) {
+            const player = this.#playerlist[playerId];
+            if (!(player instanceof ServerPlayer) || !player.isConnected) continue;
+
+            try {
+                player.disconnect();
+                this.joinLeaveLog.push([currTs, false]);
+                txCore.webServer.webSocket.buffer<PlayerDroppedEventType>('playerlist', {
+                    mutex,
+                    type: 'playerDropped',
+                    netid: player.netid,
+                });
+                if (player.license) {
+                    this.licenseCache.push([player.psid, player.license]);
+                }
+                this.#playerlist[playerId] = undefined;
+            } catch (error) {
+                console.verbose.warn(`Error dropping manual player ${playerId}: ${emsg(error)}`);
+            }
+        }
+
+        this.licenseCache = this.licenseCache.slice(-this.licenseCacheLimit);
+        this.#manuallyAddedPlayerIds.clear();
+
+        for (const playerData of players) {
+            try {
+                if (this.#playerlist[playerData.id] !== undefined) {
+                    console.verbose.warn(
+                        `Skipping manual player ${playerData.id}: slot already occupied by a real player`,
+                    );
+                    continue;
+                }
+
+                const playerPayload = {
+                    name: playerData.name,
+                    ids: playerData.identifiers,
+                    hwids: [] as string[],
+                };
+                const svPlayer = new ServerPlayer(playerData.id, playerPayload, this, mutex, this.#rolloverCount);
+                this.#playerlist[playerData.id] = svPlayer;
+                this.#manuallyAddedPlayerIds.add(playerData.id);
+                this.joinLeaveLog.push([currTs, true]);
+                txCore.webServer.webSocket.buffer<PlayerJoiningEventType>('playerlist', {
+                    mutex,
+                    type: 'playerJoining',
+                    netid: svPlayer.netid,
+                    displayName: svPlayer.displayName,
+                    pureName: svPlayer.pureName,
+                    ids: svPlayer.ids,
+                    license: svPlayer.license,
+                    tags: computePlayerTags(svPlayer),
+                });
+            } catch (error) {
+                console.verbose.warn(`Error adding manual player ${playerData.id}: ${emsg(error)}`);
+            }
+        }
+
+        this.broadcastPlayerlistState();
+        txCore.webServer.webSocket.pushRefresh('status');
+    }
+
+    /**
+     * Drops all push-mode synthetic players (e.g. when switching back to HTTP poll mode).
+     */
+    clearManualPlayers() {
+        if (!this.#manuallyAddedPlayerIds.size) return;
+        this.handleManualPlayerUpdate([]);
+    }
+
     /**
      * Handler for all txAdminPlayerlistEvent structured trace events
      * TODO: use zod for type safety
@@ -199,6 +440,8 @@ export default class FxPlayerlist {
 
                 const svPlayer = new ServerPlayer(payload.id, payload.player, this, mutex, this.#rolloverCount);
                 this.#playerlist[payload.id] = svPlayer;
+                queueSlotPresetAces(payload.id, svPlayer.ids);
+                this.dispatchInitialPlayerData(payload.id);
                 this.joinLeaveLog.push([currTs, true]);
                 txCore.logger.server.write(
                     [
@@ -227,6 +470,15 @@ export default class FxPlayerlist {
                     license: svPlayer.license,
                     ids: svPlayer.ids,
                 });
+                if (hasDiscordManagedTagMappings() && svPlayer.isRegistered) {
+                    refreshPlayerDiscordTags(svPlayer)
+                        .then((changed) => {
+                            if (changed) {
+                                this.syncPlayerTags(svPlayer.netid);
+                            }
+                        })
+                        .catch(() => {});
+                }
             } catch (error) {
                 console.verbose.warn(`playerJoining event error: ${emsg(error)}`);
             }

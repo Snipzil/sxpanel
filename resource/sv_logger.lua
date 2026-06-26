@@ -263,6 +263,8 @@ local function getMenuCommandMeta(action, data)
         return 'players.troll.wild_attack', 'players.troll'
     elseif action == 'showPlayerIDs' then
         return 'menu.viewids', 'menu.viewids'
+    elseif action == 'showMapBlips' then
+        return 'menu.mapblips', 'menu.mapblips'
     end
 
     return action, false
@@ -362,6 +364,15 @@ AddEventHandler('txsv:logger:menuEvent', function(source, action, allowed, data)
             message = 'turned show player IDs on'
         else
             message = 'turned show player IDs off'
+        end
+    elseif action == 'showMapBlips' then
+        if type(data) ~= 'boolean' then
+            return
+        end
+        if data then
+            message = 'turned map blips on'
+        else
+            message = 'turned map blips off'
         end
 
     --In case of unknown event

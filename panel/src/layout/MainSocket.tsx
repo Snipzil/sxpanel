@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { getSocket, destroySocket } from '@/lib/utils';
+import { destroySocket, getSocket } from '@/lib/socketClient';
 import { useExpireAuthData, useSetAuthData } from '@/hooks/auth';
+import { useOpenAccountModal } from '@/hooks/dialogs';
 import { useSetGlobalStatus } from '@/hooks/status';
 import { useProcessUpdateAvailableEvent, useSetOfflineWarning } from '@/hooks/useWarningBar';
 import { useProcessPlayerlistEvents } from '@/hooks/playerlist';
 import { useSetBanTemplates } from '@/hooks/banTemplates';
 import { useAuthedFetcher } from '@/hooks/fetch';
-import { LogoutReasonHash } from '@/pages/auth/Login';
-import { createMockGlobalStatus, createMockPlayerlistEvents } from '@/pages/Dashboard/devMockData';
+import { LogoutReasonHash } from '@/lib/logoutReasonHash';
 import type { GlobalStatusType } from '@shared/socketioTypes';
 import { isDevMockStatusOptInEnabled, DEV_MOCK_STATUS_STORAGE_KEY } from '@/lib/devFlags';
 
@@ -18,6 +18,7 @@ import { isDevMockStatusOptInEnabled, DEV_MOCK_STATUS_STORAGE_KEY } from '@/lib/
 export default function MainSocket() {
     const expireSession = useExpireAuthData();
     const setAuthData = useSetAuthData();
+    const openAccountModal = useOpenAccountModal();
     const socketStateChangeCounter = useRef(0);
     const setIsSocketOffline = useSetOfflineWarning();
     const setGlobalStatus = useSetGlobalStatus();
@@ -48,7 +49,7 @@ export default function MainSocket() {
     // Mount-only socket setup: handlers/setters are stable singletons (Jotai
     // setters, refs, module-level helpers) and the socket itself is a singleton.
     // Re-running this effect would tear down and re-register all listeners.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     // react-doctor-disable-next-line react-doctor/no-cascading-set-state
     useEffect(() => {
         //SocketIO - singleton, rooms passed via query on first connect
@@ -56,6 +57,7 @@ export default function MainSocket() {
         const isDevMockMode = import.meta.env.DEV && isDevMockStatusOptInEnabled();
         let latestLiveStatus: GlobalStatusType | null = null;
         let devMockInterval: ReturnType<typeof setInterval> | undefined;
+        let devMockCancelled = false;
 
         if (isDevMockMode) {
             // Visible signal so developers know createMockGlobalStatus and
@@ -72,12 +74,21 @@ export default function MainSocket() {
             );
         }
 
-        const pushDevMockState = () => {
-            const now = Date.now();
-            applyGlobalStatus(createMockGlobalStatus(now, latestLiveStatus));
-            if (window.txConsts.isWebInterface) {
-                applyPlayerlistEvents(createMockPlayerlistEvents(now));
-            }
+        const startDevMockLoop = async () => {
+            const { createMockGlobalStatus, createMockPlayerlistEvents } =
+                await import('@/pages/Dashboard/devMockData');
+            if (devMockCancelled) return;
+
+            const pushDevMockState = () => {
+                const now = Date.now();
+                applyGlobalStatus(createMockGlobalStatus(now, latestLiveStatus));
+                if (window.txConsts.isWebInterface) {
+                    applyPlayerlistEvents(createMockPlayerlistEvents(now));
+                }
+            };
+
+            pushDevMockState();
+            devMockInterval = setInterval(pushDevMockState, 4_000);
         };
         const connectHandler = () => {
             console.log('Main Socket.IO Connected.');
@@ -102,6 +113,14 @@ export default function MainSocket() {
             console.log('Main Socket.IO', reason ?? 'unknown');
         };
         const logoutHandler = (reason?: string) => {
+            if (reason === 'temp_password_change_required') {
+                openAccountModal('password');
+                return;
+            }
+            if (reason === 'two_factor_required') {
+                openAccountModal('security');
+                return;
+            }
             expireSession('main socketio', reason);
         };
         const refreshHandler = () => {
@@ -147,11 +166,11 @@ export default function MainSocket() {
         socket.on('banTemplatesUpdate', banTemplatesHandler);
 
         if (isDevMockMode) {
-            pushDevMockState();
-            devMockInterval = setInterval(pushDevMockState, 4_000);
+            void startDevMockLoop();
         }
 
         return () => {
+            devMockCancelled = true;
             socket.off('connect', connectHandler);
             socket.off('disconnect', disconnectHandler);
             socket.off('error', errorHandler);

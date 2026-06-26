@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SwitchText from '@/components/SwitchText';
 import { AdvancedDivider, SettingItem, SettingItemDesc } from '../settingsItems';
-import { useState, useEffect, useRef, useMemo, useReducer } from 'react';
+import { useState, useEffect, useRef, useMemo, useReducer, type Dispatch, type SetStateAction } from 'react';
 import {
     getConfigEmptyState,
     getConfigAccessors,
@@ -24,24 +24,18 @@ import InlineCode from '@/components/InlineCode';
 
 type ItemWithStateProps = {
     value: number | undefined;
-    setValue: (value: number | undefined) => void;
+    setValue: Dispatch<SetStateAction<number | undefined>>;
     disabled?: boolean;
 };
 
 function ItemWithState({ value, setValue, disabled }: ItemWithStateProps) {
     return (
         <div className="flex min-h-18 items-center gap-2 rounded-lg border px-2 py-3 font-mono">
-            <Button
-                onClick={() => setValue((prev) => (prev !== undefined ? prev - 1 : prev))}
-                disabled={disabled}
-            >
+            <Button onClick={() => setValue((prev) => (prev !== undefined ? prev - 1 : prev))} disabled={disabled}>
                 \/
             </Button>
             <Button disabled>{value}</Button>
-            <Button
-                onClick={() => setValue((prev) => (prev !== undefined ? prev + 1 : prev))}
-                disabled={disabled}
-            >
+            <Button onClick={() => setValue((prev) => (prev !== undefined ? prev + 1 : prev))} disabled={disabled}>
                 /\
             </Button>
         </div>

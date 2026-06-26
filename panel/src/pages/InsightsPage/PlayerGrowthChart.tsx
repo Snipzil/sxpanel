@@ -1,15 +1,15 @@
 import { memo } from 'react';
-import { ResponsiveLine, type Serie, type SliceTooltipProps } from '@nivo/line';
+import { ResponsiveLine, type SliceTooltipProps } from '@nivo/line';
 import { useIsDarkMode } from '@/hooks/theme';
 import type { InsightsPlayerGrowthPoint } from '@shared/insightsApiTypes';
 
-function ChartTooltip({ slice }: SliceTooltipProps) {
+function ChartTooltip({ slice }: SliceTooltipProps<any>) {
     const point = slice.points[0];
     if (!point) return null;
     return (
         <div className="bg-card text-card-foreground border-border rounded-md border p-2 text-sm shadow-md">
             <div className="font-medium">{point.data.x as string}</div>
-            <div style={{ color: point.serieColor }}>
+            <div style={{ color: point.seriesColor }}>
                 Total players: <strong>{point.data.yFormatted}</strong>
             </div>
         </div>
@@ -31,7 +31,7 @@ function PlayerGrowthChart({ data }: Props) {
         );
     }
 
-    const series: Serie[] = [
+    const series = [
         {
             id: 'Players',
             data: data.map((d) => ({ x: d.day, y: d.cumulative })),

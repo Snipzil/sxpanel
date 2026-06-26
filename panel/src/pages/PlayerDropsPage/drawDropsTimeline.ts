@@ -7,7 +7,7 @@ import { msToShortDuration } from '@/lib/dateTime';
 import { playerDropCategories } from '@/lib/playerDropCategories';
 import { PlayerDropsCategoryCount } from './chartingUtils';
 import { TimelineDropsChartData } from '@/pages/PlayerDropsPage/TimelineDropsChart';
-import { DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/PlayerDropsPage';
+import { DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/playerDropsTypes';
 
 //Helpers
 const translate = (x: number, y: number) => `translate(${x}, ${y})`;

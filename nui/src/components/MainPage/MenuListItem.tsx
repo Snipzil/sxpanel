@@ -28,43 +28,35 @@ const classes = {
     overrideText: `${PREFIX}-overrideText`,
 };
 
-const selectedItemSx = {
-    border: '1px solid transparent',
-    '&.Mui-selected, &.Mui-selected:hover': {
-        backgroundColor: 'rgba(244, 5, 82, 0.14)',
-        backgroundImage: 'linear-gradient(90deg, rgba(244, 5, 82, 0.14), rgba(244, 5, 82, 0.03))',
-        borderColor: 'rgba(244, 5, 82, 0.34)',
-        boxShadow: 'inset 2px 0 0 rgba(244, 5, 82, 0.9)',
-    },
-    '&.Mui-selected .MuiListItemIcon-root, &.Mui-selected .MuiListItemSecondaryAction-root, &.Mui-selected .MuiTypography-root':
-        {
-            color: '#f1f1e4',
-        },
-} as const;
-
 const Root = styled('div')(({ theme }) => ({
-    [`& .${classes.root}`]: {
-        borderRadius: 10,
-        border: '1px solid transparent',
-        transition: 'background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease',
+    //Rows are individual raised panels (surface/border/selection styling comes
+    //from the MuiListItemButton theme override); this adds the row spacing.
+    marginBottom: 3,
+    '&:last-of-type': {
+        marginBottom: 0,
     },
 
     [`& .${classes.rootDisabled}`]: {
-        borderRadius: 10,
         opacity: 0.35,
     },
 
     [`& .${classes.icon}`]: {
         color: theme.palette.text.secondary,
+        transition: 'color 120ms ease',
     },
 
-    [`& .${classes.root}.Mui-selected .${classes.icon}`]: {
+    [`& .Mui-selected .${classes.icon}`]: {
         color: theme.palette.primary.main,
+    },
+
+    [`& .Mui-selected .MuiListItemSecondaryAction-root, & .Mui-selected .MuiTypography-root`]: {
+        color: theme.tokens.textPrimary,
     },
 
     [`& .${classes.overrideText}`]: {
         color: theme.palette.text.primary,
-        fontSize: 16,
+        fontSize: 13,
+        lineHeight: 1.3,
     },
 }));
 
@@ -72,7 +64,7 @@ export interface MenuListItemProps {
     title: string;
     label: string;
     requiredPermission?: ResolvablePermission;
-    icon: JSX.Element;
+    icon: React.ReactElement;
     selected: boolean;
     onSelect: () => void;
 }
@@ -132,7 +124,6 @@ export const MenuListItem: React.FC<MenuListItemProps> = memo(
                     className={isUserAllowed ? classes.root : classes.rootDisabled}
                     dense
                     selected={selected}
-                    sx={selectedItemSx}
                 >
                     <ListItemIcon className={classes.icon}>{icon}</ListItemIcon>
                     <ListItemText
@@ -148,10 +139,10 @@ export const MenuListItem: React.FC<MenuListItemProps> = memo(
 );
 
 interface MenuListItemMultiAction {
-    name?: string | JSX.Element;
+    name?: string | React.ReactElement;
     label: string;
     value: string | number | boolean;
-    icon?: JSX.Element;
+    icon?: React.ReactElement;
     requiredPermission?: ResolvablePermission;
     onSelect: () => void;
 }
@@ -161,7 +152,7 @@ export interface MenuListItemMultiProps {
     requiredPermission?: ResolvablePermission;
     initialValue?: MenuListItemMultiAction;
     selected: boolean;
-    icon: JSX.Element;
+    icon: React.ReactElement;
     actions: MenuListItemMultiAction[];
 }
 
@@ -273,7 +264,6 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
                     className={isRowAllowed ? classes.root : classes.rootDisabled}
                     dense
                     selected={selected}
-                    sx={selectedItemSx}
                 >
                     <ListItemIcon className={classes.icon}>{actions[curState]?.icon ?? icon}</ListItemIcon>
                     <ListItemText
@@ -284,6 +274,7 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
                                     component="span"
                                     color={selected ? 'text.primary' : 'text.secondary'}
                                     sx={{
+                                        fontSize: 13,
                                         fontWeight: selected ? 600 : 400,
                                         opacity: isCurrentActionAllowed ? 1 : 0.4,
                                     }}

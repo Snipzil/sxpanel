@@ -11,28 +11,45 @@ import { useVehicleActions } from './actions/useVehicleActions';
 import { useHealActions } from './actions/useHealActions';
 import { useMiscActions } from './actions/useMiscActions';
 
-const fadeHeight = 20;
-const listHeight = 402;
+const fadeHeight = 16;
+const listHeight = 300;
 
-const BoxFadeTop = styled(Box)(({ theme }) => ({
-    backgroundImage: `linear-gradient(to top, transparent, ${theme.palette.background.default})`,
+const ListWrapper = styled(Box)({
     position: 'relative',
-    bottom: listHeight + fadeHeight - 4,
+    maxHeight: listHeight,
+    overflow: 'hidden',
+});
+
+const FadeTop = styled(Box)(({ theme }) => ({
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     height: fadeHeight,
+    pointerEvents: 'none',
+    zIndex: 2,
+    backgroundImage: `linear-gradient(to bottom, ${theme.palette.background.default}, transparent)`,
 }));
 
-const BoxFadeBottom = styled(Box)(({ theme }) => ({
-    backgroundImage: `linear-gradient(to bottom, transparent, ${theme.palette.background.default})`,
-    position: 'relative',
+const FadeBottom = styled(Box)(({ theme }) => ({
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: fadeHeight,
-    bottom: fadeHeight * 2,
+    pointerEvents: 'none',
+    zIndex: 2,
+    backgroundImage: `linear-gradient(to top, ${theme.palette.background.default}, transparent)`,
 }));
 
 const BoxIcon = styled(Box)(({ theme }) => ({
     color: theme.palette.text.secondary,
-    marginTop: -(fadeHeight * 2),
+    marginTop: 0,
     display: 'flex',
     justifyContent: 'center',
+    '& svg': {
+        fontSize: 18,
+    },
 }));
 
 const StyledList = styled(List)({
@@ -67,13 +84,13 @@ export const MainPageList: React.FC = () => {
         const next = curSelected + 1;
         fetchNui('playSound', 'move').catch();
         setCurSelected(next >= menuListItems.length ? 0 : next);
-    }, [curSelected]);
+    }, [curSelected, menuListItems.length]);
 
     const handleArrowUp = useCallback(() => {
         const next = curSelected - 1;
         fetchNui('playSound', 'move').catch();
         setCurSelected(next < 0 ? menuListItems.length - 1 : next);
-    }, [curSelected]);
+    }, [curSelected, menuListItems.length]);
 
     useKeyboardNavigation({
         onDownDown: handleArrowDown,
@@ -81,36 +98,29 @@ export const MainPageList: React.FC = () => {
         disableOnFocused: true,
     });
 
+    const showTopFade = curSelected > 1;
+    const showBottomFade = curSelected < menuListItems.length - 2;
+
     return (
-        // add pb={2} if we don't have that arrow at the bottom
         <Box sx={{ pointerEvents: 'none' }}>
-            <StyledList>
-                {menuListItems.map((item, index) =>
-                    'isMultiAction' in item && item.isMultiAction ? (
-                        // @ts-ignore
-                        <MenuListItemMulti key={index} selected={curSelected === index} {...item} />
-                    ) : (
-                        // @ts-ignore
-                        <MenuListItem key={index} selected={curSelected === index} {...item} />
-                    ),
-                )}
-            </StyledList>
-            <BoxFadeTop style={{ opacity: curSelected <= 1 ? 0 : 1 }} />
-            <BoxFadeBottom style={{ opacity: curSelected >= 6 ? 0 : 1 }} />
+            <ListWrapper>
+                <StyledList sx={{ pointerEvents: 'auto' }}>
+                    {menuListItems.map((item, index) =>
+                        'isMultiAction' in item && item.isMultiAction ? (
+                            // @ts-ignore
+                            <MenuListItemMulti key={index} selected={curSelected === index} {...item} />
+                        ) : (
+                            // @ts-ignore
+                            <MenuListItem key={index} selected={curSelected === index} {...item} />
+                        ),
+                    )}
+                </StyledList>
+                <FadeTop style={{ opacity: showTopFade ? 1 : 0 }} />
+                <FadeBottom style={{ opacity: showBottomFade ? 1 : 0 }} />
+            </ListWrapper>
             <BoxIcon display="flex" justifyContent="center">
                 <ExpandMore />
             </BoxIcon>
-            {/* <Typography
-        color="textSecondary"
-        style={{
-          fontWeight: 500,
-          marginTop: -20,
-          textAlign: "left",
-          fontSize: 12,
-        }}
-      >
-        v{serverCtx.fxPanelVersion}
-      </Typography>  */}
         </Box>
     );
 };

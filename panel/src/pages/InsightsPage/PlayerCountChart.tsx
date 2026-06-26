@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ResponsiveLine, type Serie, type SliceTooltipProps } from '@nivo/line';
+import { ResponsiveLine, type SliceTooltipProps } from '@nivo/line';
 import { useIsDarkMode } from '@/hooks/theme';
 import type { InsightsPlayerCountPoint } from '@shared/insightsApiTypes';
 import { dateToLocaleTimeString, dateToLocaleDateString, isDateToday } from '@/lib/dateTime';
@@ -15,13 +15,13 @@ const formatMemory = (mb: number) => {
     return `${Math.round(mb)} MB`;
 };
 
-function ChartTooltip({ slice }: SliceTooltipProps) {
+function ChartTooltip({ slice }: SliceTooltipProps<any>) {
     if (!slice.points.length) return null;
     const ts = slice.points[0]?.data.x as number;
     return (
         <div className="bg-card text-card-foreground border-border rounded-md border p-2 text-sm shadow-md">
             <div className="font-medium">{formatTs(ts)}</div>
-            {slice.points.map((point) => (
+            {slice.points.map((point: any) => (
                 <div key={point.id} style={{ color: point.serieColor }}>
                     {point.serieId}:{' '}
                     <strong>
@@ -61,14 +61,14 @@ function PlayerCountChart({ series }: Props) {
         );
     }
 
-    const playerData: Serie = {
+    const playerData = {
         id: 'Players',
         data: series.map((p) => ({ x: p.ts, y: p.players })),
     };
     const memoryPoints = series.filter(
         (p): p is InsightsPlayerCountPoint & { fxsMemory: number } => p.fxsMemory !== null,
     );
-    const memoryData: Serie | null = memoryPoints.length
+    const memoryData: typeof playerData | null = memoryPoints.length
         ? {
               id: 'FXS Memory',
               data: memoryPoints.map((p) => ({ x: p.ts, y: p.fxsMemory })),

@@ -65,7 +65,9 @@ const getReportFailureReason = (error: unknown) => {
             ? `HTTP ${statusCode}${typeof statusMessage === 'string' && statusMessage ? ` ${statusMessage}` : ''}`
             : undefined;
 
-    return [statusLabel, fallbackReason].filter((value, index, array) => value && array.indexOf(value) === index).join(' - ');
+    return [statusLabel, fallbackReason]
+        .filter((value, index, array) => value && array.indexOf(value) === index)
+        .join(' - ');
 };
 type ServerLogType = {
     ts: number;
@@ -103,7 +105,10 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     ]);
 
     const diagnostics: Record<string, unknown> = {
-        host: hostResult.status === 'fulfilled' ? hostResult.value : getDiagnosticsSectionError('host diagnostics', hostResult.reason),
+        host:
+            hostResult.status === 'fulfilled'
+                ? hostResult.value
+                : getDiagnosticsSectionError('host diagnostics', hostResult.reason),
         txadmin:
             txadminResult.status === 'fulfilled'
                 ? txadminResult.value
@@ -214,7 +219,9 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
             arch: process.arch,
             uptimeSeconds: Math.round(process.uptime()),
             execArgv: redactStartupSecrets(process.execArgv).map((arg) => maskIps(arg)),
-            versions: Object.fromEntries(Object.entries(process.versions).sort(([left], [right]) => left.localeCompare(right))),
+            versions: Object.fromEntries(
+                Object.entries(process.versions).sort(([left], [right]) => left.localeCompare(right)),
+            ),
             resourceUsage: process.resourceUsage(),
         },
         host: {
@@ -278,7 +285,9 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     // Making HTTP request — URL is fixed (no user-controlled SSRF surface here).
     try {
         type ResponseType = { reportId: string } | { error: string; message?: string };
-        const apiResp = (await got.post('https://fxapi.fxpanel.org/api/diagnostics', requestOptions).json()) as ResponseType;
+        const apiResp = (await got
+            .post('https://fxapi.fxpanel.org/api/diagnostics', requestOptions)
+            .json()) as ResponseType;
         if ('reportId' in apiResp) {
             reportIdCache.set(apiResp.reportId);
             console.warn(`Diagnostics data report ID ${apiResp.reportId} sent by ${ctx.admin.name}`);

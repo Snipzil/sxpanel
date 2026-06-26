@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SettingItem, SettingItemDesc } from '../settingsItems';
-import { useState, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useEffect, useMemo, useReducer, useRef } from 'react';
 import {
     getConfigEmptyState,
     getConfigAccessors,
@@ -15,24 +15,24 @@ import SettingsCardShell from '../SettingsCardShell';
 import { PlusIcon, TrashIcon } from 'lucide-react';
 import { AUTO_TAG_DEFINITIONS } from '@shared/socketioTypes';
 import { Switch } from '@/components/ui/switch';
+import { useLocale } from '@/hooks/locale';
+import { DiscordRoleMultiSelect } from '@/components/DiscordRoleMultiSelect';
+import { isValidDiscordSnowflake } from '@/lib/discordRoleIds';
+import { txToast } from '@/components/TxToaster';
 
 type CustomTagEntry = {
     id: string;
     label: string;
+    prefix?: string;
     color: string;
     priority: number;
     enabled?: boolean;
+    discordRoleIds?: string[];
 };
 
 const autoTagDefinitionsById = new Map(AUTO_TAG_DEFINITIONS.map((definition) => [definition.id, definition] as const));
 
 const AUTO_TAG_IDS = new Set(AUTO_TAG_DEFINITIONS.map((t) => t.id));
-
-const AUTO_TAG_DESCRIPTIONS: Record<string, string> = {
-    staff: 'Shown on anyone who has an fxPanel admin account.',
-    problematic: 'Shown on anyone with an active (non-revoked) ban or warning.',
-    newplayer: 'Shown on anyone with less than the threshold minutes of total playtime.',
-};
 
 export const pageConfigs = {
     newplayerThreshold: getPageConfig('gameFeatures', 'newplayerThreshold', undefined, 240),
@@ -49,7 +49,11 @@ const buildMergedTags = (stored: CustomTagEntry[]): CustomTagEntry[] => {
     const merged: CustomTagEntry[] = [];
     for (const auto of AUTO_TAG_DEFINITIONS) {
         const storedOverride = storedMap.get(auto.id);
-        merged.push(storedOverride ?? { ...auto, enabled: true });
+        merged.push(
+            storedOverride
+                ? { ...auto, ...storedOverride, enabled: storedOverride.enabled ?? true }
+                : { ...auto, enabled: true },
+        );
         storedMap.delete(auto.id);
     }
     for (const custom of storedMap.values()) {
@@ -71,18 +75,32 @@ const extractStoredTags = (merged: CustomTagEntry[]): CustomTagEntry[] => {
                 tag.color !== autoDef.color ||
                 tag.priority !== autoDef.priority ||
                 tag.label !== autoDef.label ||
+                tag.prefix !== autoDef.prefix ||
                 tag.enabled === false;
             if (isChanged) {
                 result.push(tag);
             }
         } else {
-            result.push(tag);
+            const entry: CustomTagEntry = {
+                id: tag.id,
+                label: tag.label,
+                color: tag.color,
+                priority: tag.priority,
+            };
+            if (tag.prefix !== undefined && tag.prefix !== '') {
+                entry.prefix = tag.prefix;
+            }
+            if (tag.discordRoleIds?.length) {
+                entry.discordRoleIds = tag.discordRoleIds;
+            }
+            result.push(entry);
         }
     }
     return result;
 };
 
 export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsCardProps) {
+    const { t } = useLocale();
     const [states, dispatch] = useReducer(configsReducer<typeof pageConfigs>, null, () =>
         getConfigEmptyState(pageConfigs),
     );
@@ -91,6 +109,12 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
     }, [pageCtx.apiData, dispatch]);
 
     const thresholdRef = useRef<HTMLInputElement | null>(null);
+
+    const autoTagDescriptions: Record<string, string> = {
+        staff: t('panel.settings.player_tags.auto_tag_staff'),
+        problematic: t('panel.settings.player_tags.auto_tag_problematic'),
+        newplayer: t('panel.settings.player_tags.auto_tag_newplayer'),
+    };
 
     // Merged view: auto-tags + custom tags
     const mergedTags = useMemo(() => buildMergedTags(states.customTags ?? []), [states.customTags]);
@@ -114,26 +138,71 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
         return res;
     };
 
-    //Validate changes (for UX only) and trigger the save API
+    const validateTags = (tags: CustomTagEntry[]): boolean => {
+        const seenIds = new Set<string>();
+        for (const tag of tags) {
+            if (!AUTO_TAG_IDS.has(tag.id)) {
+                if (!tag.id.trim()) {
+                    txToast.error(t('panel.settings.player_tags.toast_missing_id'));
+                    return false;
+                }
+                if (!tag.label.trim()) {
+                    txToast.error(t('panel.settings.player_tags.toast_missing_label', { tagId: tag.id }));
+                    return false;
+                }
+            }
+            if (tag.id && seenIds.has(tag.id)) {
+                txToast.error(t('panel.settings.player_tags.toast_duplicate_id', { tagId: tag.id }));
+                return false;
+            }
+            if (tag.id) {
+                seenIds.add(tag.id);
+            }
+            if (tag.discordRoleIds?.length) {
+                const invalidRoleId = tag.discordRoleIds.find((roleId) => !isValidDiscordSnowflake(roleId));
+                if (invalidRoleId) {
+                    txToast.error(t('panel.settings.player_tags.toast_invalid_role_id', { roleId: invalidRoleId }));
+                    return false;
+                }
+            }
+        }
+        return true;
+    };
+
+    //Validate changes and trigger the save API
     const handleOnSave = () => {
         const { hasChanges, localConfigs } = updatePageState();
         if (!hasChanges) return;
-        pageCtx.saveChanges(cardCtx, localConfigs);
+
+        const storedTags = extractStoredTags(mergedTags);
+        if (!validateTags(mergedTags)) return;
+
+        pageCtx.saveChanges(cardCtx, {
+            ...localConfigs,
+            gameFeatures: {
+                ...(localConfigs.gameFeatures ?? {}),
+                customTags: storedTags,
+            },
+        });
     };
 
     // Update a tag in the merged view and sync back to stored config
-    const updateMergedTag = (index: number, field: keyof CustomTagEntry, value: string | number | boolean) => {
+    const updateMergedTag = (
+        index: number,
+        field: keyof CustomTagEntry,
+        value: string | number | boolean | string[],
+    ) => {
         const updated = [...mergedTags];
         updated[index] = { ...updated[index], [field]: value };
         cfg.customTags.state.set(extractStoredTags(updated));
     };
 
     const addTag = () => {
-        const customCount = mergedTags.filter((t) => !AUTO_TAG_IDS.has(t.id)).length;
+        const customCount = mergedTags.filter((tag) => !AUTO_TAG_IDS.has(tag.id)).length;
         if (customCount >= 20) return;
-        const allPriorities = mergedTags.map((t) => t.priority);
+        const allPriorities = mergedTags.map((tag) => tag.priority);
         const nextPriority = Math.min(Math.max(...allPriorities, 0) + 10, 999);
-        const updated = [...mergedTags, { id: '', label: '', color: '#3B82F6', priority: nextPriority }];
+        const updated = [...mergedTags, { id: '', label: '', prefix: '', color: '#3B82F6', priority: nextPriority }];
         cfg.customTags.state.set(extractStoredTags(updated));
     };
 
@@ -142,11 +211,12 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
         cfg.customTags.state.set(extractStoredTags(updated));
     };
 
-    const customCount = mergedTags.filter((t) => !AUTO_TAG_IDS.has(t.id)).length;
+    const customCount = mergedTags.filter((tag) => !AUTO_TAG_IDS.has(tag.id)).length;
+    const discordBotEnabled = pageCtx.apiData?.storedConfigs.discordBot?.enabled ?? false;
 
     return (
         <SettingsCardShell cardCtx={cardCtx} pageCtx={pageCtx} onClickSave={handleOnSave}>
-            <SettingItem label="New Player Threshold" htmlFor={cfg.newplayerThreshold.eid}>
+            <SettingItem label={t('panel.settings.player_tags.threshold_label')} htmlFor={cfg.newplayerThreshold.eid}>
                 <Input
                     id={cfg.newplayerThreshold.eid}
                     ref={thresholdRef}
@@ -157,13 +227,10 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                     disabled={pageCtx.isReadOnly}
                     placeholder="240"
                 />
-                <SettingItemDesc>
-                    Players with less than this many minutes of total playtime will receive the{' '}
-                    <strong>Newcomer</strong> tag. Set to <strong>0</strong> to disable.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.player_tags.threshold_desc')}</SettingItemDesc>
             </SettingItem>
 
-            <SettingItem label="Tags">
+            <SettingItem label={t('panel.settings.player_tags.tags_label')}>
                 <div className="space-y-3">
                     {mergedTags.map((tag, i) => {
                         const isAutoTag = AUTO_TAG_IDS.has(tag.id);
@@ -177,7 +244,7 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                             >
                                 <div className="w-32 space-y-1">
                                     <label className="text-muted-foreground text-xs" htmlFor={`${tagKey}-id`}>
-                                        ID
+                                        {t('panel.settings.player_tags.field_id')}
                                     </label>
                                     <Input
                                         id={`${tagKey}-id`}
@@ -196,7 +263,7 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                                 </div>
                                 <div className="w-32 space-y-1">
                                     <label className="text-muted-foreground text-xs" htmlFor={`${tagKey}-label`}>
-                                        Label
+                                        {t('panel.settings.player_tags.field_label')}
                                     </label>
                                     <Input
                                         id={`${tagKey}-label`}
@@ -207,9 +274,22 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                                         maxLength={24}
                                     />
                                 </div>
+                                <div className="w-24 space-y-1">
+                                    <label className="text-muted-foreground text-xs" htmlFor={`${tagKey}-prefix`}>
+                                        {t('panel.settings.player_tags.field_prefix')}
+                                    </label>
+                                    <Input
+                                        id={`${tagKey}-prefix`}
+                                        value={tag.prefix ?? ''}
+                                        onChange={(e) => updateMergedTag(i, 'prefix', e.target.value)}
+                                        placeholder="[S] "
+                                        disabled={pageCtx.isReadOnly}
+                                        maxLength={16}
+                                    />
+                                </div>
                                 <div className="w-20 space-y-1">
                                     <label className="text-muted-foreground text-xs" htmlFor={`${tagKey}-color`}>
-                                        Color
+                                        {t('panel.settings.player_tags.field_color')}
                                     </label>
                                     <div className="flex items-center gap-1">
                                         <input
@@ -225,7 +305,7 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                                 </div>
                                 <div className="w-20 space-y-1">
                                     <label className="text-muted-foreground text-xs" htmlFor={`${tagKey}-priority`}>
-                                        Priority
+                                        {t('panel.settings.player_tags.field_priority')}
                                     </label>
                                     <Input
                                         id={`${tagKey}-priority`}
@@ -247,7 +327,9 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                                             disabled={pageCtx.isReadOnly}
                                         />
                                         <span className="text-muted-foreground text-xs">
-                                            {tag.enabled !== false ? 'Enabled' : 'Disabled'}
+                                            {tag.enabled !== false
+                                                ? t('panel.settings.switch.enabled')
+                                                : t('panel.settings.switch.disabled')}
                                         </span>
                                     </div>
                                 ) : (
@@ -261,10 +343,29 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                                         <TrashIcon className="size-4" />
                                     </Button>
                                 )}
-                                {isAutoTag && AUTO_TAG_DESCRIPTIONS[tag.id] && (
+                                {isAutoTag && autoTagDescriptions[tag.id] && (
                                     <p className="text-muted-foreground w-full text-xs">
-                                        {AUTO_TAG_DESCRIPTIONS[tag.id]}
+                                        {autoTagDescriptions[tag.id]}
                                     </p>
+                                )}
+                                {!isAutoTag && (
+                                    <div className="w-full space-y-1">
+                                        <label
+                                            className="text-muted-foreground text-xs"
+                                            htmlFor={`${tagKey}-discord-roles`}
+                                        >
+                                            {t('panel.settings.player_tags.discord_roles_label')}
+                                        </label>
+                                        <DiscordRoleMultiSelect
+                                            id={`${tagKey}-discord-roles`}
+                                            value={tag.discordRoleIds ?? []}
+                                            onChange={(roleIds) => updateMergedTag(i, 'discordRoleIds', roleIds)}
+                                            disabled={pageCtx.isReadOnly || !discordBotEnabled}
+                                        />
+                                        <SettingItemDesc>
+                                            {t('panel.settings.player_tags.discord_roles_desc')}
+                                        </SettingItemDesc>
+                                    </div>
                                 )}
                             </div>
                         );
@@ -276,17 +377,10 @@ export default function ConfigCardGamePlayerTags({ cardCtx, pageCtx }: SettingsC
                         disabled={pageCtx.isReadOnly || customCount >= 20}
                     >
                         <PlusIcon className="mr-1 size-4" />
-                        Add Tag
+                        {t('panel.settings.player_tags.add_tag')}
                     </Button>
                 </div>
-                <SettingItemDesc>
-                    Built-in tags (Staff, Problematic, Newcomer) can be enabled/disabled and customized (label, color,
-                    priority) but cannot be deleted. Define up to 20 additional custom tags for identifying players
-                    (e.g. Streamer, VIP). Tags are assigned via resource exports:{' '}
-                    <strong>exports.txadmin:addPlayerTag(serverId, tagId)</strong> and{' '}
-                    <strong>exports.txadmin:removePlayerTag(serverId, tagId)</strong>. Lower priority number = higher
-                    importance (1 is highest priority, 100 is lowest).
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.player_tags.tags_desc')}</SettingItemDesc>
             </SettingItem>
         </SettingsCardShell>
     );

@@ -146,6 +146,12 @@ export default class PlayerDropMetrics {
         const { gameName, gameBuild, fxsVersion, resources } = validation.data;
         let shouldSave = false;
 
+        if (gameName === 'gta5') {
+            txCore.cacheStore.set('fxsRuntime:gameName', 'fivem');
+        } else if (gameName === 'rdr3') {
+            txCore.cacheStore.set('fxsRuntime:gameName', 'redm');
+        }
+
         //Game version change
         const gameString = `${gameName}:${gameBuild}`;
         if (gameString) {

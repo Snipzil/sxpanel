@@ -1,6 +1,6 @@
 {
     "name": "fxpanel",
-    "version": "0.2.2",
+    "version": "0.4.0-Beta",
     "description": "fxPanel - A Replacement for txAdmin built on its source code.",
     "module": "./core/index.js",
     "type": "module",
@@ -21,7 +21,7 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "license:list": "node scripts/list-licenses.js",
-        "license:distfile": "generate-license-file --ci --no-spinner --input package.json --output monitor/THIRD-PARTY-LICENSES.txt",
+        "license:distfile": "generate-license-file --ci --no-spinner --overwrite --config generate-license-file.config.json --input package.json --output monitor/THIRD-PARTY-LICENSES.txt",
         "openapi:generate": "npx tsx scripts/generate-openapi.ts"
     },
     "repository": {
@@ -45,6 +45,9 @@
         "semver": "^7.7.4",
         "vite": "8.0.10"
     },
+    "overrides": {
+        "dompurify": "3.4.9"
+    },
     "devDependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@commitlint/cli": "^20.5.2",
@@ -56,7 +59,7 @@
         "@typescript-eslint/eslint-plugin": "^8.59.0",
         "@typescript-eslint/parser": "^8.59.0",
         "chokidar": "^5.0.0",
-        "esbuild": "^0.28.0",
+        "esbuild": "^0.28.1",
         "eslint": "^10.2.1",
         "eslint-config-prettier": "^10.1.8",
         "generate-license-file": "^4.1.1",

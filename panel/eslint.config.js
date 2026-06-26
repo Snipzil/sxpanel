@@ -22,7 +22,17 @@ export default [
         },
         rules: {
             ...tseslint.configs.recommended.rules,
-            ...reactHooks.configs.recommended.rules,
+            // Classic hooks rules only. react-hooks v7 "recommended" adds React Compiler rules
+            // that flag widespread pre-existing patterns; enable those when adopting the compiler.
+            'react-hooks/rules-of-hooks': 'error',
+            'react-hooks/exhaustive-deps': 'warn',
+            'react-hooks/set-state-in-effect': 'off',
+            'react-hooks/refs': 'off',
+            'react-hooks/immutability': 'off',
+            'react-hooks/purity': 'off',
+            'react-hooks/preserve-manual-memoization': 'off',
+            'react-hooks/static-components': 'off',
+            'react-hooks/incompatible-library': 'off',
             'no-unused-vars': ['warn', { args: 'none' }],
             '@typescript-eslint/no-unused-vars': 'off',
             '@typescript-eslint/no-explicit-any': 'off',

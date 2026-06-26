@@ -429,7 +429,7 @@ RegisterNetEvent('txcl:seatInVehicle', function(vehNetID, seat, oldVehVelocity)
         attemptsCounter = attemptsCounter + 1
     end
     if not NetworkDoesEntityExistWithNetworkId(vehNetID) then
-        return SendSnackbarMessage('error', 'Failed to seat into vehicle (net=' .. vehNetID .. ')', false)
+        return SendSnackbarMessage('error', 'nui_menu.page_main.vehicle.seat_failed', true, { netId = vehNetID })
     end
 
     local veh = NetToVeh(vehNetID)

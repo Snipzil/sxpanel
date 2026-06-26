@@ -1,7 +1,12 @@
-import { txToast, validToastTypes } from '@/components/TxToaster';
+import { txToast } from '@/components/TxToaster';
+import { validToastTypes } from '@/components/toastTypes';
 import { useCsrfToken, useExpireAuthData } from '@/hooks/auth';
+import { useOpenAccountModal } from '@/hooks/dialogs';
+import { useLocale } from '@/hooks/locale';
+import { translateApiError } from '@/lib/translateApiError';
+import { ApiTimeout } from '@/lib/fetchWithTimeout';
+import type { ApiAccessDeniedResp, GenericApiErrorResp } from '@shared/genericApiTypes';
 import { useCallback, useEffect, useRef } from 'react';
-
 const WEBPIPE_PATH = 'https://monitor/WebPipe';
 const headeruserAgent = `txAdminPanel/v${window.txConsts.txaVersion} (atop FXServer/b${window.txConsts.fxsVersion})`;
 const defaultHeaders = {
@@ -20,12 +25,7 @@ const replacePathParam = (path: string, key: string, value: string | number) => 
     return `${path.slice(0, segmentIndex)}/${value}${suffix}`;
 };
 
-export enum ApiTimeout {
-    DEFAULT = 7_500,
-    LONG = 15_000,
-    REALLY_LONG = 30_000,
-    REALLY_REALLY_LONG = 45_000,
-}
+export { ApiTimeout, fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 export class BackendApiError extends Error {
     title: string;
@@ -43,12 +43,14 @@ export class BackendApiError extends Error {
  */
 type FetcherOpts = {
     method?: 'GET' | 'POST' | 'DELETE';
+    headers?: HeadersInit;
     body?: any;
 };
 
 export const useAuthedFetcher = () => {
     const csrfToken = useCsrfToken();
     const expireSess = useExpireAuthData();
+    const openAccountModal = useOpenAccountModal();
 
     return useCallback(
         async <Resp = any>(fetchUrl: string, fetchOpts: FetcherOpts = {}, abortController?: AbortController) => {
@@ -64,6 +66,7 @@ export const useAuthedFetcher = () => {
             fetchOpts.method ??= 'GET';
             const resp = await fetch(fetchUrl, {
                 method: fetchOpts.method,
+                credentials: 'include',
                 headers: {
                     ...defaultHeaders,
                     'User-Agent': headeruserAgent,
@@ -77,31 +80,23 @@ export const useAuthedFetcher = () => {
                 expireSess('useAuthedFetcher', data?.reason ?? 'unknown');
                 throw new Error('Session expired');
             }
+            if (data?.accessDenied) {
+                const denied = data as ApiAccessDeniedResp;
+                const tab = denied.reason === 'two_factor_required' ? 'security' : 'password';
+                openAccountModal(tab);
+                // Temp-password / 2FA gates already show the account modal (MainShell + tab copy).
+                // Skip per-request toasts or every parallel mount call stacks the same warning.
+                const isAccountSetupGate =
+                    denied.reason === 'temp_password_change_required' || denied.reason === 'two_factor_required';
+                if (!isAccountSetupGate) {
+                    txToast.warning(denied.error);
+                }
+                throw new Error(denied.error);
+            }
             return data as Resp;
         },
-        [csrfToken, expireSess],
+        [csrfToken, expireSess, openAccountModal],
     );
-};
-
-/**
- * Simple unauthed fetch with timeout
- */
-type SimpleFetchOpts<Req = any> = FetcherOpts & {
-    body?: Req;
-    timeout?: number;
-};
-
-export const fetchWithTimeout = async <Resp = any, Req = any>(url: string, fetchOpts: SimpleFetchOpts<Req> = {}) => {
-    const method = fetchOpts.method ?? 'GET';
-    const body = method === 'POST' && fetchOpts.body ? JSON.stringify(fetchOpts.body) : undefined;
-    const response = await fetch(url, {
-        headers: defaultHeaders,
-        signal: AbortSignal.timeout(fetchOpts.timeout ?? ApiTimeout.DEFAULT),
-        ...fetchOpts,
-        method,
-        body,
-    });
-    return (await response.json()) as Resp;
 };
 
 /**
@@ -140,6 +135,7 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
     const abortController = useRef<AbortController | undefined>(undefined);
     const currentToastId = useRef<string | undefined>(undefined);
     const authedFetcher = useAuthedFetcher();
+    const { t } = useLocale();
     hookOpts.abortOnUnmount ??= false;
     useEffect(() => {
         return () => {
@@ -229,16 +225,18 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
 
             //If generic error
             if (hookOpts.throwGenericErrors && 'error' in data) {
-                throw new BackendApiError('API Error', data.error);
+                const apiError = data as GenericApiErrorResp;
+                throw new BackendApiError('API Error', translateApiError(t, apiError.errorCode, apiError.error));
             }
 
             //Auto handler for GenericApiErrorResp & GenericApiOkResp if genericHandler is set
             if (opts.genericHandler && currentToastId.current) {
                 if ('error' in data) {
+                    const apiError = data as GenericApiErrorResp;
                     txToast.error(
                         {
                             title: opts.genericHandler.errorTitle,
-                            msg: data.error,
+                            msg: translateApiError(t, apiError.errorCode, apiError.error),
                         },
                         { id: currentToastId.current },
                     );

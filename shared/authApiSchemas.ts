@@ -1,5 +1,17 @@
 import { z } from 'zod';
 import consts from './consts';
+import { validateAdminPassword } from './passwordPolicy';
+
+const adminPasswordSchema = z
+    .string()
+    .min(consts.adminPasswordMinLength)
+    .max(consts.adminPasswordMaxLength)
+    .superRefine((password, ctx) => {
+        const result = validateAdminPassword(password);
+        if (!result.ok) {
+            ctx.addIssue({ code: 'custom', message: result.error });
+        }
+    });
 
 // Login
 export const verifyPasswordBodySchema = z.object({
@@ -21,7 +33,7 @@ export const addMasterCallbackBodySchema = z.object({
 export type ApiAddMasterCallbackReqSchema = z.infer<typeof addMasterCallbackBodySchema>;
 
 export const addMasterSaveBodySchema = z.object({
-    password: z.string().min(consts.adminPasswordMinLength).max(consts.adminPasswordMaxLength),
+    password: adminPasswordSchema,
     discordId: z.string().optional(),
 });
 export type ApiAddMasterSaveReqSchema = z.infer<typeof addMasterSaveBodySchema>;
@@ -29,7 +41,7 @@ export type ApiAddMasterSaveReqSchema = z.infer<typeof addMasterSaveBodySchema>;
 // Password & identifier changes
 export const changePasswordBodySchema = z.object({
     oldPassword: z.string().optional(),
-    newPassword: z.string().min(consts.adminPasswordMinLength).max(consts.adminPasswordMaxLength),
+    newPassword: adminPasswordSchema,
 });
 export type ApiChangePasswordReqSchema = z.infer<typeof changePasswordBodySchema>;
 

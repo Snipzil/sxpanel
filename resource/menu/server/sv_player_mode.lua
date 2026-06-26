@@ -25,6 +25,7 @@ RegisterNetEvent('txsv:req:changePlayerMode', function(mode, nearbyPlayers)
     local allow = PlayerHasTxPermission(src, permMap[mode] or 'players.noclip')
     TriggerEvent('txsv:logger:menuEvent', src, 'playerModeChanged', allow, mode)
     if allow then
+        Player(src).state:set('txAdminPlayerMode', mode, true)
         TriggerClientEvent('txcl:setPlayerMode', src, mode, IS_PTFX_ENABLED)
 
         if IS_PTFX_ENABLED then

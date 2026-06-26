@@ -1,9 +1,6 @@
 import { suite, it, expect } from 'vitest';
 import { discordMessageFlagIsComponentsV2 } from './componentsV2';
-import {
-    buildServerMenuDiscordPayload,
-    buildSystemLogDiscordPayload,
-} from './logRouting';
+import { buildServerMenuDiscordPayload, buildSystemLogDiscordPayload } from './logRouting';
 import { normalizeDiscordLogRoutes } from '@shared/discordLogRoutes';
 
 suite('normalizeDiscordLogRoutes', () => {

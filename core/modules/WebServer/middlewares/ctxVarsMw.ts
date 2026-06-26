@@ -5,6 +5,7 @@ const console = consoleFactory(modulename);
 import { Next } from 'koa';
 import { CtxWithSession } from '../ctxTypes';
 import { isIpAddressLocal } from '@lib/host/isIpAddressLocal';
+import { cachePanelPublicUrlFromCtx } from '@lib/panelPublicUrl';
 
 //The custom tx-related vars set to the ctx
 export type CtxTxVars = {
@@ -53,6 +54,7 @@ const ctxVarsMw = (ctx: CtxWithSession, next: Next) => {
 
     //Injecting vars and continuing
     ctx.txVars = txVars;
+    cachePanelPublicUrlFromCtx(ctx);
     return next();
 };
 

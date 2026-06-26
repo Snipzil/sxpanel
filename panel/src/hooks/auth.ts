@@ -5,7 +5,6 @@ import { accountModalOpenAtom, confirmDialogOpenAtom, promptDialogOpenAtom } fro
 import { isGlobalMenuSheetOpenAtom, isPlayerlistSheetOpenAtom } from './sheets';
 import { playerModalOpenAtom } from './playerModal';
 import { globalStatusAtom } from './status';
-import { txToast } from '@/components/TxToaster';
 import { actionModalOpenAtom } from './actionModal';
 import {
     dashDataTsAtom,
@@ -13,13 +12,14 @@ import {
     dashPlayerDropAtom,
     dashServerStatsAtom,
     dashSvRuntimeAtom,
-} from '@/pages/Dashboard/dashboardHooks';
+} from '@/pages/Dashboard/dashboardAtoms';
 import { redirectToLogin } from '@/lib/navigation';
-import { LogoutReasonHash } from '@/pages/auth/Login';
+import { LogoutReasonHash } from '@/lib/logoutReasonHash';
 import { mutate } from 'swr';
-import { fetchWithTimeout } from './fetch';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 import { offlineWarningAtom } from './useWarningBar';
 import { useCallback } from 'react';
+import toast from 'react-hot-toast';
 
 /**
  * Atoms
@@ -91,19 +91,31 @@ export const useAdminPerms = () => {
 //Since this is triggered by a logout notice, we don't need to bother doing a POST /auth/logout
 export const useExpireAuthData = () => {
     const setAuthData = useSetAtom(authDataAtom);
-    return useCallback((src = 'unknown', reason = 'unknown', reasonHash = LogoutReasonHash.EXPIRED) => {
-        console.log('[useExpireAuthData] Logout notice received:', { src, reason, reasonHash });
-        setAuthData(false);
-        redirectToLogin(reasonHash);
-    }, [setAuthData]);
+    return useCallback(
+        (src = 'unknown', reason = 'unknown', reasonHash = LogoutReasonHash.EXPIRED) => {
+            console.log('[useExpireAuthData] Logout notice received:', { src, reason, reasonHash });
+            setAuthData(false);
+            redirectToLogin(reasonHash);
+        },
+        [setAuthData],
+    );
 };
 
 //Generic authentication hook, using it will cause your component to re-render on _any_ auth changes
 export const useAuth = () => {
     const [authData, setAuthData] = useAtom(authDataAtom);
 
-    const logout = () =>
-        fetchWithTimeout<ApiLogoutResp>(`/auth/logout`, { method: 'POST' })
+    const logout = () => {
+        const csrfToken = authData ? authData.csrfToken : undefined;
+        if (!csrfToken) {
+            setAuthData(false);
+            redirectToLogin(LogoutReasonHash.LOGOUT);
+            return;
+        }
+        return fetchWithTimeout<ApiLogoutResp>(`/auth/logout`, {
+            method: 'POST',
+            headers: { 'X-TxAdmin-CsrfToken': csrfToken },
+        })
             .then((data) => {
                 if (data.logout) {
                     console.log('[useAuth] Manually triggered logout.');
@@ -116,6 +128,7 @@ export const useAuth = () => {
             .catch((error) => {
                 console.log('Error sending logout request:', error);
             });
+    };
 
     return {
         authData,
@@ -144,7 +157,7 @@ export const logoutWatcher = atomEffect((get, set) => {
     set(dashPerfCursorAtom, undefined);
     set(dashDataTsAtom, 0);
     set(offlineWarningAtom, false);
-    txToast.dismiss(); //making sure we don't have any pending toasts
+    toast.dismiss(); //making sure we don't have any pending toasts
 
     //Force invalidation of all cached data in SWR
     mutate(() => true, undefined, { revalidate: false });

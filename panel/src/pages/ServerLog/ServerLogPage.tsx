@@ -1,58 +1,26 @@
 import { useEffect, useRef, useMemo, useCallback, useState } from 'react';
-import { ScrollTextIcon, Loader2Icon, ArrowDownIcon } from 'lucide-react';
+import { Loader2Icon, ArrowDownIcon, FilterXIcon, RadioTowerIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { PageHeader } from '@/components/page-header';
-import useServerLog from './useServerLog';
-import ServerLogToolbar from './ServerLogToolbar';
-import ServerLogEntry, { GroupedJoinLeave } from './ServerLogEntry';
-import type { ServerLogEvent } from './serverLogTypes';
+import { useLocale } from '@/hooks/locale';
+import useServerLog from '@/pages/ServerLog/useServerLog';
+import ServerLogToolbar from '@/pages/ServerLog/ServerLogToolbar';
+import ServerLogEntry, { GroupedJoinLeave } from '@/pages/ServerLog/ServerLogEntry';
+import { ServerLogHeaderBand } from './ServerLogHeaderBand';
+import { groupEvents } from './serverLogDisplayItems';
 
-// Group consecutive join or leave events within 10 seconds
-type DisplayItem =
-    | { kind: 'single'; event: ServerLogEvent }
-    | { kind: 'group'; type: 'join' | 'leave'; events: ServerLogEvent[] };
-
-const JOIN_TYPES = new Set(['playerJoining', 'playerJoinDenied']);
-const LEAVE_TYPES = new Set(['playerDropped']);
-const GROUP_WINDOW_MS = 10_000;
-
-const groupEvents = (events: ServerLogEvent[]): DisplayItem[] => {
-    const items: DisplayItem[] = [];
-    let i = 0;
-
-    while (i < events.length) {
-        const event = events[i];
-        const isJoin = JOIN_TYPES.has(event.type);
-        const isLeave = LEAVE_TYPES.has(event.type);
-
-        if (isJoin || isLeave) {
-            const groupType = isJoin ? 'join' : 'leave';
-            const matchTypes = isJoin ? JOIN_TYPES : LEAVE_TYPES;
-            const group: ServerLogEvent[] = [event];
-            let j = i + 1;
-            while (j < events.length && matchTypes.has(events[j].type) && events[j].ts - event.ts < GROUP_WINDOW_MS) {
-                group.push(events[j]);
-                j++;
-            }
-            if (group.length >= 3) {
-                items.push({ kind: 'group', type: groupType, events: group });
-            } else {
-                for (const e of group) {
-                    items.push({ kind: 'single', event: e });
-                }
-            }
-            i = j;
-        } else {
-            items.push({ kind: 'single', event });
-            i++;
-        }
-    }
-
-    return items;
-};
-
+/**
+ * Server Log V2 — redesign goals over V1:
+ * - V2 header band (icon tile + description + connection/event stat pills)
+ *   replacing the hoisted PageHeader, matching Players/History V2.
+ * - Page shell constrained like other V2 pages (`min-w-96`), card always
+ *   `rounded-xl` instead of only at the md breakpoint.
+ * - Fixes the scroll-to-bottom FAB anchoring (the card now has `relative`)
+ *   and labels it for screen readers.
+ * - Richer empty/connecting states with icons instead of bare text.
+ */
 export default function ServerLogPage() {
+    const { t } = useLocale();
     const log = useServerLog();
     const scrollRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -105,17 +73,30 @@ export default function ServerLogPage() {
         [log.setPlayerFilter],
     );
 
+    const handleClearFilters = useCallback(() => {
+        log.setAllFilters(true);
+        log.setSearchText('');
+        log.setPlayerFilter(null);
+    }, [log.setAllFilters, log.setSearchText, log.setPlayerFilter]);
+
     const scrollToBottom = () => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
         userAtBottom.current = true;
     };
 
     return (
-        <div className="h-contentvh flex w-full flex-col">
-            <PageHeader title="Server Log" icon={<ScrollTextIcon />} />
+        <div className="h-contentvh flex w-full min-w-96 flex-col">
+            <ServerLogHeaderBand
+                title={t('panel.routes.server_log')}
+                isLive={log.isLive}
+                isConnected={log.isConnected}
+                totalEvents={log.allEventsCount}
+                eventCounts={log.eventCounts}
+                activeSession={log.activeSession}
+            />
 
             <TooltipProvider delayDuration={300}>
-                <div className="bg-card border-border/60 flex w-full flex-1 flex-col overflow-hidden border shadow-sm md:rounded-xl">
+                <div className="bg-card border-border/60 relative flex w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
                     <ServerLogToolbar
                         isLive={log.isLive}
                         isConnected={log.isConnected}
@@ -160,7 +141,9 @@ export default function ServerLogPage() {
 
                         {/* No older data indicator */}
                         {!log.hasOlderData && (
-                            <div className="text-muted-foreground py-2 text-center text-xs">Beginning of log</div>
+                            <div className="text-muted-foreground/70 py-2 text-center text-xs tracking-wider uppercase">
+                                Beginning of log
+                            </div>
                         )}
 
                         {/* Log entries */}
@@ -186,23 +169,28 @@ export default function ServerLogPage() {
                                 })}
                             </div>
                         ) : log.allEventsCount > 0 ? (
-                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 py-16">
-                                <p className="text-sm">No events match your filters</p>
-                                <Button
-                                    variant="ghost"
-                                    size="xs"
-                                    onClick={() => {
-                                        log.setAllFilters(true);
-                                        log.setSearchText('');
-                                        log.setPlayerFilter(null);
-                                    }}
-                                >
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                                <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                    <FilterXIcon className="size-6" />
+                                </div>
+                                <p className="text-sm font-medium">No events match your filters</p>
+                                <Button variant="outline" size="sm" onClick={handleClearFilters}>
                                     Clear all filters
                                 </Button>
                             </div>
                         ) : (
-                            <div className="text-muted-foreground flex items-center justify-center py-16 text-sm">
-                                {log.isConnected ? 'Waiting for events…' : 'Connecting…'}
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                                <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                    <RadioTowerIcon className="size-6" />
+                                </div>
+                                <p className="text-sm font-medium">
+                                    {log.isConnected ? 'Waiting for events…' : 'Connecting…'}
+                                </p>
+                                <p className="text-muted-foreground/70 max-w-xs text-center text-xs">
+                                    {log.isConnected
+                                        ? 'New server activity will appear here as it happens.'
+                                        : 'Establishing a live connection to the server log stream.'}
+                                </p>
                             </div>
                         )}
 
@@ -217,6 +205,7 @@ export default function ServerLogPage() {
                                 variant="secondary"
                                 size="icon"
                                 className="size-8 rounded-full shadow-lg"
+                                aria-label="Scroll to latest events"
                                 onClick={scrollToBottom}
                             >
                                 <ArrowDownIcon className="size-4" />

@@ -244,6 +244,111 @@ export default async (dbo) => {
         await dbo.write();
     }
 
+    if (dbo.data.version === 8) {
+        console.warn('Updating your players database from v8 to v9.');
+        console.warn('This process will rebuild whitelist storage (entries, applications, events).');
+
+        const DEFAULT_TIER_ID = 'default';
+        const DEFAULT_WORKFLOW_ID = 'default';
+        const entriesByIdentifier = new Map();
+
+        const upsertEntry = (entry) => {
+            const existing = entriesByIdentifier.get(entry.identifier);
+            if (!existing) {
+                entriesByIdentifier.set(entry.identifier, entry);
+                return;
+            }
+            if (entry.tsFirstConnect && !existing.tsFirstConnect) {
+                entriesByIdentifier.set(entry.identifier, { ...existing, ...entry });
+                return;
+            }
+            if (!entry.tsFirstConnect && existing.tsFirstConnect) {
+                return;
+            }
+            if (entry.tsGranted >= existing.tsGranted) {
+                entriesByIdentifier.set(entry.identifier, { ...existing, ...entry });
+            }
+        };
+
+        const legacyApprovals = Array.isArray(dbo.data.whitelistApprovals) ? dbo.data.whitelistApprovals : [];
+        for (const approval of legacyApprovals) {
+            const license =
+                typeof approval.identifier === 'string' && approval.identifier.startsWith('license:')
+                    ? approval.identifier.substring(8)
+                    : undefined;
+            upsertEntry({
+                identifier: approval.identifier,
+                tierId: DEFAULT_TIER_ID,
+                tsGranted: approval.tsApproved,
+                grantedBy: approval.approvedBy,
+                source: 'manual',
+                playerName: approval.playerName,
+                playerAvatar: approval.playerAvatar ?? null,
+                license,
+            });
+        }
+
+        for (const player of dbo.data.players) {
+            if (typeof player.tsWhitelisted !== 'number') continue;
+            const identifier = `license:${player.license}`;
+            upsertEntry({
+                identifier,
+                tierId: DEFAULT_TIER_ID,
+                tsGranted: player.tsWhitelisted,
+                grantedBy: 'migration',
+                source: 'manual',
+                playerName: player.displayName ?? player.license,
+                playerAvatar: null,
+                license: player.license,
+                tsFirstConnect: player.tsWhitelisted,
+            });
+            player.tsWhitelisted = undefined;
+        }
+
+        const legacyRequests = Array.isArray(dbo.data.whitelistRequests) ? dbo.data.whitelistRequests : [];
+        const whitelistApplications = legacyRequests.map((req) => ({
+            id: req.id,
+            license: req.license,
+            status: 'pending',
+            workflowId: DEFAULT_WORKFLOW_ID,
+            tierId: DEFAULT_TIER_ID,
+            playerDisplayName: req.playerDisplayName,
+            playerPureName: req.playerPureName,
+            discordTag: req.discordTag,
+            discordAvatar: req.discordAvatar,
+            tsCreated: req.tsLastAttempt,
+            tsLastAttempt: req.tsLastAttempt,
+        }));
+
+        dbo.data.whitelistEntries = [...entriesByIdentifier.values()];
+        dbo.data.whitelistApplications = whitelistApplications;
+        dbo.data.whitelistEvents = [];
+        dbo.data.whitelistApprovals = undefined;
+        dbo.data.whitelistRequests = undefined;
+
+        dbo.data.version = 9;
+        await dbo.write();
+    }
+
+    if (dbo.data.version === 9) {
+        console.warn('Updating your players database from v9 to v10.');
+        console.warn('This process will remove whitelist tier fields.');
+
+        if (Array.isArray(dbo.data.whitelistEntries)) {
+            for (const entry of dbo.data.whitelistEntries) {
+                delete entry.tierId;
+            }
+        }
+        if (Array.isArray(dbo.data.whitelistApplications)) {
+            for (const app of dbo.data.whitelistApplications) {
+                delete app.tierId;
+            }
+        }
+
+        dbo.data.version = 10;
+        await dbo.write();
+    }
+
     if (dbo.data.version !== DATABASE_VERSION) {
         fatalError.Database(52, [
             'Unexpected migration error: Did not reach the expected database version.',

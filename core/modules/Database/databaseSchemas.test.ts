@@ -4,6 +4,9 @@ import {
     DatabasePlayerSchema,
     DatabaseActionSchema,
     DatabaseWhitelistApprovalSchema,
+    DatabaseWhitelistApplicationSchema,
+    DatabaseWhitelistEntrySchema,
+    DatabaseWhitelistEventSchema,
     DatabaseWhitelistRequestSchema,
 } from './databaseSchemas';
 
@@ -153,6 +156,49 @@ suite('DatabaseActionSchema', () => {
             playerName: false,
         });
         expect(result.success).toBe(true); // playerName can be string | false
+    });
+});
+
+suite('DatabaseWhitelistEntrySchema', () => {
+    it('should accept a valid entry', () => {
+        const result = DatabaseWhitelistEntrySchema.safeParse({
+            identifier: 'license:abc123',
+            tierId: 'default',
+            tsGranted: 1700000000,
+            grantedBy: 'Admin1',
+            source: 'manual',
+            playerName: 'Player1',
+            playerAvatar: null,
+        });
+        expect(result.success).toBe(true);
+    });
+});
+
+suite('DatabaseWhitelistApplicationSchema', () => {
+    it('should accept a valid application', () => {
+        const result = DatabaseWhitelistApplicationSchema.safeParse({
+            id: 'R1234',
+            license: 'abc123',
+            status: 'pending',
+            workflowId: 'default',
+            playerDisplayName: 'Test',
+            playerPureName: 'test',
+            tsCreated: 1700000000,
+            tsLastAttempt: 1700000000,
+        });
+        expect(result.success).toBe(true);
+    });
+});
+
+suite('DatabaseWhitelistEventSchema', () => {
+    it('should accept a valid event', () => {
+        const result = DatabaseWhitelistEventSchema.safeParse({
+            id: 'E1234',
+            type: 'application.created',
+            ts: 1700000000,
+            license: 'abc123',
+        });
+        expect(result.success).toBe(true);
     });
 });
 

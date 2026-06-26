@@ -5,39 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PageHeader } from '@/components/page-header';
-import {
-    ArchiveIcon,
-    BarChart2Icon,
-    FlagIcon,
-    Loader2Icon,
-    SearchIcon,
-    UserCheckIcon,
-} from 'lucide-react';
-import type { ApiGetTicketListResp, TicketListItem, TicketStatus, TicketPriority } from '@shared/ticketApiTypes';
-import TicketDetailModal from './TicketDetailModal';
-import { navigate } from 'wouter/use-browser-location';
-
-const statusLabels: Record<TicketStatus, string> = {
-    open: 'Open',
-    inReview: 'In Review',
-    resolved: 'Resolved',
-    closed: 'Closed',
-};
-
-const statusVariants: Record<TicketStatus, 'default' | 'secondary' | 'outline-solid' | 'destructive'> = {
-    open: 'destructive',
-    inReview: 'default',
-    resolved: 'secondary',
-    closed: 'outline-solid',
-};
-
-const priorityColors: Record<TicketPriority, string> = {
-    low: 'text-green-400',
-    medium: 'text-yellow-400',
-    high: 'text-orange-400',
-    critical: 'text-red-500',
-};
+import { PageToolbar } from '@/components/responsive/PageToolbar';
+import { useLocale } from '@/hooks/locale';
+import { AlertTriangleIcon, ArchiveIcon, InboxIcon, Loader2Icon, SearchIcon } from 'lucide-react';
+import type { ApiGetTicketListResp, TicketStatus } from '@shared/ticketApiTypes';
+import TicketDetailModal from '@/pages/Reports/TicketDetailModal';
+import { ReportsHeaderBand } from './ReportsHeaderBand';
+import { TicketRow } from './TicketRow';
 
 type ReportsViewState = {
     searchQuery: string;
@@ -48,7 +22,16 @@ type ReportsViewState = {
     selectedTicketId: string | null;
 };
 
+/**
+ * Reports V2 — redesign goals over V1:
+ * - V2 header band with status stat pills (open / in review / resolved /
+ *   archived) replacing the loose badges inside PageHeader.
+ * - Token-based priority chips instead of raw text-green-400/red-500.
+ * - Structured loading/error/empty states (icon tiles, retry button).
+ * - Ticket rows wrap gracefully on narrow viewports.
+ */
 export default function ReportsPage() {
+    const { t } = useLocale();
     const [viewState, setViewState] = useState<ReportsViewState>({
         searchQuery: '',
         categoryFilter: 'all',
@@ -129,59 +112,73 @@ export default function ReportsPage() {
         return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    const openCount = tickets.filter((t) => t.status === 'open').length;
-    const inReviewCount = tickets.filter((t) => t.status === 'inReview').length;
+    const headerStats = ticketsSwr.data
+        ? {
+              open: tickets.filter((t) => t.status === 'open').length,
+              inReview: tickets.filter((t) => t.status === 'inReview').length,
+              resolved: tickets.filter((t) => t.status === 'resolved').length,
+              archived: tickets.filter((t) => t.status === 'closed').length,
+          }
+        : undefined;
+
+    const statusLabel = (status: TicketStatus) => {
+        const keys: Record<TicketStatus, string> = {
+            open: 'panel.reports.status.open',
+            inReview: 'panel.reports.status.in_review',
+            resolved: 'panel.reports.status.resolved',
+            closed: 'panel.reports.status.closed',
+        };
+        return t(keys[status]);
+    };
 
     return (
-        <div className="h-contentvh flex w-full flex-col">
-            <PageHeader icon={<FlagIcon className="size-5" />} title="Reports">
-                <div className="flex items-center gap-2">
-                    {openCount > 0 && <Badge variant="destructive">{openCount} open</Badge>}
-                    {inReviewCount > 0 && <Badge variant="default">{inReviewCount} in review</Badge>}
-                    <Button variant="outline-solid" size="sm" onClick={() => navigate('/reports/analytics')}>
-                        <BarChart2Icon className="mr-1 size-4" /> Analytics
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => ticketsSwr.mutate()}
-                        disabled={ticketsSwr.isLoading}
-                    >
-                        {ticketsSwr.isLoading ? <Loader2Icon className="size-4 animate-spin" /> : 'Refresh'}
-                    </Button>
-                </div>
-            </PageHeader>
+        <div className="h-contentvh flex w-full min-w-96 flex-col">
+            <ReportsHeaderBand
+                title={t('panel.routes.reports')}
+                stats={headerStats}
+                isRefreshing={ticketsSwr.isLoading || ticketsSwr.isValidating}
+                onRefresh={() => ticketsSwr.mutate()}
+                refreshLabel={t('panel.reports.page.refresh')}
+                analyticsLabel={t('panel.reports.page.analytics_button')}
+            />
 
             <div className="bg-card border-border/60 flex w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
                 {/* Filters */}
-                <div className="border-border/40 flex shrink-0 flex-wrap gap-2 border-b p-3">
-                    <div className="relative min-w-[180px] flex-1">
+                <PageToolbar className="border-border/40 shrink-0 border-b p-3">
+                    <div className="relative min-w-0 flex-1 basis-full sm:basis-[12rem]">
                         <SearchIcon className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
                         <Input
-                            placeholder="Search tickets..."
+                            placeholder={t('panel.reports.page.search_placeholder')}
                             value={searchQuery}
                             onChange={(e) => setViewField('searchQuery', e.target.value)}
                             className="pl-8"
+                            aria-label={t('panel.reports.page.search_placeholder')}
                         />
                     </div>
                     <Select value={statusFilter} onValueChange={(value) => setViewField('statusFilter', value)}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="Status" />
+                        <SelectTrigger
+                            className="w-full min-w-[8.75rem] basis-[8.75rem] sm:w-auto"
+                            aria-label={t('panel.reports.page.status_placeholder')}
+                        >
+                            <SelectValue placeholder={t('panel.reports.page.status_placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="inReview">In Review</SelectItem>
-                            <SelectItem value="resolved">Resolved</SelectItem>
+                            <SelectItem value="all">{t('panel.reports.page.all_status')}</SelectItem>
+                            <SelectItem value="open">{t('panel.reports.status.open')}</SelectItem>
+                            <SelectItem value="inReview">{t('panel.reports.status.in_review')}</SelectItem>
+                            <SelectItem value="resolved">{t('panel.reports.status.resolved')}</SelectItem>
                         </SelectContent>
                     </Select>
                     {knownCategories.length > 0 && (
                         <Select value={categoryFilter} onValueChange={(value) => setViewField('categoryFilter', value)}>
-                            <SelectTrigger className="w-[160px]">
-                                <SelectValue placeholder="Category" />
+                            <SelectTrigger
+                                className="w-full min-w-[10rem] basis-[10rem] sm:w-auto"
+                                aria-label={t('panel.reports.page.category_placeholder')}
+                            >
+                                <SelectValue placeholder={t('panel.reports.page.category_placeholder')} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Categories</SelectItem>
+                                <SelectItem value="all">{t('panel.reports.page.all_categories')}</SelectItem>
                                 {knownCategories.map((cat) => (
                                     <SelectItem key={cat} value={cat}>
                                         {cat}
@@ -191,15 +188,18 @@ export default function ReportsPage() {
                         </Select>
                     )}
                     <Select value={priorityFilter} onValueChange={(value) => setViewField('priorityFilter', value)}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="Priority" />
+                        <SelectTrigger
+                            className="w-full min-w-[8.75rem] basis-[8.75rem] sm:w-auto"
+                            aria-label={t('panel.reports.page.priority_placeholder')}
+                        >
+                            <SelectValue placeholder={t('panel.reports.page.priority_placeholder')} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Priorities</SelectItem>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                            <SelectItem value="critical">Critical</SelectItem>
+                            <SelectItem value="all">{t('panel.reports.page.all_priorities')}</SelectItem>
+                            <SelectItem value="low">{t('panel.reports.priority.low')}</SelectItem>
+                            <SelectItem value="medium">{t('panel.reports.priority.medium')}</SelectItem>
+                            <SelectItem value="high">{t('panel.reports.priority.high')}</SelectItem>
+                            <SelectItem value="critical">{t('panel.reports.priority.critical')}</SelectItem>
                         </SelectContent>
                     </Select>
                     <Button
@@ -207,27 +207,46 @@ export default function ReportsPage() {
                         variant={showArchivedSection ? 'outline-solid' : 'outline'}
                         onClick={() => setViewState((prev) => ({ ...prev, showArchived: !prev.showArchived }))}
                         className="shrink-0"
+                        aria-pressed={showArchivedSection}
                     >
                         <ArchiveIcon className="mr-2 size-4" />
-                        Archived
+                        {t('panel.reports.page.archived')}
                         <Badge variant={showArchivedSection ? 'secondary' : 'outline-solid'} className="ml-2">
                             {archivedTickets.length}
                         </Badge>
                     </Button>
-                </div>
+                </PageToolbar>
 
                 {/* Ticket list */}
                 <div className="flex-1 overflow-auto">
                     {ticketsSwr.isLoading ? (
-                        <div className="flex justify-center py-8">
-                            <Loader2Icon className="text-muted-foreground size-6 animate-spin" />
+                        <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                            <Loader2Icon className="size-6 animate-spin" />
+                            <p className="text-sm">Loading tickets…</p>
                         </div>
                     ) : ticketsSwr.error ? (
-                        <p className="text-destructive py-8 text-center">Reports route not available.</p>
+                        <div className="flex flex-col items-center justify-center gap-3 py-16" role="alert">
+                            <div className="bg-destructive/10 flex size-12 items-center justify-center rounded-xl">
+                                <AlertTriangleIcon className="text-destructive-inline size-6" />
+                            </div>
+                            <p className="text-destructive-inline text-sm font-medium">
+                                {t('panel.reports.page.route_unavailable')}
+                            </p>
+                            <Button variant="outline" size="sm" onClick={() => ticketsSwr.mutate()}>
+                                Try again
+                            </Button>
+                        </div>
                     ) : !hasVisibleTickets ? (
-                        <p className="text-muted-foreground py-8 text-center">
-                            {tickets.length === 0 ? 'No tickets found.' : 'No tickets match your filters.'}
-                        </p>
+                        <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                            <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                <InboxIcon className="size-6" />
+                            </div>
+                            <p className="text-sm font-medium">
+                                {tickets.length === 0
+                                    ? t('panel.reports.page.no_tickets')
+                                    : t('panel.reports.page.no_matches')}
+                            </p>
+                        </div>
                     ) : (
                         <div className="flex flex-col gap-3 p-3">
                             {activeTickets.length > 0 && (
@@ -237,6 +256,7 @@ export default function ReportsPage() {
                                             key={ticket.id}
                                             ticket={ticket}
                                             formatDate={formatDate}
+                                            statusLabel={statusLabel(ticket.status)}
                                             onClick={() => setViewField('selectedTicketId', ticket.id)}
                                         />
                                     ))}
@@ -247,7 +267,7 @@ export default function ReportsPage() {
                                 <div className="border-border/40 border-t pt-3">
                                     <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium">
                                         <ArchiveIcon className="size-4" />
-                                        Archived Tickets
+                                        {t('panel.reports.page.archived_section')}
                                         <Badge variant="outline-solid" className="ml-1">
                                             {archivedTickets.length}
                                         </Badge>
@@ -259,6 +279,7 @@ export default function ReportsPage() {
                                                 key={ticket.id}
                                                 ticket={ticket}
                                                 formatDate={formatDate}
+                                                statusLabel={statusLabel(ticket.status)}
                                                 onClick={() => setViewField('selectedTicketId', ticket.id)}
                                             />
                                         ))}
@@ -284,61 +305,5 @@ export default function ReportsPage() {
                 />
             )}
         </div>
-    );
-}
-
-function TicketRow({
-    ticket,
-    formatDate,
-    onClick,
-}: {
-    ticket: TicketListItem;
-    formatDate: (ts: number) => string;
-    onClick: () => void;
-}) {
-    return (
-        <button
-            className="group bg-secondary/20 hover:bg-secondary/40 border-border/60 hover:border-border w-full cursor-pointer rounded-xl border p-4 text-left shadow-sm transition-all"
-            onClick={onClick}
-        >
-            <div className="mb-1.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold tracking-wide">{ticket.id}</span>
-                    <Badge variant={statusVariants[ticket.status]}>{statusLabels[ticket.status]}</Badge>
-                    <span className="text-muted-foreground text-xs">{ticket.category}</span>
-                    {ticket.priority && (
-                        <span className={`text-xs font-semibold ${priorityColors[ticket.priority]}`}>
-                            [{ticket.priority.toUpperCase()}]
-                        </span>
-                    )}
-                    {ticket.claimedBy && (
-                        <span className="text-muted-foreground flex items-center gap-1 text-xs">
-                            <UserCheckIcon className="size-3" /> {ticket.claimedBy}
-                        </span>
-                    )}
-                </div>
-                <span className="text-muted-foreground text-xs">{formatDate(ticket.tsLastActivity)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-                <div className="text-sm">
-                    <span className="text-muted-foreground">by </span>
-                    <span className="font-medium">{ticket.reporterName}</span>
-                    {ticket.targetNames.length > 0 && (
-                        <>
-                            <span className="text-muted-foreground"> → </span>
-                            <span className="font-medium">{ticket.targetNames.join(', ')}</span>
-                        </>
-                    )}
-                </div>
-                <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                    {ticket.messageCount > 0 && (
-                        <span>
-                            {ticket.messageCount} msg{ticket.messageCount !== 1 ? 's' : ''}
-                        </span>
-                    )}
-                </div>
-            </div>
-            <p className="text-muted-foreground mt-1.5 line-clamp-1 text-sm">{ticket.descriptionPreview}</p>
-        </button>
     );
 }

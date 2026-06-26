@@ -1,3 +1,7 @@
+// FiveM CEF compatibility layer — must load before app code
+import { installPanelCefCompat } from './cef-compat';
+installPanelCefCompat();
+
 // Required for the core webserver integration to work
 import 'vite/modulepreload-polyfill';
 
@@ -5,17 +9,20 @@ import { ErrorBoundary } from 'react-error-boundary';
 import ReactDOM from 'react-dom/client';
 import './globals.css';
 
-import MainShell from './layout/MainShell.tsx';
 import { AppErrorFallback } from './components/ErrorFallback.tsx';
 import { logoutWatcher, useIsAuthenticated } from './hooks/auth.ts';
-import AuthShell from './layout/AuthShell.tsx';
 import { buildLoginRedirectPath, isValidRedirectPath } from '@/lib/navigation';
+import { installNuiEmbedKeyBridge, installNuiEmbedViewport, isEmbeddedInNuiMenu } from '@/lib/nuiEmbed';
 import ThemeProvider from './components/ThemeProvider.tsx';
-import { StrictMode } from 'react';
+import { lazy, StrictMode, Suspense } from 'react';
 import { isMobile } from 'is-mobile';
 import { useAtomValue } from 'jotai';
 import { pageTitleWatcher } from './hooks/pages.ts';
 import { Redirect, useLocation } from 'wouter';
+import GenericSpinner from '@/components/GenericSpinner';
+
+const AuthShell = lazy(() => import('./layout/AuthShell.tsx'));
+const AuthenticatedShell = lazy(() => import('./layout/MainShell.tsx'));
 
 //If inside NUI, silence console.* calls to prevent confusion.
 if (!window.txConsts.isWebInterface) {
@@ -31,6 +38,12 @@ if (!window.txConsts.isWebInterface) {
     console.time = () => {};
     console.timeEnd = () => {};
     console.timeLog = () => {};
+}
+
+//If embedded in the in-game menu iframe, fix viewport sizing and forward Tab/Escape
+if (isEmbeddedInNuiMenu()) {
+    installNuiEmbedViewport();
+    installNuiEmbedKeyBridge();
 }
 
 //Detecting if the user is on a mobile device
@@ -93,7 +106,17 @@ export function AuthContextSwitch() {
         }
     }
 
-    return isAuthenticated ? <MainShell /> : <AuthShell />;
+    return (
+        <Suspense
+            fallback={
+                <div className="flex min-h-screen items-center justify-center">
+                    <GenericSpinner />
+                </div>
+            }
+        >
+            {isAuthenticated ? <AuthenticatedShell /> : <AuthShell />}
+        </Suspense>
+    );
 }
 
 type AppRootWindow = Window & {

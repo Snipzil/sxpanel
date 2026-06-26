@@ -107,15 +107,6 @@ function BrandPanel() {
                     >
                         &copy; 2026 SomeAussieGamer
                     </a>
-                    <a
-                        href="https://github.com/tabarra/txAdmin/blob/master/LICENSE"
-                        onClick={handleExternalLinkClick}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-muted-foreground/60 transition-colors"
-                    >
-                        &copy; 2019&ndash;2025 Tabarra
-                    </a>
                 </div>
             </div>
         </div>

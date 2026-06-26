@@ -39,6 +39,7 @@ import {
 } from './liveConsoleMarkers';
 import { emsg } from '@shared/emsg';
 import { liveConsoleOptionsAtom } from './liveConsoleHooks';
+import { useLocale } from '@/hooks/locale';
 import type { LiveConsoleInitialData } from '@shared/consoleBlock';
 
 //Options
@@ -69,6 +70,7 @@ const reduceLiveConsolePageState = (state: LiveConsolePageState, action: Partial
 
 //Main component
 function useLiveConsoleController() {
+    const { t } = useLocale();
     const [state, dispatch] = useReducer(reduceLiveConsolePageState, {
         isSaveSheetOpen: false,
         isConnected: false,
@@ -231,12 +233,12 @@ function useLiveConsoleController() {
                         .then((res) => {
                             //undefined if no error
                             if (res === false) {
-                                txToast.error('Failed to copy to clipboard :(');
+                                txToast.error(t('panel.live_console.copy_failed'));
                             }
                         })
                         .catch((error) => {
                             txToast.error({
-                                title: 'Failed to copy to clipboard:',
+                                title: t('panel.live_console.copy_failed_title'),
                                 msg: error.message,
                             });
                         });
@@ -349,7 +351,8 @@ function useLiveConsoleController() {
             //Markers
             let writeCallback: (() => void) | undefined;
             try {
-                const res = getTermLineEventData(line) ?? getTermLineInitialData(line) ?? getTermLineRtlData(line); //https://github.com/xtermjs/xterm.js/issues/701
+                const res =
+                    getTermLineEventData(line, t) ?? getTermLineInitialData(line, t) ?? getTermLineRtlData(line, t); //https://github.com/xtermjs/xterm.js/issues/701
                 if (res && res.markerData) {
                     writeCallback = () => registerTermLineMarker(term, res.markerData);
                 }
@@ -444,7 +447,7 @@ function useLiveConsoleController() {
                     }
                 } else {
                     dispatch({ hasOlderBlocks: false });
-                    term.writeln(`\n${ANSI.YELLOW}Waiting for server output…${ANSI.RESET}`);
+                    term.writeln(`\n${ANSI.YELLOW}${t('panel.live_console.waiting_output')}${ANSI.RESET}`);
                 }
             }
         };
@@ -498,7 +501,7 @@ function useLiveConsoleController() {
         searchAddon.clearDecorations();
         dispatch({ showSearchBar: false });
         spawnLineNumbersRef.current = [];
-        term.write(`${ANSI.YELLOW}[console cleared]${ANSI.RESET}\n`);
+        term.write(`${ANSI.YELLOW}${t('panel.live_console.console_cleared')}${ANSI.RESET}\n`);
         //Persist the clear so reconnects don't restore old data
         if (pageSocket.current) {
             pageSocket.current.emit('consoleClear' as any);
@@ -607,6 +610,7 @@ function useLiveConsoleController() {
 }
 
 export default function LiveConsolePage() {
+    const { t } = useLocale();
     const controller = useLiveConsoleController();
 
     return (
@@ -624,7 +628,7 @@ export default function LiveConsolePage() {
                         <div className="text-muted-foreground flex flex-col items-center justify-center gap-6 select-none">
                             <Loader2Icon className="size-16 animate-spin" />
                             <h2 className="animate-pulse text-3xl font-light tracking-wider">
-                                &nbsp;&nbsp;&nbsp;Connecting…
+                                &nbsp;&nbsp;&nbsp;{t('panel.live_console.connecting')}
                             </h2>
                         </div>
                     </div>
@@ -642,7 +646,9 @@ export default function LiveConsolePage() {
                         onClick={controller.loadOlderBlocks}
                         disabled={controller.isLoadingOlder}
                     >
-                        {controller.isLoadingOlder ? 'Loading…' : 'Load older output'}
+                        {controller.isLoadingOlder
+                            ? t('panel.live_console.loading')
+                            : t('panel.live_console.load_older')}
                     </button>
                 )}
 
@@ -650,7 +656,7 @@ export default function LiveConsolePage() {
                     ref={controller.containerRef}
                     className="absolute top-1 right-0 bottom-0 left-2"
                     role="region"
-                    aria-label="Live server console output"
+                    aria-label={t('panel.live_console.output_region')}
                 />
 
                 {controller.showSearchBar ? (

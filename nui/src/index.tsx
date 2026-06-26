@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import MenuWrapper from './MenuWrapper';
 import './index.css';
-import { ThemeProvider, StyledEngineProvider, createTheme } from '@mui/material';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material';
 import { Provider as JotaiProvider } from 'jotai';
 import { KeyboardNavProvider } from './provider/KeyboardNavProvider';
 import { MaterialDesignContent, SnackbarProvider } from 'notistack';
@@ -10,16 +10,11 @@ import { registerDebugFunctions } from './utils/registerDebugFunctions';
 import { useNuiEvent } from './hooks/useNuiEvent';
 import { useGameCapture } from './hooks/useGameCapture';
 import { styled } from '@mui/material/styles';
-import rawMenuTheme from './styles/theme';
-import rawMenuRedmTheme from './styles/theme-redm';
+import { menuTheme, menuRedmTheme } from './styles/theme';
 import { useIsRedm } from './state/isRedm.state';
 import { useNuiAddonLoader } from './hooks/useNuiAddonLoader';
 
 registerDebugFunctions();
-
-//Instantiating the two themes
-const menuRedmTheme = createTheme(rawMenuRedmTheme);
-const menuTheme = createTheme(rawMenuTheme);
 
 //Overwriting the notistack colors
 //Actually using the colors from the RedM theme, but could start using `theme` if needed

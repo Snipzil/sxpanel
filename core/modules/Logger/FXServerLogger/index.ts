@@ -93,6 +93,7 @@ export default class FXServerLogger extends LoggerBase {
      * in the middle of a color sequence, but less often since we are buffering more data.
      */
     flushFileBuffer() {
+        if (!this.fileBuffer.length) return;
         this.lrStream.write(this.fileBuffer.replace(regexColors, ''));
         this.fileBuffer = '';
     }
@@ -113,8 +114,10 @@ export default class FXServerLogger extends LoggerBase {
             processStdioWriteRaw(stdoutBuffer);
         }
 
-        //For the live console
-        txCore.webServer.webSocket.buffer('liveconsole', webBuffer);
+        //For the live console — skip WS buffer when nobody is viewing the page
+        if (txCore.webServer?.webSocket?.hasRoomListeners('liveconsole')) {
+            txCore.webServer.webSocket.buffer('liveconsole', webBuffer);
+        }
         this.appendRecent(webBuffer);
     }
 
@@ -156,6 +159,8 @@ export default class FXServerLogger extends LoggerBase {
      */
     public logSystemCommand(cmd: string) {
         if (cmd.startsWith('txaEvent "consoleCommand"')) return;
+        if (cmd.startsWith('txaSendEvent "txsv:updateSyntheticPlayers"')) return;
+        if (cmd.startsWith('txaSyncHttpPlayers ')) return;
         // if (/^txaEvent \w+ /.test(cmd)) {
         //     const [event, payload] = cmd.substring(9).split(' ', 2);
         //     cmd = chalk.italic(`<broadcasting txAdmin:events:${event}>`);

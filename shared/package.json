@@ -1,11 +1,11 @@
 {
     "name": "fxpanel-shared",
-    "version": "0.2.2",
+    "version": "0.4.0-Beta",
     "description": "The shared package contains stuff used in more than one package, no build step required.",
     "type": "module",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"No tests for this workspace. Skipping...\"",
+        "test": "vitest run",
         "typecheck": "tsc -p tsconfig.json --noEmit",
         "license:report": "npx license-report > ../.reports/license/shared.html"
     },

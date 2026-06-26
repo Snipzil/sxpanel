@@ -8,6 +8,7 @@ import type { ApiChangeBanDurationReqSchema } from '@shared/historyApiSchemas';
 import { useAdminPerms } from '@/hooks/auth';
 import { Loader2Icon } from 'lucide-react';
 import { useBackendApi } from '@/hooks/fetch';
+import { useLocale } from '@/hooks/locale';
 
 type DatabaseActionBanType = {
     id: string;
@@ -20,6 +21,7 @@ type ActionEditTabProps = {
 };
 
 export default function ActionEditTab({ action, refreshModalData }: ActionEditTabProps) {
+    const { t } = useLocale();
     const [isChangingDuration, setIsChangingDuration] = useState(false);
     const [currentDuration, setCurrentDuration] = useState('2 days');
     const [customUnits, setCustomUnits] = useState('days');
@@ -39,9 +41,9 @@ export default function ActionEditTab({ action, refreshModalData }: ActionEditTa
         setIsChangingDuration(true);
         changeDurationApi({
             data: { actionId: action.id, duration },
-            toastLoadingMessage: 'Changing ban duration…',
+            toastLoadingMessage: t('panel.action_modal.edit.changing'),
             genericHandler: {
-                successMsg: 'Ban duration changed.',
+                successMsg: t('panel.action_modal.edit.success'),
             },
             success: (data) => {
                 setIsChangingDuration(false);
@@ -58,19 +60,15 @@ export default function ActionEditTab({ action, refreshModalData }: ActionEditTa
     return (
         <div className="mb-1 flex flex-col gap-4 px-1 md:mb-4">
             <div className="space-y-2">
-                <h3 className="text-xl">Change Duration</h3>
-                <p className="text-muted-foreground text-sm">
-                    Set a new duration for this ban. The expiration will be recalculated from now.
-                </p>
+                <h3 className="text-xl">{t('panel.action_modal.edit.title')}</h3>
+                <p className="text-muted-foreground text-sm">{t('panel.action_modal.edit.description')}</p>
                 {isRevoked ? (
-                    <p className="text-warning-inline text-sm">
-                        This ban has been revoked. The duration cannot be changed.
-                    </p>
+                    <p className="text-warning-inline text-sm">{t('panel.action_modal.edit.revoked_warning')}</p>
                 ) : (
                     <>
                         <div className="space-y-1">
                             <Label htmlFor="durationSelect" className="sr-only">
-                                Duration
+                                {t('panel.action_modal.edit.duration_label')}
                             </Label>
                             <Select
                                 onValueChange={setCurrentDuration}
@@ -78,20 +76,30 @@ export default function ActionEditTab({ action, refreshModalData }: ActionEditTa
                                 disabled={isChangingDuration}
                             >
                                 <SelectTrigger id="durationSelect" className="tracking-wide">
-                                    <SelectValue placeholder="Select Duration" />
+                                    <SelectValue placeholder={t('panel.action_modal.edit.select_duration')} />
                                 </SelectTrigger>
                                 <SelectContent className="tracking-wide">
                                     <SelectItem value="custom" className="font-bold">
-                                        Custom (set below)
+                                        {t('panel.player_modal.ban.duration.custom')}
                                     </SelectItem>
-                                    <SelectItem value="2 hours">2 HOURS</SelectItem>
-                                    <SelectItem value="8 hours">8 HOURS</SelectItem>
-                                    <SelectItem value="1 day">1 DAY</SelectItem>
-                                    <SelectItem value="2 days">2 DAYS</SelectItem>
-                                    <SelectItem value="1 week">1 WEEK</SelectItem>
-                                    <SelectItem value="2 weeks">2 WEEKS</SelectItem>
+                                    <SelectItem value="2 hours">
+                                        {t('panel.player_modal.ban.duration.hours_2')}
+                                    </SelectItem>
+                                    <SelectItem value="8 hours">
+                                        {t('panel.player_modal.ban.duration.hours_8')}
+                                    </SelectItem>
+                                    <SelectItem value="1 day">{t('panel.player_modal.ban.duration.day_1')}</SelectItem>
+                                    <SelectItem value="2 days">
+                                        {t('panel.player_modal.ban.duration.days_2')}
+                                    </SelectItem>
+                                    <SelectItem value="1 week">
+                                        {t('panel.player_modal.ban.duration.week_1')}
+                                    </SelectItem>
+                                    <SelectItem value="2 weeks">
+                                        {t('panel.player_modal.ban.duration.weeks_2')}
+                                    </SelectItem>
                                     <SelectItem value="permanent" className="font-bold">
-                                        Permanent
+                                        {t('panel.player_modal.ban.duration.permanent')}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -112,10 +120,18 @@ export default function ActionEditTab({ action, refreshModalData }: ActionEditTa
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="tracking-wide">
-                                        <SelectItem value="hours">HOURS</SelectItem>
-                                        <SelectItem value="days">DAYS</SelectItem>
-                                        <SelectItem value="weeks">WEEKS</SelectItem>
-                                        <SelectItem value="months">MONTHS</SelectItem>
+                                        <SelectItem value="hours">
+                                            {t('panel.player_modal.ban.duration.unit_hours')}
+                                        </SelectItem>
+                                        <SelectItem value="days">
+                                            {t('panel.player_modal.ban.duration.unit_days')}
+                                        </SelectItem>
+                                        <SelectItem value="weeks">
+                                            {t('panel.player_modal.ban.duration.unit_weeks')}
+                                        </SelectItem>
+                                        <SelectItem value="months">
+                                            {t('panel.player_modal.ban.duration.unit_months')}
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -128,12 +144,13 @@ export default function ActionEditTab({ action, refreshModalData }: ActionEditTa
                         >
                             {isChangingDuration ? (
                                 <span className="flex items-center leading-relaxed">
-                                    <Loader2Icon className="inline h-4 animate-spin" /> Changing…
+                                    <Loader2Icon className="inline h-4 animate-spin" />{' '}
+                                    {t('panel.action_modal.edit.changing_btn')}
                                 </span>
                             ) : hasBanPerm ? (
-                                'Change Duration'
+                                t('panel.action_modal.edit.change_btn')
                             ) : (
-                                'Change Duration (no permission)'
+                                t('panel.action_modal.edit.no_permission')
                             )}
                         </Button>
                     </>

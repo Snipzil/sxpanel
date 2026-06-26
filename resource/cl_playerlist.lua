@@ -27,20 +27,85 @@ local vTypeMap = {
     ['8'] = 'driving', --train
 }
 
+--- Normalizes player/server IDs to string keys (Lua treats t[1] and t["1"] as different).
+local function TxLocalPlayerListKey(id)
+    return tostring(id)
+end
+
+--- Prefer the entry with a resolved name and the freshest health/distance data.
+local function shouldReplaceLocalPlayerEntry(candidate, incumbent)
+    if incumbent == nil then
+        return true
+    end
+
+    local candName = candidate.name or 'unknown'
+    local incName = incumbent.name or 'unknown'
+    if incName == 'unknown' and candName ~= 'unknown' then
+        return true
+    end
+    if candName == 'unknown' and incName ~= 'unknown' then
+        return false
+    end
+
+    if (incumbent.health == nil or incumbent.health == 0) and candidate.health ~= nil and candidate.health ~= 0 then
+        return true
+    end
+    if (incumbent.dist == nil or incumbent.dist < 0) and candidate.dist ~= nil and candidate.dist >= 0 then
+        return true
+    end
+
+    return false
+end
+
+--- Merges duplicate slots keyed as both number and string into one canonical entry.
+local function normalizeLocalPlayerlist()
+    local normalized = {}
+
+    for pidKey, playerData in pairs(TX_LOCAL_PLAYERLIST) do
+        if type(playerData) ~= 'table' then
+            goto continue
+        end
+
+        local id = tonumber(pidKey)
+        if not id or id <= 0 then
+            goto continue
+        end
+
+        local key = TxLocalPlayerListKey(id)
+        local existing = normalized[key]
+        if existing == nil then
+            normalized[key] = playerData
+        elseif shouldReplaceLocalPlayerEntry(playerData, existing) then
+            normalized[key] = playerData
+        end
+
+        ::continue::
+    end
+
+    TX_LOCAL_PLAYERLIST = normalized
+end
+
 -- Transforms the playerlist and sends to react
 -- The playerlist is converted to an object array to save refactor time
 function SendReactPlayerlist()
+    normalizeLocalPlayerlist()
+
     local upload = {}
+    local seenIds = {}
     for pids, playerData in pairs(TX_LOCAL_PLAYERLIST) do
-        upload[#upload + 1] = {
-            id = tonumber(pids),
-            name = playerData.name or 'unknown',
-            health = playerData.health,
-            dist = playerData.dist,
-            vType = playerData.vType,
-            admin = playerData.admin,
-            tags = playerData.tags or {},
-        }
+        local id = tonumber(pids)
+        if id and id > 0 and not seenIds[id] then
+            seenIds[id] = true
+            upload[#upload + 1] = {
+                id = id,
+                name = playerData.name or 'unknown',
+                health = playerData.health,
+                dist = playerData.dist,
+                vType = playerData.vType,
+                admin = playerData.admin,
+                tags = playerData.tags or {},
+            }
+        end
     end
     -- print("========== function sendReactPlayerlist()")
     -- print(json.encode(upload))
@@ -56,7 +121,7 @@ RegisterNetEvent('txcl:plist:setInitial', function(payload)
     -- print("------------------------------------")
     TX_LOCAL_PLAYERLIST = {}
     for _, playerData in pairs(payload) do
-        local pids = tostring(playerData[1])
+        local pids = TxLocalPlayerListKey(playerData[1])
         TX_LOCAL_PLAYERLIST[pids] = {
             name = playerData[2],
             health = 0,
@@ -69,6 +134,26 @@ RegisterNetEvent('txcl:plist:setInitial', function(payload)
     -- print("------------------------------------")
     -- print(json.encode(TX_LOCAL_PLAYERLIST, {indent = true}))
     -- print("------------------------------------")
+    SendReactPlayerlist()
+end)
+
+RegisterNetEvent('txcl:plist:updatePlayerTags', function(netId, tags)
+    local pidStr = TxLocalPlayerListKey(netId)
+    if type(tags) ~= 'table' then return end
+    local entry = TX_LOCAL_PLAYERLIST[pidStr]
+    -- Tags often arrive before txcl:plist:updatePlayer; upsert instead of dropping.
+    if entry == nil then
+        TX_LOCAL_PLAYERLIST[pidStr] = {
+            name = 'unknown',
+            health = 0,
+            dist = -1,
+            vType = 'unknown',
+            admin = false,
+            tags = tags,
+        }
+    else
+        entry.tags = tags
+    end
     SendReactPlayerlist()
 end)
 
@@ -85,7 +170,7 @@ RegisterNetEvent('txcl:plist:setDetailed', function(players, admins, playerTags)
 
     for _, playerData in pairs(players) do
         local pid = playerData[1]
-        local pidStr = tostring(playerData[1])
+        local pidStr = TxLocalPlayerListKey(playerData[1])
         local localPlayer = TX_LOCAL_PLAYERLIST[pidStr]
         -- Set inbound data
         if localPlayer == nil then
@@ -151,19 +236,37 @@ RegisterNetEvent('txcl:plist:setDetailed', function(players, admins, playerTags)
         end
     end
 
+    -- Reset admin flags before applying the latest admin snapshot
+    for _, playerData in pairs(TX_LOCAL_PLAYERLIST) do
+        playerData.admin = false
+    end
+
     -- Mark admins
     for _, adminID in pairs(admins) do
-        local id = tostring(adminID)
+        local id = TxLocalPlayerListKey(adminID)
         if TX_LOCAL_PLAYERLIST[id] ~= nil then
             TX_LOCAL_PLAYERLIST[id].admin = true
         end
     end
 
-    -- Apply tags
+    -- Apply tags (server keys may be number or string; local list always uses strings)
     if playerTags then
         for playerID, tags in pairs(playerTags) do
-            if TX_LOCAL_PLAYERLIST[playerID] ~= nil then
-                TX_LOCAL_PLAYERLIST[playerID].tags = tags
+            if type(tags) == 'table' then
+                local key = TxLocalPlayerListKey(playerID)
+                local entry = TX_LOCAL_PLAYERLIST[key]
+                if entry == nil then
+                    TX_LOCAL_PLAYERLIST[key] = {
+                        name = 'unknown',
+                        health = 0,
+                        dist = -1,
+                        vType = 'unknown',
+                        admin = false,
+                        tags = tags,
+                    }
+                else
+                    entry.tags = tags
+                end
             end
         end
     end
@@ -177,19 +280,20 @@ end)
 -- Triggered on player join/leave
 -- add/remove specific id to playerlist
 RegisterNetEvent('txcl:plist:updatePlayer', function(id, data)
-    local pids = tostring(id)
+    local pids = TxLocalPlayerListKey(id)
     if data == false then
         DebugPrint('^2txcl:plist:updatePlayer: ^3' .. id .. '^2 disconnected')
         TX_LOCAL_PLAYERLIST[pids] = nil
     else
         DebugPrint('^2txcl:plist:updatePlayer: ^3' .. id .. '^2 connected')
+        local existing = TX_LOCAL_PLAYERLIST[pids]
         TX_LOCAL_PLAYERLIST[pids] = {
             name = data,
-            health = 0,
-            dist = -1,
-            vType = 'unknown',
-            admin = false,
-            tags = {},
+            health = existing and existing.health or 0,
+            dist = existing and existing.dist or -1,
+            vType = existing and existing.vType or 'unknown',
+            admin = existing and existing.admin or false,
+            tags = existing and existing.tags or {},
         }
     end
     SendReactPlayerlist()

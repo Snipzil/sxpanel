@@ -6,16 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { PageHeader } from '@/components/page-header';
+import { useLocale } from '@/hooks/locale';
 import { txToast } from '@/components/TxToaster';
 import { cn } from '@/lib/utils';
 import {
     Loader2Icon,
     DownloadIcon,
     RotateCcwIcon,
+    RotateCwIcon,
     AlertTriangleIcon,
     CheckCircle2Icon,
-    XCircleIcon,
     ExternalLinkIcon,
     PackageIcon,
 } from 'lucide-react';
@@ -37,6 +37,77 @@ const PHASE_LABELS: Record<string, string> = {
     applying: 'Applying update',
 };
 
+function HeaderBand({
+    title,
+    currentVersion,
+    isBusy,
+    isRefreshing,
+    onRefresh,
+}: {
+    title: string;
+    currentVersion?: string;
+    isBusy: boolean;
+    isRefreshing: boolean;
+    onRefresh: () => void;
+}) {
+    return (
+        <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+            <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <PackageIcon className="text-foreground size-5" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
+                        <p className="text-muted-foreground mt-0.5 text-xs">
+                            Manage FXServer runtime builds and apply safe updates.
+                        </p>
+                    </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+                        <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">
+                            Current
+                        </span>
+                        <span className="text-foreground font-mono text-sm font-semibold">{currentVersion ?? '—'}</span>
+                    </div>
+                    <div
+                        className={cn(
+                            'inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
+                            isBusy ? 'border-warning/40 bg-warning/10' : 'border-success/40 bg-success/10',
+                        )}
+                    >
+                        <span
+                            className={cn(
+                                'inline-flex size-1.5 rounded-full',
+                                isBusy ? 'bg-warning animate-pulse' : 'bg-success',
+                            )}
+                            aria-hidden="true"
+                        />
+                        <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">
+                            {isBusy ? 'Updating' : 'Ready'}
+                        </span>
+                    </div>
+                    <div className="bg-border/60 mx-1 hidden h-6 w-px sm:block" aria-hidden="true" />
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        aria-label="Refresh artifact status"
+                    >
+                        {isRefreshing ? (
+                            <Loader2Icon className="size-4 animate-spin" />
+                        ) : (
+                            <RotateCwIcon className="size-4" />
+                        )}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function StatusSection({
     data,
     onApply,
@@ -52,7 +123,7 @@ function StatusSection({
     const statusLabel = PHASE_LABELS[updateStatus.phase] || 'Update failed';
 
     return (
-        <Card className="border-border/60 bg-card/80 overflow-hidden">
+        <Card className="border-border/60 rounded-xl shadow-sm">
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Update Progress</CardTitle>
                 <CardDescription className="flex items-center gap-2">
@@ -151,18 +222,19 @@ function CurrentBuildSection({
     updateStatus: ArtifactListResp['updateStatus'];
     selectedTier?: ArtifactTierInfo;
 }) {
-    const isBusy = updateStatus.phase !== 'idle' && updateStatus.phase !== 'error' && updateStatus.phase !== 'extracted';
+    const isBusy =
+        updateStatus.phase !== 'idle' && updateStatus.phase !== 'error' && updateStatus.phase !== 'extracted';
 
     return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Card className="border-border/60 bg-card/80 lg:col-span-2">
+            <Card className="border-border/60 rounded-xl shadow-sm lg:col-span-2">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Current Build</CardTitle>
                     <CardDescription>Installed artifact version on this host</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-wrap items-center gap-3">
-                        <span className="font-mono text-3xl leading-none font-bold">{currentVersion}</span>
+                        <span className="font-mono text-3xl leading-none font-bold tabular-nums">{currentVersion}</span>
                         <Badge variant="secondary" className="font-mono">
                             {currentVersionTag}
                         </Badge>
@@ -175,13 +247,13 @@ function CurrentBuildSection({
                 </CardContent>
             </Card>
 
-            <Card className="border-border/60 bg-card/80">
+            <Card className="border-border/60 rounded-xl shadow-sm">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Update State</CardTitle>
                     <CardDescription>Live status from updater daemon</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="border-border/40 bg-secondary/20 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+                    <div className="border-border/50 bg-muted/15 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
                         <span
                             className={cn(
                                 'inline-flex size-2 rounded-full',
@@ -205,23 +277,29 @@ function AvailableBuildsCard({
     currentVersion,
     isBusy,
     onDownload,
+    fullWidth,
 }: {
     tiers: ArtifactTierInfo[];
     currentVersion: ArtifactListResp['currentVersion'];
     isBusy: boolean;
     onDownload: (url: string, version: string) => void;
+    fullWidth?: boolean;
 }) {
     return (
-        <Card className="border-border/60 bg-card/80 xl:col-span-2">
+        <Card className={cn('border-border/60 rounded-xl shadow-sm', fullWidth ? 'xl:col-span-3' : 'xl:col-span-2')}>
             <CardHeader>
                 <CardTitle className="text-lg">Available Builds</CardTitle>
                 <CardDescription>Select an artifact tier and download the matching build</CardDescription>
             </CardHeader>
             <CardContent>
                 {tiers.length === 0 ? (
-                    <p className="text-muted-foreground py-4 text-center text-sm">
-                        Could not fetch available builds. Try refreshing the page.
-                    </p>
+                    <div className="text-muted-foreground flex flex-col items-center gap-3 py-8">
+                        <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                            <PackageIcon className="size-6" />
+                        </div>
+                        <p className="text-sm font-medium">Could not fetch available builds</p>
+                        <p className="text-muted-foreground/70 text-xs">Try refreshing the page.</p>
+                    </div>
                 ) : (
                     <div className="space-y-3">
                         {tiers.map((tier) => {
@@ -281,7 +359,7 @@ function CustomDownloadCard({
     onDownload: () => void;
 }) {
     return (
-        <Card className="border-border/60 bg-card/80">
+        <Card className="border-border/60 rounded-xl shadow-sm">
             <CardHeader>
                 <CardTitle className="text-lg">Custom URL</CardTitle>
                 <CardDescription>Paste a direct runtime link to download any supported artifact build.</CardDescription>
@@ -292,6 +370,7 @@ function CustomDownloadCard({
                         ref={inputRef}
                         placeholder="https://runtime.fivem.net/artifacts/fivem/…"
                         disabled={isBusy}
+                        aria-label="Custom artifact download URL"
                     />
                     <Button disabled={isBusy} onClick={onDownload} className="w-full">
                         <DownloadIcon className="mr-2 size-4" />
@@ -321,9 +400,20 @@ function CustomDownloadCard({
     );
 }
 
+/**
+ * FxUpdater V2 — redesign goals over V1:
+ * - V2 header band (icon tile + version/status pills + manual refresh)
+ *   replacing PageHeader; V1 had no way to refresh without reloading.
+ * - Structured loading and error states (card-styled with retry) instead
+ *   of a bare spinner / Alert.
+ * - Cards normalized to the V2 `rounded-xl border-border/60 shadow-sm`
+ *   language, with token-based hint surfaces.
+ */
 export default function FxUpdaterPage() {
+    const { t } = useLocale();
     const [data, setData] = useState<ArtifactListResp | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const customUrlRef = useRef<HTMLInputElement>(null);
     const openConfirmDialog = useOpenConfirmDialog();
@@ -354,6 +444,12 @@ export default function FxUpdaterPage() {
             setIsLoading(false);
         }
     }, [listApi]);
+
+    const handleManualRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await fetchStatus();
+        setIsRefreshing(false);
+    }, [fetchStatus]);
 
     //Poll every 2s while downloading/applying, 30s otherwise
     const hasInitialFetchRef = useRef(true);
@@ -429,52 +525,54 @@ export default function FxUpdaterPage() {
     };
 
     if (!data) {
-        return isLoading ? (
-            <div className="flex items-center justify-center py-16">
-                <Loader2Icon className="text-muted-foreground size-8 animate-spin" />
-            </div>
-        ) : fetchError ? (
-            <div className="mx-auto w-full max-w-4xl space-y-4">
-                <PageHeader
-                    icon={<PackageIcon />}
-                    title="Artifacts"
-                    description="Manage FXServer runtime builds and apply safe updates"
+        return (
+            <div className="mx-auto w-full max-w-5xl space-y-4">
+                <HeaderBand
+                    title={t('panel.routes.artifacts')}
+                    isBusy={false}
+                    isRefreshing={isRefreshing}
+                    onRefresh={handleManualRefresh}
                 />
-                <Alert variant="destructive">
-                    <XCircleIcon className="size-4" />
-                    <AlertTitle>Failed to load artifact data</AlertTitle>
-                    <AlertDescription>{fetchError}</AlertDescription>
-                </Alert>
+                {isLoading ? (
+                    <div className="border-border/60 bg-card flex h-48 flex-col items-center justify-center gap-3 rounded-xl border shadow-sm">
+                        <Loader2Icon className="text-muted-foreground size-6 animate-spin" />
+                        <p className="text-muted-foreground text-sm">Loading artifact data…</p>
+                    </div>
+                ) : fetchError ? (
+                    <div className="border-destructive/30 bg-destructive/5 flex h-48 flex-col items-center justify-center gap-3 rounded-xl border">
+                        <AlertTriangleIcon className="text-destructive-inline size-6" />
+                        <p className="text-foreground text-sm font-medium">Failed to load artifact data</p>
+                        <p className="text-muted-foreground max-w-md text-center text-xs">{fetchError}</p>
+                        <Button variant="outline" size="sm" onClick={handleManualRefresh}>
+                            <RotateCwIcon className="mr-1.5 size-4" />
+                            Retry
+                        </Button>
+                    </div>
+                ) : null}
             </div>
-        ) : null;
+        );
     }
 
-    const { currentVersion, currentVersionTag, tiers, updateStatus } = data;
+    const { currentVersion, currentVersionTag, tiers, updateStatus, customDownloadEnabled } = data;
     const isBusy =
         updateStatus.phase !== 'idle' && updateStatus.phase !== 'error' && updateStatus.phase !== 'extracted';
     const selectedTier = tiers.find((t) => t.version === currentVersion);
 
     return (
         <div className="mx-auto w-full max-w-5xl space-y-4">
-            <PageHeader
-                icon={<PackageIcon />}
-                title="Artifacts"
-                description="Manage FXServer runtime builds and apply safe updates"
-            >
-                <div className="border-border/50 bg-card/70 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs">
-                    <span className="text-muted-foreground/70">Current</span>
-                    <span className="font-mono font-semibold">{currentVersion}</span>
+            <HeaderBand
+                title={t('panel.routes.artifacts')}
+                currentVersion={String(currentVersion)}
+                isBusy={isBusy}
+                isRefreshing={isRefreshing}
+                onRefresh={handleManualRefresh}
+            />
+
+            {!customDownloadEnabled ? (
+                <div className="border-border/50 bg-muted/15 text-muted-foreground rounded-lg border px-3 py-2 text-sm">
+                    {window.txConsts.hostConfigSource}: Custom artifact URLs are disabled by the host.
                 </div>
-                <div className="border-border/50 bg-card/70 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs">
-                    <span
-                        className={cn(
-                            'inline-flex size-1.5 rounded-full',
-                            isBusy ? 'bg-warning animate-pulse' : 'bg-success',
-                        )}
-                    />
-                    <span className="font-medium">{isBusy ? 'Update in progress' : 'Ready'}</span>
-                </div>
-            </PageHeader>
+            ) : null}
 
             <CurrentBuildSection
                 currentVersion={currentVersion}
@@ -492,8 +590,11 @@ export default function FxUpdaterPage() {
                     currentVersion={currentVersion}
                     isBusy={isBusy}
                     onDownload={handleDownload}
+                    fullWidth={!customDownloadEnabled}
                 />
-                <CustomDownloadCard inputRef={customUrlRef} isBusy={isBusy} onDownload={handleCustomDownload} />
+                {customDownloadEnabled ? (
+                    <CustomDownloadCard inputRef={customUrlRef} isBusy={isBusy} onDownload={handleCustomDownload} />
+                ) : null}
             </div>
         </div>
     );

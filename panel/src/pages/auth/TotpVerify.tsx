@@ -36,7 +36,7 @@ export default function TotpVerify() {
             } else {
                 setAuthData(data);
             }
-        } catch (error) {
+        } catch {
             setErrorMessage('Failed to verify code. Please try again.');
         } finally {
             setIsFetching(false);

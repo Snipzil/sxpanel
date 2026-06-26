@@ -3,6 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { navigate } from 'wouter/use-browser-location';
 import { Settings2Icon, Save, RotateCcw, XIcon, Loader2Icon } from 'lucide-react';
 import { PageHeader } from '@/components/page-header';
+import { useLocale } from '@/hooks/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,11 +19,7 @@ import type { DiscordLogRouteConfig, DiscordLogRouteKey } from '@shared/discordL
 import { AdvancedDivider } from './settingsItems';
 import { discordLogRoutesEditorAtom } from './discordLogRoutesEditorState';
 
-const {
-    discordLogRouteDefinitions,
-    getDiscordLogRouteEntryDefinitions,
-    normalizeDiscordLogRoutes,
-} = discordLogRoutes;
+const { discordLogRouteDefinitions, getDiscordLogRouteEntryDefinitions, normalizeDiscordLogRoutes } = discordLogRoutes;
 
 type DiscordLogRouteFormState = Omit<DiscordLogRouteConfig, 'channelId'> & {
     channelId: string;
@@ -213,7 +210,9 @@ function DiscordLogRouteSidebar({
                                 {warningsChannel ? 'Enabled' : 'Disabled'}
                             </span>
                         </div>
-                        <div className="text-muted-foreground mt-1 text-xs">{warningsChannel || 'No channel configured'}</div>
+                        <div className="text-muted-foreground mt-1 text-xs">
+                            {warningsChannel || 'No channel configured'}
+                        </div>
                     </button>
 
                     {routes.map((route) => {
@@ -232,7 +231,9 @@ function DiscordLogRouteSidebar({
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <div className="text-sm font-medium">{definition.label}</div>
-                                    <span className={`text-xs ${route.enabled ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                    <span
+                                        className={`text-xs ${route.enabled ? 'text-green-600' : 'text-muted-foreground'}`}
+                                    >
                                         {route.enabled ? 'Enabled' : 'Disabled'}
                                     </span>
                                 </div>
@@ -326,22 +327,34 @@ function SelectedRoutePanel({
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                        <label className="text-muted-foreground text-xs" htmlFor={`discord-log-route:${selectedRoute.key}:channel`}>
+                        <label
+                            className="text-muted-foreground text-xs"
+                            htmlFor={`discord-log-route:${selectedRoute.key}:channel`}
+                        >
                             Channel ID
                         </label>
                         <Input
                             id={`discord-log-route:${selectedRoute.key}:channel`}
                             value={selectedRoute.channelId}
-                            onChange={(event) => onUpdateRoute(selectedRoute.key, 'channelId', event.currentTarget.value)}
+                            onChange={(event) =>
+                                onUpdateRoute(selectedRoute.key, 'channelId', event.currentTarget.value)
+                            }
                             placeholder="000000000000000000"
                         />
-                        <p className="text-muted-foreground text-xs">This is the Discord channel that will receive this log stream.</p>
+                        <p className="text-muted-foreground text-xs">
+                            This is the Discord channel that will receive this log stream.
+                        </p>
                     </div>
                 </div>
 
                 {selectedDefinition.supportsEntryFilter && (
                     <div className="space-y-4">
-                        <Button type="button" variant="outline" size="sm" onClick={() => onToggleAdvanced(selectedRoute.key, !isAdvancedOpen)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onToggleAdvanced(selectedRoute.key, !isAdvancedOpen)}
+                        >
                             {isAdvancedOpen ? 'Hide Entry Filters' : 'Show Entry Filters'}
                         </Button>
                         {isAdvancedOpen && (
@@ -354,25 +367,40 @@ function SelectedRoutePanel({
                                 <div className="grid gap-3 md:grid-cols-2">
                                     {selectedEntryDefinitions.map((entry) => {
                                         const isChecked =
-                                            !selectedRoute.useEntryFilter || selectedRoute.entryFilter.includes(entry.id);
+                                            !selectedRoute.useEntryFilter ||
+                                            selectedRoute.entryFilter.includes(entry.id);
 
                                         return (
-                                            <label key={entry.id} htmlFor={`${selectedRoute.key}-${entry.id}`} className="flex items-start gap-3 rounded-md border p-3">
+                                            <label
+                                                key={entry.id}
+                                                htmlFor={`${selectedRoute.key}-${entry.id}`}
+                                                className="flex items-start gap-3 rounded-md border p-3"
+                                            >
                                                 <Checkbox
                                                     id={`${selectedRoute.key}-${entry.id}`}
                                                     checked={isChecked}
-                                                    onCheckedChange={(checked) => onToggleRouteEntry(selectedRoute.key, entry.id, checked === true)}
+                                                    onCheckedChange={(checked) =>
+                                                        onToggleRouteEntry(
+                                                            selectedRoute.key,
+                                                            entry.id,
+                                                            checked === true,
+                                                        )
+                                                    }
                                                 />
                                                 <div className="space-y-1">
                                                     <div className="text-sm font-medium">{entry.label}</div>
-                                                    <div className="text-muted-foreground text-xs">{entry.description}</div>
+                                                    <div className="text-muted-foreground text-xs">
+                                                        {entry.description}
+                                                    </div>
                                                 </div>
                                             </label>
                                         );
                                     })}
                                 </div>
                                 {!selectedEntryDefinitions.length && (
-                                    <p className="text-muted-foreground text-sm">No entry filters are available for this route yet.</p>
+                                    <p className="text-muted-foreground text-sm">
+                                        No entry filters are available for this route yet.
+                                    </p>
                                 )}
                             </div>
                         )}
@@ -384,6 +412,7 @@ function SelectedRoutePanel({
 }
 
 export default function DiscordLogRoutesEditorPage() {
+    const { t } = useLocale();
     const editorState = useAtomValue(discordLogRoutesEditorAtom);
     const setEditorState = useSetAtom(discordLogRoutesEditorAtom);
     const [state, dispatch] = useReducer(reduceDiscordLogRoutesEditorState, editorState, (initialEditorState) => ({
@@ -459,7 +488,7 @@ export default function DiscordLogRoutesEditorPage() {
                 },
             };
             const resp = await saveApi({
-                pathParams: { card: 'discord-bot' },
+                pathParams: { card: 'discord' },
                 data: { resetKeys: [], changes },
                 timeout: ApiTimeout.LONG,
                 toastId,
@@ -519,13 +548,13 @@ export default function DiscordLogRoutesEditorPage() {
         });
     };
 
-    const isAdvancedOpen = selectedRoute ? advancedState[selectedRoute.key] ?? selectedRoute.useEntryFilter : false;
+    const isAdvancedOpen = selectedRoute ? (advancedState[selectedRoute.key] ?? selectedRoute.useEntryFilter) : false;
 
     return (
         <div className="max-h-contentvh flex h-full w-full flex-col">
             <PageHeader
                 icon={<Settings2Icon />}
-                title="Discord Logging"
+                title={t('panel.routes.discord_logs')}
                 parentName="Settings"
                 parentLink="/settings#discord"
             />
@@ -541,7 +570,10 @@ export default function DiscordLogRoutesEditorPage() {
                 <div className="mb-4 flex-none">
                     <div className="bg-card rounded-xl border p-4">
                         <div className="space-y-2">
-                            <label className="text-muted-foreground text-xs" htmlFor="discord-logging:log-guild-override">
+                            <label
+                                className="text-muted-foreground text-xs"
+                                htmlFor="discord-logging:log-guild-override"
+                            >
                                 Log Guild Override
                             </label>
                             <Input
@@ -560,13 +592,15 @@ export default function DiscordLogRoutesEditorPage() {
                     </div>
                 </div>
 
-                <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-                    <DiscordLogRouteSidebar
-                        routes={routes}
-                        warningsChannel={warningsChannel}
-                        selectedEntryKey={selectedEntryKey}
-                        onSelect={(selectedEntryKey) => dispatch({ type: 'patch', state: { selectedEntryKey } })}
-                    />
+                <div className="shell-xl:flex-row flex min-h-0 flex-1 flex-col gap-4">
+                    <div className="shell-xl:w-[min(100%,20rem)] shell-xl:shrink-0 min-h-0">
+                        <DiscordLogRouteSidebar
+                            routes={routes}
+                            warningsChannel={warningsChannel}
+                            selectedEntryKey={selectedEntryKey}
+                            onSelect={(selectedEntryKey) => dispatch({ type: 'patch', state: { selectedEntryKey } })}
+                        />
+                    </div>
 
                     <div className="bg-card min-h-0 overflow-hidden rounded-xl border">
                         {selectedEntryKey === warningsEntryKey ? (

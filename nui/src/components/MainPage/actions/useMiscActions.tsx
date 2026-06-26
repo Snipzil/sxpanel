@@ -1,5 +1,5 @@
 import React from 'react';
-import { Announcement, CenterFocusWeak, Groups } from '@mui/icons-material';
+import { Announcement, CenterFocusWeak, Groups, Map } from '@mui/icons-material';
 import { useDialogContext } from '../../../provider/DialogProvider';
 import { fetchNui } from '../../../utils/fetchNui';
 import { useTranslate } from 'react-polyglot';
@@ -60,6 +60,10 @@ export function useMiscActions() {
         fetchNui('togglePlayerIDs');
     };
 
+    const handleToggleMapBlips = () => {
+        fetchNui('toggleMapBlips');
+    };
+
     return {
         menuItems: [
             {
@@ -77,11 +81,27 @@ export function useMiscActions() {
                 onSelect: handleClearArea,
             },
             {
-                title: t('nui_menu.page_main.player_ids.title'),
-                label: t('nui_menu.page_main.player_ids.label'),
-                requiredPermission: 'menu.viewids',
+                title: t('nui_menu.page_main.toggles.title'),
+                isMultiAction: true,
                 icon: <Groups />,
-                onSelect: handleTogglePlayerIds,
+                actions: [
+                    {
+                        name: t('nui_menu.page_main.toggles.player_ids'),
+                        label: t('nui_menu.page_main.player_ids.label'),
+                        value: 'playerIds',
+                        icon: <Groups />,
+                        requiredPermission: 'menu.viewids',
+                        onSelect: handleTogglePlayerIds,
+                    },
+                    {
+                        name: t('nui_menu.page_main.toggles.map_blips'),
+                        label: t('nui_menu.page_main.map_blips.label'),
+                        value: 'mapBlips',
+                        icon: <Map />,
+                        requiredPermission: 'menu.mapblips',
+                        onSelect: handleToggleMapBlips,
+                    },
+                ],
             },
         ],
     };

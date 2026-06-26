@@ -2,11 +2,15 @@ const modulename = 'WebServer:AuthMws';
 import { timingSafeEqual } from 'node:crypto';
 import consoleFactory from '@lib/console';
 import { checkRequestAuth, normalAuthLogic, nuiAuthLogic, resolveEffectiveAuthedAdmin } from '../authLogic';
-import { ApiAuthErrorResp, ApiToastResp, GenericApiErrorResp } from '@shared/genericApiTypes';
+import { getAdminAccessDenial } from '../adminAccessPolicy';
+import { ApiAccessDeniedResp, ApiAuthErrorResp, ApiToastResp, GenericApiErrorResp } from '@shared/genericApiTypes';
 import { InitializedCtx } from '../ctxTypes';
 import { txHostConfig } from '@core/globalData';
-import { isIpAddressLocal } from '@lib/host/isIpAddressLocal';
+import { isIpAddressLocal, isIpAddressLoopback } from '@lib/host/isIpAddressLocal';
 const console = consoleFactory(modulename);
+
+const getCspNonce = (state: { [key: string]: unknown }): string | undefined =>
+    typeof state.cspNonce === 'string' ? state.cspNonce : undefined;
 
 const webLogoutPage = (nonce?: string) => {
     const nonceAttr = nonce ? ` nonce="${nonce}"` : '';
@@ -48,8 +52,16 @@ body {
 export const hostAuthMw = async (ctx: InitializedCtx, next: Function) => {
     const docs = 'https://aka.cfx.re/txadmin-env-config';
 
-    //Token disabled
+    // Token disabled is intended for same-machine development only.
     if (txHostConfig.hostApiToken === 'disabled') {
+        if (!isIpAddressLoopback(ctx.ip)) {
+            console.warn(`Host API request blocked (token disabled, non-loopback IP): ${ctx.ip}`);
+            return ctx.send({
+                error: 'forbidden',
+                desc: 'Host status API is restricted to loopback requests when TXHOST_API_TOKEN is disabled.',
+                docs,
+            });
+        }
         return await next();
     }
 
@@ -62,34 +74,26 @@ export const hostAuthMw = async (ctx: InitializedCtx, next: Function) => {
         });
     }
 
-    //Token available
-    let tokenProvided: string | undefined;
     const headerToken = ctx.headers['x-txadmin-envtoken'];
-    if (typeof headerToken === 'string' && headerToken) {
-        tokenProvided = headerToken;
-    }
     const paramsToken = ctx.query.envtoken;
-    if (typeof paramsToken === 'string' && paramsToken) {
-        tokenProvided = paramsToken;
-    }
-    if (headerToken && paramsToken) {
+    if (paramsToken) {
         return ctx.send({
-            error: 'token conflict',
-            desc: 'cannot use both header and query token',
+            error: 'query token unsupported',
+            desc: 'provide the token in the x-txadmin-envtoken header instead of the query string',
             docs,
         });
     }
-    if (!tokenProvided) {
+    if (typeof headerToken !== 'string' || !headerToken) {
         return ctx.send({
             error: 'token missing',
-            desc: 'a token needs to be provided in the header or query string',
+            desc: 'a token needs to be provided in the x-txadmin-envtoken header',
             docs,
         });
     }
     if (
         typeof txHostConfig.hostApiToken !== 'string' ||
-        tokenProvided.length !== txHostConfig.hostApiToken.length ||
-        !timingSafeEqual(Buffer.from(tokenProvided), Buffer.from(txHostConfig.hostApiToken))
+        headerToken.length !== txHostConfig.hostApiToken.length ||
+        !timingSafeEqual(Buffer.from(headerToken), Buffer.from(txHostConfig.hostApiToken))
     ) {
         return ctx.send({
             error: 'invalid token',
@@ -138,11 +142,12 @@ export const webAuthMw = async (ctx: InitializedCtx, next: Function) => {
         if (authResult.rejectReason) {
             console.verbose.warn(`Invalid session auth: ${authResult.rejectReason}`);
         }
-        return ctx.send(webLogoutPage(ctx.state.cspNonce));
+        return ctx.send(webLogoutPage(getCspNonce(ctx.state)));
     }
 
     //Adding the admin to the context
-    ctx.admin = await resolveEffectiveAuthedAdmin(authResult.admin);
+    const admin = await resolveEffectiveAuthedAdmin(authResult.admin);
+    ctx.admin = admin;
     await next();
 };
 
@@ -150,7 +155,8 @@ export const webAuthMw = async (ctx: InitializedCtx, next: Function) => {
  * API Authentication Middleware
  */
 export const apiAuthMw = async (ctx: InitializedCtx, next: Function) => {
-    const sendTypedResp = (data: ApiAuthErrorResp | (ApiToastResp & GenericApiErrorResp)) => ctx.send(data);
+    const sendTypedResp = (data: ApiAuthErrorResp | ApiAccessDeniedResp | (ApiToastResp & GenericApiErrorResp)) =>
+        ctx.send(data);
 
     //Check auth
     const authResult = checkRequestAuth(ctx.request.headers, ctx.ip, ctx.txVars.isLocalRequest, ctx.sessTools);
@@ -170,11 +176,15 @@ export const apiAuthMw = async (ctx: InitializedCtx, next: Function) => {
     if (ctx.txVars.isWebInterface) {
         const sessToken = authResult.admin?.csrfToken; //it should exist for nui because of authLogic
         const headerToken = ctx.headers['x-txadmin-csrftoken'];
-        if (!sessToken || !headerToken || sessToken !== headerToken) {
+        const body = ctx.request.body;
+        const bodyRecord = body && typeof body === 'object' ? (body as Record<string, unknown>) : undefined;
+        const bodyToken = bodyRecord && typeof bodyRecord.csrfToken === 'string' ? bodyRecord.csrfToken : undefined;
+        const providedToken = typeof headerToken === 'string' && headerToken ? headerToken : bodyToken;
+        if (!sessToken || !providedToken || sessToken !== providedToken) {
             console.verbose.warn(`Invalid CSRF token: ${ctx.path}`);
-            const msg = headerToken
+            const msg = providedToken
                 ? 'Error: Invalid CSRF token, please refresh the page or try to login again.'
-                : "Error: Missing HTTP header 'x-txadmin-csrftoken'. This likely means your files are not updated or you are using some reverse proxy that is removing this header from the HTTP request.";
+                : 'Error: Missing CSRF token. This likely means your files are not updated or you are using some reverse proxy that is removing the CSRF token from the HTTP request.';
 
             //Doing ApiAuthErrorResp & GenericApiErrorResp to maintain compatibility with all routes
             //"error" is used by diagnostic, masterActions, playerlist, whitelist and possibly more
@@ -187,7 +197,19 @@ export const apiAuthMw = async (ctx: InitializedCtx, next: Function) => {
     }
 
     //Adding the admin to the context
-    ctx.admin = await resolveEffectiveAuthedAdmin(authResult.admin);
+    const admin = await resolveEffectiveAuthedAdmin(authResult.admin);
+    ctx.admin = admin;
+
+    const accessDenial = getAdminAccessDenial(admin, ctx.path);
+    if (accessDenial) {
+        ctx.status = 403;
+        return sendTypedResp({
+            accessDenied: true,
+            reason: accessDenial.reason,
+            error: accessDenial.message,
+        });
+    }
+
     await next();
 };
 
@@ -205,7 +227,13 @@ export const assetAuthMw = async (ctx: InitializedCtx, next: Function) => {
     // Prefer regular web session auth for panel/browser asset requests.
     const webAuthResult = normalAuthLogic(ctx.sessTools);
     if (webAuthResult.success) {
-        ctx.admin = await resolveEffectiveAuthedAdmin(webAuthResult.admin);
+        const admin = await resolveEffectiveAuthedAdmin(webAuthResult.admin);
+        ctx.admin = admin;
+        const accessDenial = getAdminAccessDenial(admin, ctx.path);
+        if (accessDenial) {
+            ctx.status = 403;
+            return ctx.send(webLogoutPage(getCspNonce(ctx.state)));
+        }
         await next();
         return;
     }
@@ -218,7 +246,14 @@ export const assetAuthMw = async (ctx: InitializedCtx, next: Function) => {
     if (typeof tokenHeader === 'string' && tokenHeader.length > 0) {
         const nuiAuthResult = nuiAuthLogic(ctx.ip, ctx.txVars.isLocalRequest, ctx.request.headers);
         if (nuiAuthResult.success) {
-            ctx.admin = await resolveEffectiveAuthedAdmin(nuiAuthResult.admin);
+            const admin = await resolveEffectiveAuthedAdmin(nuiAuthResult.admin);
+            ctx.admin = admin;
+            const accessDenial = getAdminAccessDenial(admin, ctx.path);
+            if (accessDenial) {
+                ctx.status = 403;
+                ctx.body = 'Not found.';
+                return;
+            }
             await next();
             return;
         }

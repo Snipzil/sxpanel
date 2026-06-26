@@ -4,6 +4,7 @@ import { useOpenPromptDialog } from '@/hooks/dialogs';
 import { useLiveConsoleBookmarks, useLiveConsoleHistory } from '@/pages/LiveConsole/liveConsoleHooks';
 import { cn, createDuplicateKeyResolver } from '@/lib/utils';
 import { PlusIcon, StarIcon, StarOffIcon, XIcon } from 'lucide-react';
+import { useLocale } from '@/hooks/locale';
 
 type SheetProps = {
     isOpen: boolean;
@@ -12,10 +13,11 @@ type SheetProps = {
 };
 
 function SheetBackdrop({ isOpen, closeSheet }: Omit<SheetProps, 'toTermInput'>) {
+    const { t } = useLocale();
     return (
         <button
             type="button"
-            aria-label="Close command sheet"
+            aria-label={t('panel.live_console.sheet.close_aria')}
             className={cn(
                 'absolute inset-0 z-20',
                 'bg-black/60 duration-300',
@@ -30,11 +32,12 @@ function SheetBackdrop({ isOpen, closeSheet }: Omit<SheetProps, 'toTermInput'>) 
 }
 
 function SheetCloseButton({ closeSheet }: Pick<SheetProps, 'closeSheet'>) {
+    const { t } = useLocale();
     return (
         <button
             className="absolute top-4 right-4 cursor-pointer rounded-sm opacity-70 ring-0 transition-opacity hover:opacity-100 focus:outline-hidden"
             onClick={closeSheet}
-            title="Close"
+            title={t('panel.live_console.sheet.close')}
         >
             <XIcon className="size-8" />
         </button>
@@ -49,6 +52,7 @@ type SheetCommandProps = {
 };
 
 function SheetCommand({ cmd, type, onClick, onFavAction }: SheetCommandProps) {
+    const { t } = useLocale();
     const handleFavAction = (event: React.MouseEvent) => {
         event.stopPropagation();
         onFavAction();
@@ -77,12 +81,12 @@ function SheetCommand({ cmd, type, onClick, onFavAction }: SheetCommandProps) {
                     {type === 'history' ? (
                         <>
                             <StarIcon className="size-5" />
-                            <span className="sr-only">Save</span>
+                            <span className="sr-only">{t('panel.live_console.sheet.save_sr')}</span>
                         </>
                     ) : (
                         <>
                             <StarOffIcon className="size-5" />
-                            <span className="sr-only">Remove</span>
+                            <span className="sr-only">{t('panel.live_console.sheet.remove_sr')}</span>
                         </>
                     )}
                 </button>
@@ -92,6 +96,7 @@ function SheetCommand({ cmd, type, onClick, onFavAction }: SheetCommandProps) {
 }
 
 function SheetContent({ toTermInput }: Pick<SheetProps, 'toTermInput'>) {
+    const { t } = useLocale();
     const { history, wipeHistory } = useLiveConsoleHistory();
     const { bookmarks, addBookmark, removeBookmark } = useLiveConsoleBookmarks();
     const openPromptDialog = useOpenPromptDialog();
@@ -99,14 +104,14 @@ function SheetContent({ toTermInput }: Pick<SheetProps, 'toTermInput'>) {
     const getBookmarkKey = createDuplicateKeyResolver();
 
     const handleWipeHistory = () => {
-        txToast.success('History cleared');
+        txToast.success(t('panel.live_console.sheet.history_cleared'));
         wipeHistory();
     };
     const handleSaveCommand = () => {
         openPromptDialog({
-            title: 'Save Command',
-            message: 'Enter the command to save:',
-            submitLabel: 'Save',
+            title: t('panel.live_console.sheet.save_command_title'),
+            message: t('panel.live_console.sheet.save_command_message'),
+            submitLabel: t('panel.common.save'),
             onSubmit: (cmd) => {
                 if (cmd) addBookmark(cmd);
             },
@@ -115,7 +120,7 @@ function SheetContent({ toTermInput }: Pick<SheetProps, 'toTermInput'>) {
     return (
         <div className="flex max-h-full flex-row gap-4">
             <div className="flex w-1/2 grow flex-col gap-2">
-                <h2 className="text-xl font-semibold">History</h2>
+                <h2 className="text-xl font-semibold">{t('panel.live_console.sheet.history_title')}</h2>
                 <ScrollArea
                     className="text-muted-foreground max-h-full w-full pr-3 text-sm"
                     style={{ wordBreak: 'break-word' }}
@@ -126,7 +131,7 @@ function SheetContent({ toTermInput }: Pick<SheetProps, 'toTermInput'>) {
                     >
                         <div className="flex items-center justify-center gap-2">
                             <XIcon className="inline size-4" />
-                            Clear History
+                            {t('panel.live_console.sheet.clear_history')}
                         </div>
                     </button>
                     <div className="line-clamp-1 space-y-2 pb-4 font-mono text-sm tracking-wide">
@@ -142,13 +147,13 @@ function SheetContent({ toTermInput }: Pick<SheetProps, 'toTermInput'>) {
                     </div>
                     {history.length === 0 && (
                         <div className="h-auto w-full text-center tracking-wider italic">
-                            The command history is empty.
+                            {t('panel.live_console.sheet.history_empty')}
                         </div>
                     )}
                 </ScrollArea>
             </div>
             <div className="flex w-1/2 grow flex-col gap-2">
-                <h2 className="text-xl font-semibold">Saved</h2>
+                <h2 className="text-xl font-semibold">{t('panel.live_console.sheet.saved_title')}</h2>
                 <ScrollArea
                     className="text-muted-foreground max-h-full w-full pr-3 text-sm"
                     style={{ wordBreak: 'break-word' }}
@@ -159,7 +164,7 @@ function SheetContent({ toTermInput }: Pick<SheetProps, 'toTermInput'>) {
                     >
                         <div className="flex items-center justify-center gap-2">
                             <PlusIcon className="inline size-4" />
-                            Add New
+                            {t('panel.live_console.sheet.add_new')}
                         </div>
                     </button>
                     <div className="line-clamp-1 space-y-2 pb-4 font-mono text-sm tracking-wide">
@@ -175,8 +180,8 @@ function SheetContent({ toTermInput }: Pick<SheetProps, 'toTermInput'>) {
                     </div>
                     {bookmarks.length === 0 && (
                         <div className="h-auto w-full text-center tracking-wider italic">
-                            There are no saved commands. <br />
-                            To save a command, click the star icon next to it.
+                            {t('panel.live_console.sheet.saved_empty_line1')} <br />
+                            {t('panel.live_console.sheet.saved_empty_line2')}
                         </div>
                     )}
                 </ScrollArea>

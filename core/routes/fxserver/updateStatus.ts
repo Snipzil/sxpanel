@@ -1,7 +1,7 @@
 const modulename = 'WebServer:FxArtifactList';
 import { z } from 'zod';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
-import { txEnv } from '@core/globalData';
+import { txEnv, txHostConfig } from '@core/globalData';
 import got from '@lib/got';
 import consoleFactory from '@lib/console';
 import type { ArtifactListResp, ArtifactTierInfo } from '@shared/otherTypes';
@@ -53,6 +53,7 @@ export default async function FxArtifactList(ctx: AuthedCtx) {
         currentVersionTag: txEnv.fxsVersionTag,
         tiers,
         updateStatus: txCore.fxUpdater.status,
+        customDownloadEnabled: txHostConfig.artifactCustomDownloadEnabled,
     };
     return ctx.send(resp);
 }

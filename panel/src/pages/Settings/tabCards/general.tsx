@@ -17,6 +17,7 @@ import InlineCode from '@/components/InlineCode';
 import TxAnchor from '@/components/TxAnchor';
 import { txToast } from '@/components/TxToaster';
 import { useAdminPerms } from '@/hooks/auth';
+import { useLocale } from '@/hooks/locale';
 
 const detectBrowserLanguage = () => {
     const txTopLocale = Array.isArray(window.txBrowserLocale) ? window.txBrowserLocale[0] : window.txBrowserLocale;
@@ -35,9 +36,11 @@ export const pageConfigs = {
     serverName: getPageConfig('general', 'serverName'),
     language: getPageConfig('general', 'language'),
     allowSelfIdentifierEdit: getPageConfig('general', 'allowSelfIdentifierEdit', undefined, false),
+    requireAdminTwoFactor: getPageConfig('general', 'requireAdminTwoFactor', undefined, false),
 } as const;
 
 export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProps) {
+    const { t } = useLocale();
     const { isMaster } = useAdminPerms();
     const [states, dispatch] = useReducer(configsReducer<typeof pageConfigs>, null, () =>
         getConfigEmptyState(pageConfigs),
@@ -46,15 +49,12 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
         return getConfigAccessors(cardCtx.cardId, pageConfigs, pageCtx.apiData, dispatch);
     }, [pageCtx.apiData, dispatch]);
 
-    //Effects - handle changes and reset advanced settings
     useEffect(() => {
         updatePageState();
     }, [states]);
 
-    //Refs for configs that don't use state
     const serverNameRef = useRef<HTMLInputElement | null>(null);
 
-    //Processes the state of the page and sets the card as pending save if needed
     const updatePageState = () => {
         const overwrites = {
             serverName: serverNameRef.current?.value,
@@ -65,21 +65,19 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
         return res;
     };
 
-    //Validate changes (for UX only) and trigger the save API
     const handleOnSave = () => {
         const { hasChanges, localConfigs } = updatePageState();
         if (!hasChanges) return;
 
         if (!localConfigs.general?.serverName) {
-            return txToast.error('The Server Name is required.');
+            return txToast.error(t('panel.toasts.server_name_required'));
         }
         if (localConfigs.general?.serverName?.length > 18) {
-            return txToast.error('The Server Name is too big.');
+            return txToast.error(t('panel.toasts.server_name_too_big'));
         }
         pageCtx.saveChanges(cardCtx, localConfigs);
     };
 
-    //Small QOL to hoist the detected browser language to the top of the list
     const localeData = useMemo(() => {
         if (!pageCtx.apiData?.locales) return null;
         const browserLanguage = detectBrowserLanguage();
@@ -92,7 +90,7 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
             } else if (lang.code === browserLanguage) {
                 browserData = {
                     code: lang.code,
-                    label: `${lang.label} (browser)`,
+                    label: `${lang.label} ${t('panel.settings.general.language.browser_suffix')}`,
                 };
             } else {
                 otherData.push(lang);
@@ -104,36 +102,34 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
             'sep1',
             ...otherData,
             'sep2',
-            { code: 'custom', label: 'Custom (txData/locale.json)' },
+            { code: 'custom', label: t('panel.settings.general.language.custom_option') },
         ].filter(Boolean);
-    }, [pageCtx.apiData]);
+    }, [pageCtx.apiData, t]);
 
     return (
         <SettingsCardShell cardCtx={cardCtx} pageCtx={pageCtx} onClickSave={handleOnSave}>
-            <SettingItem label="Server Name" htmlFor={cfg.serverName.eid} required>
+            <SettingItem label={t('panel.settings.general.server_name.label')} htmlFor={cfg.serverName.eid} required>
                 <Input
                     id={cfg.serverName.eid}
                     ref={serverNameRef}
                     defaultValue={cfg.serverName.initialValue}
-                    placeholder={'Example RP'}
+                    placeholder={t('panel.settings.general.server_name.placeholder')}
                     onInput={updatePageState}
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>
-                    A <strong>short</strong> server name to be used in the fxPanel interface and Server/Discord
-                    messages. <br />
-                    The name must be between 1 and 18 characters.
+                    {t('panel.settings.general.server_name.desc')} <br />
+                    {t('panel.settings.general.server_name.desc_length')}
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Language" htmlFor={cfg.language.eid} required>
-                {/* TODO: add a "Edit xxx" button besides the language for easy custom.json locale */}
+            <SettingItem label={t('panel.settings.general.language.label')} htmlFor={cfg.language.eid} required>
                 <Select
                     value={states.language}
                     onValueChange={cfg.language.state.set as any}
                     disabled={pageCtx.isReadOnly}
                 >
                     <SelectTrigger id={cfg.language.eid}>
-                        <SelectValue placeholder="Select..." />
+                        <SelectValue placeholder={t('panel.common.select_placeholder')} />
                     </SelectTrigger>
                     <SelectContent>
                         {localeData?.map((locale) =>
@@ -148,32 +144,53 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
                     </SelectContent>
                 </Select>
                 <SettingItemDesc>
-                    The language to use on Chat/Discord messages. <br />
-                    You can customize the phrases/words by using the <InlineCode>Custom</InlineCode> option. <br />
-                    For more information, please read the{' '}
-                    <TxAnchor href="https://fxpanel.org/docs/v0.2.2-Beta/translation">
-                        documentation
+                    {t('panel.settings.general.language.desc')} <br />
+                    {t('panel.settings.general.language.desc_custom')}{' '}
+                    <InlineCode>{t('panel.settings.general.language.custom_inline')}</InlineCode>. <br />
+                    {t('panel.settings.general.language.desc_docs')}{' '}
+                    <TxAnchor href="https://fxpanel.org/docs/v0.4.0-Beta/translation">
+                        {t('panel.settings.general.language.documentation_link')}
                     </TxAnchor>
                     .
                 </SettingItemDesc>
             </SettingItem>
             {isMaster && (
-                <SettingItem label="Allow Self Identifier Edit" htmlFor={cfg.allowSelfIdentifierEdit.eid}>
-                    <SwitchText
-                        id={cfg.allowSelfIdentifierEdit.eid}
-                        checked={states.allowSelfIdentifierEdit}
-                        onCheckedChange={cfg.allowSelfIdentifierEdit.state.set}
-                        disabled={pageCtx.isReadOnly}
-                        checkedLabel="Enabled"
-                        uncheckedLabel="Disabled"
-                    />
-                    <SettingItemDesc>
-                        When enabled, all admins can change their own identifiers (FiveM &amp; Discord) from the Account
-                        dialog. <br />
-                        When disabled, only admins with the <strong>Manage Admins</strong> permission can edit
-                        identifiers.
-                    </SettingItemDesc>
-                </SettingItem>
+                <>
+                    <SettingItem
+                        label={t('panel.settings.general.allow_self_identifier_edit.label')}
+                        htmlFor={cfg.allowSelfIdentifierEdit.eid}
+                    >
+                        <SwitchText
+                            id={cfg.allowSelfIdentifierEdit.eid}
+                            checked={states.allowSelfIdentifierEdit}
+                            onCheckedChange={cfg.allowSelfIdentifierEdit.state.set}
+                            disabled={pageCtx.isReadOnly}
+                            checkedLabel={t('panel.settings.switch.enabled')}
+                            uncheckedLabel={t('panel.settings.switch.disabled')}
+                        />
+                        <SettingItemDesc>
+                            {t('panel.settings.general.allow_self_identifier_edit.desc_enabled')} <br />
+                            {t('panel.settings.general.allow_self_identifier_edit.desc_disabled')}
+                        </SettingItemDesc>
+                    </SettingItem>
+                    <SettingItem
+                        label={t('panel.settings.general.require_admin_two_factor.label')}
+                        htmlFor={cfg.requireAdminTwoFactor.eid}
+                    >
+                        <SwitchText
+                            id={cfg.requireAdminTwoFactor.eid}
+                            checked={states.requireAdminTwoFactor}
+                            onCheckedChange={cfg.requireAdminTwoFactor.state.set}
+                            disabled={pageCtx.isReadOnly}
+                            checkedLabel={t('panel.settings.switch.required')}
+                            uncheckedLabel={t('panel.settings.switch.optional')}
+                        />
+                        <SettingItemDesc>
+                            {t('panel.settings.general.require_admin_two_factor.desc')} <br />
+                            {t('panel.settings.general.require_admin_two_factor.desc_master')}
+                        </SettingItemDesc>
+                    </SettingItem>
+                </>
             )}
         </SettingsCardShell>
     );

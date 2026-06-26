@@ -1,233 +1,342 @@
 import { ErrorBoundary } from 'react-error-boundary';
-import type { ReactElement } from 'react';
-import { useEffect } from 'react';
-import { Redirect, Route as WouterRoute, Switch } from 'wouter';
+import type { ComponentType, ReactElement } from 'react';
+import { isValidElement, lazy, Suspense, useEffect } from 'react';
+import { Redirect, Route as WouterRoute, Switch, useLocation } from 'wouter';
 import { PageErrorFallback } from '@/components/ErrorFallback';
+import GenericSpinner from '@/components/GenericSpinner';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { contentRefreshKeyAtom, pageErrorStatusAtom, useSetPageTitle } from '@/hooks/pages';
 import { navigate as setLocation } from 'wouter/use-browser-location';
 
-import NotFound from '@/pages/NotFound';
-import LiveConsolePage from '@/pages/LiveConsole/LiveConsolePage';
-import AdminManagerPage from '@/pages/AdminManager/AdminManagerPage';
-import PlayersPage from '@/pages/Players/PlayersPage';
-import HistoryPage from '@/pages/History/HistoryPage';
-import BanTemplatesPage from '@/pages/BanTemplates/BanTemplatesPage';
-import SystemLogPage from '@/pages/SystemLogPage';
-import ActionLogPage from '@/pages/ActionLog/ActionLogPage';
-import ServerLogPage from '@/pages/ServerLog/ServerLogPage';
-import AddLegacyBanPage from '@/pages/AddLegacyBanPage';
-import DashboardPage from '@/pages/Dashboard/DashboardPage';
-import InsightsPage from '@/pages/InsightsPage/InsightsPage';
-import ReportsPage from '@/pages/Reports/ReportsPage';
-import AnalyticsPage from '@/pages/Reports/AnalyticsPage';
-import PlayerDropsPage from '@/pages/PlayerDropsPage/PlayerDropsPage';
-import SettingsPage from '@/pages/Settings/SettingsPage';
-import AddonsManagerPage from '@/pages/AddonsManagerPage';
-import EmbedEditorPage from '@/pages/Settings/EmbedEditorPage';
-import DiscordLogRoutesEditorPage from '@/pages/Settings/DiscordLogRoutesEditorPage';
-import FxUpdaterPage from '@/pages/FxUpdater/FxUpdaterPage';
-import WhitelistPage from '@/pages/Whitelist/WhitelistPage';
-import ResourcesPage from '@/pages/ResourcesPage/ResourcesPage';
-import AdvancedPage from '@/pages/AdvancedPage';
-import DiagnosticsPage from '@/pages/DiagnosticsPage';
-import CfgEditorPage from '@/pages/CfgEditorPage';
-import SetupPage from '@/pages/SetupPage';
-import DeployerPage from '@/pages/DeployerPage';
-import TestingPage from '@/pages/TestingPage/TestingPage';
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const UnauthorizedPage = lazy(() => import('@/pages/UnauthorizedPage'));
+const PlayersPage = lazy(() => import('@/pages/Players/PlayersPage'));
+const HistoryPage = lazy(() => import('@/pages/History/HistoryPage'));
+const BanTemplatesPage = lazy(() => import('@/pages/BanTemplates/BanTemplatesPage'));
+const SystemLogPage = lazy(() => import('@/pages/SystemLogPage'));
+const ActionLogPage = lazy(() => import('@/pages/ActionLog/ActionLogPage'));
+const ServerLogPage = lazy(() => import('@/pages/ServerLog/ServerLogPage'));
+const AddLegacyBanPage = lazy(() => import('@/pages/AddLegacyBanPage'));
+const ReportsPage = lazy(() => import('@/pages/Reports/ReportsPage'));
+const AnalyticsPage = lazy(() => import('@/pages/Reports/AnalyticsPage'));
+const PlayerDropsPage = lazy(() => import('@/pages/PlayerDropsPage/PlayerDropsPage'));
+const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'));
+const AddonsManagerPage = lazy(() => import('@/pages/AddonsManagerPage'));
+const FxUpdaterPage = lazy(() => import('@/pages/FxUpdater/FxUpdaterPage'));
+const DeployerPage = lazy(() => import('@/pages/Deployer/DeployerPage'));
+const DiagnosticsPage = lazy(() => import('@/pages/Diagnostics/DiagnosticsPage'));
+const CfgEditorPage = lazy(() => import('@/pages/CfgEditorPage'));
 import { useAdminPerms } from '@/hooks/auth';
 import { useAddonLoader, type AddonPageRoute } from '@/hooks/addons';
-import UnauthorizedPage from '@/pages/UnauthorizedPage';
+import { useLocale } from '@/hooks/locale';
+import { isEmbeddedInNuiMenu } from '@/lib/nuiEmbed';
+import { openExternalLink } from '@/lib/navigation';
+import { Button } from '@/components/ui/button';
+import { GlobeIcon } from 'lucide-react';
+
+const DashboardPage = lazy(() => import('@/pages/Dashboard/DashboardPage'));
+const InsightsPage = lazy(() => import('@/pages/InsightsPage/InsightsPage'));
+const LiveConsolePage = lazy(() => import('@/pages/LiveConsole/LiveConsolePage'));
+const AdminManagerPage = lazy(() => import('@/pages/AdminManager/AdminManagerPage'));
+const ResourcesPage = lazy(() => import('@/pages/ResourcesPage/ResourcesPage'));
+const WhitelistPage = lazy(() => import('@/pages/Whitelist/WhitelistPage'));
+const EmbedEditorPage = lazy(() => import('@/pages/Settings/EmbedEditorPage'));
+const DeferralStudioPage = lazy(() => import('@/pages/Settings/DeferralStudioPage'));
+const DiscordLogRoutesEditorPage = lazy(() => import('@/pages/Settings/DiscordLogRoutesEditorPage'));
+const SetupPage = lazy(() => import('@/pages/SetupPage'));
+const AdvancedPage = lazy(() => import('@/pages/AdvancedPage'));
+const TestingPage = lazy(() => import('@/pages/TestingPage/TestingPage'));
+
+function ConsoleSystemLogPage() {
+    return (
+        <Suspense fallback={<PageRouteFallback />}>
+            <SystemLogPage pageName="console" />
+        </Suspense>
+    );
+}
+
+function RedirectToDangerZone() {
+    return <Redirect to="/settings#danger-zone" replace />;
+}
+
+function RedirectToDiscordEmbedStatus() {
+    return <Redirect to="/settings/discord-embed/status" replace />;
+}
+
+function RedirectToDeferralCards() {
+    return <Redirect to="/settings#deferral-cards" replace />;
+}
+
+function NotFoundRoute() {
+    const [location] = useLocation();
+    const unmatchedPath = location.startsWith('/') ? location.slice(1) : location;
+
+    return (
+        <Suspense fallback={<PageRouteFallback />}>
+            <NotFound params={{ '*': unmatchedPath }} />
+        </Suspense>
+    );
+}
+
+function PageRouteFallback() {
+    return (
+        <div className="flex w-full justify-center py-16">
+            <GenericSpinner />
+        </div>
+    );
+}
+
+function renderRoutePage(Page: ComponentType | ReactElement) {
+    if (isValidElement(Page)) return Page;
+
+    const LazyPage = Page;
+    return (
+        <Suspense fallback={<PageRouteFallback />}>
+            <LazyPage />
+        </Suspense>
+    );
+}
 
 type RouteType = {
     path: string;
-    title: string;
+    titleKey: string;
     permission?: string;
-    Page: ReactElement;
+    Page: ComponentType | ReactElement;
 };
 
 const allRoutes: RouteType[] = [
     //Global Routes
     {
         path: '/players',
-        title: 'Players',
-        Page: <PlayersPage />,
+        titleKey: 'panel.routes.players',
+        Page: PlayersPage,
     },
     {
         path: '/history',
-        title: 'History',
-        Page: <HistoryPage />,
+        titleKey: 'panel.routes.history',
+        Page: HistoryPage,
     },
     {
         path: '/reports',
-        title: 'Reports',
+        titleKey: 'panel.routes.reports',
         permission: 'players.reports',
-        Page: <ReportsPage />,
+        Page: ReportsPage,
     },
     {
         path: '/reports/analytics',
-        title: 'Report Analytics',
+        titleKey: 'panel.routes.report_analytics',
         permission: 'players.reports',
-        Page: <AnalyticsPage />,
+        Page: AnalyticsPage,
     },
     {
         path: '/insights',
-        title: 'Insights',
-        Page: <InsightsPage />,
+        titleKey: 'panel.routes.insights',
+        Page: InsightsPage,
     },
     {
         path: '/server/player-drops',
-        title: 'Player Drops',
-        Page: <PlayerDropsPage />,
+        titleKey: 'panel.routes.player_drops',
+        Page: PlayerDropsPage,
     },
     {
         path: '/whitelist',
-        title: 'Whitelist',
-        Page: <WhitelistPage />,
+        titleKey: 'panel.routes.whitelist',
+        Page: WhitelistPage,
     },
     {
         path: '/admins',
-        title: 'Admins',
+        titleKey: 'panel.routes.admins',
         permission: 'manage.admins',
-        Page: <AdminManagerPage />,
+        Page: AdminManagerPage,
     },
     {
         path: '/settings',
-        title: 'Settings',
+        titleKey: 'panel.routes.settings',
         permission: 'settings.view',
-        Page: <SettingsPage />,
+        Page: SettingsPage,
     },
     {
         path: '/addons',
-        title: 'Addon Manager',
+        titleKey: 'panel.routes.addons',
         permission: 'all_permissions',
-        Page: <AddonsManagerPage />,
+        Page: AddonsManagerPage,
     },
     {
         // Legacy route — destructive actions moved to /settings#danger-zone.
         // Kept so old bookmarks/links keep working; the page just redirects.
         path: '/system/master-actions',
-        title: 'Master Actions',
-        Page: <Redirect to="/settings#danger-zone" replace />,
+        titleKey: 'panel.routes.master_actions',
+        Page: RedirectToDangerZone,
     },
     {
         path: '/system/diagnostics',
-        title: 'Diagnostics',
-        Page: <DiagnosticsPage />,
+        titleKey: 'panel.routes.diagnostics',
+        Page: DiagnosticsPage,
     },
     {
         path: '/system/artifacts',
-        title: 'Artifacts',
+        titleKey: 'panel.routes.artifacts',
         permission: 'all_permissions',
-        Page: <FxUpdaterPage />,
+        Page: FxUpdaterPage,
     },
     {
         path: '/system/console-log',
-        title: 'Console Log',
+        titleKey: 'panel.routes.console_log',
         permission: 'txadmin.log.view',
-        Page: <SystemLogPage pageName="console" />,
+        Page: ConsoleSystemLogPage,
     },
     {
         path: '/system/action-log',
-        title: 'Action Log',
+        titleKey: 'panel.routes.action_log',
         permission: 'txadmin.log.view',
-        Page: <ActionLogPage />,
+        Page: ActionLogPage,
     },
 
     //Server Routes
     {
         path: '/',
-        title: 'Dashboard',
-        Page: <DashboardPage />,
+        titleKey: 'panel.routes.dashboard',
+        Page: DashboardPage,
     },
     {
         path: '/server/console',
-        title: 'Live Console',
+        titleKey: 'panel.routes.live_console',
         permission: 'console.view',
-        Page: <LiveConsolePage />,
+        Page: LiveConsolePage,
     },
     {
         path: '/server/resources',
-        title: 'Resources',
-        Page: <ResourcesPage />,
+        titleKey: 'panel.routes.resources',
+        Page: ResourcesPage,
     },
     {
         path: '/server/server-log',
-        title: 'Server Log',
+        titleKey: 'panel.routes.server_log',
         permission: 'server.log.view',
-        Page: <ServerLogPage />,
+        Page: ServerLogPage,
     },
     {
         path: '/server/cfg-editor',
-        title: 'CFG Editor',
+        titleKey: 'panel.routes.cfg_editor',
         permission: 'server.cfg.editor',
-        Page: <CfgEditorPage />,
+        Page: CfgEditorPage,
     },
     {
         path: '/server/setup',
-        title: 'Server Setup',
+        titleKey: 'panel.routes.server_setup',
         permission: 'master',
-        Page: <SetupPage />,
+        Page: SetupPage,
     },
     {
         path: '/server/deployer',
-        title: 'Server Deployer',
+        titleKey: 'panel.routes.server_deployer',
         permission: 'master',
-        Page: <DeployerPage />,
+        Page: DeployerPage,
     },
     {
         path: '/advanced',
-        title: 'Advanced',
+        titleKey: 'panel.routes.advanced',
         permission: 'all_permissions',
-        Page: <AdvancedPage />,
+        Page: AdvancedPage,
     },
 
     //No nav routes
     {
         path: '/settings/ban-templates',
-        title: 'Ban Templates',
+        titleKey: 'panel.routes.ban_templates',
         //NOTE: content is readonly for unauthorized accounts
-        Page: <BanTemplatesPage />,
+        Page: BanTemplatesPage,
     },
     {
         path: '/settings/embed-editor',
-        title: 'Embed Editor',
+        titleKey: 'panel.routes.embed_editor',
         permission: 'settings.write',
-        Page: <EmbedEditorPage />,
+        Page: RedirectToDiscordEmbedStatus,
+    },
+    {
+        path: '/settings/discord-embed/:variant',
+        titleKey: 'panel.routes.embed_editor',
+        permission: 'settings.write',
+        Page: EmbedEditorPage,
+    },
+    {
+        path: '/settings/deferral-studio',
+        titleKey: 'panel.routes.deferral_studio',
+        permission: 'settings.write',
+        Page: DeferralStudioPage,
+    },
+    {
+        path: '/settings/deferral-editor/:scenarioId',
+        titleKey: 'panel.routes.deferral_editor',
+        permission: 'settings.write',
+        Page: RedirectToDeferralCards,
     },
     {
         path: '/settings/discord-logs',
-        title: 'Discord Logging',
+        titleKey: 'panel.routes.discord_logs',
         permission: 'settings.write',
-        Page: <DiscordLogRoutesEditorPage />,
+        Page: DiscordLogRoutesEditorPage,
     },
     {
         path: '/ban-identifiers',
-        title: 'Ban Identifiers',
-        Page: <AddLegacyBanPage />,
+        titleKey: 'panel.routes.ban_identifiers',
+        Page: AddLegacyBanPage,
     },
-    //FIXME: decide on how to organize the url for the player drops page - /server/ prefix?
-    //       This will likely be a part of the insights page, eventually
-    // {
-    //     path: '/player-crashes',
-    //     title: 'Player Crashes',
-    //     children: <PlayerCrashesPage />
-    // },
 ];
+
+//Routes that cannot run inside the in-game menu iframe (need a full browser/OAuth)
+const nuiBlockedRoutePaths = ['/server/setup', '/server/deployer'];
+
+function NuiBlockedRoutePage({ pageName, routePath }: { pageName: string; routePath: string }) {
+    const { t } = useLocale();
+
+    const handleOpenInBrowser = () => {
+        openExternalLink(`https://monitor${routePath}`);
+    };
+
+    return (
+        <div className="flex w-full items-center justify-center">
+            <div className="border-border/50 bg-card/60 flex max-w-md flex-col items-center gap-3 rounded-xl border p-8 text-center">
+                <GlobeIcon className="text-muted-foreground size-10" />
+                <h2 className="text-foreground text-lg font-semibold">
+                    {t('panel.nui_embed.blocked_route_title', { page: pageName })}
+                </h2>
+                <p className="text-muted-foreground text-sm">{t('panel.nui_embed.blocked_route_desc')}</p>
+                <Button type="button" variant="secondary" onClick={handleOpenInBrowser}>
+                    {t('panel.nui_embed.blocked_route_open_browser')}
+                </Button>
+            </div>
+        </div>
+    );
+}
 
 function RouteContent({ route }: { route: RouteType }) {
     const { hasPerm } = useAdminPerms();
     const setPageTitle = useSetPageTitle();
+    const { t } = useLocale();
+    const pageTitle = t(route.titleKey);
 
     useEffect(() => {
-        setPageTitle(route.title);
-    }, [route.title, setPageTitle]);
+        setPageTitle(pageTitle);
+    }, [pageTitle, setPageTitle]);
 
-    if (route.permission && !hasPerm(route.permission)) {
-        return <UnauthorizedPage pageName={route.title} permission={route.permission} />;
+    if (route.path.startsWith('/reports') && !window.txConsts.reportsEnabled) {
+        return <Redirect to="/" replace />;
     }
 
-    return route.Page;
+    if (isEmbeddedInNuiMenu() && nuiBlockedRoutePaths.includes(route.path)) {
+        return <NuiBlockedRoutePage pageName={pageTitle} routePath={route.path} />;
+    }
+
+    if (route.permission && !hasPerm(route.permission)) {
+        return (
+            <Suspense fallback={<PageRouteFallback />}>
+                <UnauthorizedPage pageName={pageTitle} permission={route.permission} />
+            </Suspense>
+        );
+    }
+
+    return renderRoutePage(route.Page);
 }
 
 function Route(route: RouteType) {
@@ -247,7 +356,11 @@ function AddonRouteContent({ route }: { route: AddonPageRoute }) {
     }, [route.title, setPageTitle]);
 
     if (route.permission && !hasPerm(route.permission)) {
-        return <UnauthorizedPage pageName={route.title} permission={route.permission} />;
+        return (
+            <Suspense fallback={<PageRouteFallback />}>
+                <UnauthorizedPage pageName={route.title} permission={route.permission} />
+            </Suspense>
+        );
     }
     return (
         <div className="relative w-full flex-1">
@@ -281,10 +394,14 @@ function MainRouterInner() {
             {/* Other Routes - they need to set the title manually */}
             {import.meta.env.DEV && (
                 <WouterRoute path="/test">
-                    <TestingPage />
+                    <Suspense fallback={<PageRouteFallback />}>
+                        <TestingPage />
+                    </Suspense>
                 </WouterRoute>
             )}
-            <WouterRoute component={NotFound} />
+            <WouterRoute>
+                <NotFoundRoute />
+            </WouterRoute>
         </Switch>
     );
 }

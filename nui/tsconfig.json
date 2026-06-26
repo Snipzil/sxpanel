@@ -1,14 +1,14 @@
 {
     "compilerOptions": {
-        "target": "ES6",
+        "target": "ES2022",
         "useDefineForClassFields": true,
-        "lib": ["DOM", "DOM.Iterable", "ES6"],
+        "lib": ["DOM", "DOM.Iterable", "ES2022"],
         "allowJs": false,
         "skipLibCheck": true,
         "allowSyntheticDefaultImports": true,
         "strict": true,
         "forceConsistentCasingInFileNames": true,
-        "module": "ES6",
+        "module": "ESNext",
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,

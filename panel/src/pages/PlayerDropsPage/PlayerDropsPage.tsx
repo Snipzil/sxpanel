@@ -1,19 +1,14 @@
-import { useBackendApi } from '@/hooks/fetch';
-import type { PlayerDropsApiResp, PlayerDropsApiSuccessResp } from '@shared/otherTypes';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import DrilldownCard, { DrilldownCardLoading } from './DrilldownCard';
+import { Loader2Icon } from 'lucide-react';
+import { useBackendApi } from '@/hooks/fetch';
+import { useLocale } from '@/hooks/locale';
+import { playerDropExpectedCategories } from '@/lib/playerDropCategories';
+import type { PlayerDropsApiResp, PlayerDropsApiSuccessResp, PlayerDropsSummaryHour } from '@shared/otherTypes';
+import DrilldownCard, { DrilldownCardLoading } from '@/pages/PlayerDropsPage/DrilldownCard';
+import type { DisplayLodType, DrilldownRangeSelectionType } from '@/pages/PlayerDropsPage/playerDropsTypes';
+import { PlayerDropsHeaderBand, type PlayerDropsHeaderStats } from './PlayerDropsHeaderBand';
 import TimelineCard from './TimelineCard';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { PageHeader } from '@/components/page-header';
-import { CalendarRangeIcon, TrendingDownIcon, XIcon } from 'lucide-react';
-
-export type DrilldownRangeSelectionType = {
-    startDate: Date;
-    endDate: Date;
-} | null;
-export type DisplayLodType = 'hour' | 'day';
 
 /**
  * Get the query params for the player drops api
@@ -55,11 +50,36 @@ const dateFmt = new Intl.DateTimeFormat(undefined, {
     minute: '2-digit',
 });
 
+const expectedDropCategorySet = new Set(playerDropExpectedCategories);
+
+/** Aggregate summary hours into header-band stats. */
+const summarizeDrops = (summary: PlayerDropsSummaryHour[]): PlayerDropsHeaderStats => {
+    let totalDrops = 0;
+    let unexpectedDrops = 0;
+    let changes = 0;
+    for (const hour of summary) {
+        changes += hour.changes;
+        for (const [category, count] of hour.dropTypes) {
+            totalDrops += count;
+            if (!expectedDropCategorySet.has(category)) {
+                unexpectedDrops += count;
+            }
+        }
+    }
+    return { totalDrops, unexpectedDrops, changes };
+};
+
 /**
- * The player drops page — timeline + per-range drilldown.
- * Dashboard shows only a real-time drop pie; this page is the full historical analysis.
+ * Player Drops V2 — redesign goals over V1:
+ * - One V2 header band consolidating the three control surfaces (PageHeader
+ *   pills, in-card lens select, standalone drilldown toolbar) with summary
+ *   stat pills (drops / unexpected / changes) computed from the timeline.
+ * - Taller timeline charts (the expected chart was squeezed into 128px).
+ * - Explicit drag-to-select hint for the canvas range picking.
+ * - "Updating…" label on the revalidation overlay.
  */
 export default function PlayerDropsPage() {
+    const { t } = useLocale();
     const [displayLod, setDisplayLod] = useState<DisplayLodType>('hour');
     const [drilldownRange, setDrilldownRange] = useState<DrilldownRangeSelectionType>(null);
     const { queryKey, queryParams } = getQueryParams(drilldownRange, displayLod);
@@ -106,27 +126,29 @@ export default function PlayerDropsPage() {
     })();
 
     const defaultWindowLabel = displayLod === 'day' ? 'Last 14 days' : 'Last 7 days';
+    const windowLabel = drilldownRange
+        ? `${dateFmt.format(drilldownRange.startDate)} → ${dateFmt.format(drilldownRange.endDate)}`
+        : defaultWindowLabel;
+
+    const headerStats = useMemo(
+        () => (swrDataApiResp.data ? summarizeDrops(swrDataApiResp.data.summary) : undefined),
+        [swrDataApiResp.data],
+    );
 
     return (
-        <div className="flex w-full min-w-0 flex-col gap-5">
-            <PageHeader
-                icon={<TrendingDownIcon />}
-                title="Player Drops"
-                description="Historical drops timeline & drilldown · what, when, and why players left"
-            >
-                <span className="text-muted-foreground/70 border-border/50 bg-card/60 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs">
-                    <CalendarRangeIcon className="size-3" />
-                    <span className="font-medium">
-                        {drilldownRange
-                            ? `${dateFmt.format(drilldownRange.startDate)} → ${dateFmt.format(drilldownRange.endDate)}`
-                            : defaultWindowLabel}
-                    </span>
-                </span>
-                <span className="bg-secondary/40 border-border/50 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs">
-                    <span className="text-muted-foreground/70">Lens</span>
-                    <span className="font-mono font-semibold uppercase">{displayLod}</span>
-                </span>
-            </PageHeader>
+        <div className="flex w-full min-w-96 flex-col gap-4">
+            <PlayerDropsHeaderBand
+                title={t('panel.routes.player_drops')}
+                windowLabel={windowLabel}
+                stats={headerStats}
+                displayLod={displayLod}
+                setDisplayLod={displayLodSetter}
+                drilldownIntervals={drilldownIntervals}
+                activeInterval={activeInterval}
+                setIntervalRange={setIntervalRange}
+                hasRange={!!drilldownRange}
+                resetRange={() => setDrilldownRange(null)}
+            />
 
             <TimelineCard
                 isError={!!swrDataApiResp.error}
@@ -135,54 +157,14 @@ export default function PlayerDropsPage() {
                 rangeSelected={drilldownRange}
                 rangeSetter={setDrilldownRange}
                 displayLod={displayLod}
-                setDisplayLod={displayLodSetter}
             />
-
-            {/* Drilldown toolbar */}
-            <div className="bg-card/60 border-border/50 flex flex-col gap-2 rounded-xl border px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <div className="flex items-center gap-2 pr-2">
-                    <div className="bg-secondary/40 border-border/50 text-accent/80 flex size-7 shrink-0 items-center justify-center rounded-md border">
-                        <CalendarRangeIcon className="size-3.5" />
-                    </div>
-                    <div className="text-xs">
-                        <div className="leading-tight font-semibold">Drilldown Range</div>
-                        <div className="text-muted-foreground/70 leading-tight">Pick a window to inspect</div>
-                    </div>
-                </div>
-                <div className="bg-secondary/30 border-border/40 flex w-full items-center gap-1 rounded-lg border p-1 sm:ml-auto sm:w-auto">
-                    {drilldownIntervals.map(({ label, days }) => (
-                        <Button
-                            key={days}
-                            size="xs"
-                            variant={activeInterval === days ? 'default' : 'ghost'}
-                            className={cn(
-                                'h-7 flex-1 px-3 font-mono text-xs sm:flex-initial',
-                                activeInterval === days && 'pointer-events-none',
-                            )}
-                            onClick={() => setIntervalRange(days)}
-                        >
-                            {label}
-                        </Button>
-                    ))}
-                </div>
-                {drilldownRange && (
-                    <Button
-                        size="xs"
-                        variant="ghost"
-                        className="text-muted-foreground hover:text-foreground h-7 w-full justify-center gap-1 px-2 text-xs sm:w-auto"
-                        onClick={() => setDrilldownRange(null)}
-                    >
-                        <XIcon className="size-3" />
-                        Reset
-                    </Button>
-                )}
-            </div>
 
             {swrDataApiResp.data ? (
                 <div className="relative min-h-128">
                     {swrDataApiResp.isValidating && (
-                        <div className="bg-background/50 absolute inset-0 z-10 flex items-center justify-center rounded-xl">
-                            <DrilldownCardLoading isError={false} />
+                        <div className="bg-background/60 absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl backdrop-blur-[1px]">
+                            <Loader2Icon className="text-muted-foreground size-6 animate-spin" />
+                            <span className="text-muted-foreground text-sm font-medium">Updating…</span>
                         </div>
                     )}
                     <DrilldownCard

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { FallbackProps } from 'react-error-boundary';
-import { FiAlertOctagon } from 'react-icons/fi';
+import { OctagonAlertIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -58,7 +58,7 @@ function GenericErrorBoundaryCard(props: GenericErrorBoundaryCardProps) {
         <Card className="max-w-xl">
             <CardHeader>
                 <h1 className="flex flex-row items-center justify-start pb-0 text-3xl text-red-500">
-                    <FiAlertOctagon className="mr-2 inline-block" />
+                    <OctagonAlertIcon className="mr-2 inline-block size-4" />
                     {props.title}
                 </h1>
                 <span className="text-muted-foreground pt-0 text-sm">{props.description}</span>

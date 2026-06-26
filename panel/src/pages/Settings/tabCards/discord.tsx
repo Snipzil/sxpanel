@@ -1,7 +1,8 @@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { DiscordRoleMultiSelect } from '@/components/DiscordRoleMultiSelect';
+import { isValidDiscordSnowflake } from '@/lib/discordRoleIds';
 import TxAnchor from '@/components/TxAnchor';
 import { PencilIcon, PlusIcon, TrashIcon } from 'lucide-react';
 import SwitchText from '@/components/SwitchText';
@@ -9,6 +10,7 @@ import InlineCode from '@/components/InlineCode';
 import type { PermissionPreset } from '@shared/permissions';
 import type { DiscordLogRouteConfig } from '@shared/discordLogRoutes';
 import { SettingItem, SettingItemDesc } from '../settingsItems';
+import { Separator } from '@/components/ui/separator';
 import { useEffect, useRef, useMemo, useReducer } from 'react';
 import {
     getConfigEmptyState,
@@ -23,6 +25,7 @@ import SettingsCardShell from '../SettingsCardShell';
 import { txToast } from '@/components/TxToaster';
 import { useOpenEmbedEditor } from '../embedEditorState';
 import { useOpenDiscordLogRoutesEditor } from '../discordLogRoutesEditorState';
+import { useLocale } from '@/hooks/locale';
 
 const defaultPresenceConfig = {
     status: 'online',
@@ -60,8 +63,6 @@ const activityTypeOptions = [
     { value: 'Custom', label: 'Custom' },
 ] as const;
 
-const discordSnowflakePattern = /^\d{17,20}$/;
-
 const generateUuid = () => {
     const cryptoApi = globalThis.crypto;
     if (cryptoApi?.randomUUID) {
@@ -85,20 +86,6 @@ const generateUuid = () => {
     });
 };
 
-const normalizeRoleIdsInput = (value: string) => {
-    const roleIds = value.split(/[\n,;\s]+/).reduce<string[]>((ids, rawToken) => {
-        const token = rawToken.trim();
-        if (!token.length) {
-            return ids;
-        }
-
-        ids.push(token.match(/\d{17,20}/)?.[0] ?? token);
-        return ids;
-    }, []);
-
-    return [...new Set(roleIds)];
-};
-
 const resolvePermissionPresets = (value: unknown) => {
     if (!Array.isArray(value)) {
         return [] as PermissionPreset[];
@@ -119,7 +106,9 @@ const resolvePermissionPresets = (value: unknown) => {
         presets.push({
             id: preset.id,
             name: preset.name.trim(),
-            permissions: preset.permissions.filter((permission): permission is string => typeof permission === 'string'),
+            permissions: preset.permissions.filter(
+                (permission): permission is string => typeof permission === 'string',
+            ),
         });
     }
 
@@ -182,15 +171,14 @@ const pageConfigs = {
     discordGuild: getPageConfig('discordBot', 'guild'),
     presence: getPageConfig('discordBot', 'presence', undefined, defaultPresenceConfig),
     rolePermissions: getPageConfig('discordBot', 'rolePermissions', undefined, [] as RolePermissionMapping[]),
+    oauthClientId: getPageConfig('discordBot', 'oauthClientId'),
+    oauthClientSecret: getPageConfig('discordBot', 'oauthClientSecret'),
 } as const;
 
 function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
+    const { t } = useLocale();
     const [states, dispatch] = useReducer(configsReducer<typeof pageConfigs>, null, () =>
         getConfigEmptyState(pageConfigs),
-    );
-    const [roleIdInputs, setRoleIdInputs] = useReducer(
-        (state: Record<string, string>, updates: Record<string, string>) => ({ ...state, ...updates }),
-        {},
     );
     const cfg = useMemo(() => {
         return getConfigAccessors(cardCtx.cardId, pageConfigs, pageCtx.apiData, dispatch);
@@ -199,7 +187,7 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
     //Effects - handle changes and reset advanced settings
     useEffect(() => {
         updatePageState();
-    }, [states, roleIdInputs]);
+    }, [states]);
 
     const openEmbedEditor = useOpenEmbedEditor();
     const openDiscordLogRoutesEditor = useOpenDiscordLogRoutesEditor();
@@ -216,6 +204,8 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
     //Refs for configs that don't use state
     const botTokenRef = useRef<HTMLInputElement | null>(null);
     const discordGuildRef = useRef<HTMLInputElement | null>(null);
+    const oauthClientIdRef = useRef<HTMLInputElement | null>(null);
+    const oauthClientSecretRef = useRef<HTMLInputElement | null>(null);
 
     //Marshalling Utils
     const emptyToNull = (str?: string) => {
@@ -235,7 +225,7 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
         return rolePermissionMappings.map((mapping) => ({
             ...mapping,
             label: mapping.label.trim(),
-            discordRoleIds: normalizeRoleIdsInput(roleIdInputs[mapping.id] ?? mapping.discordRoleIds.join('\n')),
+            discordRoleIds: [...mapping.discordRoleIds],
             permissionPresetId:
                 typeof mapping.permissionPresetId === 'string' && mapping.permissionPresetId.length
                     ? mapping.permissionPresetId
@@ -270,7 +260,6 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                 permissionPresetId: null,
             },
         ]);
-        setRoleIdInputs({ [newId]: '' });
     };
 
     const removeRolePermission = (mappingId: string) => {
@@ -283,6 +272,8 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
             botToken: emptyToNull(botTokenRef.current?.value),
             discordGuild: emptyToNull(discordGuildRef.current?.value),
             rolePermissions: buildRolePermissionMappings(),
+            oauthClientId: emptyToNull(oauthClientIdRef.current?.value),
+            oauthClientSecret: emptyToNull(oauthClientSecretRef.current?.value),
         };
 
         const res = getConfigDiff(cfg, states, overwrites, false);
@@ -302,33 +293,33 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
 
         if (localConfigs.discordBot?.enabled) {
             if (!localConfigs.discordBot?.token) {
-                return txToast.error('You must provide a Discord Bot Token to enable the bot.');
+                return txToast.error(t('panel.settings.discord_bot.toast_token_required'));
             }
             if (!localConfigs.discordBot?.guild) {
-                return txToast.error('You must provide a Server ID to enable the bot.');
+                return txToast.error(t('panel.settings.discord_bot.toast_guild_required'));
             }
         }
 
         const missingMappingLabel = rolePermissions.find((mapping) => !mapping.label.length);
         if (missingMappingLabel) {
-            return txToast.error('Each Discord role mapping needs a label.');
+            return txToast.error(t('panel.settings.discord_bot.toast_mapping_label_required'));
         }
 
         const missingRoles = rolePermissions.find((mapping) => mapping.discordRoleIds.length === 0);
         if (missingRoles) {
-            return txToast.error('Each Discord role mapping needs at least one Discord role ID.');
+            return txToast.error(t('panel.settings.discord_bot.toast_mapping_roles_required'));
         }
 
         const invalidRoleId = rolePermissions
             .flatMap((mapping) => mapping.discordRoleIds)
-            .find((roleId) => !discordSnowflakePattern.test(roleId));
+            .find((roleId) => !isValidDiscordSnowflake(roleId));
         if (invalidRoleId) {
-            return txToast.error(`Invalid Discord role ID: ${invalidRoleId}`);
+            return txToast.error(t('panel.settings.discord_bot.toast_invalid_role_id', { roleId: invalidRoleId }));
         }
 
         const missingPreset = rolePermissions.find((mapping) => !mapping.permissionPresetId);
         if (missingPreset) {
-            return txToast.error('Each Discord role mapping needs a permission preset.');
+            return txToast.error(t('panel.settings.discord_bot.toast_mapping_preset_required'));
         }
 
         pageCtx.saveChanges(cardCtx, localConfigs);
@@ -336,67 +327,74 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
 
     return (
         <SettingsCardShell cardCtx={cardCtx} pageCtx={pageCtx} onClickSave={handleOnSave}>
-            <SettingItem label="Discord Bot">
+            <SettingItem label={t('panel.settings.discord_bot.bot_label')}>
                 <SwitchText
                     id={cfg.botEnabled.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     variant="checkedGreen"
                     checked={states.botEnabled}
                     onCheckedChange={cfg.botEnabled.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>Enable Discord Integration.</SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.discord_bot.bot_desc')}</SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Token" htmlFor={cfg.botToken.eid} required={states.botEnabled}>
+            <SettingItem
+                label={t('panel.settings.discord_bot.token_label')}
+                htmlFor={cfg.botToken.eid}
+                required={states.botEnabled}
+            >
                 <Input
                     id={cfg.botToken.eid}
                     ref={botTokenRef}
                     defaultValue={cfg.botToken.initialValue}
                     onInput={updatePageState}
                     disabled={pageCtx.isReadOnly}
-                    placeholder="xxxxxxxxxxxxxxxxxxxxxxxx.xxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    placeholder={t('panel.settings.discord_bot.token_placeholder')}
                     maxLength={96}
                     autoComplete="off"
                     className="blur-input"
                     required
                 />
                 <SettingItemDesc>
-                    To get a token and the bot to join your server, follow these two guides:
+                    {t('panel.settings.discord_bot.token_desc_guides')}{' '}
                     <TxAnchor href="https://discordjs.guide/legacy/preparations/app-setup">
-                        Setting up a bot application
+                        {t('panel.settings.discord_bot.token_guide_setup')}
                     </TxAnchor>{' '}
-                    and{' '}
+                    {t('panel.settings.discord_bot.token_guide_and')}{' '}
                     <TxAnchor href="https://discordjs.guide/legacy/preparations/adding-your-app">
-                        Adding your bot to servers
+                        {t('panel.settings.discord_bot.token_guide_add')}
                     </TxAnchor>{' '}
                     <br />
-                    <strong>Note:</strong> Do not reuse the same token for another bot. <br />
-                    <strong>Note:</strong> The bot requires the <strong>Server Members</strong> intent, which can be set
-                    at the
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.discord_bot.token_note_reuse')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.discord_bot.token_note_intent')}{' '}
                     <TxAnchor href="https://discord.com/developers/applications">Discord Developer Portal</TxAnchor>.
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Guild/Server ID" htmlFor={cfg.discordGuild.eid} required={states.botEnabled}>
+            <SettingItem
+                label={t('panel.settings.discord_bot.guild_label')}
+                htmlFor={cfg.discordGuild.eid}
+                required={states.botEnabled}
+            >
                 <Input
                     id={cfg.discordGuild.eid}
                     ref={discordGuildRef}
                     defaultValue={cfg.discordGuild.initialValue}
                     onInput={updatePageState}
                     disabled={pageCtx.isReadOnly}
-                    placeholder="000000000000000000"
+                    placeholder={t('panel.settings.discord_bot.guild_placeholder')}
                 />
                 <SettingItemDesc>
-                    The ID of the Discord Server (also known as Discord Guild). <br />
-                    To get the Server ID, go to Discord's settings and
+                    {t('panel.settings.discord_bot.guild_desc')} <br />
+                    {t('panel.settings.discord_bot.guild_dev_mode')}{' '}
                     <TxAnchor href="https://support.discordapp.com/hc/article_attachments/115002742731/mceclip0.png">
-                        {' '}
                         enable developer mode
                     </TxAnchor>
-                    , then right-click on the guild icon select "Copy ID".
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Discord Logging">
+            <SettingItem label={t('panel.settings.discord_bot.logging_label')}>
                 <div className="flex flex-wrap gap-6">
                     <Button
                         size={'sm'}
@@ -413,36 +411,51 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                                 initialValue: stored ?? def ?? [],
                                 defaultValue: def ?? [],
                                 warningsChannel:
-                                    (pageCtx.apiData?.storedConfigs?.discordBot?.warningsChannel as string | null | undefined) ??
-                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.warningsChannel as string | null | undefined) ??
+                                    (pageCtx.apiData?.storedConfigs?.discordBot?.warningsChannel as
+                                        | string
+                                        | null
+                                        | undefined) ??
+                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.warningsChannel as
+                                        | string
+                                        | null
+                                        | undefined) ??
                                     null,
                                 defaultWarningsChannel:
-                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.warningsChannel as string | null | undefined) ??
-                                    null,
+                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.warningsChannel as
+                                        | string
+                                        | null
+                                        | undefined) ?? null,
                                 logGuildOverride:
-                                    (pageCtx.apiData?.storedConfigs?.discordBot?.logGuildOverride as string | null | undefined) ??
-                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.logGuildOverride as string | null | undefined) ??
+                                    (pageCtx.apiData?.storedConfigs?.discordBot?.logGuildOverride as
+                                        | string
+                                        | null
+                                        | undefined) ??
+                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.logGuildOverride as
+                                        | string
+                                        | null
+                                        | undefined) ??
                                     null,
                                 defaultLogGuildOverride:
-                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.logGuildOverride as string | null | undefined) ??
-                                    null,
-                                mainGuildId: emptyToNull(discordGuildRef.current?.value) ?? cfg.discordGuild.initialValue,
+                                    (pageCtx.apiData?.defaultConfigs?.discordBot?.logGuildOverride as
+                                        | string
+                                        | null
+                                        | undefined) ?? null,
+                                mainGuildId:
+                                    emptyToNull(discordGuildRef.current?.value) ?? cfg.discordGuild.initialValue,
                             });
                         }}
                     >
-                        <PencilIcon className="mr-1.5 inline-block size-4" /> Edit Logging
+                        <PencilIcon className="mr-1.5 inline-block size-4" />{' '}
+                        {t('panel.settings.discord_bot.edit_logging')}
                     </Button>
                 </div>
-                <SettingItemDesc>
-                    Configure the warnings channel, one shared log guild override, per-route channel selection, and
-                    advanced per-entry log filters in a dedicated editor page.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.discord_bot.logging_desc')}</SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Bot Presence">
+            <SettingItem label={t('panel.settings.discord_bot.presence_label')}>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                         <label className="text-sm font-medium" htmlFor={`${cfg.presence.eid}:status`}>
-                            Activity Status
+                            {t('panel.settings.discord_bot.presence_status_label')}
                         </label>
                         <Select
                             value={presenceConfig.status}
@@ -450,12 +463,14 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                             disabled={pageCtx.isReadOnly}
                         >
                             <SelectTrigger id={`${cfg.presence.eid}:status`}>
-                                <SelectValue placeholder="Select bot status" />
+                                <SelectValue
+                                    placeholder={t('panel.settings.discord_bot.presence_status_placeholder')}
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 {presenceStatusOptions.map((option) => (
                                     <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
+                                        {t(`panel.settings.discord_bot.presence_status_${option.value}`)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -463,7 +478,7 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                     </div>
                     <div className="space-y-2">
                         <label className="text-sm font-medium" htmlFor={`${cfg.presence.eid}:activity-type`}>
-                            Activity Type
+                            {t('panel.settings.discord_bot.presence_type_label')}
                         </label>
                         <Select
                             value={presenceConfig.activityType}
@@ -473,12 +488,12 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                             disabled={pageCtx.isReadOnly}
                         >
                             <SelectTrigger id={`${cfg.presence.eid}:activity-type`}>
-                                <SelectValue placeholder="Select activity type" />
+                                <SelectValue placeholder={t('panel.settings.discord_bot.presence_type_placeholder')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {activityTypeOptions.map((option) => (
                                     <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
+                                        {t(`panel.settings.discord_bot.presence_type_${option.value.toLowerCase()}`)}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -486,7 +501,7 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                     </div>
                     <div className="space-y-2 md:col-span-2">
                         <label className="text-sm font-medium" htmlFor={`${cfg.presence.eid}:activity-text`}>
-                            Activity Text
+                            {t('panel.settings.discord_bot.presence_text_label')}
                         </label>
                         <Input
                             id={`${cfg.presence.eid}:activity-text`}
@@ -494,17 +509,13 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                             onChange={(event) => setPresenceConfig('activityText', event.currentTarget.value)}
                             disabled={pageCtx.isReadOnly}
                             maxLength={128}
-                            placeholder="[{playerCount}/{maxPlayers}] on {serverName}"
+                            placeholder={t('panel.settings.discord_bot.presence_text_placeholder')}
                         />
-                        <SettingItemDesc>
-                            Supports <InlineCode>{'{playerCount}'}</InlineCode>,{' '}
-                            <InlineCode>{'{maxPlayers}'}</InlineCode>, <InlineCode>{'{serverName}'}</InlineCode>, and{' '}
-                            <InlineCode>{'{uptime}'}</InlineCode> placeholders.
-                        </SettingItemDesc>
+                        <SettingItemDesc>{t('panel.settings.discord_bot.presence_text_desc')}</SettingItemDesc>
                     </div>
                     <div className="space-y-2">
                         <label className="text-sm font-medium" htmlFor={`${cfg.presence.eid}:interval`}>
-                            Refresh Interval (seconds)
+                            {t('panel.settings.discord_bot.presence_interval_label')}
                         </label>
                         <Input
                             id={`${cfg.presence.eid}:interval`}
@@ -522,230 +533,256 @@ function useConfigCardDiscord({ cardCtx, pageCtx }: SettingsCardProps) {
                             }}
                             disabled={pageCtx.isReadOnly}
                         />
-                        <SettingItemDesc>
-                            Controls how often the bot refreshes the live activity text from fxPanel.
-                        </SettingItemDesc>
+                        <SettingItemDesc>{t('panel.settings.discord_bot.presence_interval_desc')}</SettingItemDesc>
                     </div>
                 </div>
             </SettingItem>
-            <SettingItem label="Role Permission Mapping">
+            <SettingItem label={t('panel.settings.discord_bot.role_mapping_label')}>
                 <div className="space-y-4">
                     {rolePermissionMappings.length > 0 ? (
                         rolePermissionMappings.map((mapping) => {
-                            const selectedPreset = permissionPresets.find((preset) => preset.id === mapping.permissionPresetId);
+                            const selectedPreset = permissionPresets.find(
+                                (preset) => preset.id === mapping.permissionPresetId,
+                            );
                             const fallbackPresetValue = '__unassigned__';
 
                             return (
-                            <div key={mapping.id} className="space-y-4 rounded-md border p-4">
-                                <div className="flex flex-wrap items-end gap-3">
-                                    <div className="min-w-56 flex-1 space-y-1">
-                                        <label className="text-muted-foreground text-xs" htmlFor={`${cfg.rolePermissions.eid}:${mapping.id}:label`}>
-                                            Mapping Label
-                                        </label>
-                                        <Input
-                                            id={`${cfg.rolePermissions.eid}:${mapping.id}:label`}
-                                            value={mapping.label}
-                                            onChange={(event) =>
-                                                updateRolePermission(mapping.id, 'label', event.currentTarget.value)
-                                            }
+                                <div key={mapping.id} className="space-y-4 rounded-md border p-4">
+                                    <div className="flex flex-wrap items-end gap-3">
+                                        <div className="min-w-56 flex-1 space-y-1">
+                                            <label
+                                                className="text-muted-foreground text-xs"
+                                                htmlFor={`${cfg.rolePermissions.eid}:${mapping.id}:label`}
+                                            >
+                                                {t('panel.settings.discord_bot.mapping_label')}
+                                            </label>
+                                            <Input
+                                                id={`${cfg.rolePermissions.eid}:${mapping.id}:label`}
+                                                value={mapping.label}
+                                                onChange={(event) =>
+                                                    updateRolePermission(mapping.id, 'label', event.currentTarget.value)
+                                                }
+                                                disabled={pageCtx.isReadOnly}
+                                                placeholder={t('panel.settings.discord_bot.mapping_label_placeholder')}
+                                                maxLength={64}
+                                            />
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="text-destructive-inline size-9 shrink-0"
+                                            onClick={() => removeRolePermission(mapping.id)}
                                             disabled={pageCtx.isReadOnly}
-                                            placeholder="Moderators"
-                                            maxLength={64}
-                                        />
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="text-destructive-inline size-9 shrink-0"
-                                        onClick={() => removeRolePermission(mapping.id)}
-                                        disabled={pageCtx.isReadOnly}
-                                        aria-label="Remove mapping"
-                                    >
-                                        <TrashIcon className="size-4" />
-                                    </Button>
-                                </div>
-
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-1">
-                                        <label
-                                            className="text-muted-foreground text-xs"
-                                            htmlFor={`${cfg.rolePermissions.eid}:${mapping.id}:roles`}
+                                            aria-label={t('panel.settings.discord_bot.remove_mapping_aria')}
                                         >
-                                            Discord Role IDs
-                                        </label>
-                                        <Textarea
-                                            id={`${cfg.rolePermissions.eid}:${mapping.id}:roles`}
-                                            value={roleIdInputs[mapping.id] ?? mapping.discordRoleIds.join('\n')}
-                                            onChange={(event) =>
-                                                setRoleIdInputs({ [mapping.id]: event.currentTarget.value })
-                                            }
-                                            disabled={pageCtx.isReadOnly}
-                                            placeholder={'123456789012345678\n987654321098765432'}
-                                            className="min-h-20 resize-y"
-                                        />
-                                        <SettingItemDesc>
-                                            Paste one or more Discord role IDs or role mentions. Separate entries with
-                                            commas, spaces, or new lines.
-                                        </SettingItemDesc>
+                                            <TrashIcon className="size-4" />
+                                        </Button>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label
-                                            className="text-muted-foreground text-xs"
-                                            htmlFor={`${cfg.rolePermissions.eid}:${mapping.id}:preset`}
-                                        >
-                                            Permission Preset
-                                        </label>
-                                        <Select
-                                            value={selectedPreset ? selectedPreset.id : fallbackPresetValue}
-                                            onValueChange={(value) =>
-                                                updateRolePermission(
-                                                    mapping.id,
-                                                    'permissionPresetId',
-                                                    value === fallbackPresetValue ? null : value,
-                                                )
-                                            }
-                                            disabled={pageCtx.isReadOnly || permissionPresets.length === 0}
-                                        >
-                                            <SelectTrigger id={`${cfg.rolePermissions.eid}:${mapping.id}:preset`}>
-                                                <SelectValue placeholder="Select a permission preset" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value={fallbackPresetValue}>Select a permission preset</SelectItem>
-                                                {permissionPresets.map((preset) => (
-                                                    <SelectItem key={preset.id} value={preset.id}>
-                                                        {preset.name}
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <label
+                                                className="text-muted-foreground text-xs"
+                                                htmlFor={`${cfg.rolePermissions.eid}:${mapping.id}:roles`}
+                                            >
+                                                {t('panel.settings.discord_bot.mapping_roles_label')}
+                                            </label>
+                                            <DiscordRoleMultiSelect
+                                                id={`${cfg.rolePermissions.eid}:${mapping.id}:roles`}
+                                                value={mapping.discordRoleIds}
+                                                onChange={(roleIds) =>
+                                                    updateRolePermission(mapping.id, 'discordRoleIds', roleIds)
+                                                }
+                                                disabled={pageCtx.isReadOnly || !states.botEnabled}
+                                            />
+                                            <SettingItemDesc>
+                                                {t('panel.settings.discord_bot.mapping_roles_desc')}
+                                            </SettingItemDesc>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label
+                                                className="text-muted-foreground text-xs"
+                                                htmlFor={`${cfg.rolePermissions.eid}:${mapping.id}:preset`}
+                                            >
+                                                {t('panel.settings.discord_bot.mapping_preset_label')}
+                                            </label>
+                                            <Select
+                                                value={selectedPreset ? selectedPreset.id : fallbackPresetValue}
+                                                onValueChange={(value) =>
+                                                    updateRolePermission(
+                                                        mapping.id,
+                                                        'permissionPresetId',
+                                                        value === fallbackPresetValue ? null : value,
+                                                    )
+                                                }
+                                                disabled={pageCtx.isReadOnly || permissionPresets.length === 0}
+                                            >
+                                                <SelectTrigger id={`${cfg.rolePermissions.eid}:${mapping.id}:preset`}>
+                                                    <SelectValue
+                                                        placeholder={t(
+                                                            'panel.settings.discord_bot.mapping_preset_placeholder',
+                                                        )}
+                                                    />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value={fallbackPresetValue}>
+                                                        {t('panel.settings.discord_bot.mapping_preset_unassigned')}
                                                     </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <SettingItemDesc>
-                                            Matching Discord roles sync this preset's permissions onto linked admin
-                                            accounts.
-                                        </SettingItemDesc>
+                                                    {permissionPresets.map((preset) => (
+                                                        <SelectItem key={preset.id} value={preset.id}>
+                                                            {preset.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <SettingItemDesc>
+                                                {t('panel.settings.discord_bot.mapping_preset_desc')}
+                                            </SettingItemDesc>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )})
+                            );
+                        })
                     ) : (
                         <div className="text-muted-foreground rounded-md border border-dashed p-4 text-sm">
-                            No role mappings configured. Add one to grant fxPanel permission presets to Discord roles.
+                            {t('panel.settings.discord_bot.mapping_empty')}
                         </div>
                     )}
 
                     {permissionPresets.length === 0 && (
                         <div className="text-muted-foreground rounded-md border border-dashed p-4 text-sm">
-                            No permission presets are available yet. Create one in Admin Manager before saving role
-                            mappings here.
+                            {t('panel.settings.discord_bot.mapping_no_presets')}
                         </div>
                     )}
 
                     <Button variant="outline" size="sm" onClick={addRolePermission} disabled={pageCtx.isReadOnly}>
-                        <PlusIcon className="mr-1 size-4" /> Add Mapping
+                        <PlusIcon className="mr-1 size-4" /> {t('panel.settings.discord_bot.add_mapping')}
                     </Button>
                 </div>
-                <SettingItemDesc>
-                    Link Discord roles to fxPanel permission presets for linked admins. If an admin matches multiple
-                    mappings, all matched preset permissions are merged and synced onto their admin account.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.discord_bot.role_mapping_desc')}</SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Status Embed">
+            <SettingItem label={t('panel.settings.discord_bot.status_embed_label')}>
                 <div className="flex flex-wrap gap-6">
                     <Button
                         size={'sm'}
                         variant="secondary"
                         disabled={pageCtx.isReadOnly}
                         onClick={() => {
-                            const stored = pageCtx.apiData?.storedConfigs?.discordBot?.embedJson as string | undefined;
-                            const def = pageCtx.apiData?.defaultConfigs?.discordBot?.embedJson as string | undefined;
-                            openEmbedEditor({
-                                field: 'embedJson',
-                                fieldLabel: 'Status Embed JSON',
-                                initialValue: stored ?? def ?? '{}',
-                                defaultValue: def ?? '{}',
-                            });
-                        }}
-                    >
-                        <PencilIcon className="mr-1.5 inline-block size-4" /> Change Embed JSON
-                    </Button>
-                    <Button
-                        size={'sm'}
-                        variant="secondary"
-                        disabled={pageCtx.isReadOnly}
-                        onClick={() => {
-                            const stored = pageCtx.apiData?.storedConfigs?.discordBot?.embedConfigJson as
+                            const storedEmbed = pageCtx.apiData?.storedConfigs?.discordBot?.embedJson as
                                 | string
                                 | undefined;
-                            const def = pageCtx.apiData?.defaultConfigs?.discordBot?.embedConfigJson as
+                            const defEmbed = pageCtx.apiData?.defaultConfigs?.discordBot?.embedJson as
+                                | string
+                                | undefined;
+                            const storedConfig = pageCtx.apiData?.storedConfigs?.discordBot?.embedConfigJson as
+                                | string
+                                | undefined;
+                            const defConfig = pageCtx.apiData?.defaultConfigs?.discordBot?.embedConfigJson as
                                 | string
                                 | undefined;
                             openEmbedEditor({
-                                field: 'embedConfigJson',
-                                fieldLabel: 'Status Config JSON',
-                                initialValue: stored ?? def ?? '{}',
-                                defaultValue: def ?? '{}',
+                                variant: 'status',
+                                embedJson: storedEmbed ?? defEmbed ?? '{}',
+                                embedConfigJson: storedConfig ?? defConfig ?? '{}',
+                                initialEmbedJson: storedEmbed ?? defEmbed ?? '{}',
+                                initialEmbedConfigJson: storedConfig ?? defConfig ?? '{}',
+                                defaultEmbedJson: defEmbed ?? '{}',
+                                defaultEmbedConfigJson: defConfig ?? '{}',
                             });
                         }}
                     >
-                        <PencilIcon className="mr-1.5 inline-block size-4" /> Change Config JSON
+                        <PencilIcon className="mr-1.5 inline-block size-4" />{' '}
+                        {t('panel.settings.discord_bot.edit_status_embed')}
                     </Button>
                 </div>
                 <SettingItemDesc>
-                    The server status embed is customizable by editing the two JSONs above. You can add live server
-                    stats, occupancy, recent join/leave counts, and the rendered player list through placeholders. <br />
-                    <strong>Note:</strong> Use the command <InlineCode>/status add</InlineCode> on a channel that the
-                    bot has the "Send Message" permission to setup the embed.
+                    {t('panel.settings.discord_bot.status_embed_desc')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.discord_bot.status_embed_note')} <InlineCode>/status add</InlineCode>
                 </SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Player List Embed">
+            <SettingItem label={t('panel.settings.discord_bot.player_list_embed_label')}>
                 <div className="flex flex-wrap gap-6">
                     <Button
                         size={'sm'}
                         variant="secondary"
                         disabled={pageCtx.isReadOnly}
                         onClick={() => {
-                            const stored = pageCtx.apiData?.storedConfigs?.discordBot?.playerListEmbedJson as
+                            const storedEmbed = pageCtx.apiData?.storedConfigs?.discordBot?.playerListEmbedJson as
                                 | string
                                 | undefined;
-                            const def = pageCtx.apiData?.defaultConfigs?.discordBot?.playerListEmbedJson as
+                            const defEmbed = pageCtx.apiData?.defaultConfigs?.discordBot?.playerListEmbedJson as
                                 | string
                                 | undefined;
-                            openEmbedEditor({
-                                field: 'playerListEmbedJson',
-                                fieldLabel: 'Player List Embed JSON',
-                                initialValue: stored ?? def ?? '{}',
-                                defaultValue: def ?? '{}',
-                            });
-                        }}
-                    >
-                        <PencilIcon className="mr-1.5 inline-block size-4" /> Change Embed JSON
-                    </Button>
-                    <Button
-                        size={'sm'}
-                        variant="secondary"
-                        disabled={pageCtx.isReadOnly}
-                        onClick={() => {
-                            const stored = pageCtx.apiData?.storedConfigs?.discordBot?.playerListEmbedConfigJson as
-                                | string
-                                | undefined;
-                            const def = pageCtx.apiData?.defaultConfigs?.discordBot?.playerListEmbedConfigJson as
+                            const storedConfig = pageCtx.apiData?.storedConfigs?.discordBot
+                                ?.playerListEmbedConfigJson as string | undefined;
+                            const defConfig = pageCtx.apiData?.defaultConfigs?.discordBot?.playerListEmbedConfigJson as
                                 | string
                                 | undefined;
                             openEmbedEditor({
-                                field: 'playerListEmbedConfigJson',
-                                fieldLabel: 'Player List Config JSON',
-                                initialValue: stored ?? def ?? '{}',
-                                defaultValue: def ?? '{}',
+                                variant: 'playerList',
+                                embedJson: storedEmbed ?? defEmbed ?? '{}',
+                                embedConfigJson: storedConfig ?? defConfig ?? '{}',
+                                initialEmbedJson: storedEmbed ?? defEmbed ?? '{}',
+                                initialEmbedConfigJson: storedConfig ?? defConfig ?? '{}',
+                                defaultEmbedJson: defEmbed ?? '{}',
+                                defaultEmbedConfigJson: defConfig ?? '{}',
                             });
                         }}
                     >
-                        <PencilIcon className="mr-1.5 inline-block size-4" /> Change Config JSON
+                        <PencilIcon className="mr-1.5 inline-block size-4" />{' '}
+                        {t('panel.settings.discord_bot.edit_player_list_embed')}
                     </Button>
                 </div>
                 <SettingItemDesc>
-                    The live player list embed is customizable by editing the two JSONs above. <br />
-                    <strong>Note:</strong> Use the command <InlineCode>/players add</InlineCode> on a channel that the
-                    bot has the "Send Message" permission to setup the embed.
+                    {t('panel.settings.discord_bot.player_list_embed_desc')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.discord_bot.player_list_embed_note')} <InlineCode>/players add</InlineCode>
+                </SettingItemDesc>
+            </SettingItem>
+            <Separator />
+            <SettingItem
+                label={t('panel.settings.discord_oauth.client_id_label')}
+                htmlFor={cfg.oauthClientId.eid}
+                showOptional
+            >
+                <Input
+                    id={cfg.oauthClientId.eid}
+                    ref={oauthClientIdRef}
+                    defaultValue={cfg.oauthClientId.initialValue}
+                    onInput={updatePageState}
+                    disabled={pageCtx.isReadOnly}
+                    placeholder="000000000000000000"
+                />
+                <SettingItemDesc>
+                    {t('panel.settings.discord_oauth.client_id_desc')} <br />
+                    {t('panel.settings.discord_oauth.client_id_portal')}{' '}
+                    <TxAnchor href="https://discord.com/developers/applications">Discord Developer Portal</TxAnchor>
+                    . <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.discord_oauth.client_id_note')}
+                </SettingItemDesc>
+            </SettingItem>
+            <SettingItem
+                label={t('panel.settings.discord_oauth.client_secret_label')}
+                htmlFor={cfg.oauthClientSecret.eid}
+                showOptional
+            >
+                <Input
+                    id={cfg.oauthClientSecret.eid}
+                    ref={oauthClientSecretRef}
+                    defaultValue={cfg.oauthClientSecret.initialValue}
+                    onInput={updatePageState}
+                    disabled={pageCtx.isReadOnly}
+                    placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    autoComplete="off"
+                    className="blur-input"
+                />
+                <SettingItemDesc>
+                    {t('panel.settings.discord_oauth.client_secret_desc')} <br />
+                    <strong>{t('panel.settings.discord_oauth.client_secret_redirect')}</strong>{' '}
+                    <InlineCode>{'<your-panel-url>/login/discord/callback'}</InlineCode>
                 </SettingItemDesc>
             </SettingItem>
         </SettingsCardShell>

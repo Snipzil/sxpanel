@@ -1,6 +1,6 @@
 import { DbInstance, SavePriority } from '../instance';
 import consoleFactory from '@lib/console';
-import { DatabasePlayerType, DatabaseWhitelistApprovalsType, DatabaseWhitelistRequestsType } from '../databaseTypes';
+import { DatabasePlayerType, DatabaseWhitelistApplicationType, DatabaseWhitelistEntryType } from '../databaseTypes';
 import { now } from '@lib/misc';
 const console = consoleFactory('DatabaseDao');
 
@@ -25,7 +25,7 @@ export default class CleanupDao {
      * @returns {number} number of removed items
      */
     bulkRemove(
-        tableName: 'players' | 'actions' | 'whitelistApprovals' | 'whitelistRequests',
+        tableName: 'players' | 'actions' | 'whitelistEntries' | 'whitelistApplications' | 'whitelistEvents',
         filterFunc: (item: unknown) => boolean,
     ): number {
         if (!Array.isArray(this.dbo.data[tableName])) throw new Error("Table selected isn't an array.");
@@ -109,20 +109,20 @@ export default class CleanupDao {
             console.error(msg);
         }
 
-        //Optimize whitelistRequests + whitelistApprovals
+        //Optimize whitelist applications + pending entries
         //Removing the ones older than 7 days
-        let wlRequestsRemoved, wlApprovalsRemoved;
+        let wlApplicationsRemoved, wlEntriesRemoved;
         const sevenDaysAgo = now() - 7 * oneDay;
         try {
-            const wlRequestsFilter = (req: DatabaseWhitelistRequestsType) => {
-                return req.tsLastAttempt < sevenDaysAgo;
+            const wlApplicationsFilter = (app: DatabaseWhitelistApplicationType) => {
+                return app.status === 'pending' && app.tsLastAttempt < sevenDaysAgo;
             };
-            wlRequestsRemoved = txCore.database.whitelist.removeManyRequests(wlRequestsFilter).length;
+            wlApplicationsRemoved = txCore.database.whitelist.removeManyApplications(wlApplicationsFilter).length;
 
-            const wlApprovalsFilter = (req: DatabaseWhitelistApprovalsType) => {
-                return req.tsApproved < sevenDaysAgo;
+            const wlEntriesFilter = (entry: DatabaseWhitelistEntryType) => {
+                return typeof entry.tsFirstConnect !== 'number' && entry.tsGranted < sevenDaysAgo;
             };
-            wlApprovalsRemoved = txCore.database.whitelist.removeManyApprovals(wlApprovalsFilter).length;
+            wlEntriesRemoved = txCore.database.whitelist.removeManyEntries(wlEntriesFilter).length;
         } catch (error) {
             const msg = `Failed to optimize players database with error: ${emsg(error)}`;
             console.error(msg);
@@ -135,8 +135,8 @@ export default class CleanupDao {
         console.ok(
             `- ${playerRemoved} players that haven't connected in the past 16 days and had less than 2 hours of playtime.`,
         );
-        console.ok(`- ${wlRequestsRemoved} whitelist requests older than a week.`);
-        console.ok(`- ${wlApprovalsRemoved} whitelist approvals older than a week.`);
+        console.ok(`- ${wlApplicationsRemoved} pending whitelist applications older than a week.`);
+        console.ok(`- ${wlEntriesRemoved} pending whitelist pre-approvals older than a week.`);
 
         //Optimize reports
         //Removing resolved reports older than the retention period

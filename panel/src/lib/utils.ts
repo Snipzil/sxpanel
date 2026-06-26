@@ -1,15 +1,7 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { Socket, io } from 'socket.io-client';
-import type { BanDurationType } from '@shared/otherTypes';
-import { ListenEventsMap } from '@shared/socketioTypes';
+export { cn } from './cn';
+export { destroySocket, getSocket, joinSocketRoom, leaveSocketRoom } from './socketClient';
 
-/**
- * clsx then tailwind-merge
- */
-export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import type { BanDurationType } from '@shared/otherTypes';
 
 /**
  * Creates deterministic sibling keys when stable content can repeat.
@@ -43,65 +35,51 @@ export const numberToLocaleString = (num: number, decimals = 0) => {
     return num.toLocaleString(window.txBrowserLocale, { maximumFractionDigits: decimals });
 };
 
-/**
- * Returns a singleton socket.io client instance.
- * The socket connects with status (and playerlist for web) rooms.
- * Use joinSocketRoom/leaveSocketRoom to dynamically join/leave additional rooms.
- */
-let mainSocket: Socket<ListenEventsMap, any> | null = null;
-const subscribedRooms = new Set<string>();
-
-export const destroySocket = () => {
-    if (mainSocket) {
-        mainSocket.disconnect();
-        mainSocket = null;
+export const submitAuthedDownload = (
+    action: string,
+    csrfToken: string | undefined,
+    fields: Record<string, string> = {},
+) => {
+    if (!csrfToken) {
+        throw new Error('Cannot start download without a CSRF token.');
     }
-    subscribedRooms.clear();
-};
+    if (action[0] !== '/' || action[1] === '/') {
+        throw new Error(`Download action MUST start with a single '/', got '${action}'.`);
+    }
 
-export const getSocket = () => {
-    if (mainSocket) return mainSocket;
+    const frameName = `download-frame-${Math.random().toString(36).slice(2)}`;
+    const iframe = document.createElement('iframe');
+    iframe.name = frameName;
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.display = 'none';
 
-    const rooms = window.txConsts.isWebInterface ? 'status,playerlist' : 'status';
-    const socketOpts = {
-        transports: ['polling'],
-        upgrade: false,
-        query: {
-            rooms,
-            uiVersion: window.txConsts.txaVersion,
-        },
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = action;
+    form.target = frameName;
+    form.style.display = 'none';
+
+    const appendInput = (name: string, value: string) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
     };
 
-    const socket = window.txConsts.isWebInterface
-        ? io({ ...socketOpts, path: '/socket.io' })
-        : io('monitor', { ...socketOpts, path: '/WebPipe/socket.io' });
-
-    mainSocket = socket as Socket<ListenEventsMap, any>;
-
-    //Re-join dynamic rooms on reconnect
-    mainSocket.on('connect', () => {
-        for (const room of subscribedRooms) {
-            mainSocket!.emit('joinRoom', room);
-        }
-    });
-
-    return mainSocket;
-};
-
-export const joinSocketRoom = (roomName: string) => {
-    subscribedRooms.add(roomName);
-    const socket = getSocket();
-    if (socket.connected) {
-        socket.emit('joinRoom', roomName);
+    appendInput('csrfToken', csrfToken);
+    for (const [name, value] of Object.entries(fields)) {
+        appendInput(name, value);
     }
-};
 
-export const leaveSocketRoom = (roomName: string) => {
-    subscribedRooms.delete(roomName);
-    const socket = getSocket();
-    if (socket.connected) {
-        socket.emit('leaveRoom', roomName);
-    }
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+    form.submit();
+
+    setTimeout(() => {
+        form.remove();
+        iframe.remove();
+    }, 60_000);
 };
 
 /**

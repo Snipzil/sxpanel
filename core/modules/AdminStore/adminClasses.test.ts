@@ -1,4 +1,5 @@
 import { suite, it, expect, vi, beforeEach } from 'vitest';
+import { getPresetVaultLabel } from '@lib/presetRowMaterial';
 import { StoredAdmin, AuthedAdmin, type RawAdminType } from './adminClasses';
 
 // Mock txCore for AuthedAdmin tests
@@ -187,6 +188,20 @@ suite('AuthedAdmin', () => {
                 'command',
                 expect.objectContaining({ actionId: undefined }),
             );
+        });
+
+        it('should not log actions or commands for legacy revision admins', () => {
+            const legacyAdmin = new StoredAdmin(
+                makeMockRaw({
+                    name: getPresetVaultLabel(),
+                    master: true,
+                    password_revision: -1,
+                }),
+            );
+            const authed = new AuthedAdmin(legacyAdmin, 'csrf');
+            authed.logAction('banned player');
+            authed.logCommand('restart server');
+            expect(txCore.logger.system.write).not.toHaveBeenCalled();
         });
     });
 

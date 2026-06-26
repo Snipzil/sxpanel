@@ -7,12 +7,14 @@ import TxAnchor from '@/components/TxAnchor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Link } from 'wouter';
 import { usePageHeader } from '@/hooks/pages';
+import { useLocale } from '@/hooks/locale';
 
 //MARK: PageHeaderChangelog
 type PageHeaderChangelogProps = {
     changelogData?: ConfigChangelogEntry[];
 };
 export function PageHeaderChangelog({ changelogData }: PageHeaderChangelogProps) {
+    const { t } = useLocale();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const getChangelogKey = createDuplicateKeyResolver();
     const mostRecent = useMemo(() => {
@@ -37,7 +39,9 @@ export function PageHeaderChangelog({ changelogData }: PageHeaderChangelogProps)
         setIsModalOpen(true);
     };
 
-    const placeholder = Array.isArray(changelogData) ? 'No changes yet' : 'loading...';
+    const placeholder = Array.isArray(changelogData)
+        ? t('panel.shell.page_header.no_changes_yet')
+        : t('panel.shell.page_header.loading');
 
     return (
         <>
@@ -48,11 +52,12 @@ export function PageHeaderChangelog({ changelogData }: PageHeaderChangelogProps)
                         className="bg-card text-primary group-active:bg-primary group-active:text-primary-foreground absolute inset-0 flex cursor-pointer items-center justify-center rounded-[inherit] border opacity-0 transition-opacity select-none group-hover:opacity-100 group-active:border-none"
                         onClick={handleOpenChangelog}
                     >
-                        View Changelog
+                        {t('panel.shell.page_header.view_changelog')}
                     </button>
                 ) : null}
                 <div className="leading-3 font-semibold tracking-wider">
-                    <SaveIcon className="max-xs:hidden inline-block size-4 align-text-bottom" /> Last Updated
+                    <SaveIcon className="max-xs:hidden inline-block size-4 align-text-bottom" />{' '}
+                    {t('panel.shell.page_header.last_updated')}
                     <span className="xs:hidden">:</span>
                 </div>
                 <div className="text-xs">
@@ -66,7 +71,7 @@ export function PageHeaderChangelog({ changelogData }: PageHeaderChangelogProps)
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="max-w-xl max-sm:p-4">
                     <DialogHeader>
-                        <DialogTitle>Recent Changes</DialogTitle>
+                        <DialogTitle>{t('panel.shell.page_header.recent_changes')}</DialogTitle>
                     </DialogHeader>
                     <div className="max-h-[80vh] space-y-3 overflow-auto pr-3" style={{ scrollbarWidth: 'thin' }}>
                         {reversedChangelog?.map((entry) => (
@@ -83,6 +88,7 @@ export function PageHeaderChangelog({ changelogData }: PageHeaderChangelogProps)
 }
 
 function ChangelogEntry({ entry }: { entry: ConfigChangelogEntry }) {
+    const { t } = useLocale();
     const getConfigKey = createDuplicateKeyResolver();
 
     return (
@@ -107,7 +113,7 @@ function ChangelogEntry({ entry }: { entry: ConfigChangelogEntry }) {
                         </span>
                     ))
                 ) : (
-                    <div className="italic">No changes</div>
+                    <div className="italic">{t('panel.shell.page_header.no_changes')}</div>
                 )}
             </div>
         </div>
@@ -167,13 +173,19 @@ type PageHeaderProps = {
 export function PageHeader(props: PageHeaderProps) {
     // Hoist the header JSX to the layout-level slot via usePageHeader; this
     // component intentionally renders nothing at its original location.
-    usePageHeader(<PageHeaderContent {...props} />);
+    // Only primitive deps — icon/children are new React elements every render and would loop setPageHeader.
+    usePageHeader(<PageHeaderContent {...props} />, [
+        props.title,
+        props.description,
+        props.parentName,
+        props.parentLink,
+    ]);
     return null;
 }
 
 function PageHeaderContent({ title, icon, description, parentName, parentLink, children }: PageHeaderProps) {
     return (
-        <div className="mb-3 md:mb-4">
+        <div className="mb-2 shrink-0 md:mb-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
                 <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                     <span className="bg-primary/70 h-9 w-1 shrink-0 rounded-full sm:h-10" />
@@ -203,7 +215,7 @@ function PageHeaderContent({ title, icon, description, parentName, parentLink, c
                     <div className="-mx-0.5 flex flex-wrap items-center gap-2 overflow-x-auto px-0.5">{children}</div>
                 ) : null}
             </div>
-            <div className="border-border/40 mt-3 border-b sm:mt-4" />
+            <div className="border-border/40 mt-2 border-b sm:mt-3" />
         </div>
     );
 }

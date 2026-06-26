@@ -54,6 +54,7 @@ const systemLogRouteByCategory: Record<SystemLogCategory, DiscordLogRouteKey> = 
 
 const routeColorByKey: Record<DiscordLogRouteKey, number> = {
     'system.action': 0x2563eb,
+    whitelist: 0x14b8a6,
     'system.command': 0x7c3aed,
     'system.login': 0x16a34a,
     'system.config': 0xd97706,
@@ -96,7 +97,12 @@ const formatLocation = (value: unknown) => {
 };
 
 export const buildSystemLogDiscordPayload = (routesValue: unknown, entry: SystemLogEntry) => {
-    const routeKey = systemLogRouteByCategory[entry.category];
+    const routeKey =
+        entry.category === 'action' &&
+        typeof entry.actionId === 'string' &&
+        (entry.actionId.startsWith('whitelist.') || entry.actionId.startsWith('player.whitelist.'))
+            ? 'whitelist'
+            : systemLogRouteByCategory[entry.category];
     const route = resolveRoute(routesValue, routeKey);
     if (!route?.enabled || !route.channelId) return false;
     if (route.useEntryFilter) {
@@ -141,9 +147,7 @@ export const buildServerMenuDiscordPayload = (
     const route = resolveRoute(routesValue, 'server.menu');
     if (!route?.enabled || !route.channelId) return false;
 
-    const eventData = rawEvent.data && typeof rawEvent.data === 'object'
-        ? (rawEvent.data as ServerMenuEventData)
-        : {};
+    const eventData = rawEvent.data && typeof rawEvent.data === 'object' ? (rawEvent.data as ServerMenuEventData) : {};
     const commandId =
         typeof eventData.commandId === 'string' && eventData.commandId.length
             ? eventData.commandId
@@ -162,9 +166,7 @@ export const buildServerMenuDiscordPayload = (
             : commandDefinition?.permissionId;
     const permissionLabel = permissionId ? (permissionsMap.get(permissionId)?.label ?? permissionId) : 'Unknown';
     const description =
-        typeof eventData.message === 'string' && eventData.message.length
-            ? eventData.message
-            : logEntry.msg;
+        typeof eventData.message === 'string' && eventData.message.length ? eventData.message : logEntry.msg;
 
     const embed = {
         title: routeLabelByKey.get('server.menu') ?? 'Admin Command Log',

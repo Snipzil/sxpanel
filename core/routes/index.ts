@@ -4,6 +4,7 @@ export { default as diagnostics_sendReport } from './diagnostics/sendReport';
 export { default as intercom } from './intercom.js';
 export { default as resources } from './resources';
 export { default as resources_list } from './resources/list';
+export { default as resources_download } from './resources/download';
 export { default as perfChart } from './perfChart';
 export { default as playerDrops } from './playerDrops';
 export { default as systemLogPartial } from './systemLogPartial';
@@ -52,10 +53,15 @@ export { default as deployer_status } from './deployer/status';
 export { default as deployer_actions } from './deployer/actions';
 
 export { default as settings_getConfigs } from './settings/getConfigs';
+export { default as settings_getLocalePhrases } from './settings/getLocalePhrases';
 export { default as settings_saveConfigs } from './settings/saveConfigs';
 export { default as settings_getBanTemplates } from './settings/getBanTemplates';
 export { default as settings_saveBanTemplates } from './settings/saveBanTemplates';
 export { default as settings_resetServerDataPath } from './settings/resetServerDataPath';
+export { default as deferral_card_asset } from './deferralCardAsset';
+export { default as deferral_card_logo } from './deferralCardLogo';
+export { default as deferral_addon_meta } from './deferralAddonMeta';
+export { default as discord_guildRoles } from './discord/guildRoles';
 
 export { default as masterActions_page } from './masterActions/page';
 export { default as masterActions_getBackup } from './masterActions/getBackup';
@@ -86,10 +92,16 @@ export {
     LiveSpectateStop as player_liveSpectate_stop,
 } from './player/liveSpectate';
 export { default as player_checkJoin } from './player/checkJoin';
+export { default as player_queueJoin } from './player/queueJoin';
+export { default as player_queuePoll } from './player/queuePoll';
+export { default as player_queueLeave } from './player/queueLeave';
 
 export { default as whitelist_page } from './whitelist/page';
 export { default as whitelist_list } from './whitelist/list';
 export { default as whitelist_actions } from './whitelist/actions';
+export { default as whitelist_config } from './whitelist/config';
+export { default as whitelist_analytics } from './whitelist/analytics';
+export { default as whitelist_bulk } from './whitelist/bulk';
 
 export { default as advanced_page } from './advanced/get';
 export { default as advanced_actions } from './advanced/actions';
@@ -112,6 +124,7 @@ export {
 } from './insights';
 
 export { get as dev_get, post as dev_post } from './devDebug.js';
+export { default as dev_addPlayers } from './dev/addPlayers';
 
 export {
     addonsList as addons_list,

@@ -3,7 +3,7 @@ import dateFormat from 'dateformat';
 import playerResolver from '@lib/player/playerResolver';
 import { PlayerHistoryItem, PlayerModalResp, PlayerModalPlayerData } from '@shared/playerApiTypes';
 import { DatabaseActionType } from '@modules/Database/databaseTypes';
-import { ServerPlayer } from '@lib/player/playerClasses';
+import { ServerPlayer, ReportedPlayer } from '@lib/player/playerClasses';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { now } from '@lib/misc';
@@ -70,6 +70,9 @@ export default async function PlayerModal(ctx: AuthedCtx) {
     if (player instanceof ServerPlayer) {
         playerData.netid = player.netid;
         playerData.sessionTime = Math.ceil((now() - player.tsConnected) / 60);
+    } else if (player instanceof ReportedPlayer) {
+        playerData.netid = player.netid;
+        playerData.sessionTime = 0;
     }
 
     const playerDbData = player.getDbData();

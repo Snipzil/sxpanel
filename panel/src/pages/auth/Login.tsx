@@ -9,9 +9,51 @@ import { useLocation } from 'wouter';
 import { fetchWithTimeout } from '@/hooks/fetch';
 import { processFetchError } from './errors';
 import { ServerGlowIcon } from '@/components/serverIcon';
-import { FaDiscord } from 'react-icons/fa';
+import { DiscordIcon } from '@/components/icons/discord-icon';
+import { useLocale } from '@/hooks/locale';
+import { LogoutReasonHash } from '@/lib/logoutReasonHash';
+
+export { LogoutReasonHash };
+
+function readStoredCredentials() {
+    try {
+        const rawLocalStorageStr = localStorage.getItem('authCredsAutofill');
+        if (!rawLocalStorageStr) {
+            return { username: '', password: '' };
+        }
+        const [user, pass] = JSON.parse(rawLocalStorageStr);
+        return {
+            username: user ?? '',
+            password: pass ?? '',
+        };
+    } catch (error) {
+        console.error('Username/Pass autofill failed', error);
+        return { username: '', password: '' };
+    }
+}
+
+function readHashErrorMessage(t: ReturnType<typeof useLocale>['t']) {
+    const hash = window.location.hash;
+    if (hash === LogoutReasonHash.LOGOUT) {
+        return t('panel.auth.login.logged_out');
+    }
+    if (hash === LogoutReasonHash.EXPIRED) {
+        return t('panel.auth.login.session_expired');
+    }
+    if (hash === LogoutReasonHash.UPDATED) {
+        return t('panel.auth.login.updated_relogin');
+    }
+    if (hash === LogoutReasonHash.MASTER_ALREADY_SET) {
+        return t('panel.auth.login.master_already_set');
+    }
+    if (hash === LogoutReasonHash.SHUTDOWN) {
+        return t('panel.auth.login.shutdown');
+    }
+    return undefined;
+}
 
 function MobileServerHeader() {
+    const { t } = useLocale();
     const server = window.txConsts.server;
     if (!server?.name) return null;
     return (
@@ -24,25 +66,17 @@ function MobileServerHeader() {
             />
             <div>
                 <div className="text-base leading-tight font-semibold">{server.name}</div>
-                <div className="text-muted-foreground text-xs">Sign in to continue</div>
+                <div className="text-muted-foreground text-xs">{t('panel.auth.login.continue_hint')}</div>
             </div>
         </div>
     );
 }
 
-export enum LogoutReasonHash {
-    NONE = '',
-    LOGOUT = '#logout',
-    EXPIRED = '#expired',
-    UPDATED = '#updated',
-    MASTER_ALREADY_SET = '#master_already_set',
-    SHUTDOWN = '#shutdown',
-}
-
 export default function Login() {
+    const { t } = useLocale();
     const { setAuthData } = useAuth();
-    const [credentials, setCredentials] = useState({ username: '', password: '' });
-    const [errorMessage, setErrorMessage] = useState<string | undefined>();
+    const [credentials, setCredentials] = useState(readStoredCredentials);
+    const [errorMessage, setErrorMessage] = useState<string | undefined>(() => readHashErrorMessage(t));
     const [isFetching, setIsFetching] = useState(false);
     const [fetchingAction, setFetchingAction] = useState<'' | 'login' | 'discourse' | 'discord'>('');
     const setLocation = useLocation()[1];
@@ -55,7 +89,7 @@ export default function Login() {
 
     const onErrorResponse = (error: string) => {
         if (error === 'no_admins_setup') {
-            setErrorMessage('No admins set up.\nRedirecting...');
+            setErrorMessage(t('panel.auth.login.no_admins'));
             setLocation('/addMaster/pin');
         } else {
             setErrorMessage(error);
@@ -138,41 +172,8 @@ export default function Login() {
         }
     };
 
-    //Prefill username/password if dev pass enabled
     useEffect(() => {
-        try {
-            const rawLocalStorageStr = localStorage.getItem('authCredsAutofill');
-            if (rawLocalStorageStr) {
-                const [user, pass] = JSON.parse(rawLocalStorageStr);
-                setCredentials({
-                    username: user ?? '',
-                    password: pass ?? '',
-                });
-            }
-        } catch (error) {
-            console.error('Username/Pass autofill failed', error);
-        }
-    }, []);
-
-    //Gets the message from the hash and clears it
-    useEffect(() => {
-        const hash = window.location.hash;
-        if (!hash) return;
-        let nextErrorMessage: string | undefined;
-        if (hash === LogoutReasonHash.LOGOUT) {
-            nextErrorMessage = 'Logged out.';
-        } else if (hash === LogoutReasonHash.EXPIRED) {
-            nextErrorMessage = 'Session expired.';
-        } else if (hash === LogoutReasonHash.UPDATED) {
-            nextErrorMessage = 'fxPanel updated — please sign in again.';
-        } else if (hash === LogoutReasonHash.MASTER_ALREADY_SET) {
-            nextErrorMessage = 'Master account already configured.';
-        } else if (hash === LogoutReasonHash.SHUTDOWN) {
-            nextErrorMessage = 'fxPanel server shut down.\nStart it again to sign in.';
-        }
-        if (nextErrorMessage) {
-            setErrorMessage(nextErrorMessage);
-        }
+        if (!window.location.hash) return;
         history.replaceState(null, document.title, window.location.pathname + window.location.search);
     }, []);
 
@@ -182,8 +183,8 @@ export default function Login() {
 
             {/* Heading */}
             <div className="mb-1">
-                <h1 className="text-foreground text-xl font-semibold">Sign in</h1>
-                <p className="text-muted-foreground mt-0.5 text-sm">Enter your credentials to continue</p>
+                <h1 className="text-foreground text-xl font-semibold">{t('panel.auth.login.title')}</h1>
+                <p className="text-muted-foreground mt-0.5 text-sm">{t('panel.auth.login.subtitle')}</p>
             </div>
 
             {/* Error */}
@@ -197,12 +198,12 @@ export default function Login() {
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                     <Label htmlFor="frm-login" className="text-foreground/80 text-sm font-medium">
-                        Username
+                        {t('panel.auth.login.username')}
                     </Label>
                     <Input
                         id="frm-login"
                         type="text"
-                        placeholder="your username"
+                        placeholder={t('panel.auth.login.username_placeholder')}
                         autoCapitalize="off"
                         autoComplete="off"
                         className="bg-background/60 h-10"
@@ -218,7 +219,7 @@ export default function Login() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                     <Label htmlFor="frm-password" className="text-foreground/80 text-sm font-medium">
-                        Password
+                        {t('panel.auth.login.password')}
                     </Label>
                     <Input
                         id="frm-password"
@@ -246,13 +247,15 @@ export default function Login() {
                 disabled={isFetching}
             >
                 {fetchingAction === 'login' ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-                Sign in
+                {t('panel.auth.login.sign_in')}
             </Button>
 
             {/* OAuth options */}
             <div className="relative flex items-center gap-3">
                 <div className="bg-border h-px flex-1" />
-                <span className="text-muted-foreground/60 shrink-0 text-xs">or continue with</span>
+                <span className="text-muted-foreground/60 shrink-0 text-xs">
+                    {t('panel.auth.login.or_continue_with')}
+                </span>
                 <div className="bg-border h-px flex-1" />
             </div>
 
@@ -266,7 +269,7 @@ export default function Login() {
                 >
                     {fetchingAction === 'discourse' ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
                     <span className="mr-2 font-bold text-[#F40552]">cfx</span>
-                    Cfx.re Account
+                    {t('panel.auth.login.cfx_account')}
                 </Button>
 
                 {window.txConsts.discordOAuthEnabled && (
@@ -280,9 +283,9 @@ export default function Login() {
                         {fetchingAction === 'discord' ? (
                             <Loader2 className="mr-2 size-4 animate-spin" />
                         ) : (
-                            <FaDiscord className="mr-2 size-4 text-[#5865F2]" />
+                            <DiscordIcon className="mr-2 size-4 text-[#5865F2]" />
                         )}
-                        Discord
+                        {t('panel.auth.login.discord')}
                     </Button>
                 )}
             </div>

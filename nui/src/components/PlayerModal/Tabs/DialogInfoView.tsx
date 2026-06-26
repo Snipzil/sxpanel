@@ -1,5 +1,17 @@
 import React, { FormEventHandler, useEffect, useMemo, useState } from 'react';
-import { Box, Button, DialogContent, TextField, Typography, useTheme } from '@mui/material';
+import {
+    Box,
+    Button,
+    Checkbox,
+    DialogContent,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    TextField,
+    Typography,
+    useTheme,
+} from '@mui/material';
 import { useForcePlayerRefresh, usePlayerDetailsValue } from '../../../state/playerDetails.state';
 import { fetchWebPipe } from '../../../utils/fetchWebPipe';
 import { useSnackbar } from 'notistack';
@@ -39,6 +51,8 @@ const deriveTagColors = (hex: string) => {
 
 const DialogInfoView: React.FC = () => {
     const [note, setNote] = useState('');
+    const [tagMenuAnchor, setTagMenuAnchor] = useState<null | HTMLElement>(null);
+    const [isTagUpdating, setIsTagUpdating] = useState(false);
     const { enqueueSnackbar } = useSnackbar();
     const playerDetails = usePlayerDetailsValue();
     const forceRefresh = useForcePlayerRefresh();
@@ -64,6 +78,38 @@ const DialogInfoView: React.FC = () => {
                 styles: deriveTagColors(tag.color),
             }));
     }, [player.tags, tagLookup]);
+
+    const autoTagIds = useMemo(() => new Set(AUTO_TAG_DEFINITIONS.map((def) => def.id)), []);
+    const manualCustomTagDefs = useMemo(() => {
+        return (playerDetails.tagDefinitions ?? [])
+            .filter((def) => !autoTagIds.has(def.id))
+            .filter((def) => !(def.discordRoleIds?.length ?? 0));
+    }, [playerDetails, autoTagIds]);
+
+    const canEditTags = userHasPerm('players.write', userPerms) && !!player.license;
+
+    const handleToggleTag = async (tagId: string, currentlyHas: boolean) => {
+        if (!canEditTags || isTagUpdating) return;
+        setIsTagUpdating(true);
+        try {
+            const result = await fetchWebPipe<GenericApiResp>(`/player/set_tag?mutex=current&netid=${player.netid}`, {
+                method: 'POST',
+                data: { tagId, status: !currentlyHas },
+            });
+            if ('success' in result && result.success === true) {
+                forceRefresh((val) => val + 1);
+                enqueueSnackbar(t('nui_menu.player_modal.info.tag_updated'), { variant: 'success' });
+            } else {
+                enqueueSnackbar((result as GenericApiErrorResp).error ?? t('nui_menu.misc.unknown_error'), {
+                    variant: 'error',
+                });
+            }
+        } catch {
+            enqueueSnackbar(t('nui_menu.misc.unknown_error'), { variant: 'error' });
+        } finally {
+            setIsTagUpdating(false);
+        }
+    };
 
     //Prepare vars
     const language = t('$meta.humanizer_language');
@@ -173,9 +219,60 @@ const DialogInfoView: React.FC = () => {
                 </ButtonXS>
             </Typography>
             <Box pt={1}>
-                <Typography>
-                    Tags: {playerTags.length === 0 && <span style={{ color: theme.palette.text.secondary }}>--</span>}
-                </Typography>
+                <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+                    <Typography>
+                        {t('nui_menu.player_modal.info.tags_label')}:{' '}
+                        {playerTags.length === 0 && <span style={{ color: theme.palette.text.secondary }}>--</span>}
+                    </Typography>
+                    {canEditTags && manualCustomTagDefs.length > 0 && (
+                        <>
+                            <ButtonXS
+                                color="info"
+                                variant="outlined"
+                                onClick={(e) => setTagMenuAnchor(e.currentTarget)}
+                                disabled={isTagUpdating}
+                            >
+                                {t('nui_menu.player_modal.info.edit_tags')}
+                            </ButtonXS>
+                            <Menu
+                                anchorEl={tagMenuAnchor}
+                                open={Boolean(tagMenuAnchor)}
+                                onClose={() => setTagMenuAnchor(null)}
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                            >
+                                {manualCustomTagDefs.map((def) => {
+                                    const hasTag = player.tags?.includes(def.id) ?? false;
+                                    return (
+                                        <MenuItem
+                                            key={def.id}
+                                            dense
+                                            disabled={isTagUpdating}
+                                            onClick={() => handleToggleTag(def.id, hasTag)}
+                                        >
+                                            <ListItemIcon sx={{ minWidth: 32 }}>
+                                                <Checkbox edge="start" checked={hasTag} tabIndex={-1} disableRipple />
+                                            </ListItemIcon>
+                                            <ListItemIcon sx={{ minWidth: 20 }}>
+                                                <Box
+                                                    component="span"
+                                                    sx={{
+                                                        display: 'inline-block',
+                                                        width: 10,
+                                                        height: 10,
+                                                        borderRadius: '50%',
+                                                        backgroundColor: def.color,
+                                                    }}
+                                                />
+                                            </ListItemIcon>
+                                            <ListItemText primary={def.label} />
+                                        </MenuItem>
+                                    );
+                                })}
+                            </Menu>
+                        </>
+                    )}
+                </Box>
                 {playerTags.length > 0 && (
                     <Box display="flex" flexWrap="wrap" gap={0.75} pt={0.75}>
                         {playerTags.map((tag) => (
@@ -199,6 +296,11 @@ const DialogInfoView: React.FC = () => {
                             </Box>
                         ))}
                     </Box>
+                )}
+                {canEditTags && manualCustomTagDefs.length === 0 && (
+                    <Typography variant="caption" color="text.secondary" display="block" pt={0.5}>
+                        {t('nui_menu.player_modal.info.no_custom_tags')}
+                    </Typography>
                 )}
             </Box>
             <Typography>

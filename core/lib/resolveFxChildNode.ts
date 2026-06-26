@@ -7,12 +7,18 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+const EMBEDDED_NODE_DIR_NAMES = ['node22', 'node20', 'node16', 'node'] as const;
+
 export type FxChildNodeRuntimeResolution = {
     childExecPath?: string;
     childExecArgvPrefix: string[];
     candidateCount: number;
     candidateSample: string[];
     cfxRoot?: string;
+    hostExecPath: string;
+    resolvedChildLabel?: string;
+    resolvedViaMuslLoader: boolean;
+    suggestedBotNodePath?: string;
 };
 
 let memoized: FxChildNodeRuntimeResolution | undefined;
@@ -21,6 +27,63 @@ let computed = false;
 export function isHostProcessExecPathNodeLike(): boolean {
     const execBase = path.basename(process.execPath).toLowerCase();
     return execBase === 'node' || execBase === 'node.exe' || execBase.startsWith('node');
+}
+
+function getCitizenRoot(): string | undefined {
+    try {
+        // Loaded lazily so early boot callers do not depend on globalData init order.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { txEnv } = require('@core/globalData') as typeof import('@core/globalData');
+        const root = txEnv?.fxsPath;
+        return typeof root === 'string' && root.length ? path.resolve(root) : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+function buildEmbeddedNodeCandidatePaths(root: string): string[] {
+    const v8NodeBins = EMBEDDED_NODE_DIR_NAMES.map((dir) =>
+        path.join(root, 'citizen', 'scripting', 'v8', dir, 'bin', 'node'),
+    );
+    const optV8NodeBins = EMBEDDED_NODE_DIR_NAMES.map((dir) =>
+        path.join(root, 'opt', 'cfx-server', 'citizen', 'scripting', 'v8', dir, 'bin', 'node'),
+    );
+
+    return [
+        path.join(root, 'usr', 'bin', 'node'),
+        path.join(root, 'usr', 'lib', 'v8', 'node'),
+        path.join(root, 'usr', 'lib', 'v8', 'bin', 'node'),
+        ...v8NodeBins,
+        ...optV8NodeBins,
+    ];
+}
+
+function pickSuggestedBotNodePath(cfxRoots: string[]): string | undefined {
+    for (const root of cfxRoots) {
+        for (const dir of EMBEDDED_NODE_DIR_NAMES) {
+            const direct = path.join(root, 'citizen', 'scripting', 'v8', dir, 'bin', 'node');
+            if (fs.existsSync(direct)) return direct;
+
+            const nested = path.join(root, 'opt', 'cfx-server', 'citizen', 'scripting', 'v8', dir, 'bin', 'node');
+            if (fs.existsSync(nested)) return nested;
+        }
+    }
+
+    return undefined;
+}
+
+export function formatFxChildNodeResolutionDiagnostics(r: FxChildNodeRuntimeResolution): string {
+    if (r.childExecPath) {
+        const label = r.resolvedChildLabel ?? r.childExecPath;
+        const via = r.resolvedViaMuslLoader ? ' (via musl loader)' : '';
+        return `Resolved Node child runtime: ${label}${via}`;
+    }
+
+    const hint = r.suggestedBotNodePath ? ` Set FXPANEL_BOT_NODE_PATH=${r.suggestedBotNodePath}.` : '';
+    return (
+        `No executable Node binary found (candidates=${r.candidateCount}, ` +
+        `sample=[${r.candidateSample.join(', ')}], cfxRoot=${r.cfxRoot ?? 'unknown'}).${hint}`
+    );
 }
 
 function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
@@ -39,6 +102,14 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
     addCfxRoot(path.resolve(execDir, '..'));
     addCfxRoot(path.resolve(execDir, '..', '..'));
 
+    const citizenRoot = getCitizenRoot();
+    if (citizenRoot) {
+        addCfxRoot(citizenRoot);
+        addCfxRoot(path.resolve(citizenRoot, '..'));
+        addCfxRoot(path.resolve(citizenRoot, '../..'));
+        addCfxRoot(path.resolve(citizenRoot, '../../..'));
+    }
+
     const resolvedExecPathAbs = path.resolve(process.execPath);
     const lowerExecPath = resolvedExecPathAbs.toLowerCase();
     const markerWithSep = `${path.sep}cfx-server${path.sep}`;
@@ -51,14 +122,19 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
     }
 
     const cfxRoots = [...cfxRootSet];
-    const cfxLibPaths = Array.from(
-        new Set(
-            cfxRoots.map(
-                (root) =>
-                    `${path.join(root, 'usr', 'lib', 'v8')}:${path.join(root, 'lib')}:${path.join(root, 'usr', 'lib')}`,
-            ),
+    const cfxLibPathSet = new Set(
+        cfxRoots.map(
+            (root) =>
+                `${path.join(root, 'usr', 'lib', 'v8')}:${path.join(root, 'lib')}:${path.join(root, 'usr', 'lib')}`,
         ),
     );
+    if (citizenRoot) {
+        const alpineRoot = path.resolve(citizenRoot, '../..');
+        cfxLibPathSet.add(
+            `${path.join(alpineRoot, 'usr', 'lib', 'v8')}:${path.join(alpineRoot, 'lib')}:${path.join(alpineRoot, 'usr', 'lib')}`,
+        );
+    }
+    const cfxLibPaths = [...cfxLibPathSet];
     const nodeNameRegex = /^node(?:\d+)?(?:\.exe)?$/i;
 
     const collectNodeBins = (root: string, maxDepth: number): string[] => {
@@ -152,17 +228,7 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
         candidateSet.add(siblingNode);
     }
 
-    const cfxNodeCandidates = cfxRoots.flatMap((root) => [
-        path.join(root, 'usr', 'bin', 'node'),
-        path.join(root, 'usr', 'lib', 'v8', 'node'),
-        path.join(root, 'usr', 'lib', 'v8', 'bin', 'node'),
-        path.join(root, 'citizen', 'scripting', 'v8', 'node', 'bin', 'node'),
-        path.join(root, 'citizen', 'scripting', 'v8', 'node20', 'bin', 'node'),
-        path.join(root, 'citizen', 'scripting', 'v8', 'node16', 'bin', 'node'),
-        path.join(root, 'opt', 'cfx-server', 'citizen', 'scripting', 'v8', 'node', 'bin', 'node'),
-        path.join(root, 'opt', 'cfx-server', 'citizen', 'scripting', 'v8', 'node20', 'bin', 'node'),
-        path.join(root, 'opt', 'cfx-server', 'citizen', 'scripting', 'v8', 'node16', 'bin', 'node'),
-    ]);
+    const cfxNodeCandidates = cfxRoots.flatMap((root) => buildEmbeddedNodeCandidatePaths(root));
     for (const candidate of cfxNodeCandidates) {
         if (fs.existsSync(candidate)) {
             candidateSet.add(candidate);
@@ -234,9 +300,12 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
 
     let resolvedExecPath: string | undefined;
     let resolvedExecPrefix: string[] = [];
+    let resolvedChildLabel: string | undefined;
+    let resolvedViaMuslLoader = false;
     for (const candidate of candidates) {
         if (canExecuteDirect(candidate)) {
             resolvedExecPath = candidate;
+            resolvedChildLabel = candidate;
             break;
         }
 
@@ -244,6 +313,8 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
         if (muslExecPrefix) {
             resolvedExecPath = process.execPath;
             resolvedExecPrefix = muslExecPrefix;
+            resolvedChildLabel = muslExecPrefix[3];
+            resolvedViaMuslLoader = true;
             break;
         }
     }
@@ -254,6 +325,10 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
         candidateCount: candidates.length,
         candidateSample: candidates.slice(0, 10),
         cfxRoot: cfxRoots.slice(0, 4).join(' | '),
+        hostExecPath: process.execPath,
+        resolvedChildLabel,
+        resolvedViaMuslLoader,
+        suggestedBotNodePath: pickSuggestedBotNodePath(cfxRoots),
     };
 }
 

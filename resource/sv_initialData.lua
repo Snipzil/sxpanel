@@ -12,6 +12,8 @@ local hideAdmin = GetConvarBool('txAdmin-hideAdminInPunishments')
 local CLEANUP_INTERVAL = 60 * 1000
 local MAX_AGE = 5 * 60 * 1000
 local initialDataCache = {}
+-- Tags keyed by netId (string); survives TX_PLAYERLIST entry not existing yet
+TX_PLAYER_TAG_CACHE = TX_PLAYER_TAG_CACHE or {}
 
 local function cacheData(data)
     data.ts = GetGameTimer()
@@ -42,16 +44,66 @@ end)
 
 --[[ Handle Commands/Events ]]
 --
+local function pushTagsToAdmins(netId, tags)
+    if type(tags) ~= 'table' then return end
+    for adminID, _ in pairs(TX_ADMINS) do
+        TriggerClientEvent('txcl:plist:updatePlayerTags', adminID, netId, tags)
+    end
+end
+
+--- Removes the staff auto-tag while preserving other tags.
+function WithoutStaffTag(tags)
+    if type(tags) ~= 'table' then
+        return {}
+    end
+    local filtered = {}
+    for _, t in ipairs(tags) do
+        if t ~= 'staff' then
+            filtered[#filtered + 1] = t
+        end
+    end
+    return filtered
+end
+
+--- Ensures the staff tag is present (in-game menu admins + panel admin accounts).
+function EnsureStaffInTags(tags)
+    if type(tags) ~= 'table' then
+        tags = {}
+    end
+    for _, t in ipairs(tags) do
+        if t == 'staff' then
+            return tags
+        end
+    end
+    local merged = { 'staff' }
+    for _, t in ipairs(tags) do
+        merged[#merged + 1] = t
+    end
+    return merged
+end
+
+--- Persists tags, applies to TX_PLAYERLIST when present, and syncs to connected admins.
+function StorePlayerTags(netId, tags)
+    if type(netId) ~= 'number' or type(tags) ~= 'table' then return end
+    local key = TxPlayerListKey(netId)
+    TX_PLAYER_TAG_CACHE[key] = tags
+    if TX_PLAYERLIST[key] ~= nil then
+        TX_PLAYERLIST[key].tags = tags
+    end
+    pushTagsToAdmins(netId, tags)
+end
+
+function ClearPlayerTagCache(netId)
+    if type(netId) ~= 'number' then return end
+    TX_PLAYER_TAG_CACHE[TxPlayerListKey(netId)] = nil
+end
+
 local function useInitData(data)
     if not data then
         return
     end
-    -- Store tags on the player's entry in TX_PLAYERLIST
     if data.tags ~= nil then
-        local pidStr = tostring(data.netId)
-        if TX_PLAYERLIST[pidStr] ~= nil then
-            TX_PLAYERLIST[pidStr].tags = data.tags
-        end
+        StorePlayerTags(data.netId, data.tags)
     end
     -- Send pending warn to the client for local storage.
     -- The client will display it when the player starts walking,
@@ -88,12 +140,8 @@ RegisterCommand('txaInitialData', function(source, args)
         return TxPrintError('[txaInitialData] invalid eventData', args[1])
     end
 
-    -- Apply tags to TX_PLAYERLIST immediately if player entry exists
     if initialData.tags ~= nil then
-        local pidStr = tostring(initialData.netId)
-        if TX_PLAYERLIST[pidStr] ~= nil then
-            TX_PLAYERLIST[pidStr].tags = initialData.tags
-        end
+        StorePlayerTags(initialData.netId, initialData.tags)
     end
 
     cacheData(initialData)

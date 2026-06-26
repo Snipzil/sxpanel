@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import playerResolver from '@lib/player/playerResolver';
-import { GenericApiResp } from '@shared/genericApiTypes';
+import { GenericApiErrorResp, GenericApiResp } from '@shared/genericApiTypes';
 import { ServerPlayer } from '@lib/player/playerClasses';
 import { anyUndefined } from '@lib/misc';
 import consoleFactory from '@lib/console';
@@ -30,14 +30,21 @@ export default async function PlayerScreenshot(ctx: AuthedCtx) {
     const { mutex, netid, license } = ctx.query;
     const sendTypedResp = (data: GenericApiResp | { imageData: string }) => ctx.send(data);
 
+    const apiError = (errorCode: string, error: string): GenericApiErrorResp => ({
+        errorCode,
+        error,
+    });
+
     // Check permission
     if (!ctx.admin.testPermission('players.spectate', modulename)) {
-        return sendTypedResp({ error: "You don't have permission to execute this action." });
+        return sendTypedResp(
+            apiError('player_screenshot.no_permission', "You don't have permission to execute this action."),
+        );
     }
 
     // Validate server is running
     if (!txCore.fxRunner.child?.isAlive) {
-        return sendTypedResp({ error: 'The server is not running.' });
+        return sendTypedResp(apiError('server_not_running', 'The server is not running.'));
     }
 
     // Find player
@@ -46,11 +53,11 @@ export default async function PlayerScreenshot(ctx: AuthedCtx) {
         const refMutex = mutex === 'current' ? SYM_CURRENT_MUTEX : mutex;
         player = playerResolver(refMutex, parseInt(netid as string), license);
     } catch (error) {
-        return sendTypedResp({ error: emsg(error) });
+        return sendTypedResp(apiError('player_action.player_not_found', emsg(error)));
     }
 
     if (!(player instanceof ServerPlayer) || !player.isConnected) {
-        return sendTypedResp({ error: 'This player is not connected to the server.' });
+        return sendTypedResp(apiError('player_not_connected', 'This player is not connected to the server.'));
     }
 
     // Create pending request
@@ -75,11 +82,12 @@ export default async function PlayerScreenshot(ctx: AuthedCtx) {
     // Wait for the result
     const result = await resultPromise;
     if (result.error) {
-        return sendTypedResp({ error: result.error });
+        const errorCode = result.error === 'Screenshot request timed out.' ? 'player_screenshot.timeout' : undefined;
+        return sendTypedResp(errorCode ? apiError(errorCode, result.error) : { error: result.error });
     }
 
     if (!result.fileName) {
-        return sendTypedResp({ error: 'No screenshot data received.' });
+        return sendTypedResp(apiError('player_screenshot.no_data', 'No screenshot data received.'));
     }
 
     const filePath = path.join(txEnv.txaPath, result.fileName);
@@ -88,7 +96,7 @@ export default async function PlayerScreenshot(ctx: AuthedCtx) {
         unlink(filePath).catch(() => {});
         return sendTypedResp({ imageData });
     } catch (_error) {
-        return sendTypedResp({ error: 'Failed to read screenshot file.' });
+        return sendTypedResp(apiError('player_screenshot.read_failed', 'Failed to read screenshot file.'));
     }
 }
 

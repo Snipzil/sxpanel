@@ -1,8 +1,10 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { lazy, Suspense, useEffect, useReducer, useRef } from 'react';
 import { useLocation } from 'wouter';
-import SetupPage from '@/pages/SetupPage';
-import DeployerPage from '@/pages/DeployerPage';
+import GenericSpinner from '@/components/GenericSpinner';
 import { LogoFullSquareGreen } from '@/components/Logos';
+
+const SetupPage = lazy(() => import('@/pages/SetupPage'));
+const DeployerPage = lazy(() => import('@/pages/Deployer/DeployerPage'));
 
 const ONBOARDING_PATTERN = /^\/server\/(setup|deployer)(\/|$)/;
 
@@ -85,6 +87,14 @@ function overlayReducer(state: OverlayState, action: OverlayAction): OverlayStat
     }
 }
 
+function OnboardingPageFallback() {
+    return (
+        <div className="flex w-full justify-center py-16">
+            <GenericSpinner />
+        </div>
+    );
+}
+
 export default function OnboardingOverlay() {
     const [location] = useLocation();
     const matched = matchOnboarding(location);
@@ -144,14 +154,15 @@ export default function OnboardingOverlay() {
         // Same bg-background colour as the auth shell so there's no flash.
         // Sidebar/header/playerlist never show through this.
         <div
-            className="bg-background fixed inset-0 z-50 overflow-hidden"
+            className="bg-background fixed inset-0 z-50 flex flex-col overflow-hidden"
             style={{ opacity: fading ? 0 : 1, transition: 'opacity 300ms ease-in' }}
         >
             {/* Layer 2 — the panel that slides in from the right.
                 bg-card is slightly lighter than bg-background, giving a
-                visible edge as it sweeps across. The shadow reinforces depth. */}
+                visible edge as it sweeps across. The shadow reinforces depth.
+                Height is locked to the viewport; only the content region scrolls. */}
             <div
-                className="bg-card flex min-h-screen w-full flex-col overflow-auto"
+                className="bg-card flex h-full min-h-0 w-full flex-col"
                 style={{
                     transform: panelIn ? 'translateX(0%)' : 'translateX(100%)',
                     transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -167,11 +178,22 @@ export default function OnboardingOverlay() {
                     <span className="text-muted-foreground text-xs tracking-wide uppercase">First-time setup</span>
                 </div>
 
-                {/* Setup content flies up after the panel finishes sliding */}
-                {showContent && (
-                    <div className="animate-in slide-in-from-bottom-8 fade-in-0 flex flex-1 justify-center duration-500 ease-out">
-                        {stickySlug === 'setup' && <SetupPage />}
-                        {stickySlug === 'deployer' && <DeployerPage />}
+                {showContent && stickySlug === 'setup' && (
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                        <div className="animate-in slide-in-from-bottom-8 fade-in-0 flex justify-center px-4 py-6 duration-500 ease-out sm:px-6">
+                            <Suspense fallback={<OnboardingPageFallback />}>
+                                <SetupPage />
+                            </Suspense>
+                        </div>
+                    </div>
+                )}
+                {showContent && stickySlug === 'deployer' && (
+                    <div className="animate-in slide-in-from-bottom-8 fade-in-0 flex min-h-0 flex-1 justify-center overflow-hidden px-4 py-3 duration-500 ease-out sm:px-6">
+                        <div className="h-full min-h-0 w-full max-w-4xl">
+                            <Suspense fallback={<OnboardingPageFallback />}>
+                                <DeployerPage />
+                            </Suspense>
+                        </div>
                     </div>
                 )}
             </div>

@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { openExternalLink } from '@/lib/navigation';
+import { cn, submitAuthedDownload } from '@/lib/utils';
 import { BookMarkedIcon, FileDownIcon, SearchIcon, Trash2Icon } from 'lucide-react';
-import { useAdminPerms } from '@/hooks/auth';
+import { useAdminPerms, useCsrfToken } from '@/hooks/auth';
 import { useLiveConsoleHistory } from '@/pages/LiveConsole/liveConsoleHooks';
 import { useAtomValue } from 'jotai';
 import { fxRunnerStateAtom } from '@/hooks/status';
 import LiveConsoleOptionsDropdown from '@/pages/LiveConsole/LiveConsoleOptionsDropdown';
 import type { LiveConsoleOptions } from '@/pages/LiveConsole/LiveConsolePage';
+import { useLocale } from '@/hooks/locale';
 
 type ConsoleFooterButtonProps = {
     icon: React.ElementType;
@@ -48,12 +48,14 @@ type LiveConsoleFooterProps = {
 };
 
 export default function LiveConsoleFooter(props: LiveConsoleFooterProps) {
+    const { t } = useLocale();
     const { history, appendHistory } = useLiveConsoleHistory();
     const [histIndex, setHistIndex] = useState(-1);
     const savedInput = useRef('');
     const termInputRef = props.termInputRef;
     const { hasPerm } = useAdminPerms();
     const hasWritePerm = hasPerm('console.write');
+    const csrfToken = useCsrfToken();
     const fxRunnerState = useAtomValue(fxRunnerStateAtom);
 
     //autofocus on input when connected
@@ -115,11 +117,11 @@ export default function LiveConsoleFooter(props: LiveConsoleFooterProps) {
 
     let inputError: string | undefined;
     if (!hasWritePerm) {
-        inputError = 'You do not have permission to write to the console.';
+        inputError = t('panel.live_console.footer.no_write_perm');
     } else if (!fxRunnerState.isChildAlive) {
-        inputError = 'The server is not running.';
+        inputError = t('panel.live_console.footer.server_not_running');
     } else if (!props.isConnected) {
-        inputError = 'Socket connection lost.';
+        inputError = t('panel.live_console.footer.socket_lost');
     }
 
     return (
@@ -142,36 +144,44 @@ export default function LiveConsoleFooter(props: LiveConsoleFooterProps) {
                 <Input
                     ref={termInputRef}
                     className={cn('w-full', !!inputError && 'placeholder:text-destructive placeholder:opacity-100')}
-                    placeholder={inputError ?? 'Type a command...'}
+                    placeholder={inputError ?? t('panel.live_console.footer.command_placeholder')}
                     type="text"
                     disabled={!!inputError}
                     onKeyDown={handleInputKeyDown}
                     autoCapitalize="none"
                     autoComplete="off"
                     autoCorrect="off"
-                    aria-label={inputError ? `Console input disabled: ${inputError}` : 'Server console command input'}
+                    aria-label={
+                        inputError
+                            ? t('panel.live_console.footer.input_disabled', { reason: inputError })
+                            : t('panel.live_console.footer.input_label')
+                    }
                 />
             </div>
             <div className="flex flex-row justify-evenly gap-3 select-none 2xl:gap-1">
-                <ConsoleFooterButton icon={BookMarkedIcon} title="Saved" onClick={props.toggleSaveSheet} />
+                <ConsoleFooterButton
+                    icon={BookMarkedIcon}
+                    title={t('panel.live_console.footer.saved')}
+                    onClick={props.toggleSaveSheet}
+                />
                 <ConsoleFooterButton
                     icon={SearchIcon}
-                    title="Search"
+                    title={t('panel.live_console.footer.search')}
                     disabled={!props.isConnected}
                     onClick={props.toggleSearchBar}
                 />
                 <ConsoleFooterButton
                     icon={Trash2Icon}
-                    title="Clear"
+                    title={t('panel.live_console.footer.clear')}
                     disabled={!props.isConnected}
                     onClick={props.consoleClear}
                 />
                 <ConsoleFooterButton
                     icon={FileDownIcon}
-                    title="Download"
-                    disabled={!props.isConnected}
+                    title={t('panel.live_console.footer.download')}
+                    disabled={!props.isConnected || !csrfToken}
                     onClick={() => {
-                        openExternalLink('/logs/fxserver/download');
+                        submitAuthedDownload('/logs/fxserver/download', csrfToken);
                     }}
                 />
                 <LiveConsoleOptionsDropdown options={props.consoleOptions} onOptionsChange={props.onOptionsChange} />

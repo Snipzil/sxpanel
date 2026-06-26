@@ -54,7 +54,7 @@ export default function MultiIdsList({ list, highlighted, type, src, onWipeIds }
         return () => {
             if (feedbackTimeoutRef.current) {
                 clearTimeout(feedbackTimeoutRef.current);
-            };
+            }
         };
     }, []);
 

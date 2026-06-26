@@ -10,13 +10,21 @@ import { getFxChildNodeRuntimeResolution } from '@lib/resolveFxChildNode';
 import { txEnv } from '@core/globalData';
 import { AddonStorageScope } from './addonStorage';
 import { isPathInside } from './addonUtils';
-import { ServerPlayer } from '@lib/player/playerClasses';
-import type { AddonState, AddonRouteDescriptor, CoreToAddonMessage, AddonToCoreMessage } from '@shared/addonTypes';
+import { applyPlayerTagChange } from '@lib/player/playerTags';
+import type {
+    AddonDeferralReadyDescriptor,
+    AddonState,
+    AddonRouteDescriptor,
+    CoreToAddonMessage,
+    AddonToCoreMessage,
+} from '@shared/addonTypes';
+import type { DeferralResolveTokensContext } from '@shared/deferralAddonTypes';
 const console = consoleFactory(modulename);
 
 const IPC_TIMEOUT_MS = 30_000;
 const STORAGE_TIMEOUT_MS = 5_000;
 const SHUTDOWN_TIMEOUT_MS = 5_000;
+const DEFERRAL_RESOLVE_TIMEOUT_MS = 2_000;
 
 type AddonRuntimePreference = 'auto' | 'inprocess' | 'worker' | 'node';
 
@@ -132,7 +140,9 @@ parentPort.on('message', (msg) => {
 
 (async () => {
     try {
-        await import(pathToFileURL(workerData.entryPath).href);
+        const entryHref = pathToFileURL(workerData.entryPath).href;
+        const reloadQuery = workerData.reloadNonce ? '?txReload=' + workerData.reloadNonce : '';
+        await import(entryHref + reloadQuery);
     } catch (error) {
         relay({
             type: 'error',
@@ -167,6 +177,7 @@ export default class AddonProcess {
     public readonly addonId: string;
     public state: AddonState = 'discovered';
     public routes: AddonRouteDescriptor[] = [];
+    public deferralReady: AddonDeferralReadyDescriptor | null = null;
     public readonly logs: AddonLogEntry[] = [];
     public startedAt: number | null = null;
     public startupDurationMs: number | null = null;
@@ -183,6 +194,12 @@ export default class AddonProcess {
     private readonly storage: AddonStorageScope;
     private readonly pendingRequests = new Map<string, PendingRequest>();
     private readonly onWsPush: (addonId: string, event: string, data: unknown) => void;
+    private readonly onDeferralPresent:
+        | ((
+              addonId: string,
+              payload: { license: string; scenarioId: string; customMessage?: string; playerName?: string },
+          ) => void)
+        | undefined;
     private readonly onCrash: ((addonId: string) => void) | undefined;
     private readonly logPrefix: string;
 
@@ -196,6 +213,10 @@ export default class AddonProcess {
         permissions: string[];
         storage: AddonStorageScope;
         onWsPush: (addonId: string, event: string, data: unknown) => void;
+        onDeferralPresent?: (
+            addonId: string,
+            payload: { license: string; scenarioId: string; customMessage?: string; playerName?: string },
+        ) => void;
         onCrash?: (addonId: string) => void;
     }) {
         this.addonId = opts.addonId;
@@ -205,6 +226,7 @@ export default class AddonProcess {
         this.permissions = opts.permissions;
         this.storage = opts.storage;
         this.onWsPush = opts.onWsPush;
+        this.onDeferralPresent = opts.onDeferralPresent;
         this.onCrash = opts.onCrash;
         this.logPrefix = `[addon:${opts.addonId}]`;
     }
@@ -232,11 +254,18 @@ export default class AddonProcess {
         // cfx-server hosts cannot safely spawn worker_threads or fork a Node
         // child (no Node binary, V8 isolate disposal crashes). On other
         // platforms we keep the historical fork-based child-process runtime.
-        const runtimePrefRaw = String(process.env.FXPANEL_ADDON_RUNTIME ?? '').trim().toLowerCase();
+        const runtimePrefRaw = String(process.env.FXPANEL_ADDON_RUNTIME ?? '')
+            .trim()
+            .toLowerCase();
         const runtimePreference: AddonRuntimePreference =
-            runtimePrefRaw === 'inprocess' || runtimePrefRaw === 'worker' || runtimePrefRaw === 'node' || runtimePrefRaw === 'auto'
+            runtimePrefRaw === 'inprocess' ||
+            runtimePrefRaw === 'worker' ||
+            runtimePrefRaw === 'node' ||
+            runtimePrefRaw === 'auto'
                 ? (runtimePrefRaw as AddonRuntimePreference)
-                : (process.platform === 'linux' ? 'inprocess' : 'auto');
+                : process.platform === 'linux'
+                  ? 'inprocess'
+                  : 'auto';
 
         if (runtimePreference === 'inprocess') {
             return await this.startInProcess(resolvedEntry, timeoutMs, startTime);
@@ -283,7 +312,7 @@ export default class AddonProcess {
                         warnedNonNodeExecFallback = true;
                         console.warn(
                             `${this.logPrefix} Could not locate explicit Node binary, using worker-thread fallback. ` +
-                            `candidates=${cachedNonNodeExecResolution.candidateCount}, sample=[${cachedNonNodeExecResolution.candidateSample.join(', ')}], cfxRoot=${cachedNonNodeExecResolution.cfxRoot}`,
+                                `candidates=${cachedNonNodeExecResolution.candidateCount}, sample=[${cachedNonNodeExecResolution.candidateSample.join(', ')}], cfxRoot=${cachedNonNodeExecResolution.cfxRoot}`,
                         );
                     }
                 }
@@ -293,7 +322,7 @@ export default class AddonProcess {
                 warnedNonNodeExecFallback = true;
                 console.warn(
                     `${this.logPrefix} Using worker-thread addon runtime by default on Linux. ` +
-                    `Set FXPANEL_ADDON_RUNTIME=node (and optionally FXPANEL_ADDON_NODE_PATH) to force child-process runtime.`,
+                        `Set FXPANEL_ADDON_RUNTIME=node (and optionally FXPANEL_ADDON_NODE_PATH) to force child-process runtime.`,
                 );
             }
 
@@ -313,9 +342,7 @@ export default class AddonProcess {
             const derivedNodeModulesDir = path.resolve(this.addonDir, '..', '..', 'node_modules');
             const derivedSdkPath = path.join(derivedNodeModulesDir, 'addon-sdk');
             const fallbackSdkPath = path.join(this.nodeModulesDir, 'addon-sdk');
-            const resolvedNodeModulesDir = fs.existsSync(derivedSdkPath)
-                ? derivedNodeModulesDir
-                : this.nodeModulesDir;
+            const resolvedNodeModulesDir = fs.existsSync(derivedSdkPath) ? derivedNodeModulesDir : this.nodeModulesDir;
 
             if (!fs.existsSync(path.join(resolvedNodeModulesDir, 'addon-sdk'))) {
                 this.state = 'failed';
@@ -350,6 +377,7 @@ export default class AddonProcess {
                     eval: true,
                     workerData: {
                         entryPath: resolvedEntry,
+                        reloadNonce: `${Date.now()}-${randomUUID()}`,
                     },
                     env: addonChildEnv,
                 });
@@ -513,9 +541,7 @@ export default class AddonProcess {
             try {
                 await import(entryUrl);
             } finally {
-                const current = (globalThis as Record<string, unknown>)[slot] as
-                    | { addonId?: string }
-                    | undefined;
+                const current = (globalThis as Record<string, unknown>)[slot] as { addonId?: string } | undefined;
                 if (current && current.addonId === this.addonId) {
                     delete (globalThis as Record<string, unknown>)[slot];
                 }
@@ -576,7 +602,12 @@ export default class AddonProcess {
                     clearTimeout(timer);
                     const msg = value as AddonToCoreMessage;
                     if (msg.type === 'ready') {
-                        this.routes = (msg.payload as { routes: AddonRouteDescriptor[] }).routes || [];
+                        const payload = msg.payload as {
+                            routes: AddonRouteDescriptor[];
+                            deferral?: AddonDeferralReadyDescriptor;
+                        };
+                        this.routes = payload.routes || [];
+                        this.deferralReady = payload.deferral ?? null;
                         resolve({ success: true });
                     }
                 },
@@ -587,6 +618,38 @@ export default class AddonProcess {
                 timer,
             });
         });
+    }
+
+    /**
+     * Ask the addon to resolve dynamic deferral token values for a connecting player.
+     */
+    async resolveDeferralTokens(ctx: DeferralResolveTokensContext): Promise<Record<string, string>> {
+        if (this.state !== 'running') return {};
+        if (!this.permissions.includes('deferral')) return {};
+        if (!ctx.tokens.length) return {};
+
+        const id = randomUUID();
+        try {
+            const values = await this.sendRequest<Record<string, string>>(
+                {
+                    type: 'deferral-resolve-tokens',
+                    id,
+                    payload: ctx,
+                },
+                id,
+                DEFERRAL_RESOLVE_TIMEOUT_MS,
+            );
+            if (!values || typeof values !== 'object') return {};
+            const out: Record<string, string> = {};
+            for (const key of ctx.tokens) {
+                const val = (values as Record<string, unknown>)[key];
+                out[key] = typeof val === 'string' ? val : val == null ? '' : String(val);
+            }
+            return out;
+        } catch (error) {
+            console.verbose.warn(`${this.logPrefix} deferral token resolve failed: ${(error as Error).message}`);
+            return {};
+        }
     }
 
     /**
@@ -716,10 +779,14 @@ export default class AddonProcess {
                 const timer = setTimeout(() => {
                     console.warn(
                         `${this.logPrefix} Worker did not exit within ${SHUTDOWN_TIMEOUT_MS}ms; ` +
-                        `orphaning to avoid V8 isolate crash from terminate(). ` +
-                        `It will exit on its own when its event loop drains.`,
+                            `orphaning to avoid V8 isolate crash from terminate(). ` +
+                            `It will exit on its own when its event loop drains.`,
                     );
-                    try { activeWorker.unref(); } catch { /* ignore */ }
+                    try {
+                        activeWorker.unref();
+                    } catch {
+                        /* ignore */
+                    }
                     settle();
                 }, SHUTDOWN_TIMEOUT_MS);
 
@@ -859,6 +926,36 @@ export default class AddonProcess {
                 this.handleApiCall(msg.id, msg.payload as { method: string; args: unknown[] });
                 break;
             }
+            case 'deferral-token-response': {
+                const pending = this.pendingRequests.get(msg.id);
+                if (pending) {
+                    this.pendingRequests.delete(msg.id);
+                    clearTimeout(pending.timer);
+                    const payload = msg.payload as { values: Record<string, string>; error?: string };
+                    if (payload.error) {
+                        pending.reject(new Error(payload.error));
+                    } else {
+                        pending.resolve(payload.values ?? {});
+                    }
+                }
+                break;
+            }
+            case 'deferral-present': {
+                const payload = msg.payload as {
+                    license: string;
+                    scenarioId: string;
+                    customMessage?: string;
+                    playerName?: string;
+                };
+                if (!this.permissions.includes('deferral')) {
+                    console.warn(`${this.logPrefix} deferral-present without deferral permission`);
+                    break;
+                }
+                if (typeof payload.license === 'string' && typeof payload.scenarioId === 'string') {
+                    this.onDeferralPresent?.(this.addonId, payload);
+                }
+                break;
+            }
             case 'error': {
                 const { message, stack } = msg.payload as { message: string; stack?: string };
                 console.error(`${this.logPrefix} Error: ${message}`);
@@ -889,27 +986,16 @@ export default class AddonProcess {
                 }
 
                 const [netid, tagId] = args;
-                if (typeof netid !== 'number' || typeof tagId !== 'string') {
+                const parsedNetid = typeof netid === 'number' ? netid : parseInt(netid, 10);
+                if (!Number.isFinite(parsedNetid) || typeof tagId !== 'string') {
                     respond(null, 'invalid arguments: netid must be number, tagId must be string');
                     return;
                 }
 
-                const validIds = new Set((txConfig.gameFeatures.customTags ?? []).map((t: any) => t.id));
-                if (!validIds.has(tagId)) {
-                    respond(null, `unknown custom tag id: ${tagId}`);
-                    return;
-                }
-
-                const player = txCore.fxPlayerlist.getPlayerById(netid);
-                if (!(player instanceof ServerPlayer) || !player.isRegistered) {
-                    respond(null, `player netid ${netid} not found or not registered`);
-                    return;
-                }
-
                 const isAddTagAction = method === 'players.addTag';
-                player.setCustomTag(tagId, isAddTagAction);
+                applyPlayerTagChange(parsedNetid, tagId, isAddTagAction);
                 console.info(
-                    `${isAddTagAction ? 'Added' : 'Removed'} tag '${tagId}' via addon API (addonId: ${this.addonId}, player: ${player.netid})`,
+                    `${isAddTagAction ? 'Added' : 'Removed'} tag '${tagId}' via addon API (addonId: ${this.addonId}, player: ${parsedNetid})`,
                 );
                 respond(true);
             } else {

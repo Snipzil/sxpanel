@@ -30,14 +30,14 @@ export default async function FXServerControls(ctx: AuthedCtx) {
         //If too much of a delay, do it async
         const respawnDelay = txCore.fxRunner.restartSpawnDelay;
         if (respawnDelay.ms > 10_000) {
-            txCore.fxRunner.restartServer('admin request', ctx.admin.name).catch((e) => {});
+            txCore.fxRunner.restartServer('admin request', ctx.admin.getCommandAuthor()).catch((e) => {});
             const durationStr = msToShortishDuration(respawnDelay.ms, { units: ['m', 's', 'ms'] });
             return ctx.send<ApiToastResp>({
                 type: 'warning',
                 msg: `The server is will restart with delay of ${durationStr}.`,
             });
         } else {
-            const restartResult = await txCore.fxRunner.restartServer('admin request', ctx.admin.name);
+            const restartResult = await txCore.fxRunner.restartServer('admin request', ctx.admin.getCommandAuthor());
             if (!restartResult.success) {
                 return ctx.send<ApiToastResp>({ type: 'error', md: restartResult.md, msg: restartResult.error });
             } else {
@@ -49,7 +49,7 @@ export default async function FXServerControls(ctx: AuthedCtx) {
             return ctx.send<ApiToastResp>({ type: 'success', msg: 'The server is already stopped.' });
         }
         ctx.admin.logCommand('STOP SERVER', 'server.stop');
-        await txCore.fxRunner.killServer('admin request', ctx.admin.name, false);
+        await txCore.fxRunner.killServer('admin request', ctx.admin.getCommandAuthor(), false);
         return ctx.send<ApiToastResp>({ type: 'success', msg: 'Server stopped.' });
     } else if (action === 'start') {
         if (!txCore.fxRunner.isIdle) {

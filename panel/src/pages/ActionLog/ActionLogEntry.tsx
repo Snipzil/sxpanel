@@ -1,48 +1,10 @@
 import { memo, useMemo, useRef, useState } from 'react';
 import { cn, copyToClipboard } from '@/lib/utils';
-import {
-    ZapIcon,
-    TerminalIcon,
-    SettingsIcon,
-    LogInIcon,
-    ActivityIcon,
-    ClockIcon,
-    CpuIcon,
-    CircleHelpIcon,
-    CopyIcon,
-    CheckIcon,
-    UserIcon,
-    TagIcon,
-    TextIcon,
-} from 'lucide-react';
+import { CheckIcon, ClockIcon, CopyIcon, TagIcon, TextIcon, UserIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { SystemLogEntry, SystemLogCategory } from '@shared/systemLogTypes';
-
-const categoryConfig: Record<
-    SystemLogCategory,
-    { icon: typeof ZapIcon; color: string; borderColor: string; label: string }
-> = {
-    action: { icon: ZapIcon, color: 'text-blue-400', borderColor: 'border-l-blue-400', label: 'Action' },
-    command: { icon: TerminalIcon, color: 'text-purple-400', borderColor: 'border-l-purple-400', label: 'Command' },
-    config: { icon: SettingsIcon, color: 'text-amber-400', borderColor: 'border-l-amber-400', label: 'Config' },
-    login: { icon: LogInIcon, color: 'text-green-400', borderColor: 'border-l-green-400', label: 'Login' },
-    monitor: { icon: ActivityIcon, color: 'text-red-400', borderColor: 'border-l-red-400', label: 'Monitor' },
-    scheduler: { icon: ClockIcon, color: 'text-cyan-400', borderColor: 'border-l-cyan-400', label: 'Scheduler' },
-    system: {
-        icon: CpuIcon,
-        color: 'text-muted-foreground',
-        borderColor: 'border-l-muted-foreground',
-        label: 'System',
-    },
-};
-
-const defaultConfig = {
-    icon: CircleHelpIcon,
-    color: 'text-muted-foreground',
-    borderColor: 'border-l-muted-foreground',
-    label: 'Unknown',
-};
+import type { SystemLogEntry } from '@shared/systemLogTypes';
+import { ACTION_LOG_CATEGORY_STYLES, ACTION_LOG_DEFAULT_CATEGORY_STYLE } from './actionLogCategoryStyles';
 
 const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
 const fullTimeOptions: Intl.DateTimeFormatOptions = {
@@ -69,8 +31,13 @@ type ActionLogEntryProps = {
     onAdminClick: (name: string) => void;
 };
 
+/**
+ * Action Log entry, V2 — identical interaction model to V1 (row opens a
+ * detail dialog, author opens admin stats) but the category colorway is
+ * light/dark adaptive and the copy confirmation uses the success token.
+ */
 const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: ActionLogEntryProps) {
-    const cfg = categoryConfig[event.category] ?? defaultConfig;
+    const cfg = ACTION_LOG_CATEGORY_STYLES[event.category] ?? ACTION_LOG_DEFAULT_CATEGORY_STYLE;
     const Icon = cfg.icon;
     const [modalOpen, setModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -86,7 +53,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
 
     const handleCopy = () => {
         const text = `[${fullTime}] [${cfg.label}] ${event.author}: ${event.action}`;
-        copyToClipboard(text, surrogateRef.current ?? document.body as unknown as HTMLDivElement).then(() => {
+        copyToClipboard(text, surrogateRef.current ?? (document.body as unknown as HTMLDivElement)).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         });
@@ -98,7 +65,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                 ref={surrogateRef}
                 className={cn(
                     'hover:bg-secondary/30 flex cursor-pointer items-start gap-2 border-l-2 px-3 py-1.5 text-sm transition-colors',
-                    cfg.borderColor,
+                    cfg.border,
                 )}
                 onClick={() => setModalOpen(true)}
                 onKeyDown={(e) => {
@@ -109,8 +76,9 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                 }}
                 role="button"
                 tabIndex={0}
+                aria-label={`${cfg.label} by ${event.author} at ${absoluteTime} — open details`}
             >
-                <Icon className={cn('mt-0.5 size-3.5 shrink-0', cfg.color)} />
+                <Icon className={cn('mt-0.5 size-3.5 shrink-0', cfg.text)} aria-hidden="true" />
 
                 <span
                     className="text-muted-foreground mt-px w-18 shrink-0 text-xs tabular-nums"
@@ -123,6 +91,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                     type="button"
                     className="text-primary shrink-0 text-left font-semibold hover:underline"
                     onClick={handleAdminClick}
+                    aria-label={`View stats for ${event.author}`}
                 >
                     {event.author}
                 </button>
@@ -134,8 +103,8 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Icon className={cn('size-5', cfg.color)} />
-                            <span className={cfg.color}>{cfg.label}</span>
+                            <Icon className={cn('size-5', cfg.text)} />
+                            <span className={cfg.text}>{cfg.label}</span>
                         </DialogTitle>
                         <DialogDescription>
                             {fullTime} ({getRelativeTime(event.ts)})
@@ -169,7 +138,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                             <TagIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
                             <div>
                                 <p className="text-muted-foreground text-xs font-medium">Category</p>
-                                <p className={cfg.color}>{cfg.label}</p>
+                                <p className={cfg.text}>{cfg.label}</p>
                             </div>
                         </div>
 
@@ -190,7 +159,7 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                         <Button variant="secondary" size="xs" onClick={handleCopy} className="gap-1.5">
                             {copied ? (
                                 <>
-                                    <CheckIcon className="size-3.5 text-green-500" /> Copied
+                                    <CheckIcon className="text-success-inline size-3.5" /> Copied
                                 </>
                             ) : (
                                 <>

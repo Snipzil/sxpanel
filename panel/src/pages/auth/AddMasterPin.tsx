@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils';
 import { ApiAddMasterPinReq, ApiAddMasterPinResp } from '@shared/authApiTypes';
 import { useEffect, useReducer } from 'react';
 import { Loader2 } from 'lucide-react';
-import { LogoutReasonHash } from './Login';
 import { fetchWithTimeout } from '@/hooks/fetch';
 import { AuthError, processFetchError, type AuthErrorData } from './errors';
+import { useLocale } from '@/hooks/locale';
 
 type AddMasterPinState = {
     pin: string;
@@ -25,18 +25,17 @@ function reduceAddMasterPinState(state: AddMasterPinState, action: Partial<AddMa
     };
 }
 
-const getSafeRedirectPath = (value: string) => {
+const isAllowedMasterOAuthRedirect = (value: string) => {
     try {
-        const parsed = new URL(value, window.location.origin);
-        if (parsed.origin !== window.location.origin) return null;
-        if (!parsed.pathname.startsWith('/')) return null;
-        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        const parsed = new URL(value);
+        return parsed.protocol === 'https:' && parsed.hostname === 'forum.cfx.re';
     } catch {
-        return null;
+        return false;
     }
 };
 
 export default function AddMasterPin() {
+    const { t } = useLocale();
     const [state, dispatch] = useReducer(reduceAddMasterPinState, {
         pin: '',
         isRedirecting: false,
@@ -71,18 +70,15 @@ export default function AddMasterPin() {
                     dispatch({ isMessageError: true, messageText: data.error });
                 }
             } else {
-                dispatch({ isRedirecting: true });
-                const safeRedirectPath = getSafeRedirectPath(data.authUrl);
-                if (!safeRedirectPath) {
+                if (!isAllowedMasterOAuthRedirect(data.authUrl)) {
                     dispatch({
-                        isRedirecting: false,
                         isMessageError: true,
-                        messageText: 'Invalid redirect URL.',
+                        messageText: t('panel.auth.add_master.pin.invalid_redirect'),
                     });
                     return;
                 }
-                console.log('Redirecting to', safeRedirectPath);
-                window.location.assign(safeRedirectPath);
+                dispatch({ isRedirecting: true });
+                window.location.href = data.authUrl;
             }
         } catch (error) {
             const { errorTitle, errorMessage } = processFetchError(error);
@@ -103,11 +99,11 @@ export default function AddMasterPin() {
     useEffect(() => {
         if (/^#\d{6}$/.test(window.location.hash)) {
             dispatch({
-                messageText: 'Auto-filled ✔',
+                messageText: t('panel.auth.add_master.pin.auto_filled'),
                 pin: window.location.hash.substring(1),
             });
         }
-    }, []);
+    }, [t]);
 
     if (fullPageError) {
         return <AuthError error={fullPageError} />;
@@ -117,9 +113,9 @@ export default function AddMasterPin() {
     return (
         <form onSubmit={handleSubmit} className="w-full">
             <CardHeader className="space-y-1">
-                <CardTitle className="text-3xl">No Cfx.re account linked</CardTitle>
+                <CardTitle className="text-3xl">{t('panel.auth.add_master.pin.title')}</CardTitle>
                 <CardDescription className="text-muted-foreground text-base">
-                    Type in the PIN from the terminal.
+                    {t('panel.auth.add_master.pin.description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2">
@@ -161,7 +157,7 @@ export default function AddMasterPin() {
             <CardFooter>
                 <Button className="w-full" disabled={disableInput}>
                     {disableInput && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    Link Account
+                    {t('panel.auth.add_master.pin.link_account')}
                 </Button>
             </CardFooter>
         </form>

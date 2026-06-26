@@ -1,0 +1,19 @@
+title = "fxPanel gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "fxpanel-test-passwords"
+description = "Exclude known test fixtures"
+regex = '''teste123|test-csrf-token|test-lua-com-token|JBSWY3DPEHPK3PXP'''
+paths = ['''\.test\.ts$''', '''auth\.integration\.test\.ts''']
+
+[allowlist]
+paths = [
+    '''node_modules''',
+    '''monitor/node_modules''',
+    '''\.git''',
+    '''LIVE_SECURITY_RESULTS\.json''',
+    '''THIRD-PARTY-LICENSES\.txt''',
+]

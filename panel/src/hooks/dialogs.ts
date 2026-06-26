@@ -2,7 +2,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { VariantProps } from 'class-variance-authority';
 import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { atomWithReset } from 'jotai/utils';
-import { ReactElement } from 'react';
+import { ReactElement, useCallback } from 'react';
 
 /**
  * MARK: Account Modal Stuff
@@ -24,10 +24,13 @@ export const useAccountModal = () => {
 export const useOpenAccountModal = () => {
     const setAccountModalOpen = useSetAtom(accountModalOpenAtom);
     const setAccountModalTab = useSetAtom(accountModalTabAtom);
-    return (tab?: string) => {
-        setAccountModalOpen(true);
-        if (tab) setAccountModalTab(tab);
-    };
+    return useCallback(
+        (tab?: string) => {
+            setAccountModalOpen(true);
+            if (tab) setAccountModalTab(tab);
+        },
+        [setAccountModalOpen, setAccountModalTab],
+    );
 };
 
 export const useCloseAccountModal = () => {

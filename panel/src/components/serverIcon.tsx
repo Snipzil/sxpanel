@@ -1,3 +1,4 @@
+import { resolvePanelAssetUrl } from '@/lib/nuiEmbed';
 import { cn } from '@/lib/utils';
 import { AvatarFallback, AvatarImage, Avatar as ShadcnAvatar } from './ui/avatar';
 
@@ -17,11 +18,11 @@ function ServerIcon({ serverName, gameName, iconFilename, iconDataUrl, className
     const altText = serverName?.trim() ? `${serverName} icon` : 'Server icon';
     let fallbackUrl: string;
     if (gameName === 'fivem') {
-        fallbackUrl = '/img/fivem-server-icon.png';
+        fallbackUrl = resolvePanelAssetUrl('/img/fivem-server-icon.png');
     } else if (gameName === 'redm') {
-        fallbackUrl = '/img/redm-server-icon.png';
+        fallbackUrl = resolvePanelAssetUrl('/img/redm-server-icon.png');
     } else {
-        fallbackUrl = '/img/unknown-server-icon.png';
+        fallbackUrl = resolvePanelAssetUrl('/img/unknown-server-icon.png');
     }
 
     let iconUrl = fallbackUrl;

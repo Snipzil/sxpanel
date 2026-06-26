@@ -67,6 +67,16 @@ export default class Database {
         this.#db.handleShutdown();
     }
 
+    /** @see DbInstance.beginWriteBatch */
+    beginWriteBatch() {
+        this.#db.beginWriteBatch();
+    }
+
+    /** @see DbInstance.endWriteBatch */
+    endWriteBatch() {
+        this.#db.endWriteBatch();
+    }
+
     /**
      * Returns if the lowdb instance is ready
      */

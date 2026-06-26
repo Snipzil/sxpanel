@@ -9,6 +9,45 @@ import { mockPlayerData } from './generateMockPlayerData';
 
 let playerUpdateInterval: ReturnType<typeof setTimeout> | null = null;
 
+type ReportDebugView = 'menu' | 'create' | 'list';
+
+interface OpenReportUIOptions {
+    view?: ReportDebugView;
+    priorityEnabled?: boolean;
+    categories?: string[];
+    players?: { id: number; name: string }[];
+}
+
+const DEFAULT_REPORT_PLAYERS = [
+    { id: 1, name: 'John_Doe' },
+    { id: 2, name: 'Suspect_Player' },
+    { id: 3, name: 'Jane_Smith' },
+];
+
+const DEFAULT_REPORT_CATEGORIES = ['Player Report', 'Bug Report', 'Question', 'Other'];
+
+const DEFAULT_REPORT_TICKETS = [
+    {
+        id: 'TKT-1001',
+        status: 'inReview' as const,
+        category: 'Player Report',
+        descriptionPreview: 'Player was RDMing at Legion Square',
+        messageCount: 3,
+        unreadCount: 1,
+        tsCreated: Math.floor(Date.now() / 1000) - 3600,
+    },
+    {
+        id: 'TKT-0998',
+        status: 'resolved' as const,
+        category: 'Bug Report',
+        descriptionPreview: 'Vehicle despawned while driving on the highway',
+        messageCount: 5,
+        unreadCount: 0,
+        tsCreated: Math.floor(Date.now() / 1000) - 86400,
+        awaitingFeedback: true,
+    },
+];
+
 const MenuObject = {
     warnSelf: (reason: string) => {
         debugData<SetWarnOpenData>([
@@ -127,11 +166,51 @@ const MenuObject = {
             },
         ]);
     },
+    /**
+     * Opens the player-facing report UI (ReportPage overlay).
+     * @param options.view - Jump straight to `menu`, `create`, or `list`
+     */
+    openReportUI: (options: OpenReportUIOptions = {}) => {
+        const {
+            view = 'menu',
+            priorityEnabled = true,
+            categories = DEFAULT_REPORT_CATEGORIES,
+            players = DEFAULT_REPORT_PLAYERS,
+        } = options;
+
+        // Single event — back-to-back messages were causing React 19 DOM reconciliation crashes.
+        debugData(
+            [
+                {
+                    action: 'openTicketUI',
+                    data: {
+                        players,
+                        categories,
+                        priorityEnabled,
+                        initialView: view,
+                        tickets: DEFAULT_REPORT_TICKETS,
+                    },
+                },
+            ],
+            0,
+        );
+    },
+    /** Shortcut — opens directly on the New Ticket / create form */
+    openReportCreate: () => MenuObject.openReportUI({ view: 'create' }),
+    /** Shortcut — opens on My Tickets list */
+    openReportList: () => MenuObject.openReportUI({ view: 'list' }),
+    /** Closes the report UI overlay */
+    closeReportUI: () => {
+        debugData([{ action: 'closeTicketUI', data: {} }], 0);
+    },
 };
+
+/** Shared browser-dev actions — used by `window.menuDebug` and BrowserDevToolbar. */
+export const browserMenuDebug = MenuObject;
 
 export const registerDebugFunctions = () => {
     if (isBrowserEnv()) {
-        (window as any).menuDebug = MenuObject;
+        (window as any).menuDebug = browserMenuDebug;
 
         console.log('%cfxPanel Debug Utilities', 'font-weight: bold; font-size: 25px; color: red;');
         console.log(

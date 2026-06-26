@@ -16,21 +16,26 @@ import {
     CpuIcon,
     MemoryStickIcon,
     TimerIcon,
+    DownloadIcon,
 } from 'lucide-react';
 import { useBackendApi, ApiTimeout } from '@/hooks/fetch';
+import { txToast } from '@/components/TxToaster';
 import { PageHeader } from '@/components/page-header';
+import { useLocale } from '@/hooks/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAdminPerms } from '@/hooks/auth';
+import { useAdminPerms, useCsrfToken } from '@/hooks/auth';
 import {
     ResourcesListResp,
     ResourceItemData,
@@ -39,7 +44,7 @@ import {
     ResourcesWsEventType,
 } from '@shared/resourcesApiTypes';
 import { ApiToastResp } from '@shared/genericApiTypes';
-import { getSocket, joinSocketRoom, leaveSocketRoom } from '@/lib/utils';
+import { getSocket, joinSocketRoom, leaveSocketRoom, submitAuthedDownload, cn } from '@/lib/utils';
 
 type StatusFilter = 'all' | 'started' | 'stopped';
 
@@ -72,6 +77,7 @@ function mergeWsUpdate(
 }
 
 export default function ResourcesPage() {
+    const { t } = useLocale();
     const [viewState, setViewState] = useState<ResourcesViewState>({
         searchQuery: '',
         statusFilter: 'all',
@@ -80,9 +86,11 @@ export default function ResourcesPage() {
     });
     const wsDataRef = useRef<Map<string, ResourceStatusEvent>>(new Map());
     const [wsRevision, setWsRevision] = useState(0);
+    const [isReloading, setIsReloading] = useState(false);
     const { searchQuery, statusFilter, expandedFolders, selectedFolder } = viewState;
     const { hasPerm } = useAdminPerms();
     const canControl = hasPerm('commands.resources');
+    const canDownload = hasPerm('commands.resources.download');
 
     const setViewField = <K extends keyof ResourcesViewState>(key: K, value: ResourcesViewState[K]) => {
         setViewState((prev) => ({ ...prev, [key]: value }));
@@ -158,16 +166,32 @@ export default function ResourcesPage() {
         [commandApi, swr],
     );
 
-    const handleRefresh = useCallback(async () => {
+    const handleReloadResources = useCallback(async () => {
+        const toastId = txToast.loading(canControl ? 'Refreshing resources...' : 'Reloading resources...');
+        setIsReloading(true);
         try {
-            await commandApi({
-                data: { action: 'refresh_res', parameter: '' },
-            });
-            setTimeout(() => swr.mutate(), 1500);
-        } catch {
-            // Error handled by the hook's toast
+            if (canControl) {
+                await commandApi({
+                    data: { action: 'refresh_res', parameter: '' },
+                });
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+            }
+            const data = await swr.mutate();
+            if (!data) {
+                throw new Error('empty response');
+            }
+            if ('error' in data) {
+                txToast.error({ msg: String(data.error) }, { id: toastId });
+                return;
+            }
+            txToast.success('Resources reloaded successfully.', { id: toastId });
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Failed to reload resources.';
+            txToast.error({ msg }, { id: toastId });
+        } finally {
+            setIsReloading(false);
         }
-    }, [commandApi, swr]);
+    }, [canControl, commandApi, swr]);
 
     const toggleFolder = useCallback((folderPath: string) => {
         setViewState((prev) => {
@@ -191,24 +215,24 @@ export default function ResourcesPage() {
         }
 
         return groups.flatMap((group) => {
-                let resources = group.resources;
+            let resources = group.resources;
 
-                if (statusFilter !== 'all') {
-                    resources = resources.filter((r) => r.status === statusFilter);
-                }
+            if (statusFilter !== 'all') {
+                resources = resources.filter((r) => r.status === statusFilter);
+            }
 
-                if (searchQuery.trim()) {
-                    const query = searchQuery.toLowerCase();
-                    resources = resources.filter(
-                        (r) =>
-                            r.name.toLowerCase().includes(query) ||
-                            r.author.toLowerCase().includes(query) ||
-                            r.description.toLowerCase().includes(query),
-                    );
-                }
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                resources = resources.filter(
+                    (r) =>
+                        r.name.toLowerCase().includes(query) ||
+                        r.author.toLowerCase().includes(query) ||
+                        r.description.toLowerCase().includes(query),
+                );
+            }
 
-                return resources.length > 0 ? [{ ...group, resources }] : [];
-            });
+            return resources.length > 0 ? [{ ...group, resources }] : [];
+        });
     }, [liveData, searchQuery, statusFilter, selectedFolder]);
 
     // Expand all folders that have matching resources when searching
@@ -221,10 +245,10 @@ export default function ResourcesPage() {
 
     return (
         <div className="h-contentvh flex w-full flex-col">
-            <PageHeader title="Resources" icon={<PackageIcon />} />
+            <PageHeader title={t('panel.routes.resources')} icon={<PackageIcon />} />
             <div className="flex w-full flex-1 overflow-hidden">
                 {/* Sidebar - Folder tree */}
-                <aside className="bg-card hidden w-64 flex-shrink-0 flex-col border-r md:flex">
+                <aside className="bg-card shell-lg:flex hidden w-[var(--tx-sidebar-width)] shrink-0 flex-col border-r">
                     <div className="border-b p-3">
                         <h3 className="text-sm font-semibold">Folders</h3>
                     </div>
@@ -274,7 +298,25 @@ export default function ResourcesPage() {
                 <div className="flex min-w-0 flex-1 flex-col">
                     {/* Toolbar */}
                     <div className="flex flex-wrap items-center gap-2 border-b p-3">
-                        <div className="relative min-w-[200px] flex-1">
+                        <Select
+                            value={selectedFolder ?? '__all__'}
+                            onValueChange={(value) =>
+                                setViewField('selectedFolder', value === '__all__' ? null : value)
+                            }
+                        >
+                            <SelectTrigger className="shell-lg:hidden w-full min-w-0 sm:max-w-xs">
+                                <SelectValue placeholder="Folder" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__all__">All Folders</SelectItem>
+                                {liveData?.groups.map((group) => (
+                                    <SelectItem key={group.subPath} value={group.subPath}>
+                                        {group.subPath}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <div className="relative min-w-0 flex-1 basis-full sm:basis-[12rem]">
                             <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                             <Input
                                 placeholder="Search resources..."
@@ -289,22 +331,17 @@ export default function ResourcesPage() {
                                 onFilterChange={(value) => setViewField('statusFilter', value)}
                                 data={liveData}
                             />
-                            {canControl && (
-                                <Button variant="outline" size="sm" onClick={handleRefresh} title="Refresh resources">
-                                    <RefreshCwIcon className="size-4" />
-                                </Button>
-                            )}
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => swr.mutate()}
-                                disabled={swr.isLoading}
-                                title="Reload list"
+                                onClick={handleReloadResources}
+                                disabled={swr.isLoading || isReloading}
+                                title={canControl ? 'Refresh and reload resources' : 'Reload resources'}
                             >
-                                {swr.isLoading ? (
+                                {swr.isLoading || isReloading ? (
                                     <Loader2Icon className="size-4 animate-spin" />
                                 ) : (
-                                    <RotateCwIcon className="size-4" />
+                                    <RefreshCwIcon className="size-4" />
                                 )}
                             </Button>
                         </div>
@@ -320,7 +357,7 @@ export default function ResourcesPage() {
                             <div className="flex flex-col items-center justify-center gap-2 p-12">
                                 <AlertCircleIcon className="text-destructive size-8" />
                                 <p className="text-muted-foreground text-sm">{swr.error.message}</p>
-                                <Button variant="outline" size="sm" onClick={() => swr.mutate()}>
+                                <Button variant="outline" size="sm" onClick={handleReloadResources}>
                                     Retry
                                 </Button>
                             </div>
@@ -337,6 +374,7 @@ export default function ResourcesPage() {
                                         expanded={effectiveFolders.has(group.subPath)}
                                         onToggle={() => toggleFolder(group.subPath)}
                                         canControl={canControl}
+                                        canDownload={canDownload}
                                         onAction={handleResourceAction}
                                     />
                                 ))}
@@ -399,12 +437,14 @@ function ResourceGroupSection({
     expanded,
     onToggle,
     canControl,
+    canDownload,
     onAction,
 }: {
     group: ResourceGroup;
     expanded: boolean;
     onToggle: () => void;
     canControl: boolean;
+    canDownload: boolean;
     onAction: (action: string, name: string) => void;
 }) {
     const startedCount = group.resources.filter((r) => r.status === 'started').length;
@@ -433,6 +473,7 @@ function ResourceGroupSection({
                             key={resource.name}
                             resource={resource}
                             canControl={canControl}
+                            canDownload={canDownload}
                             onAction={onAction}
                         />
                     ))}
@@ -442,13 +483,13 @@ function ResourceGroupSection({
     );
 }
 
-function PerfDisplay({ resource }: { resource: ResourceItemData }) {
+function PerfDisplay({ resource, className }: { resource: ResourceItemData; className?: string }) {
     if (!resource.perf) return null;
     const { cpu, memory, tickTime } = resource.perf;
 
     return (
         <TooltipProvider delayDuration={200}>
-            <div className="flex items-center gap-3 text-xs">
+            <div className={cn('flex items-center gap-3 text-xs', className)}>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <span
@@ -487,61 +528,103 @@ function PerfDisplay({ resource }: { resource: ResourceItemData }) {
     );
 }
 
-function ResourceRow({
+function ResourceRowActions({
     resource,
     canControl,
+    canDownload,
+    csrfToken,
     onAction,
+    onDownload,
+    variant,
 }: {
     resource: ResourceItemData;
     canControl: boolean;
+    canDownload: boolean;
+    csrfToken: string | undefined;
     onAction: (action: string, name: string) => void;
+    onDownload: () => void;
+    variant: 'inline' | 'menu';
 }) {
     const isStarted = resource.status === 'started';
-    const isStarting = resource.status === 'starting';
 
-    return (
-        <div className="hover:bg-accent/50 flex items-center gap-3 rounded-md px-3 py-2 transition-colors">
-            {/* Status indicator */}
-            <div
-                className={`size-2 flex-shrink-0 rounded-full ${
-                    isStarted ? 'bg-green-500' : isStarting ? 'animate-pulse bg-yellow-500' : 'bg-red-500'
-                }`}
-            />
+    if (variant === 'inline') {
+        if (!canControl && !canDownload) return null;
 
-            {/* Name and metadata */}
-            <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium">{resource.name}</span>
-                    {resource.version && <span className="text-muted-foreground text-xs">{resource.version}</span>}
-                </div>
-                {(resource.description || resource.author) && (
-                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                        {resource.description && <span className="truncate">{resource.description}</span>}
-                        {resource.author && <span className="flex-shrink-0">by {resource.author}</span>}
-                    </div>
+        return (
+            <div className="flex shrink-0 items-center gap-0.5">
+                {canDownload && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="size-8 p-0"
+                        disabled={!csrfToken}
+                        onClick={onDownload}
+                        title="Download"
+                        aria-label={`Download ${resource.name}`}
+                    >
+                        <DownloadIcon className="size-4" />
+                    </Button>
+                )}
+                {canControl && (
+                    <>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-8 p-0"
+                            onClick={() => onAction('restart_res', resource.name)}
+                            title="Restart"
+                            aria-label={`Restart ${resource.name}`}
+                        >
+                            <RotateCwIcon className="size-4" />
+                        </Button>
+                        {isStarted ? (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="size-8 p-0"
+                                onClick={() => onAction('stop_res', resource.name)}
+                                title="Stop"
+                                aria-label={`Stop ${resource.name}`}
+                            >
+                                <SquareIcon className="size-4" />
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="size-8 p-0"
+                                onClick={() => onAction('start_res', resource.name)}
+                                title="Start"
+                                aria-label={`Start ${resource.name}`}
+                            >
+                                <PlayIcon className="size-4" />
+                            </Button>
+                        )}
+                    </>
                 )}
             </div>
+        );
+    }
 
-            {/* Performance stats */}
-            {isStarted && <PerfDisplay resource={resource} />}
+    if (!canControl && !canDownload) return null;
 
-            {/* Status badge */}
-            <Badge
-                variant={isStarted ? 'default' : isStarting ? 'secondary' : 'destructive'}
-                className="flex-shrink-0 text-xs"
-            >
-                {resource.status}
-            </Badge>
-
-            {/* Actions */}
-            {canControl && (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="size-7 p-0">
-                            <ChevronDownIcon className="size-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+    return (
+        <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="size-7 p-0" aria-label={`Actions for ${resource.name}`}>
+                    <ChevronDownIcon className="size-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                {canDownload && (
+                    <DropdownMenuItem disabled={!csrfToken} onClick={onDownload}>
+                        <DownloadIcon className="mr-2 size-4" />
+                        Download
+                    </DropdownMenuItem>
+                )}
+                {canControl && canDownload && <DropdownMenuSeparator />}
+                {canControl && (
+                    <>
                         <DropdownMenuItem onClick={() => onAction('restart_res', resource.name)}>
                             <RotateCwIcon className="mr-2 size-4" />
                             Restart
@@ -557,8 +640,107 @@ function ResourceRow({
                                 Start
                             </DropdownMenuItem>
                         )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    </>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+function ResourceRow({
+    resource,
+    canControl,
+    canDownload,
+    onAction,
+}: {
+    resource: ResourceItemData;
+    canControl: boolean;
+    canDownload: boolean;
+    onAction: (action: string, name: string) => void;
+}) {
+    const csrfToken = useCsrfToken();
+
+    const handleDownload = () => {
+        if (!csrfToken) return;
+        txToast.info('Preparing download…');
+        submitAuthedDownload('/resources/download', csrfToken, {
+            name: resource.name,
+            path: resource.path,
+        });
+    };
+    const isStarted = resource.status === 'started';
+    const isStarting = resource.status === 'starting';
+    const hasActions = canControl || canDownload;
+
+    return (
+        <div className="hover:bg-accent/50 rounded-md px-3 py-2 transition-colors">
+            <div className="flex items-center gap-3">
+                {/* Status indicator */}
+                <div
+                    className={`size-2 flex-shrink-0 rounded-full ${
+                        isStarted ? 'bg-green-500' : isStarting ? 'animate-pulse bg-yellow-500' : 'bg-red-500'
+                    }`}
+                />
+
+                {/* Name and metadata */}
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium">{resource.name}</span>
+                        {resource.version && <span className="text-muted-foreground text-xs">{resource.version}</span>}
+                    </div>
+                    {(resource.description || resource.author) && (
+                        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                            {resource.description && <span className="truncate">{resource.description}</span>}
+                            {resource.author && <span className="flex-shrink-0">by {resource.author}</span>}
+                        </div>
+                    )}
+                </div>
+
+                {/* Desktop: performance stats, status badge, and menu actions */}
+                {isStarted && <PerfDisplay resource={resource} className="shell-lg:flex hidden" />}
+                <Badge
+                    variant={isStarted ? 'default' : isStarting ? 'secondary' : 'destructive'}
+                    className="shell-lg:inline-flex hidden flex-shrink-0 text-xs"
+                >
+                    {resource.status}
+                </Badge>
+                {hasActions && (
+                    <div className="shell-lg:block hidden">
+                        <ResourceRowActions
+                            resource={resource}
+                            canControl={canControl}
+                            canDownload={canDownload}
+                            csrfToken={csrfToken}
+                            onAction={onAction}
+                            onDownload={handleDownload}
+                            variant="menu"
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Mobile / compact scaled viewport: inline actions avoid zoom + portaled dropdown misalignment */}
+            {hasActions && (
+                <div className="shell-lg:hidden mt-1.5 flex items-center justify-between gap-2 pl-5">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <Badge
+                            variant={isStarted ? 'default' : isStarting ? 'secondary' : 'destructive'}
+                            className="flex-shrink-0 text-xs"
+                        >
+                            {resource.status}
+                        </Badge>
+                        {isStarted && <PerfDisplay resource={resource} />}
+                    </div>
+                    <ResourceRowActions
+                        resource={resource}
+                        canControl={canControl}
+                        canDownload={canDownload}
+                        csrfToken={csrfToken}
+                        onAction={onAction}
+                        onDownload={handleDownload}
+                        variant="inline"
+                    />
+                </div>
             )}
         </div>
     );

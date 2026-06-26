@@ -108,12 +108,10 @@ const filterBySearch = (players: PlayersTablePlayerType[], searchValue: string, 
     }
 
     if (searchType === 'playerIds') {
-        const ids = query
-            .split(/[\s,]+/)
-            .flatMap((id) => {
-                const trimmedId = id.trim();
-                return trimmedId ? [trimmedId] : [];
-            });
+        const ids = query.split(/[\s,]+/).flatMap((id) => {
+            const trimmedId = id.trim();
+            return trimmedId ? [trimmedId] : [];
+        });
         if (!ids.length) return players;
 
         return players.filter((p) => {
@@ -123,9 +121,7 @@ const filterBySearch = (players: PlayersTablePlayerType[], searchValue: string, 
             const discord = Number.isNaN(parsed)
                 ? ''
                 : `discord:${(900000000000000000n + BigInt(parsed)).toString()}`.toLowerCase();
-            const idSet = [normalizedLicense, discord, p.displayName.toLowerCase()].flatMap((id) =>
-                id ? [id] : [],
-            );
+            const idSet = [normalizedLicense, discord, p.displayName.toLowerCase()].flatMap((id) => (id ? [id] : []));
             return ids.some((needle) => idSet.some((id) => id.includes(needle)));
         });
     }
@@ -136,12 +132,10 @@ const filterBySearch = (players: PlayersTablePlayerType[], searchValue: string, 
 const filterByFlags = (players: PlayersTablePlayerType[], filtersCsv?: string) => {
     if (!filtersCsv?.length) return players;
     const filters = new Set(
-        filtersCsv
-            .split(',')
-            .flatMap((filterValue) => {
-                const trimmedFilter = filterValue.trim();
-                return trimmedFilter ? [trimmedFilter] : [];
-            }),
+        filtersCsv.split(',').flatMap((filterValue) => {
+            const trimmedFilter = filterValue.trim();
+            return trimmedFilter ? [trimmedFilter] : [];
+        }),
     );
 
     return players.filter((p) => {
@@ -156,7 +150,7 @@ const filterByFlags = (players: PlayersTablePlayerType[], filtersCsv?: string) =
 };
 
 const sortPlayers = (players: PlayersTablePlayerType[], sorting: PlayersTableSortingType) => {
-    const sorted = players.toSorted((a, b) => {
+    const sorted = [...players].sort((a, b) => {
         const aVal = a[sorting.key];
         const bVal = b[sorting.key];
         if (aVal === bVal) {

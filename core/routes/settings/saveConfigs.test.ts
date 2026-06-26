@@ -6,6 +6,9 @@ vi.mock('@core/globalData', () => ({
     txEnv: {
         isWindows: true,
     },
+    txHostConfig: {
+        netInterface: undefined,
+    },
 }));
 
 suite('settings/saveConfigs', () => {

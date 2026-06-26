@@ -160,6 +160,8 @@ CreateThread(function()
         '/txaReportResources',
         '/txaSetDebugMode',
         '/txaInitialData',
+        '/txaSyncHttpPlayers',
+        '/txaSendEvent',
 
         --Keybinds
         '/txAdmin:menu:openPlayersPage',
@@ -235,10 +237,7 @@ function IsNuiRequestOriginValid(headers)
 
     -- warn admin of possible csrf attempt
     if TX_MENU_ACCESSIBLE and SendPersistentAlert then
-        local msg = ('ATTENTION! txAdmin received a NUI message from the origin "%s" which is not approved. This likely means that that resource is vulnerable to XSS which has been exploited to inject txAdmin commands. It is recommended that you fix the vulnerability or remove that resource completely. For more information: https://discord.gg/6FcqBYwxH5.'):format(
-            headers['Origin']
-        )
-        SendPersistentAlert('csrfWarning', 'error', msg, false)
+        SendPersistentAlert('csrfWarning', 'error', 'nui_menu.misc.csrf_alert', true, { origin = headers['Origin'] })
     end
 
     return false

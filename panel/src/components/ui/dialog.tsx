@@ -82,11 +82,4 @@ const DialogDescription = ({
 );
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
-export {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogFooter,
-    DialogTitle,
-    DialogDescription,
-};
+export { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription };

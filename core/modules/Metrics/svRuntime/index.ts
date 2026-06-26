@@ -20,6 +20,7 @@ import { PerfChartApiResp } from '@routes/perfChart';
 import got from '@lib/got';
 import { throttle } from 'throttle-debounce';
 import { TimeCounter } from '../statsUtils';
+import { isHttpHealthCheckDisabled } from '@lib/fxserver/httpHealthCheck';
 import { FxMonitorHealth } from '@shared/enums';
 const console = consoleFactory(modulename);
 
@@ -166,7 +167,9 @@ export default class SvRuntimeMetrics {
     private async collectStats() {
         //Precondition checks
         const monitorStatus = txCore.fxMonitor.status;
-        if (monitorStatus.health === FxMonitorHealth.OFFLINE) return; //collect even if partial
+        if (!isHttpHealthCheckDisabled() && monitorStatus.health === FxMonitorHealth.OFFLINE) {
+            return; //collect even if partial
+        }
         if (monitorStatus.uptime < 30_000) return; //server barely booted
         if (!txCore.fxRunner.child?.isAlive) return;
 

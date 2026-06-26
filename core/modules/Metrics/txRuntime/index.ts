@@ -3,7 +3,7 @@ import * as jose from 'jose';
 import consoleFactory from '@lib/console';
 import { MultipleCounter, QuantileArray } from '../statsUtils';
 import { txEnv, txHostConfig } from '@core/globalData';
-import { getHostStaticData } from '@lib/diagnostics';
+import { ensureHostStaticDataCache } from '@lib/diagnostics';
 import fatalError from '@lib/fatalError';
 const console = consoleFactory(modulename);
 
@@ -30,6 +30,7 @@ const jweHeader = {
  */
 export default class TxRuntimeMetrics {
     #publicKey: jose.KeyLike | undefined;
+    #lastHbStatsJson: string | undefined;
 
     #fxServerBootSeconds: number | false = false;
     public readonly loginOrigins = new MultipleCounter();
@@ -157,7 +158,11 @@ export default class TxRuntimeMetrics {
 
         //Generate HB data
         try {
-            const hostData = getHostStaticData();
+            const hostData = await ensureHostStaticDataCache();
+            if (!hostData) {
+                console.verbose.warn('Cannot refreshHbData because host static data is not available yet.');
+                return;
+            }
 
             //Prepare stats data
             const statsData = {
@@ -174,14 +179,14 @@ export default class TxRuntimeMetrics {
                 botCommands: txConfig.discordBot.enabled ? this.botCommands : false,
                 menuCommands: txConfig.gameFeatures.menuEnabled ? this.menuCommands : false,
                 banCheckTime: txConfig.banlist.enabled ? this.banCheckTime : false,
-                whitelistCheckTime: txConfig.whitelist.mode !== 'disabled' ? this.whitelistCheckTime : false,
+                whitelistCheckTime: txConfig.whitelist.enabled ? this.whitelistCheckTime : false,
                 playersTableSearchTime: this.playersTableSearchTime,
                 historyTableSearchTime: this.historyTableSearchTime,
 
                 //Settings & stuff
                 adminCount: Array.isArray(txCore.adminStore.admins) ? txCore.adminStore.admins.length : 1,
                 banCheckingEnabled: txConfig.banlist.enabled,
-                whitelistMode: txConfig.whitelist.mode,
+                whitelistMode: txConfig.whitelist.activeWorkflowId,
                 recipeName: txCore.cacheStore.get('deployer:recipe') ?? 'not_in_cache',
                 tmpConfigFlags: Object.entries(txConfig.gameFeatures)
                     .filter(([key, value]) => value)
@@ -193,8 +198,12 @@ export default class TxRuntimeMetrics {
                 resourceRuntimes: this.resourceRuntimes ?? false,
             };
 
+            const statsJson = JSON.stringify(statsData);
+            if (statsJson === this.#lastHbStatsJson) return;
+            this.#lastHbStatsJson = statsJson;
+
             //Prepare output
-            const encodedHbData = new TextEncoder().encode(JSON.stringify(statsData));
+            const encodedHbData = new TextEncoder().encode(statsJson);
             const jwe = await new jose.CompactEncrypt(encodedHbData)
                 .setProtectedHeader(jweHeader)
                 .encrypt(this.#publicKey);

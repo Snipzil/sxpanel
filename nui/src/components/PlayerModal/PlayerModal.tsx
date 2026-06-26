@@ -8,7 +8,7 @@ import {
     ListItemIcon,
     ListItemText,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { alpha, styled, useTheme } from '@mui/material/styles';
 import { Block, Close, FlashOn, FormatListBulleted, MenuBook, Person } from '@mui/icons-material';
 import { useAssociatedPlayerValue, usePlayerDetailsValue } from '../../state/playerDetails.state';
 import { useTranslate } from 'react-polyglot';
@@ -31,19 +31,20 @@ const classes = {
 
 const StyledList = styled(List)(({ theme }) => ({
     [`& .${classes.listItem}`]: {
-        borderRadius: 8,
-        '&.Mui-selected:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        },
+        marginBottom: 6,
     },
 
+    //Danger treatment for the Ban tab, driven by the error palette
     [`& .${classes.listItemBan}`]: {
-        borderRadius: 8,
-        '&:hover, &.Mui-selected': {
-            background: theme.palette.error.main,
+        marginBottom: 6,
+        '&:hover': {
+            backgroundColor: alpha(theme.palette.error.main, 0.2),
+            borderColor: theme.palette.error.main,
         },
-        '&.Mui-selected:hover': {
-            backgroundColor: 'rgba(194,13,37, 0.8)',
+        '&.Mui-selected, &.Mui-selected:hover': {
+            backgroundColor: theme.palette.error.main,
+            borderColor: theme.palette.error.main,
+            color: theme.palette.error.contrastText,
         },
     },
 }));
@@ -67,6 +68,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ onClose }) => {
     const setModalOpen = useSetPlayerModalVisibility();
     const playerDetails = usePlayerDetailsValue();
     const assocPlayer = useAssociatedPlayerValue();
+    const { tokens } = useTheme();
 
     if (!assocPlayer) return null;
 
@@ -76,7 +78,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ onClose }) => {
 
     return (
         <>
-            <DialogTitle style={{ borderBottom: '1px solid rgba(221,221,221,0.54)' }}>
+            <DialogTitle style={{ borderBottom: `1px solid ${tokens.border}` }}>
                 [{assocPlayer.id}] {playerName}
                 <StyledCloseButton onClick={onClose} size="large">
                     <Close />
@@ -101,7 +103,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ onClose }) => {
                         </>
                     ) : (
                         <>
-                            <Box minWidth={200} pr={2} borderRight="1px solid rgba(221,221,221,0.54)">
+                            <Box minWidth={200} pr={2} borderRight={`1px solid ${tokens.border}`}>
                                 <DialogList />
                             </Box>
                             <React.Suspense fallback={<LoadingModal />}>
@@ -119,7 +121,7 @@ interface DialogTabProps {
     title: string;
     tab: PlayerModalTabs;
     curTab: PlayerModalTabs;
-    icon: JSX.Element;
+    icon: React.ReactElement;
     isDisabled?: boolean;
 }
 

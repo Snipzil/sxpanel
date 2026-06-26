@@ -18,12 +18,6 @@ const NoHistoryBox = () => (
     </Box>
 );
 
-const colors = {
-    danger: '#c2293e',
-    warning: '#f1c40f',
-    dark: 'gray',
-};
-
 type ActionCardProps = {
     action: PlayerHistoryItem;
     permsDisableWarn: boolean;
@@ -48,18 +42,18 @@ const ActionCard: React.FC<ActionCardProps> = ({
 
     let footerNote, actionColor, actionMessage;
     if (action.type == 'ban') {
-        actionColor = colors.danger;
+        actionColor = theme.palette.error.main;
         actionMessage = t('nui_menu.player_modal.history.banned_by', {
             author: action.author,
         });
     } else if (action.type == 'warn') {
-        actionColor = colors.warning;
+        actionColor = theme.palette.warning.main;
         actionMessage = t('nui_menu.player_modal.history.warned_by', {
             author: action.author,
         });
     }
     if (action.revokedBy) {
-        actionColor = colors.dark;
+        actionColor = theme.tokens.textMuted;
         footerNote = t('nui_menu.player_modal.history.revoked_by', {
             author: action.revokedBy,
         });
@@ -80,6 +74,8 @@ const ActionCard: React.FC<ActionCardProps> = ({
         <Box
             style={{
                 background: theme.palette.background.paper,
+                border: `1px solid ${theme.tokens.border}`,
+                borderRadius: 6,
                 padding: '0.35rem 0.55rem',
                 marginBottom: '6px',
                 borderLeft: `solid 4px ${actionColor}`,

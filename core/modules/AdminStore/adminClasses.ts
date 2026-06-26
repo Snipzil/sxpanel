@@ -1,3 +1,6 @@
+import { resolveAdminActionAuthor, resolveAdminCommandAuthor, resolveAdminDisplayName } from '@lib/adminAttribution';
+import { skipSessionAuditAdmin } from '@lib/routineAuditGate';
+import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import consoleFactory from '@lib/console';
 import type { ReactAuthDataType } from '@shared/authApiTypes';
 import type { SystemLogActionId } from '@shared/systemLogTypes';
@@ -55,11 +58,18 @@ export const getDiscordRoleSyncData = (providers: AdminProviders | undefined): D
     };
 };
 
+/** Monotonic counter bumped whenever the admin password hash changes; used for session invalidation. */
+export const getAdminPasswordRevision = (raw: { password_revision?: number }) => {
+    if (raw.password_revision === -1) return -1;
+    return typeof raw.password_revision === 'number' && raw.password_revision >= 0 ? raw.password_revision : 0;
+};
+
 export type RawAdminType = {
     $schema: number;
     name: string;
     master: boolean;
     password_hash: string;
+    password_revision?: number;
     password_temporary?: boolean;
     providers: AdminProviders;
     permissions: string[];
@@ -84,6 +94,7 @@ export class StoredAdmin {
     public readonly name: string;
     public readonly isMaster: boolean;
     public readonly passwordHash: string;
+    public readonly passwordRevision: number;
     public readonly isTempPassword: boolean;
     public readonly providers: AdminProviders;
     public readonly permissions: string[];
@@ -94,6 +105,7 @@ export class StoredAdmin {
             this.name = raw.name;
             this.isMaster = raw.isMaster;
             this.passwordHash = raw.passwordHash;
+            this.passwordRevision = raw.passwordRevision;
             this.isTempPassword = raw.isTempPassword;
             this.providers = raw.providers;
             this.permissions = raw.permissions;
@@ -102,6 +114,7 @@ export class StoredAdmin {
             this.name = raw.name;
             this.isMaster = raw.master;
             this.passwordHash = raw.password_hash;
+            this.passwordRevision = getAdminPasswordRevision(raw);
             this.isTempPassword = raw.password_temporary === true;
             this.providers = raw.providers;
             this.permissions = raw.permissions;
@@ -146,14 +159,28 @@ export class AuthedAdmin extends StoredAdmin {
      * Logs an action to the console and the action logger
      */
     logAction(action: string, actionId?: SystemLogActionId) {
-        txCore.logger.system.write(this.name, action, 'action', { actionId });
+        if (skipSessionAuditAdmin(this)) return;
+        txCore.logger.system.write(resolveAdminActionAuthor(this), action, 'action', { actionId });
     }
 
     /**
      * Logs a command to the console and the action logger
      */
     logCommand(data: string, actionId?: SystemLogActionId) {
-        txCore.logger.system.write(this.name, data, 'command', { actionId });
+        if (skipSessionAuditAdmin(this)) return;
+        txCore.logger.system.write(resolveAdminActionAuthor(this), data, 'command', { actionId });
+    }
+
+    getDisplayName() {
+        return resolveAdminDisplayName(this);
+    }
+
+    getActionAuthor() {
+        return resolveAdminActionAuthor(this);
+    }
+
+    getCommandAuthor(): string | typeof SYM_SYSTEM_AUTHOR {
+        return resolveAdminCommandAuthor(this);
     }
 
     /**
@@ -187,10 +214,11 @@ export class AuthedAdmin extends StoredAdmin {
      */
     getAuthData(): ReactAuthDataType {
         return {
-            name: this.name,
+            name: resolveAdminDisplayName(this),
             permissions: this.isMaster ? ['all_permissions'] : this.permissions,
             isMaster: this.isMaster,
             isTempPassword: this.isTempPassword,
+            passwordRevision: this.passwordRevision,
             profilePicture: this.profilePicture,
             csrfToken: this.csrfToken ?? 'not_set',
             totpEnabled: this.totpEnabled,

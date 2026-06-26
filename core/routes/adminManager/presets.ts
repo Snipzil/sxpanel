@@ -1,10 +1,7 @@
 const modulename = 'WebServer:AdminManagerPresets';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
-import {
-    getAllPermissionPresets,
-    writeCustomPermissionPresets,
-} from '@modules/AdminStore/permissionPresets';
+import { getAllPermissionPresets, writeCustomPermissionPresets } from '@modules/AdminStore/permissionPresets';
 import type { PermissionPreset } from '@shared/permissions';
 const console = consoleFactory(modulename);
 

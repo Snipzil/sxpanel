@@ -80,6 +80,14 @@ function DebugPrint(...)
     end
 end
 
+--- Resolves the author label used for bridged admin actions.
+function TxAdminActionAuthor(admin)
+    if type(admin) ~= 'table' then
+        return 'unknown'
+    end
+    return admin.username or 'unknown'
+end
+
 --- Finds the index of a table element
 ---@param tgtTable table
 ---@param value any
@@ -100,3 +108,84 @@ end
 function GetPedHealthPercent(ped)
     return math.floor((GetEntityHealth(ped) / GetEntityMaxHealth(ped)) * 100)
 end
+
+-- =============================================
+--  Locale translation (loads locale/*.json)
+-- =============================================
+translator = {}
+
+local _translatorLocale = nil
+local _translatorLang = nil
+
+local function _translatorLoadLocale()
+    local lang = GetConvar('txAdmin-locale', 'en')
+    if lang == _translatorLang and _translatorLocale then
+        return _translatorLocale
+    end
+
+    local fileData
+    if lang == 'custom' then
+        fileData = LoadResourceFile('monitor', '.runtime/locale.json')
+    else
+        fileData = LoadResourceFile('monitor', 'locale/' .. lang .. '.json')
+    end
+
+    if type(fileData) ~= 'string' then
+        return nil
+    end
+
+    _translatorLocale = json.decode(fileData)
+    _translatorLang = lang
+    return _translatorLocale
+end
+
+local function _translatorResolve(phrases, key)
+    local node = phrases
+    for part in string.gmatch(key, '[^%.]+') do
+        if type(node) ~= 'table' then
+            return nil
+        end
+        node = node[part]
+    end
+    if type(node) == 'string' then
+        return node
+    end
+    return nil
+end
+
+local function _translatorInterpolate(str, options)
+    if type(options) ~= 'table' then
+        return str
+    end
+    return (str:gsub('%%{([^}]+)}', function(k)
+        local v = options[k]
+        if v == nil then
+            return '%{' .. k .. '}'
+        end
+        return tostring(v)
+    end))
+end
+
+---@param key string Dot-separated locale key (e.g. nui_menu.keybinds.open_main)
+---@param options table|nil Interpolation values for %{name} placeholders
+---@return string
+function translator.t(key, options)
+    if type(key) ~= 'string' then
+        return tostring(key)
+    end
+    local locale = _translatorLoadLocale()
+    if not locale then
+        return key
+    end
+    local value = _translatorResolve(locale, key)
+    if not value then
+        return key
+    end
+    return _translatorInterpolate(value, options)
+end
+
+AddEventHandler('txAdmin:events:configChanged', function()
+    _translatorLocale = nil
+    _translatorLang = nil
+end)
+

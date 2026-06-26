@@ -41,11 +41,7 @@ addTargetSubcommands(
     },
     (subcommand) => {
         return subcommand.addStringOption((option) => {
-            return option
-                .setName('note')
-                .setDescription('Note text to save.')
-                .setRequired(true)
-                .setMaxLength(1000);
+            return option.setName('note').setDescription('Note text to save.').setRequired(true).setMaxLength(1000);
         });
     },
     { includeSelf: true },

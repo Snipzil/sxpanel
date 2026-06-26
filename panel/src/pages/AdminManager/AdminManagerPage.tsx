@@ -42,6 +42,7 @@ import PresetsTab from './PresetsTab';
 import PermissionsEditor from './PermissionsEditor';
 import { emsg } from '@shared/emsg';
 import { PageHeader } from '@/components/page-header';
+import { useLocale } from '@/hooks/locale';
 import { cn } from '@/lib/utils';
 
 type AdminsHeaderStatsProps = {
@@ -60,10 +61,7 @@ function AdminsHeaderStats({ total, online, masters, isLoading }: AdminsHeaderSt
             </div>
             <div className="border-success/30 bg-success/10 text-success-inline flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold">
                 <span
-                    className={cn(
-                        'size-1.5 rounded-full',
-                        online > 0 ? 'bg-success animate-pulse' : 'bg-success/40',
-                    )}
+                    className={cn('size-1.5 rounded-full', online > 0 ? 'bg-success animate-pulse' : 'bg-success/40')}
                 />
                 <span className="font-mono">{isLoading ? '--' : online}</span>
                 <span>online</span>
@@ -423,11 +421,12 @@ function AdminManagerView({
     onCloseBulkPermDialog,
     onBulkApply,
 }: AdminManagerViewProps) {
+    const { t } = useLocale();
     return (
         <div className="flex w-full min-w-0 flex-col gap-4">
             <PageHeader
                 icon={<ShieldIcon />}
-                title="Admin Manager"
+                title={t('panel.routes.admin_manager')}
                 description="Manage administrator accounts, permissions & presets"
             >
                 <AdminsHeaderStats
@@ -469,7 +468,12 @@ function AdminManagerView({
                 />
 
                 <TabsContent value="presets" className="mt-0">
-                    <PresetsTab presets={presets} isLoading={presetsLoading} canManage={canManage} onSave={onSavePresets} />
+                    <PresetsTab
+                        presets={presets}
+                        isLoading={presetsLoading}
+                        canManage={canManage}
+                        onSave={onSavePresets}
+                    />
                 </TabsContent>
             </Tabs>
 
@@ -536,7 +540,7 @@ export default function AdminManagerPage() {
         }
     }, []);
 
-    // - -  Admin list - - 
+    // - -  Admin list - -
     const listApi = useBackendApi<ApiGetAdminListResp>({
         method: 'GET',
         path: '/adminManager/list',
@@ -564,7 +568,7 @@ export default function AdminManagerPage() {
         return data.admins;
     });
 
-    // - -  Admin stats - - 
+    // - -  Admin stats - -
     const statsQueryApi = useBackendApi<ApiGetAdminStatsResp>({
         method: 'GET',
         path: '/adminManager/stats',
@@ -588,7 +592,7 @@ export default function AdminManagerPage() {
         return ranks;
     }, [adminStats]);
 
-    // - -  Presets - - 
+    // - -  Presets - -
     const presetsQueryApi = useBackendApi<ApiGetPresetsResp>({
         method: 'GET',
         path: '/adminManager/presets',

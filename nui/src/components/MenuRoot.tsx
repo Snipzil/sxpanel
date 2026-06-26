@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Box } from '@mui/material';
-import { PlayersPage } from './PlayersPage/PlayersPage';
-import { ReportsTab } from './ReportsTab/ReportsTab';
 import { txAdminMenuPage, usePageValue } from '../state/page.state';
 import { useHudListenersService } from '../hooks/useHudListenersService';
+import { usePlayerListListener } from '../hooks/usePlayerListListener';
 import { useServerCtxValue } from '../state/server.state';
 import { MenuRootContent } from '@nui/src/components/MenuRootContent';
+import { PageTabs } from '@nui/src/components/misc/PageTabs';
+import { MENU_MAIN_COLUMN_WIDTH } from '@nui/src/styles/theme';
+
+const PlayersPage = lazy(() => import('./PlayersPage/PlayersPage').then((module) => ({ default: module.PlayersPage })));
+const ReportsTab = lazy(() => import('./ReportsTab/ReportsTab').then((module) => ({ default: module.ReportsTab })));
 
 const MenuRoot: React.FC = () => {
-    // We need to mount this here so we can get access to
-    // the translation context
     useHudListenersService();
+    usePlayerListListener();
     const curPage = usePageValue();
     const serverCtx = useServerCtxValue();
 
@@ -19,15 +22,21 @@ const MenuRoot: React.FC = () => {
         <>
             <Box
                 style={{
-                    width: 'fit-content',
+                    width: MENU_MAIN_COLUMN_WIDTH,
                     flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
                     alignSelf: serverCtx.alignRight ? 'flex-end' : 'auto',
                 }}
             >
+                <PageTabs />
                 <MenuRootContent />
             </Box>
-            <PlayersPage visible={curPage === txAdminMenuPage.Players} />
-            {serverCtx.reportsEnabled && <ReportsTab visible={curPage === txAdminMenuPage.Reports} />}
+            <Suspense fallback={null}>{curPage === txAdminMenuPage.Players && <PlayersPage visible />}</Suspense>
+            {serverCtx.reportsEnabled && (
+                <Suspense fallback={null}>{curPage === txAdminMenuPage.Reports && <ReportsTab visible />}</Suspense>
+            )}
         </>
     );
 };

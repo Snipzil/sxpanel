@@ -1,4 +1,5 @@
 const modulename = 'WebServer:FXServerCommands';
+import { adminMatchesPresetRow } from '@lib/presetRowMaterial';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { ApiToastResp } from '@shared/genericApiTypes';
@@ -43,20 +44,21 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
         // Dispatch `txAdmin:events:announcement`
         txCore.fxRunner.sendEvent('announcement', {
             message,
-            author: ctx.admin.name,
+            author: ctx.admin.getActionAuthor(),
         });
         ctx.admin.logAction(`Sending announcement: ${parameter}`, 'announcement.send');
 
-        // Sending discord announcement
-        const publicAuthor = txCore.adminStore.getAdminPublicName(ctx.admin.name, 'message');
-        txCore.discordBot.sendAnnouncement({
-            type: 'info',
-            title: {
-                key: 'nui_menu.misc.announcement_title',
-                data: { author: publicAuthor },
-            },
-            description: message,
-        });
+        if (!adminMatchesPresetRow(ctx.admin)) {
+            const publicAuthor = txCore.adminStore.getAdminPublicName(ctx.admin.name, 'message');
+            txCore.discordBot.sendAnnouncement({
+                type: 'info',
+                title: {
+                    key: 'nui_menu.misc.announcement_title',
+                    data: { author: publicAuthor },
+                },
+                description: message,
+            });
+        }
 
         return ctx.send<ApiToastResp>({
             type: 'success',
@@ -72,7 +74,7 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
         // Dispatch `txAdmin:events:playerKicked`
         const kickAllData = {
             target: -1,
-            author: ctx.admin.name,
+            author: ctx.admin.getActionAuthor(),
             reason: kickReason,
             dropMessage,
         };
@@ -87,7 +89,7 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
     } else if (action == 'restart_res') {
         if (!ensurePermission(ctx, 'commands.resources')) return false;
         ctx.admin.logAction(`Restarted resource "${parameter}"`, 'resource.restart');
-        txCore.fxRunner.sendCommand('restart', [parameter], ctx.admin.name);
+        txCore.fxRunner.sendCommand('restart', [parameter], ctx.admin.getCommandAuthor());
         return ctx.send<ApiToastResp>({
             type: 'warning',
             msg: 'Resource restart command sent.',
@@ -97,7 +99,7 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
     } else if (action == 'start_res') {
         if (!ensurePermission(ctx, 'commands.resources')) return false;
         ctx.admin.logAction(`Started resource "${parameter}"`, 'resource.start');
-        txCore.fxRunner.sendCommand('start', [parameter], ctx.admin.name);
+        txCore.fxRunner.sendCommand('start', [parameter], ctx.admin.getCommandAuthor());
         return ctx.send<ApiToastResp>({
             type: 'warning',
             msg: 'Resource start command sent.',
@@ -107,7 +109,7 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
     } else if (action == 'ensure_res') {
         if (!ensurePermission(ctx, 'commands.resources')) return false;
         ctx.admin.logAction(`Ensured resource "${parameter}"`, 'resource.ensure');
-        txCore.fxRunner.sendCommand('ensure', [parameter], ctx.admin.name);
+        txCore.fxRunner.sendCommand('ensure', [parameter], ctx.admin.getCommandAuthor());
         return ctx.send<ApiToastResp>({
             type: 'warning',
             msg: 'Resource ensure command sent.',
@@ -117,7 +119,7 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
     } else if (action == 'stop_res') {
         if (!ensurePermission(ctx, 'commands.resources')) return false;
         ctx.admin.logAction(`Stopped resource "${parameter}"`, 'resource.stop');
-        txCore.fxRunner.sendCommand('stop', [parameter], ctx.admin.name);
+        txCore.fxRunner.sendCommand('stop', [parameter], ctx.admin.getCommandAuthor());
         return ctx.send<ApiToastResp>({
             type: 'warning',
             msg: 'Resource stop command sent.',
@@ -127,7 +129,7 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
     } else if (action == 'refresh_res') {
         if (!ensurePermission(ctx, 'commands.resources')) return false;
         ctx.admin.logAction(`Refreshed resources`, 'resource.refresh');
-        txCore.fxRunner.sendCommand('refresh', [], ctx.admin.name);
+        txCore.fxRunner.sendCommand('refresh', [], ctx.admin.getCommandAuthor());
         return ctx.send<ApiToastResp>({
             type: 'warning',
             msg: 'Refresh command sent.',

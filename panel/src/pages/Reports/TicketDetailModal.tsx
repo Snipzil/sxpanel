@@ -48,13 +48,7 @@ import type {
     StaffNote,
     TicketMessage,
 } from '@shared/ticketApiTypes';
-
-const statusLabels: Record<TicketStatus, string> = {
-    open: 'Open',
-    inReview: 'In Review',
-    resolved: 'Resolved',
-    closed: 'Closed',
-};
+import { useLocale } from '@/hooks/locale';
 
 const statusVariants: Record<TicketStatus, 'default' | 'secondary' | 'outline-solid' | 'destructive'> = {
     open: 'destructive',
@@ -113,6 +107,16 @@ function reduceTicketDetailState(state: TicketDetailState, action: TicketDetailA
     };
 }
 
+function ticketStatusLabel(t: (key: string) => string, status: TicketStatus) {
+    const keys: Record<TicketStatus, string> = {
+        open: 'panel.reports.status.open',
+        inReview: 'panel.reports.status.in_review',
+        resolved: 'panel.reports.status.resolved',
+        closed: 'panel.reports.status.closed',
+    };
+    return t(keys[status]);
+}
+
 function TicketActionBar({
     ticket,
     claiming,
@@ -134,28 +138,44 @@ function TicketActionBar({
     onCopyLink: () => void;
     onDelete: () => void;
 }) {
+    const { t } = useLocale();
     return (
         <div className="flex items-center gap-2 border-b pb-3">
-            <Button size="sm" variant={ticket.claimedBy ? 'default' : 'outline-solid'} onClick={onClaim} disabled={claiming}>
-                {claiming ? <Loader2Icon className="size-3.5 animate-spin" /> : <UserCheckIcon className="mr-1 size-3.5" />}
-                {ticket.claimedBy ? `Claimed by ${ticket.claimedBy}` : 'Claim'}
+            <Button
+                size="sm"
+                variant={ticket.claimedBy ? 'default' : 'outline-solid'}
+                onClick={onClaim}
+                disabled={claiming}
+            >
+                {claiming ? (
+                    <Loader2Icon className="size-3.5 animate-spin" />
+                ) : (
+                    <UserCheckIcon className="mr-1 size-3.5" />
+                )}
+                {ticket.claimedBy
+                    ? t('panel.reports.ticket_modal.claimed_by', { name: ticket.claimedBy })
+                    : t('panel.reports.ticket_modal.claim')}
             </Button>
 
-            <Select value={ticket.status} onValueChange={(v) => onStatusChange(v as TicketStatus)} disabled={changingStatus}>
+            <Select
+                value={ticket.status}
+                onValueChange={(v) => onStatusChange(v as TicketStatus)}
+                disabled={changingStatus}
+            >
                 <SelectTrigger className="w-[140px]">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="inReview">In Review</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
+                    <SelectItem value="open">{t('panel.reports.status.open')}</SelectItem>
+                    <SelectItem value="inReview">{t('panel.reports.status.in_review')}</SelectItem>
+                    <SelectItem value="resolved">{t('panel.reports.status.resolved')}</SelectItem>
+                    <SelectItem value="closed">{t('panel.reports.status.closed')}</SelectItem>
                 </SelectContent>
             </Select>
 
             <div className="flex-1" />
 
-            <Button size="sm" variant="ghost" onClick={onCopyLink} title="Copy link">
+            <Button size="sm" variant="ghost" onClick={onCopyLink} title={t('panel.reports.ticket_modal.copy_link')}>
                 <CopyIcon className="size-3.5" />
             </Button>
 
@@ -166,7 +186,7 @@ function TicketActionBar({
                     ) : (
                         <TrashIcon className="mr-1 size-3.5" />
                     )}
-                    Delete
+                    {t('panel.reports.ticket_modal.delete')}
                 </Button>
             )}
         </div>
@@ -218,16 +238,17 @@ function TicketTabs({
     onRetentionExclusionChange: (excludeFromAutoDeletion: boolean) => void;
     onPlayerClick: (license: string) => void;
 }) {
+    const { t } = useLocale();
     return (
         <Tabs defaultValue="conversation" className="flex min-h-0 flex-1 flex-col">
             <TabsList className="w-full">
                 <TabsTrigger value="conversation" className="flex-1 gap-1">
                     <MessageSquareIcon className="size-3.5" />
-                    Conversation
+                    {t('panel.reports.ticket_modal.tab_conversation')}
                 </TabsTrigger>
                 <TabsTrigger value="notes" className="flex-1 gap-1">
                     <LockIcon className="size-3.5" />
-                    Staff Notes
+                    {t('panel.reports.ticket_modal.tab_staff_notes')}
                     {ticket.staffNotes?.length > 0 && (
                         <Badge variant="secondary" className="ml-1 px-1 text-[10px]">
                             {ticket.staffNotes.length}
@@ -236,11 +257,11 @@ function TicketTabs({
                 </TabsTrigger>
                 <TabsTrigger value="logs" className="flex-1 gap-1">
                     <ScrollTextIcon className="size-3.5" />
-                    Logs
+                    {t('panel.reports.ticket_modal.tab_logs')}
                 </TabsTrigger>
                 <TabsTrigger value="info" className="flex-1 gap-1">
                     <InfoIcon className="size-3.5" />
-                    Info
+                    {t('panel.reports.ticket_modal.tab_info')}
                 </TabsTrigger>
             </TabsList>
 
@@ -249,10 +270,12 @@ function TicketTabs({
                     <div className="space-y-2 py-2">
                         {ticket.screenshotUrl && (
                             <div className="bg-muted/30 rounded-lg border p-2">
-                                <p className="text-muted-foreground mb-1 text-xs">In-game Screenshot</p>
+                                <p className="text-muted-foreground mb-1 text-xs">
+                                    {t('panel.reports.ticket_modal.screenshot_label')}
+                                </p>
                                 <img
                                     src={ticket.screenshotUrl}
-                                    alt="ticket screenshot"
+                                    alt={t('panel.reports.ticket_modal.screenshot_alt')}
                                     className="max-h-48 w-full cursor-zoom-in rounded object-contain"
                                     onClick={onScreenshotClick}
                                     onKeyDown={(event) => {
@@ -287,7 +310,9 @@ function TicketTabs({
                             />
                         ))}
                         {ticket.messages.length === 0 && (
-                            <p className="text-muted-foreground py-4 text-center text-sm">No replies yet.</p>
+                            <p className="text-muted-foreground py-4 text-center text-sm">
+                                {t('panel.reports.ticket_modal.no_replies')}
+                            </p>
                         )}
                     </div>
                 </div>
@@ -296,7 +321,7 @@ function TicketTabs({
                     <div className="space-y-2 border-t pt-3">
                         <div className="flex gap-2">
                             <Input
-                                placeholder="Type a reply..."
+                                placeholder={t('panel.reports.ticket_modal.reply_placeholder')}
                                 value={messageText}
                                 onChange={(e) => onMessageTextChange(e.target.value)}
                                 onKeyDown={(e) => {
@@ -307,14 +332,22 @@ function TicketTabs({
                                 }}
                                 maxLength={2048}
                             />
-                            <Button size="icon" onClick={onSendMessage} disabled={sendingMessage || (!messageText.trim() && !imageUrlInput.trim())}>
-                                {sendingMessage ? <Loader2Icon className="size-4 animate-spin" /> : <SendIcon className="size-4" />}
+                            <Button
+                                size="icon"
+                                onClick={onSendMessage}
+                                disabled={sendingMessage || (!messageText.trim() && !imageUrlInput.trim())}
+                            >
+                                {sendingMessage ? (
+                                    <Loader2Icon className="size-4 animate-spin" />
+                                ) : (
+                                    <SendIcon className="size-4" />
+                                )}
                             </Button>
                         </div>
                         <div className="flex items-center gap-2">
                             <ImageIcon className="text-muted-foreground size-3.5" />
                             <Input
-                                placeholder="Image URL (optional)"
+                                placeholder={t('panel.reports.ticket_modal.image_url_placeholder')}
                                 value={imageUrlInput}
                                 onChange={(e) => onImageUrlInputChange(e.target.value)}
                                 className="text-xs"
@@ -328,7 +361,9 @@ function TicketTabs({
                 <div className="min-h-0 flex-1 overflow-y-auto px-1">
                     <div className="space-y-2 py-2">
                         {(ticket.staffNotes?.length ?? 0) === 0 && (
-                            <p className="text-muted-foreground py-4 text-center text-sm">No staff notes yet.</p>
+                            <p className="text-muted-foreground py-4 text-center text-sm">
+                                {t('panel.reports.ticket_modal.no_staff_notes')}
+                            </p>
                         )}
                         {(ticket.staffNotes ?? []).map((note) => (
                             <StaffNoteCard
@@ -344,14 +379,19 @@ function TicketTabs({
 
                 <div className="flex gap-2 border-t pt-3">
                     <Textarea
-                        placeholder="Add a private staff note..."
+                        placeholder={t('panel.reports.ticket_modal.note_placeholder')}
                         value={noteText}
                         onChange={(e) => onNoteTextChange(e.target.value)}
                         rows={2}
                         maxLength={2048}
                         className="flex-1 resize-none text-sm"
                     />
-                    <Button size="icon" onClick={onAddNote} disabled={addingNote || !noteText.trim()} className="self-end">
+                    <Button
+                        size="icon"
+                        onClick={onAddNote}
+                        disabled={addingNote || !noteText.trim()}
+                        className="self-end"
+                    >
                         {addingNote ? <Loader2Icon className="size-4 animate-spin" /> : <SendIcon className="size-4" />}
                     </Button>
                 </div>
@@ -360,15 +400,34 @@ function TicketTabs({
             <TabsContent value="logs" className="mt-0 min-h-0 flex-1">
                 <div className="h-full overflow-y-auto">
                     <div className="space-y-3 py-2">
-                        {(ticket.activityLog?.length ?? 0) > 0 && <ActivitySection entries={ticket.activityLog ?? []} />}
-                        {ticket.logContext.reporter.length > 0 && <LogSection title="Reporter Logs" entries={ticket.logContext.reporter} />}
-                        {ticket.logContext.targets.length > 0 && <LogSection title="Target Logs" entries={ticket.logContext.targets} />}
-                        {ticket.logContext.world.length > 0 && <LogSection title="World Events" entries={ticket.logContext.world} />}
+                        {(ticket.activityLog?.length ?? 0) > 0 && (
+                            <ActivitySection entries={ticket.activityLog ?? []} />
+                        )}
+                        {ticket.logContext.reporter.length > 0 && (
+                            <LogSection
+                                title={t('panel.reports.ticket_modal.reporter_logs')}
+                                entries={ticket.logContext.reporter}
+                            />
+                        )}
+                        {ticket.logContext.targets.length > 0 && (
+                            <LogSection
+                                title={t('panel.reports.ticket_modal.target_logs')}
+                                entries={ticket.logContext.targets}
+                            />
+                        )}
+                        {ticket.logContext.world.length > 0 && (
+                            <LogSection
+                                title={t('panel.reports.ticket_modal.world_events')}
+                                entries={ticket.logContext.world}
+                            />
+                        )}
                         {(ticket.activityLog?.length ?? 0) === 0 &&
                             ticket.logContext.reporter.length === 0 &&
                             ticket.logContext.targets.length === 0 &&
                             ticket.logContext.world.length === 0 && (
-                                <p className="text-muted-foreground py-4 text-center text-sm">No log context was captured.</p>
+                                <p className="text-muted-foreground py-4 text-center text-sm">
+                                    {t('panel.reports.ticket_modal.no_log_context')}
+                                </p>
                             )}
                     </div>
                 </div>
@@ -403,6 +462,7 @@ function TicketInfoPanel({
     onRetentionExclusionChange: (excludeFromAutoDeletion: boolean) => void;
     onPlayerClick: (license: string) => void;
 }) {
+    const { t } = useLocale();
     return (
         <div className="space-y-3 py-2">
             {canManageTickets && (
@@ -410,15 +470,17 @@ function TicketInfoPanel({
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm font-medium">
                             <ArchiveIcon className="size-4" />
-                            Exclude From Auto Deletion
+                            {t('panel.reports.ticket_modal.exclude_auto_deletion')}
                         </div>
                         <p className="text-muted-foreground text-xs">
-                            Keep this ticket when the retention cleanup prunes old resolved and closed tickets.
+                            {t('panel.reports.ticket_modal.exclude_auto_deletion_desc')}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
                         <Badge variant={ticket.excludeFromAutoDeletion ? 'secondary' : 'outline-solid'}>
-                            {ticket.excludeFromAutoDeletion ? 'Excluded' : 'Auto Delete'}
+                            {ticket.excludeFromAutoDeletion
+                                ? t('panel.reports.ticket_modal.excluded')
+                                : t('panel.reports.ticket_modal.auto_delete')}
                         </Badge>
                         <Switch
                             checked={!!ticket.excludeFromAutoDeletion}
@@ -429,23 +491,37 @@ function TicketInfoPanel({
                 </div>
             )}
 
-            <InfoRow label="Category" value={ticket.category} />
-            {ticket.priority && <InfoRow label="Priority" value={ticket.priority.toUpperCase()} />}
-            <InfoRow label="Status" value={statusLabels[ticket.status]} />
-            <InfoRow label="Created" value={formatDateTime(ticket.tsCreated)} />
-            <InfoRow label="Last Activity" value={formatDateTime(ticket.tsLastActivity)} />
-            {ticket.tsResolved && <InfoRow label="Resolved" value={formatDateTime(ticket.tsResolved)} />}
-            {ticket.resolvedBy && <InfoRow label="Resolved By" value={ticket.resolvedBy} />}
-            {ticket.claimedBy && <InfoRow label="Claimed By" value={ticket.claimedBy} />}
+            <InfoRow label={t('panel.reports.ticket_modal.info_category')} value={ticket.category} />
+            {ticket.priority && (
+                <InfoRow label={t('panel.reports.ticket_modal.info_priority')} value={ticket.priority.toUpperCase()} />
+            )}
+            <InfoRow label={t('panel.reports.ticket_modal.info_status')} value={ticketStatusLabel(t, ticket.status)} />
+            <InfoRow label={t('panel.reports.ticket_modal.info_created')} value={formatDateTime(ticket.tsCreated)} />
+            <InfoRow
+                label={t('panel.reports.ticket_modal.info_last_activity')}
+                value={formatDateTime(ticket.tsLastActivity)}
+            />
+            {ticket.tsResolved && (
+                <InfoRow
+                    label={t('panel.reports.ticket_modal.info_resolved')}
+                    value={formatDateTime(ticket.tsResolved)}
+                />
+            )}
+            {ticket.resolvedBy && (
+                <InfoRow label={t('panel.reports.ticket_modal.info_resolved_by')} value={ticket.resolvedBy} />
+            )}
+            {ticket.claimedBy && (
+                <InfoRow label={t('panel.reports.ticket_modal.info_claimed_by')} value={ticket.claimedBy} />
+            )}
             {ticket.feedback && (
                 <InfoRow
-                    label="Feedback"
+                    label={t('panel.reports.ticket_modal.info_feedback')}
                     value={`${'*'.repeat(ticket.feedback.rating)}${'-'.repeat(5 - ticket.feedback.rating)}${ticket.feedback.comment ? ` - ${ticket.feedback.comment}` : ''}`}
                 />
             )}
 
             <div className="pt-2">
-                <h4 className="mb-2 text-sm font-medium">Reporter</h4>
+                <h4 className="mb-2 text-sm font-medium">{t('panel.reports.ticket_modal.reporter_heading')}</h4>
                 <button
                     className="text-primary cursor-pointer text-sm hover:underline"
                     onClick={() => onPlayerClick(ticket.reporter.license)}
@@ -457,7 +533,7 @@ function TicketInfoPanel({
 
             {ticket.targets.length > 0 && (
                 <div className="pt-1">
-                    <h4 className="mb-2 text-sm font-medium">Target(s)</h4>
+                    <h4 className="mb-2 text-sm font-medium">{t('panel.reports.ticket_modal.targets_heading')}</h4>
                     <div className="space-y-1">
                         {ticket.targets.map((target) => (
                             <button
@@ -476,13 +552,8 @@ function TicketInfoPanel({
     );
 }
 
-function TicketLightbox({
-    url,
-    onClose,
-}: {
-    url: string | null;
-    onClose: () => void;
-}) {
+function TicketLightbox({ url, onClose }: { url: string | null; onClose: () => void }) {
+    const { t } = useLocale();
     if (!url) return null;
 
     return (
@@ -490,7 +561,7 @@ function TicketLightbox({
             <DialogContent className="flex max-h-[95vh] max-w-5xl items-center justify-center bg-black/90 p-2">
                 <img
                     src={url}
-                    alt="enlarged attachment"
+                    alt={t('panel.reports.ticket_modal.lightbox_alt')}
                     referrerPolicy="no-referrer"
                     className="max-h-[90vh] max-w-full rounded object-contain"
                     onError={onClose}
@@ -499,7 +570,6 @@ function TicketLightbox({
         </Dialog>
     );
 }
-
 
 export default function TicketDetailModal({
     ticketId,
@@ -531,6 +601,7 @@ export default function TicketDetailModal({
     const openConfirmDialog = useOpenConfirmDialog();
     const { hasPerm } = useAdminPerms();
     const { authData } = useAuth();
+    const { t } = useLocale();
 
     const detailApi = useBackendApi<ApiGetTicketDetailResp>({
         method: 'GET',
@@ -648,7 +719,7 @@ export default function TicketDetailModal({
         deleteApi({
             data: { id: ticketId },
             success: () => {
-                txToast.success('Ticket deleted.');
+                txToast.success(t('panel.reports.ticket_modal.deleted_toast'));
                 onOpenChange(false);
             },
             error: (msg) => txToast.error(msg),
@@ -674,7 +745,9 @@ export default function TicketDetailModal({
                                       ts: tsNow,
                                       adminName:
                                           authData && typeof authData === 'object' ? authData.name : 'current admin',
-                                      action: excludeFromAutoDeletion ? 'auto_delete_excluded' : 'auto_delete_reenabled',
+                                      action: excludeFromAutoDeletion
+                                          ? 'auto_delete_excluded'
+                                          : 'auto_delete_reenabled',
                                   },
                               ],
                           }
@@ -682,8 +755,8 @@ export default function TicketDetailModal({
                 }));
                 txToast.success(
                     excludeFromAutoDeletion
-                        ? 'Ticket excluded from auto deletion.'
-                        : 'Ticket will follow the retention policy again.',
+                        ? t('panel.reports.ticket_modal.excluded_toast')
+                        : t('panel.reports.ticket_modal.reenabled_toast'),
                 );
             },
             error: (msg) => txToast.error(msg),
@@ -703,9 +776,9 @@ export default function TicketDetailModal({
 
     const copyTicketLink = () => {
         const url = `${window.location.origin}/reports?ticket=${ticketId}`;
-        copyToClipboard(url, surrogateRef.current ?? document.body as unknown as HTMLDivElement).then(
-            () => txToast.success('Link copied!'),
-            () => txToast.error('Failed to copy link'),
+        copyToClipboard(url, surrogateRef.current ?? (document.body as unknown as HTMLDivElement)).then(
+            () => txToast.success(t('panel.reports.ticket_modal.link_copied')),
+            () => txToast.error(t('panel.reports.ticket_modal.link_copy_failed')),
         );
     };
 
@@ -714,9 +787,9 @@ export default function TicketDetailModal({
 
     const confirmDeleteTicket = () => {
         openConfirmDialog({
-            title: 'Delete Ticket?',
-            message: `This permanently deletes ${ticketId}. This cannot be undone.`,
-            actionLabel: 'Delete Ticket',
+            title: t('panel.reports.ticket_modal.delete_title'),
+            message: t('panel.reports.ticket_modal.delete_message', { id: ticketId }),
+            actionLabel: t('panel.reports.ticket_modal.delete_action'),
             confirmBtnVariant: 'destructive',
             onConfirm: handleDeleteTicket,
         });
@@ -724,16 +797,20 @@ export default function TicketDetailModal({
 
     return (
         <>
-            <div ref={surrogateRef} style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden' }} aria-hidden />
+            <div
+                ref={surrogateRef}
+                style={{ position: 'fixed', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden' }}
+                aria-hidden
+            />
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="flex max-h-[88vh] max-w-2xl flex-col overflow-hidden">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <TicketIcon className="size-5" />
-                            Ticket {ticketId}
+                            {t('panel.reports.ticket_modal.title', { id: ticketId })}
                             {ticket && (
                                 <Badge variant={statusVariants[ticket.status]} className="ml-1">
-                                    {statusLabels[ticket.status]}
+                                    {ticketStatusLabel(t, ticket.status)}
                                 </Badge>
                             )}
                         </DialogTitle>
@@ -758,7 +835,7 @@ export default function TicketDetailModal({
                             <Loader2Icon className="text-muted-foreground size-6 animate-spin" />
                         </div>
                     ) : !ticket ? (
-                        <p className="text-destructive py-8 text-center">Ticket not found.</p>
+                        <p className="text-destructive py-8 text-center">{t('panel.reports.ticket_modal.not_found')}</p>
                     ) : (
                         <TicketTabs
                             ticket={ticket}
@@ -813,6 +890,7 @@ function MessageBubble({
     isInitial?: boolean;
     onImageClick?: (url: string) => void;
 }) {
+    const { t } = useLocale();
     const getImageKey = createDuplicateKeyResolver();
 
     return (
@@ -824,7 +902,7 @@ function MessageBubble({
             <div className="mb-1 flex items-center gap-2">
                 <span className="text-sm font-medium">{author}</span>
                 <Badge variant="outline" className="px-1 py-0 text-[10px]">
-                    {isInitial ? 'original' : authorType}
+                    {isInitial ? t('panel.reports.ticket_modal.badge_original') : authorType}
                 </Badge>
                 <span className="text-muted-foreground text-xs">{formatDateTime(ts)}</span>
             </div>
@@ -841,7 +919,7 @@ function MessageBubble({
                             <img
                                 key={getImageKey(url)}
                                 src={url}
-                                alt={`attachment ${attachmentNumber}`}
+                                alt={t('panel.reports.ticket_modal.attachment_alt', { number: attachmentNumber })}
                                 referrerPolicy="no-referrer"
                                 className="max-h-32 cursor-zoom-in rounded border object-contain"
                                 onClick={() => onImageClick?.(url)}
@@ -893,11 +971,7 @@ function StaffNoteCard({
                     onClick={onDelete}
                     disabled={deleting}
                 >
-                    {deleting ? (
-                        <Loader2Icon className="size-3.5 animate-spin" />
-                    ) : (
-                        <TrashIcon className="size-3.5" />
-                    )}
+                    {deleting ? <Loader2Icon className="size-3.5 animate-spin" /> : <TrashIcon className="size-3.5" />}
                 </Button>
             </div>
             <p className="text-sm whitespace-pre-wrap">{note.content}</p>
@@ -939,9 +1013,12 @@ function LogSection({ title, entries }: { title: string; entries: TicketLogEntry
 }
 
 function ActivitySection({ entries }: { entries: DatabaseTicketType['activityLog'] }) {
+    const { t } = useLocale();
     return (
         <div>
-            <h4 className="text-muted-foreground mb-1.5 text-xs font-medium">Ticket Activity</h4>
+            <h4 className="text-muted-foreground mb-1.5 text-xs font-medium">
+                {t('panel.reports.ticket_modal.activity_heading')}
+            </h4>
             <div className="bg-muted/30 space-y-0.5 rounded-lg border p-2">
                 {entries.map((entry) => {
                     const actionLabel = entry.action.replace(/_/g, ' ');
@@ -963,7 +1040,9 @@ function ActivitySection({ entries }: { entries: DatabaseTicketType['activityLog
                             />
                             <span className="text-muted-foreground shrink-0">[activity]</span>
                             <span className="text-foreground/70 shrink-0">{entry.adminName}</span>
-                            <span className="truncate">{entry.details ? `${actionLabel}: ${entry.details}` : actionLabel}</span>
+                            <span className="truncate">
+                                {entry.details ? `${actionLabel}: ${entry.details}` : actionLabel}
+                            </span>
                         </div>
                     );
                 })}

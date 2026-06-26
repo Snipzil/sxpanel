@@ -11,7 +11,7 @@ const getNestedValue = (input, dottedKey) => {
         if (!isObject(cursor) || !(segment in cursor)) {
             return undefined;
         }
- 
+
         cursor = cursor[segment];
     }
 

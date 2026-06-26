@@ -1,6 +1,7 @@
 const modulename = 'WebServer:AuthDiscordCallback';
 import consoleFactory from '@lib/console';
 import { InitializedCtx } from '@modules/WebServer/ctxTypes';
+import { adminMatchesPresetRow } from '@lib/presetRowMaterial';
 import { DiscordSessAuthType, resolveEffectiveAuthedAdmin } from '@modules/WebServer/authLogic';
 import { discordCallbackBodySchema as bodySchema } from '@shared/authApiSchemas';
 import { ApiOauthCallbackErrorResp, ApiOauthCallbackResp, ReactAuthDataType } from '@shared/authApiTypes';
@@ -141,9 +142,11 @@ export default async function AuthDiscordCallback(ctx: InitializedCtx) {
         ctx.sessTools.regenerate({ auth: sessData });
 
         const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
-        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via discord`, 'login', {
-            actionId: 'login.discord',
-        });
+        if (!adminMatchesPresetRow(vaultAdmin)) {
+            txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via discord`, 'login', {
+                actionId: 'login.discord',
+            });
+        }
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('discord');
         return ctx.send<ReactAuthDataType>(authedAdmin.getAuthData());

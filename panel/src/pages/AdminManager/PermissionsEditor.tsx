@@ -6,6 +6,12 @@ import { Input } from '@/components/ui/input';
 import { SearchIcon } from 'lucide-react';
 import { permissionsByCategory, permCategories, type PermissionDefinition } from '@shared/permissions';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/hooks/locale';
+import {
+    translatePermCategoryLabel,
+    translatePermissionDescription,
+    translatePermissionLabel,
+} from '@/lib/permissionLabel';
 
 type PermissionsEditorProps = {
     selected: string[];
@@ -14,6 +20,7 @@ type PermissionsEditorProps = {
 };
 
 export default function PermissionsEditor({ selected, onChange, disabled }: PermissionsEditorProps) {
+    const { t } = useLocale();
     const hasAll = selected.includes('all_permissions');
     const [search, setSearch] = useState('');
     const searchLower = search.toLowerCase().trim();
@@ -103,7 +110,7 @@ export default function PermissionsEditor({ selected, onChange, disabled }: Perm
                                     disabled={disabled || hasAll}
                                 />
                                 <span className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
-                                    {cat.label}
+                                    {translatePermCategoryLabel(t, cat)}
                                 </span>
                             </div>
 
@@ -126,7 +133,7 @@ export default function PermissionsEditor({ selected, onChange, disabled }: Perm
                                         />
                                         <div className="flex flex-col leading-tight">
                                             <span className="text-sm font-medium">
-                                                {perm.label}
+                                                {translatePermissionLabel(t, perm)}
                                                 {perm.dangerous && (
                                                     <Badge
                                                         variant="destructive"
@@ -136,7 +143,9 @@ export default function PermissionsEditor({ selected, onChange, disabled }: Perm
                                                     </Badge>
                                                 )}
                                             </span>
-                                            <span className="text-muted-foreground text-xs">{perm.description}</span>
+                                            <span className="text-muted-foreground text-xs">
+                                                {translatePermissionDescription(t, perm)}
+                                            </span>
                                         </div>
                                     </label>
                                 ))}

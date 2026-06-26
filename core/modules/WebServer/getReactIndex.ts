@@ -44,8 +44,22 @@ const serverTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 // the index.html response with a huge base64 blob (and to bound sync I/O).
 const MAX_LOGO_BYTES = 100_000;
 
-//Cache the index.html file unless in dev mode
-let htmlFile: string;
+//Cache panel index templates separately — NUI must always use the built bundle.
+let htmlFileWeb: string | undefined;
+let htmlFileNui: string | undefined;
+
+const loadPanelHtmlTemplate = async (useNuiBundles: boolean): Promise<string> => {
+    const useBuiltIndex = useNuiBundles || !txDevEnv.ENABLED;
+    const indexPath = useBuiltIndex
+        ? path.join(txEnv.txaPath, 'panel/index.html')
+        : path.join(txDevEnv.SRC_PATH!, 'panel/index.html');
+    const rawHtmlFile = await fsp.readFile(indexPath, 'utf-8');
+    const useDevTemplate = txDevEnv.ENABLED && !useNuiBundles;
+    const stripped = useDevTemplate
+        ? rawHtmlFile.replaceAll(/.+data-prod-only.+\r?\n/gm, '')
+        : rawHtmlFile.replaceAll(/.+data-dev-only.+\r?\n/gm, '');
+    return stripped.replaceAll(/.+data-always-remove[\s\S]*?<\/script>\r?\n/gm, '');
+};
 
 // NOTE: https://vitejs.dev/guide/backend-integration.html
 const viteOrigin = txDevEnv.VITE_URL ?? 'doesnt-matter';
@@ -331,33 +345,60 @@ const getConfiguredRuntimeServerIcon = async (): Promise<ServerIconInjection> =>
     }
 };
 
+const buildFaviconLinkTag = (iconDataUrl: string | undefined, iconFilename: string | undefined): string => {
+    if (iconDataUrl) {
+        return `<link rel="icon" href="${iconDataUrl.replace(/"/g, '&quot;')}" id="favicon" />`;
+    }
+    if (iconFilename && runtimeIconFilenameRe.test(iconFilename)) {
+        return `<link rel="icon" href="/.runtime/${htmlEscape(iconFilename)}" id="favicon" />`;
+    }
+    return `<link rel="icon" type="image/svg+xml" href="./favicon_default.svg" id="favicon" />`;
+};
+
+let cachedCustomThemesCss: string | null | undefined;
+
+const getCustomThemesCss = (): string | null => {
+    if (cachedCustomThemesCss !== undefined) return cachedCustomThemesCss;
+    if (!tmpCustomThemes.length) {
+        cachedCustomThemesCss = null;
+        return cachedCustomThemesCss;
+    }
+    const cssThemes = [];
+    for (const theme of tmpCustomThemes) {
+        const cssVars = [];
+        for (const [name, value] of Object.entries(theme.style)) {
+            cssVars.push(`--${name}: ${value};`);
+        }
+        cssThemes.push(`.theme-${theme.name} { ${cssVars.join(' ')} }`);
+    }
+    cachedCustomThemesCss = cssThemes.join('\n');
+    return cachedCustomThemesCss;
+};
+
 /**
  * Returns the react index.html file with placeholders replaced
- * FIXME: add favicon
  */
 export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
-    //Read file if not cached
-    if (txDevEnv.ENABLED || !htmlFile) {
-        try {
-            const indexPath = txDevEnv.ENABLED
-                ? path.join(txDevEnv.SRC_PATH, '/panel/index.html')
-                : path.join(txEnv.txaPath, 'panel/index.html');
-            const rawHtmlFile = await fsp.readFile(indexPath, 'utf-8');
+    const useNuiBundles = !ctx.txVars.isWebInterface;
 
-            //Remove tagged lines (eg hardcoded entry point) depending on env
-            if (txDevEnv.ENABLED) {
-                htmlFile = rawHtmlFile.replaceAll(/.+data-prod-only.+\r?\n/gm, '');
-            } else {
-                htmlFile = rawHtmlFile.replaceAll(/.+data-dev-only.+\r?\n/gm, '');
+    let htmlFile: string;
+    try {
+        if (useNuiBundles) {
+            if (!htmlFileNui) {
+                htmlFileNui = await loadPanelHtmlTemplate(true);
             }
-            //Always remove dev-only safety script
-            htmlFile = htmlFile.replaceAll(/.+data-always-remove[\s\S]*?<\/script>\r?\n/gm, '');
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code == 'ENOENT') {
-                return `<h1>⚠ index.html not found:</h1><pre>You probably deleted the 'citizen/system_resources/monitor/panel/index.html' file, or the folders above it.</pre>`;
-            } else {
-                return `<h1>⚠ index.html load error:</h1><pre>${emsg(error)}</pre>`;
-            }
+            htmlFile = htmlFileNui;
+        } else if (txDevEnv.ENABLED || !htmlFileWeb) {
+            htmlFileWeb = await loadPanelHtmlTemplate(false);
+            htmlFile = htmlFileWeb;
+        } else {
+            htmlFile = htmlFileWeb;
+        }
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code == 'ENOENT') {
+            return `<h1>⚠ index.html not found:</h1><pre>You probably deleted the 'citizen/system_resources/monitor/panel/index.html' file, or the folders above it.</pre>`;
+        } else {
+            return `<h1>⚠ index.html load error:</h1><pre>${emsg(error)}</pre>`;
         }
     }
 
@@ -403,7 +444,10 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         },
         hideFxsUpdateNotification: txConfig.general.hideFxsUpdateNotification,
         allowSelfIdentifierEdit: txConfig.general.allowSelfIdentifierEdit,
+        requireAdminTwoFactor: txConfig.general.requireAdminTwoFactor,
         discordOAuthEnabled: !!(txConfig.discordBot.oauthClientId && txConfig.discordBot.oauthClientSecret),
+        reportsEnabled: txConfig.gameFeatures.reportsEnabled,
+        hideReportsNav: !ctx.txVars.isWebInterface || !txConfig.gameFeatures.reportsEnabled,
 
         //addon permissions
         addonPermissions: txCore.adminStore.getAddonPermissions(),
@@ -418,10 +462,12 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
     //Prepare placeholders
     const replacers: { [key: string]: string } = {};
     replacers.basePath = `<base href="${basePath}">`;
+    replacers.faviconLink = buildFaviconLinkTag(serverIcon.dataUrl, serverIcon.filename);
     replacers.ogTitle = `fxPanel - ${htmlEscape(txConfig.general.serverName)}`;
     replacers.ogDescripttion = `Manage & Monitor your FiveM/RedM Server with fxPanel v${txEnv.txaVersion} atop FXServer ${txEnv.fxsVersion}`;
     replacers.txConstsInjection = `<script${nonce}>window.txConsts = ${safeSerialize(injectedConsts)};</script>`;
-    replacers.devModules = txDevEnv.ENABLED ? devModulesScript : '';
+    // Vite HMR only works in the external browser — never inject into the in-game iframe.
+    replacers.devModules = txDevEnv.ENABLED && ctx.txVars.isWebInterface ? devModulesScript : '';
 
     //Prepare addon head tags (CSS for approved/running addons)
     //Only CSS is injected here — JS requires React globals set up by the panel app.
@@ -451,20 +497,8 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
     }
     replacers.addonHeadTags = addonTags.join('\n        ');
 
-    //Prepare custom themes style tag
-    if (tmpCustomThemes.length) {
-        const cssThemes = [];
-        for (const theme of tmpCustomThemes) {
-            const cssVars = [];
-            for (const [name, value] of Object.entries(theme.style)) {
-                cssVars.push(`--${name}: ${value};`);
-            }
-            cssThemes.push(`.theme-${theme.name} { ${cssVars.join(' ')} }`);
-        }
-        replacers.customThemesStyle = `<style${nonce}>${cssThemes.join('\n')}</style>`;
-    } else {
-        replacers.customThemesStyle = '';
-    }
+    const customThemesCss = getCustomThemesCss();
+    replacers.customThemesStyle = customThemesCss ? `<style${nonce}>${customThemesCss}</style>` : '';
 
     //Setting data attributes for addon theming (e.g. data-addon-themer-enabled)
     replacers.htmlExtraAttrs = addonThemeResult.htmlAttrs;
@@ -494,12 +528,12 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         htmlOut = htmlOut.replaceAll(replacerRegex, value);
     }
 
-    //If in prod mode and NUI, replace the entry point with the local one
-    //This is required because of how badly the WebPipe handles "large" files
-    if (!txDevEnv.ENABLED) {
-        const base = ctx.txVars.isWebInterface ? `./` : `nui://monitor/panel/`;
-        htmlOut = htmlOut.replace(/src="\.\/index-(\w+(?:\.v\d+)?)\.js"/, `src="${base}index-$1.js"`);
-        htmlOut = htmlOut.replace(/href="\.\/index-(\w+(?:\.v\d+)?)\.css"/, `href="${base}index-$1.css"`);
+    //In-game NUI: HTML document is served via WebPipe, but <script>/<link> tags cannot
+    //use the fetch-based WebPipe proxy (no custom headers). Rewriting bundles to the
+    //cfx-nui resource path serves them with correct MIME types from fxmanifest files.
+    if (!ctx.txVars.isWebInterface) {
+        htmlOut = htmlOut.replace(/ crossorigin/g, '');
+        htmlOut = htmlOut.replace(/(src|href)="\.\/([^"]+)"/g, `$1="${consts.nuiPanelAssetBase}$2"`);
     }
 
     return htmlOut;

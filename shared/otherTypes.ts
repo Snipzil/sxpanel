@@ -65,6 +65,7 @@ export type ArtifactListResp = {
     currentVersionTag: string;
     tiers: ArtifactTierInfo[];
     updateStatus: FxUpdateStatus;
+    customDownloadEnabled: boolean;
 };
 
 export type ThemeType = {
@@ -100,7 +101,11 @@ export type InjectedTxConsts = {
     };
     hideFxsUpdateNotification: boolean;
     allowSelfIdentifierEdit: boolean;
+    requireAdminTwoFactor: boolean;
     discordOAuthEnabled: boolean;
+    reportsEnabled: boolean;
+    /** Hide Reports + Report Analytics sidebar items (NUI always; web when reports are disabled). */
+    hideReportsNav: boolean;
 
     //Addon permissions (dynamic, registered by running addons)
     addonPermissions: PermissionDefinition[];

@@ -51,7 +51,7 @@ const terminateSession = (socket: SocketWithSession, reason: string, shouldLog =
         socket.emit('logout', reason);
         socket.disconnect();
         if (shouldLog) {
-            console.verbose.warn('SocketIO', 'dropping new connection:', reason);
+            console.warn(`SocketIO dropping connection: ${reason}`);
         }
     } catch (error) {
         /* socket may already be disconnected */
@@ -91,7 +91,10 @@ export default class WebSocket {
             resources: resourcesRoom,
         };
 
-        setInterval(this.flushBuffers.bind(this), 250);
+        setInterval(() => {
+            if (this.#io.engine.clientsCount === 0) return;
+            this.flushBuffers();
+        }, 250);
     }
 
     /**
@@ -126,7 +129,8 @@ export default class WebSocket {
             );
             if (!authResult.success) {
                 //@ts-expect-error RemoteSocket lacks sessTools from session middleware
-                return terminateSession(socket, 'session invalidated by websocket.reCheckAdminAuths()', true);
+                terminateSession(socket, 'session invalidated by websocket.reCheckAdminAuths()', true);
+                continue;
             }
 
             //Sending auth data update - even if nothing changed
@@ -163,9 +167,14 @@ export default class WebSocket {
                 socket.sessTools,
             );
             if (!authResult.success) {
-                return terminateSession(socket, 'invalid session', false);
+                const detail = authResult.rejectReason ?? 'no session';
+                return terminateSession(socket, `invalid session (${detail})`, true);
             }
             const authedAdmin = await resolveEffectiveAuthedAdmin(authResult.admin);
+
+            // Temp-password / 2FA gates are enforced on HTTP routes via accessDenied responses.
+            // Do not drop the socket here — that surfaces as "Session expired" right after login
+            // while MainShell is trying to open the account modal for password change / 2FA setup.
 
             //Check if joining any room
             if (typeof socket.handshake.query.rooms !== 'string') {
@@ -306,10 +315,33 @@ export default class WebSocket {
     }
 
     /**
+     * Returns whether any socket is subscribed to a room (used to skip hot-path WS work).
+     */
+    hasRoomListeners(roomName: RoomNames): boolean {
+        const room = this.#io.sockets.adapter.rooms.get(roomName);
+        return room !== undefined && room.size > 0;
+    }
+
+    /**
      * Flushes the data buffers
      * NOTE: this will also send data to users that no longer have permissions
      */
     flushBuffers() {
+        let hasPending = this.#eventBuffer.length > 0;
+        if (!hasPending) {
+            for (const room of Object.values(this.#rooms)) {
+                if (room.cumulativeBuffer && room.outBuffer.length) {
+                    hasPending = true;
+                    break;
+                }
+                if (!room.cumulativeBuffer && room.outBuffer !== null) {
+                    hasPending = true;
+                    break;
+                }
+            }
+        }
+        if (!hasPending) return;
+
         //Sending room data
         for (const [roomName, room] of Object.entries(this.#rooms)) {
             if (room.cumulativeBuffer && room.outBuffer.length) {
@@ -362,9 +394,6 @@ export default class WebSocket {
      */
     public emitSpectateFrame(sessionId: string, frameData: string) {
         const room = `spectate:${sessionId}`;
-        const sockets = this.#io.sockets.adapter.rooms.get(room);
-        const count = sockets ? sockets.size : 0;
-        console.warn(`[spectate] Socket emit to room=${room}, clients=${count}, len=${frameData.length}`);
         this.#io.to(room).emit('spectateFrame', {
             sessionId,
             frame: frameData,

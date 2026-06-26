@@ -7,6 +7,27 @@ const SKEW_WARN_THRESHOLD_MS = 30_000; // 30 seconds
 let cachedSkewMs: number | null = null;
 
 /**
+ * Parses Google's time API response (plain number or JSON with XSSI prefix).
+ */
+const parseTimeApiResponse = (body: string): number | null => {
+    const trimmed = body.trim();
+
+    const plainMs = parseInt(trimmed, 10);
+    if (!Number.isNaN(plainMs)) return plainMs;
+
+    const jsonStart = trimmed.indexOf('{');
+    if (jsonStart === -1) return null;
+
+    try {
+        const parsed = JSON.parse(trimmed.slice(jsonStart)) as Record<string, unknown>;
+        const millis = parsed.current_time_millis ?? parsed.currentTimeMillis;
+        return typeof millis === 'number' && Number.isFinite(millis) ? millis : null;
+    } catch {
+        return null;
+    }
+};
+
+/**
  * Fetches real time from Google's time API and calculates local clock skew.
  * Returns the skew in milliseconds (positive = local clock is ahead).
  */
@@ -19,9 +40,8 @@ const fetchClockSkew = async (): Promise<number | null> => {
         const afterMs = Date.now();
         const roundTripMs = afterMs - beforeMs;
 
-        // Response is a plain text number: milliseconds since epoch
-        const remoteMs = parseInt(resp.trim(), 10);
-        if (isNaN(remoteMs)) {
+        const remoteMs = parseTimeApiResponse(resp);
+        if (remoteMs === null) {
             console.verbose.warn('Invalid response from time API');
             return null;
         }

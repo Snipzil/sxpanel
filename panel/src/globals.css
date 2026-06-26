@@ -5,6 +5,11 @@
 
 @config '../tailwind.config.cjs';
 
+@custom-variant shell-mobile (&:is(html[data-tx-shell-mobile] *));
+@custom-variant shell-lg (&:is(html[data-tx-shell-lg] *));
+@custom-variant shell-xl (&:is(html[data-tx-shell-xl] *));
+@custom-variant shell-2xl (&:is(html[data-tx-shell-2xl] *));
+
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
@@ -101,7 +106,7 @@
         @apply border-border;
     }
     html {
-        --tx-shell-base-font-size: clamp(12px, calc(8px + 0.21vw), 16px);
+        --tx-shell-base-font-size: clamp(12px, calc(8px + 0.21vw), 20px);
         --tx-shell-ui-scale: 1;
         --tx-shell-density-scale: 1;
         font-size: calc(var(--tx-shell-base-font-size) * var(--tx-shell-ui-scale) * var(--tx-shell-density-scale));
@@ -119,18 +124,58 @@
             --page-pt: 1rem;
             --page-pb: 1.5rem;
         }
+        --tx-sidebar-width: 15rem;
+        --tx-playerlist-width: 16rem;
+        --tx-page-max-width: min(100%, 160rem);
+
         --navbar-vh: calc(3.5rem + 1px); /* h-14 + border (mobile header) */
         --content-offset: calc(var(--navbar-vh) + var(--page-pt)); /* navbar + pt */
         --content-vh: calc(100vh - var(--content-offset) - var(--page-pb)); /* navbar + pt + pb */
-        @media (min-width: 1024px) {
-            /* Desktop: LeftSidebar replaces top header, so no navbar offset */
+
+        /* Desktop: LeftSidebar replaces top header (synced with data-tx-shell-lg via JS) */
+        &[data-tx-shell-lg] {
             --navbar-vh: 0px;
             --content-offset: var(--page-pt);
             --content-vh: calc(100vh - var(--page-pt) - var(--page-pb));
         }
+
+        /* Full-width editors (deferral studio, discord embed): no shell chrome */
+        &[data-tx-immersive-editor] {
+            --content-offset: 0px;
+            --content-vh: calc(100vh - var(--page-pb));
+        }
     }
     html[data-tx-shell-density='compact'] {
         --tx-shell-density-scale: 0.9167;
+    }
+    /*
+        In-game menu iframe: same SPA as the browser, but CEF treats 100vh as the
+        monitor height. Pin the document to the iframe and scroll inside the shell.
+    */
+    html[data-tx-nui-embed] {
+        height: 100%;
+        overflow: hidden;
+        scrollbar-width: none;
+        --content-vh: calc(100% - var(--content-offset) - var(--page-pb));
+    }
+    html[data-tx-nui-embed]::-webkit-scrollbar {
+        display: none;
+    }
+    html[data-tx-nui-embed][data-tx-shell-lg] {
+        --content-vh: calc(100% - var(--page-pt) - var(--page-pb));
+    }
+    html[data-tx-nui-embed][data-tx-immersive-editor] {
+        --content-vh: calc(100% - var(--page-pb));
+    }
+    html[data-tx-nui-embed] body,
+    html[data-tx-nui-embed] #root {
+        height: 100%;
+        overflow: hidden;
+    }
+    html[data-tx-nui-embed] .tx-shell-root,
+    html[data-tx-nui-embed] .tx-shell-desktop-sidebar {
+        height: 100%;
+        max-height: 100%;
     }
     body {
         @apply bg-background text-foreground antialiased;
@@ -143,7 +188,24 @@
     }
 
     .tx-sidebar {
-        @apply w-sidebar top-contentoffset sticky z-0 shrink-0 self-start;
+        width: var(--tx-playerlist-width);
+        @apply top-contentoffset sticky z-0 shrink-0 self-start;
+    }
+
+    .tx-shell-mobile-header {
+        @apply block;
+    }
+
+    html[data-tx-shell-lg] .tx-shell-mobile-header {
+        @apply hidden;
+    }
+
+    .tx-shell-desktop-sidebar {
+        @apply hidden;
+    }
+
+    html[data-tx-shell-lg] .tx-shell-desktop-sidebar {
+        @apply flex;
     }
 
     /* Since this is going to be repeated a lot, better to externalize the style */

@@ -1,6 +1,6 @@
 const modulename = 'WebServer:WhitelistList';
 import Fuse from 'fuse.js';
-import { DatabaseWhitelistApprovalsType, DatabaseWhitelistRequestsType } from '@modules/Database/databaseTypes';
+import { DatabaseWhitelistRequestsType } from '@modules/Database/databaseTypes';
 import cleanPlayerName from '@shared/cleanPlayerName';
 import { GenericApiErrorResp } from '@shared/genericApiTypes';
 import consoleFactory from '@lib/console';
@@ -14,7 +14,6 @@ const console = consoleFactory(modulename);
 export default async function WhitelistList(ctx: AuthedCtx) {
     const table = ctx.params.table;
 
-    //Delegate to the specific handler
     if (table === 'requests') {
         return await handleRequests(ctx);
     } else if (table === 'approvals') {
@@ -26,15 +25,12 @@ export default async function WhitelistList(ctx: AuthedCtx) {
     }
 }
 
-/**
- * Handles the search functionality.
- */
 async function handleRequests(ctx: AuthedCtx) {
     type resp =
         | {
               cntTotal: number;
               cntFiltered: number;
-              newest: number; //for the ignore all button not remove any that hasn't been seeing by the admin
+              newest: number;
               totalPages: number;
               currPage: number;
               requests: DatabaseWhitelistRequestsType[];
@@ -44,7 +40,6 @@ async function handleRequests(ctx: AuthedCtx) {
 
     const requests = txCore.database.whitelist.findManyRequests().reverse();
 
-    //Filter by player name, discord tag and req id
     let filtered = requests;
     const searchString = ctx.request.query?.searchString;
     if (typeof searchString === 'string' && searchString.length) {
@@ -56,8 +51,6 @@ async function handleRequests(ctx: AuthedCtx) {
         filtered = fuse.search(pureName).map((x) => x.item);
     }
 
-    //Pagination
-    //NOTE: i think we can totally just send the whole list to the front end do pagination
     const pageSize = 15;
     const pageinput = ctx.request.query?.page;
     let currPage = 1;
@@ -84,47 +77,28 @@ async function handleRequests(ctx: AuthedCtx) {
     });
 }
 
-/**
- * Handles the search functionality.
- */
 async function handleApprovals(ctx: AuthedCtx) {
-    const sendTypedResp = (data: DatabaseWhitelistApprovalsType[]) => ctx.send(data);
+    const sendTypedResp = (data: ReturnType<typeof txCore.database.whitelist.findManyApprovals>) => ctx.send(data);
 
     const approvals = txCore.database.whitelist.findManyApprovals().reverse();
     return sendTypedResp(approvals);
 }
 
-/**
- * Returns whitelisted players (those with tsWhitelisted set) with search and pagination.
- */
 async function handlePlayers(ctx: AuthedCtx) {
     const sendTypedResp = (data: ApiWhitelistPlayersResp) => ctx.send(data);
 
-    //Get all whitelisted players
-    const allPlayers = txCore.database.players.findMany((p: any) => typeof p.tsWhitelisted === 'number');
+    const activeEntries = txCore.database.whitelist
+        .findManyEntries((entry) => typeof entry.tsFirstConnect === 'number')
+        .sort((a, b) => (b.tsFirstConnect ?? 0) - (a.tsFirstConnect ?? 0));
 
-    //Map to whitelist entries, sorted newest first
-    let entries = allPlayers
-        .map((p) => ({
-            name: p.displayName,
-            identifier: `license:${p.license}`,
-            tsApproved: p.tsWhitelisted as number,
-            approvedBy: '',
-        }))
-        .sort((a, b) => b.tsApproved - a.tsApproved);
+    let entries = activeEntries.map((entry) => ({
+        name: entry.playerName,
+        identifier: entry.identifier,
+        tsApproved: entry.tsGranted,
+        approvedBy: entry.grantedBy,
+        source: entry.source,
+    }));
 
-    //Try to fill approvedBy from whitelist approvals where possible
-    const approvals = txCore.database.whitelist.findManyApprovals();
-    const approvalsByIdentifier = new Map<string, string>();
-    for (const a of approvals) {
-        approvalsByIdentifier.set(a.identifier, a.approvedBy);
-    }
-    for (const entry of entries) {
-        const approver = approvalsByIdentifier.get(entry.identifier);
-        if (approver) entry.approvedBy = approver;
-    }
-
-    //Search
     const searchString = ctx.request.query?.searchString;
     if (typeof searchString === 'string' && searchString.length) {
         const fuse = new Fuse(entries, {
@@ -135,7 +109,6 @@ async function handlePlayers(ctx: AuthedCtx) {
         entries = fuse.search(pureName).map((x) => x.item);
     }
 
-    //Pagination
     const pageSize = 25;
     const pageinput = ctx.request.query?.page;
     let currPage = 1;
@@ -153,7 +126,7 @@ async function handlePlayers(ctx: AuthedCtx) {
     const paginated = entries.slice(skip, skip + pageSize);
 
     return sendTypedResp({
-        cntTotal: allPlayers.length,
+        cntTotal: activeEntries.length,
         cntFiltered: entries.length,
         totalPages: Math.ceil(entries.length / pageSize),
         currPage,

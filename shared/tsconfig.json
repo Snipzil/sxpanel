@@ -8,6 +8,7 @@
         "module": "ES2020",
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
+        "lib": ["ES2023", "DOM"],
         "types": ["node"],
         "outDir": "../.tsc/shared",
 

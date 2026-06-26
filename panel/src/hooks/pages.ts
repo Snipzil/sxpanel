@@ -24,7 +24,6 @@ export const usePageHeader = (node: ReactNode, deps?: ReadonlyArray<unknown>) =>
         () => {
             setPageHeader(nodeRef.current);
             return () => setPageHeader(null);
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         },
         deps ?? [node, setPageHeader],
     );
@@ -55,20 +54,40 @@ export const pageErrorStatusAtom = atom(false);
  */
 const DEFAULT_TITLE = 'fxPanel';
 const faviconEl = document.getElementById('favicon') as HTMLLinkElement;
+const runtimeIconRegex = /^icon-([a-f0-9]{16})\.(png|jpe?g|gif|webp|svg|ico)$/i;
 const pageTitleAtom = atom(DEFAULT_TITLE);
+
+/** Favicon from `load_server_icon` in server.cfg (inlined or runtime path), else fxPanel default. */
+const resolveFaviconHref = (): string => {
+    const server = window.txConsts?.server;
+    if (server?.iconDataUrl) {
+        return server.iconDataUrl;
+    }
+    if (server?.icon && runtimeIconRegex.test(server.icon)) {
+        return `/.runtime/${server.icon}`;
+    }
+    return faviconDefault;
+};
+
+const applyFavicon = () => {
+    faviconEl.href = resolveFaviconHref();
+};
 
 export const useSetPageTitle = () => {
     const setPageTitle = useSetAtom(pageTitleAtom);
-    return useCallback((title?: string) => {
-        if (title) {
-            setPageTitle(title);
-        } else {
-            // probably logout, pageTitleWatcher is not watching!
-            setPageTitle(DEFAULT_TITLE);
-            document.title = DEFAULT_TITLE;
-            faviconEl.href = faviconDefault;
-        }
-    }, [setPageTitle]);
+    return useCallback(
+        (title?: string) => {
+            if (title) {
+                setPageTitle(title);
+            } else {
+                // probably logout, pageTitleWatcher is not watching!
+                setPageTitle(DEFAULT_TITLE);
+                document.title = DEFAULT_TITLE;
+                applyFavicon();
+            }
+        },
+        [setPageTitle],
+    );
 };
 
 export const pageTitleWatcher: ReturnType<typeof atomEffect> = atomEffect((get, set) => {
@@ -78,11 +97,10 @@ export const pageTitleWatcher: ReturnType<typeof atomEffect> = atomEffect((get, 
     // Read to subscribe — re-runs the watcher when the player count changes
     const playerCount = get(playerCountAtom);
 
+    applyFavicon();
     if (!globalStatus) {
-        faviconEl.href = faviconDefault;
         document.title = DEFAULT_TITLE;
     } else {
-        faviconEl.href = faviconDefault;
         document.title = `[${playerCount}] ${pageTitle}`;
     }
 });

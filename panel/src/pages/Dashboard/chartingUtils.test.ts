@@ -265,6 +265,12 @@ suite('processPerfLog', () => {
     const perfData: SvRtPerfCountsThreadType = { count: 9999, sum: 9999, buckets: [1, 2, 3] };
     const initialEpoch = new Date('2024-01-01').getTime();
 
+    it('returns undefined for non-array input', () => {
+        expect(processPerfLog(undefined as unknown as SvRtLogFilteredType, perfProcessor)).toBeUndefined();
+        expect(processPerfLog({} as unknown as SvRtLogFilteredType, perfProcessor)).toBeUndefined();
+        expect(processPerfLog([] as SvRtLogFilteredType, perfProcessor)).toBeUndefined();
+    });
+
     suite('should overall work', () => {
         const perfLog: SvRtLogFilteredType = [
             { type: 'svBoot', ts: initialEpoch, duration: 55 },

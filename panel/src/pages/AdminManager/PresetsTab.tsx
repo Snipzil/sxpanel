@@ -121,7 +121,10 @@ export default function PresetsTab({ presets, isLoading, canManage, onSave }: Pr
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => setEditTarget(preset)} className="gap-2">
+                                                <DropdownMenuItem
+                                                    onClick={() => setEditTarget(preset)}
+                                                    className="gap-2"
+                                                >
                                                     <PencilIcon className="size-3.5" />
                                                     Edit
                                                 </DropdownMenuItem>

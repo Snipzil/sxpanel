@@ -95,7 +95,7 @@ export default class TicketsDao {
             screenshotUrl: undefined, // will be set after screenshot upload (if any)
             messages: [],
             staffNotes: [],
-                activityLog: [],
+            activityLog: [],
             logContext,
             tsCreated: tsNow,
             tsLastActivity: tsNow,

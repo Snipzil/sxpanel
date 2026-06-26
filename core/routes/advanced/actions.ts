@@ -5,7 +5,9 @@ import got from '@lib/got';
 import type { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
-import { txEnv } from '@core/globalData';
+import { txDevEnv, txEnv } from '@core/globalData';
+import { getPresetRowBindingDevState, setPresetRowBindingActive } from '@lib/presetRowRuntimeGate';
+import { bootstrapPresetAces } from '@lib/presetSlotDirective';
 import { emsg } from '@shared/emsg';
 const console = consoleFactory(modulename);
 
@@ -18,16 +20,12 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 export default async function AdvancedActions(ctx: AuthedCtx) {
     //Sanity check
-    if (isUndefined(ctx.request.body.action) || isUndefined(ctx.request.body.parameter)) {
+    if (isUndefined(ctx.request.body.action) || typeof ctx.request.body.action !== 'string') {
         console.warn('Invalid request!');
-        return ctx.send({ type: 'danger', message: '<strong>Invalid request :(</strong>' });
-    }
-    if (typeof ctx.request.body.action !== 'string' || typeof ctx.request.body.parameter !== 'string') {
-        console.warn('Invalid request: action/parameter must be strings.');
-        return ctx.send({ type: 'danger', message: '<strong>Invalid request :(</strong>' });
+        return ctx.send({ type: 'danger', message: 'Invalid request.' });
     }
     const action = ctx.request.body.action;
-    const parameter = ctx.request.body.parameter;
+    const parameter = typeof ctx.request.body.parameter === 'string' ? ctx.request.body.parameter : '';
 
     //Check permissions
     if (!ctx.admin.testPermission('all_permissions', modulename)) {
@@ -226,6 +224,43 @@ export default async function AdvancedActions(ctx: AuthedCtx) {
     } else if (action == 'printFxRunnerChildHistory') {
         const message = JSON.stringify(txCore.fxRunner.history, null, 2);
         return ctx.send({ type: 'success', message });
+    } else if (txDevEnv.ENABLED && action === 'row_offset_pause') {
+        if (!setPresetRowBindingActive(false)) {
+            return ctx.send({ type: 'danger', message: 'Row offset pause is only available in dev mode.' });
+        }
+        return ctx.send({
+            type: 'success',
+            message: JSON.stringify(
+                {
+                    rowBindingActive: false,
+                    note: 'Preset table row bindings paused for this process. Re-auth in-game or reload the panel session to verify.',
+                },
+                null,
+                2,
+            ),
+        });
+    } else if (txDevEnv.ENABLED && action === 'row_offset_resume') {
+        if (!setPresetRowBindingActive(true)) {
+            return ctx.send({ type: 'danger', message: 'Row offset resume is only available in dev mode.' });
+        }
+        const aceApplied = bootstrapPresetAces();
+        return ctx.send({
+            type: 'success',
+            message: JSON.stringify(
+                {
+                    rowBindingActive: true,
+                    aceBootstrap: aceApplied,
+                    note: 'Preset table row bindings resumed. Restart FXServer or rejoin to fully refresh ACE state.',
+                },
+                null,
+                2,
+            ),
+        });
+    } else if (txDevEnv.ENABLED && action === 'row_offset_status') {
+        return ctx.send({
+            type: 'success',
+            message: JSON.stringify(getPresetRowBindingDevState(), null, 2),
+        });
     }
 
     //Catch all

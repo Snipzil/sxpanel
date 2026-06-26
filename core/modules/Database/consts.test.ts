@@ -14,15 +14,16 @@ suite('Database consts', () => {
     it('should have all expected empty collections', () => {
         expect(defaultDatabase.actions).toEqual([]);
         expect(defaultDatabase.players).toEqual([]);
-        expect(defaultDatabase.whitelistApprovals).toEqual([]);
-        expect(defaultDatabase.whitelistRequests).toEqual([]);
+        expect(defaultDatabase.whitelistEntries).toEqual([]);
+        expect(defaultDatabase.whitelistApplications).toEqual([]);
+        expect(defaultDatabase.whitelistEvents).toEqual([]);
         expect(defaultDatabase.tickets).toEqual([]);
         expect(defaultDatabase.botCommandEvents).toEqual([]);
     });
 
     it('defaultDatabase collections should not share references', () => {
         expect(defaultDatabase.actions).not.toBe(defaultDatabase.players);
-        expect(defaultDatabase.players).not.toBe(defaultDatabase.whitelistApprovals);
+        expect(defaultDatabase.players).not.toBe(defaultDatabase.whitelistEntries);
         expect(defaultDatabase.tickets).not.toBe(defaultDatabase.botCommandEvents);
     });
 });

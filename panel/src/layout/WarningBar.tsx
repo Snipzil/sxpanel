@@ -3,7 +3,9 @@ import useWarningBar from '@/hooks/useWarningBar';
 import { cn } from '@/lib/utils';
 import { BellOffIcon, CloudOffIcon, DownloadCloudIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { FaDiscord, FaGithub } from 'react-icons/fa';
+import { GithubIcon } from '@/components/icons/github-icon';
+import { DiscordIcon } from '@/components/icons/discord-icon';
+import { useLocale } from '@/hooks/locale';
 
 const LOCALSTORAGE_KEY = 'tsUpdateDismissed';
 const MAJOR_DISMISSAL_TIME = 12 * 60 * 60 * 1000;
@@ -43,6 +45,7 @@ function InnerWarningBar({
     canPostpone,
     canHidePermanently,
 }: InnerWarningBarProps) {
+    const { t } = useLocale();
     const [nowMs, setNowMs] = useState(() => Date.now());
 
     const refreshPostponeStatus = () => {
@@ -61,7 +64,8 @@ function InnerWarningBar({
         return () => clearInterval(interval);
     }, []);
 
-    return canPostpone && !checkPostponeStatus(isImportant, nowMs) ? null : canHidePermanently && window.txConsts.hideFxsUpdateNotification ? null : (
+    return canPostpone && !checkPostponeStatus(isImportant, nowMs) ? null : canHidePermanently &&
+      window.txConsts.hideFxsUpdateNotification ? null : (
         <div className="top-navbarvh fixed z-40 flex w-full justify-center">
             <div
                 className={cn(
@@ -86,19 +90,19 @@ function InnerWarningBar({
                                 onClick={() => postponeUpdate()}
                                 className="border-current hover:bg-white/10"
                             >
-                                <BellOffIcon className="mr-1 h-[0.9rem]" /> Postpone
+                                <BellOffIcon className="mr-1 h-[0.9rem]" /> {t('panel.shell.warning_bar.postpone')}
                             </Button>
                         )}
 
                         <Button size="xs" variant="outline" asChild className="border-current hover:bg-white/10">
                             <a href="https://github.com/SomeAussieGaymer/fxPanel/releases" target="_blank">
-                                <FaGithub size="14" className="mr-1" /> Download
+                                <GithubIcon className="mr-1 inline size-3.5" /> {t('panel.shell.warning_bar.download')}
                             </a>
                         </Button>
 
                         <Button size="xs" variant="outline" asChild className="border-current hover:bg-white/10">
                             <a href="https://discord.gg/6FcqBYwxH5" target="_blank">
-                                <FaDiscord size="14" className="mr-1" /> Support
+                                <DiscordIcon className="mr-1 inline size-3.5" /> {t('panel.shell.header.support')}
                             </a>
                         </Button>
                     </div>
@@ -109,17 +113,18 @@ function InnerWarningBar({
 }
 
 export default function WarningBar() {
+    const { t } = useLocale();
     const { offlineWarning, txUpdateData, fxUpdateData } = useWarningBar();
 
     if (offlineWarning) {
         return (
             <InnerWarningBar
                 titleIcon={<CloudOffIcon className="-mt-1 mr-1 inline h-[1.2rem]" />}
-                title="Socket connection lost."
+                title={t('panel.shell.warning_bar.socket_lost_title')}
                 description={
                     <>
-                        The connection to the fxPanel server has been lost. <br />
-                        If you closed FXServer, please restart it.
+                        {t('panel.shell.warning_bar.socket_lost_desc')} <br />
+                        {t('panel.shell.warning_bar.socket_lost_restart')}
                     </>
                 }
                 isImportant={true}
@@ -132,13 +137,13 @@ export default function WarningBar() {
                 titleIcon={<DownloadCloudIcon className="-mt-1 mr-1 inline h-[1.2rem]" />}
                 title={
                     txUpdateData.isImportant
-                        ? 'This version of fxPanel is outdated.'
-                        : 'A patch (bug fix) update is available for fxPanel.'
+                        ? t('panel.shell.warning_bar.tx_outdated_title')
+                        : t('panel.shell.warning_bar.tx_patch_title')
                 }
                 description={
                     txUpdateData.isImportant
-                        ? `Version v${txUpdateData.version} has been released bringing new features, bug fixes and improvements.`
-                        : `If you are experiencing any kind of issue, please update to v${txUpdateData.version}.`
+                        ? t('panel.shell.warning_bar.tx_outdated_desc', { version: txUpdateData.version })
+                        : t('panel.shell.warning_bar.tx_patch_desc', { version: txUpdateData.version })
                 }
                 isImportant={txUpdateData.isImportant}
                 canPostpone={true}
@@ -150,10 +155,10 @@ export default function WarningBar() {
                 titleIcon={<DownloadCloudIcon className="-mt-1 mr-1 inline h-[1.2rem]" />}
                 title={
                     fxUpdateData.isImportant
-                        ? 'This version of FXServer is outdated.'
-                        : 'An update is available for FXServer.'
+                        ? t('panel.shell.warning_bar.fx_outdated_title')
+                        : t('panel.shell.warning_bar.fx_update_title')
                 }
-                description={`Please update FXServer to artifact ${fxUpdateData.version}.`}
+                description={t('panel.shell.warning_bar.fx_update_desc', { version: fxUpdateData.version })}
                 isImportant={fxUpdateData.isImportant}
                 canPostpone={true}
                 canHidePermanently={true}

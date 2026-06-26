@@ -86,83 +86,75 @@ const getOSMessage = async () => {
     return distro.includes('Linux') || distro.includes('Server') ? serverMessage : winWorkstationMessage;
 };
 
-const awaitHttp = new Promise((resolve, reject) => {
-    const tickLimit = 100; //if over 15 seconds
-    let counter = 0;
-    let interval: NodeJS.Timeout;
-    const check = () => {
-        counter++;
-        if (txCore.webServer && txCore.webServer.isListening && txCore.webServer.isServing) {
-            clearInterval(interval);
-            resolve(true);
-        } else if (counter == tickLimit) {
-            clearInterval(interval);
-            interval = setInterval(check, 2500);
-        } else if (counter > tickLimit) {
-            console.warn('The WebServer is taking too long to start:', {
-                module: !!txCore.webServer,
-                listening: txCore?.webServer?.isListening,
-                serving: txCore?.webServer?.isServing,
-            });
-        }
-    };
-    interval = setInterval(check, 150);
-});
+const createReadyPoll = <T>(isReady: () => T | null, warn: () => Record<string, unknown>, label: string) =>
+    new Promise<T>((resolve) => {
+        const tickLimit = 100; // if over ~15 seconds
+        let counter = 0;
+        let interval: NodeJS.Timeout;
+        const check = () => {
+            counter++;
+            const result = isReady();
+            if (result !== null) {
+                clearInterval(interval);
+                resolve(result);
+                return;
+            }
+            if (counter === tickLimit) {
+                clearInterval(interval);
+                interval = setInterval(check, 2500);
+            } else if (counter > tickLimit) {
+                console.warn(`The ${label} is taking too long to start:`, warn());
+            }
+        };
+        interval = setInterval(check, 150);
+    });
 
-const awaitMasterPin = new Promise((resolve, reject) => {
-    const tickLimit = 100; //if over 15 seconds
-    let counter = 0;
-    let interval: NodeJS.Timeout;
-    const check = () => {
-        counter++;
-        if (txCore.adminStore && txCore.adminStore.admins !== null) {
-            clearInterval(interval);
-            const pin = txCore.adminStore.admins === false ? txCore.adminStore.addMasterPin : false;
-            resolve(pin);
-        } else if (counter == tickLimit) {
-            clearInterval(interval);
-            interval = setInterval(check, 2500);
-        } else if (counter > tickLimit) {
-            console.warn('The AdminStore is taking too long to start:', {
-                module: !!txCore.adminStore,
-                admins: txCore?.adminStore?.admins === null ? 'null' : 'not null',
-            });
-        }
-    };
-    interval = setInterval(check, 150);
-});
+const createBootReadinessPolls = () => {
+    const awaitHttp = createReadyPoll(
+        () => (txCore.webServer?.isListening && txCore.webServer?.isServing ? true : null),
+        () => ({
+            module: !!txCore.webServer,
+            listening: txCore.webServer?.isListening,
+            serving: txCore.webServer?.isServing,
+        }),
+        'WebServer',
+    );
 
-const awaitDatabase = new Promise((resolve, reject) => {
-    const tickLimit = 100; //if over 15 seconds
-    let counter = 0;
-    let interval: NodeJS.Timeout;
-    const check = () => {
-        counter++;
-        if (txCore.database && txCore.database.isReady) {
-            clearInterval(interval);
-            resolve(true);
-        } else if (counter == tickLimit) {
-            clearInterval(interval);
-            interval = setInterval(check, 2500);
-        } else if (counter > tickLimit) {
-            console.warn('The Database is taking too long to start:', {
-                module: !!txCore.database,
-                ready: !!txCore?.database?.isReady,
-            });
-        }
-    };
-    interval = setInterval(check, 150);
-});
+    const awaitMasterPin = createReadyPoll<undefined | string | false>(
+        () => {
+            if (!txCore.adminStore || txCore.adminStore.admins === null) return null;
+            return txCore.adminStore.admins === false ? txCore.adminStore.addMasterPin : false;
+        },
+        () => ({
+            module: !!txCore.adminStore,
+            admins: txCore.adminStore?.admins === null ? 'null' : 'not null',
+        }),
+        'AdminStore',
+    );
+
+    const awaitDatabase = createReadyPoll(
+        () => (txCore.database?.isReady ? true : null),
+        () => ({
+            module: !!txCore.database,
+            ready: !!txCore.database?.isReady,
+        }),
+        'Database',
+    );
+
+    return { awaitHttp, awaitMasterPin, awaitDatabase };
+};
 
 export const startReadyWatcher = async (cb: () => void) => {
     //Register all local interface IPs
     registerInterfaceIps();
 
+    const { awaitHttp, awaitMasterPin, awaitDatabase } = createBootReadinessPolls();
+
     const [publicIpv4Resp, publicIpv6Resp, msgRes, adminPinRes] = await Promise.allSettled([
         getPublicIpv4(),
         getPublicIpv6(),
         getOSMessage(),
-        awaitMasterPin as Promise<undefined | string | false>,
+        awaitMasterPin,
         awaitHttp,
         awaitDatabase,
     ]);
@@ -176,10 +168,12 @@ export const startReadyWatcher = async (cb: () => void) => {
         if ('value' in publicIpv4Resp && publicIpv4Resp.value) {
             detectedUrls.push(publicIpv4Resp.value);
             addLocalIpAddress(publicIpv4Resp.value);
+            txCore.cacheStore.set('stats:publicIpv4', publicIpv4Resp.value);
         }
         if ('value' in publicIpv6Resp && publicIpv6Resp.value) {
             detectedUrls.push(publicIpv6Resp.value);
             addLocalIpAddress(publicIpv6Resp.value);
+            txCore.cacheStore.set('stats:publicIpv6', publicIpv6Resp.value);
         }
     }
     const bannerUrls = txHostConfig.txaUrl

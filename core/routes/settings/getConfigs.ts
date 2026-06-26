@@ -32,6 +32,7 @@ export default async function GetSettingsConfigs(ctx: AuthedCtx) {
     //Check permissions
     if (!ctx.admin.testPermission('settings.view', modulename)) {
         return sendTypedResp({
+            errorCode: 'settings.no_permission_view',
             error: 'You do not have permission to view the settings.',
         });
     }

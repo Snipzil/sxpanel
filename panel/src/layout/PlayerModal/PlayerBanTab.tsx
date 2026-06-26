@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useAdminPerms } from '@/hooks/auth';
 import { PlayerModalRefType, useClosePlayerModal } from '@/hooks/playerModal';
+import { useLocale } from '@/hooks/locale';
 import { Loader2Icon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useBackendApi } from '@/hooks/fetch';
@@ -14,6 +15,7 @@ type PlayerBanTabProps = {
 };
 
 export default function PlayerBanTab({ playerRef }: PlayerBanTabProps) {
+    const { t } = useLocale();
     const banFormRef = useRef<BanFormType>(null);
     const [isSaving, setIsSaving] = useState(false);
     const { hasPerm } = useAdminPerms();
@@ -25,7 +27,7 @@ export default function PlayerBanTab({ playerRef }: PlayerBanTabProps) {
     });
 
     if (!hasPerm('players.ban')) {
-        return <ModalCentralMessage>You don't have permission to ban players.</ModalCentralMessage>;
+        return <ModalCentralMessage>{t('panel.player_modal.ban.no_permission')}</ModalCentralMessage>;
     }
 
     const handleSave = () => {
@@ -33,7 +35,7 @@ export default function PlayerBanTab({ playerRef }: PlayerBanTabProps) {
         const { reason, duration } = banFormRef.current.getData();
 
         if (!reason || reason.length < 3) {
-            txToast.warning(`The reason must be at least 3 characters long.`);
+            txToast.warning(t('panel.player_modal.ban.reason_min_length'));
             banFormRef.current.focusReason();
             return;
         }
@@ -42,9 +44,9 @@ export default function PlayerBanTab({ playerRef }: PlayerBanTabProps) {
         playerBanApi({
             queryParams: playerRef,
             data: { reason, duration },
-            toastLoadingMessage: 'Banning player…',
+            toastLoadingMessage: t('panel.player_modal.ban.banning'),
             genericHandler: {
-                successMsg: 'Player banned.',
+                successMsg: t('panel.player_modal.ban.success'),
             },
             success: (data) => {
                 setIsSaving(false);
@@ -69,10 +71,11 @@ export default function PlayerBanTab({ playerRef }: PlayerBanTabProps) {
                 <Button size="sm" variant="destructive" disabled={isSaving} onClick={handleSave}>
                     {isSaving ? (
                         <span className="flex items-center leading-relaxed">
-                            <Loader2Icon className="inline h-4 animate-spin" /> Banning…
+                            <Loader2Icon className="inline h-4 animate-spin" />{' '}
+                            {t('panel.player_modal.ban.banning_btn')}
                         </span>
                     ) : (
-                        'Apply Ban'
+                        t('panel.player_modal.ban.apply')
                     )}
                 </Button>
             </div>

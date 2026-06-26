@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { UsersIcon, ClockIcon, LayoutDashboardIcon } from 'lucide-react';
 import { msToShortDuration } from '@/lib/dateTime';
 import { PageHeader } from '@/components/page-header';
+import { useLocale } from '@/hooks/locale';
 import { createMockDashboardEvent } from './devMockData';
 import { isDevMockStatusOptInEnabled } from '@/lib/devFlags';
 
@@ -77,6 +78,7 @@ function DashboardHeaderStats() {
 }
 
 function DashboardPageInner() {
+    const { t } = useLocale();
     const setDashboardData = useSetDashboardData();
     const dashboardWidgets = useAddonWidgets('dashboard.main');
     const sidebarWidgets = useAddonWidgets('dashboard.sidebar');
@@ -118,10 +120,10 @@ function DashboardPageInner() {
     }, [applyDashboardData]);
 
     return (
-        <div className="flex min-h-full w-full min-w-96 flex-1 flex-col gap-4">
+        <div className="flex min-h-full w-full min-w-0 flex-1 flex-col gap-4">
             <PageHeader
                 icon={<LayoutDashboardIcon />}
-                title={status?.server.name || 'Dashboard'}
+                title={status?.server.name || t('panel.routes.dashboard')}
                 description="Overview & real-time monitoring"
             >
                 <DashboardHeaderStats />

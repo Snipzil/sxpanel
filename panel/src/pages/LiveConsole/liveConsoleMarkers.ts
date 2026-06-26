@@ -3,6 +3,8 @@ import type { Terminal } from '@xterm/xterm';
 import { sanitizeTermLine } from './liveConsoleUtils';
 import { txToast } from '@/components/TxToaster';
 
+type LocaleTranslate = (key: string, tOptions?: Record<string, string | number>, defaultValue?: string) => string;
+
 //Yoinked from the internet, no good source
 const rtlRangeRegex = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]{3,}/; //ignoring anything less than 3 characters
 
@@ -27,19 +29,19 @@ type TerminalMarkerGetterResult =
 /**
  * Checks if a terminal line contains RTL characters
  */
-export const getTermLineRtlData = (line: string): TerminalMarkerGetterResult => {
+export const getTermLineRtlData = (line: string, t: LocaleTranslate): TerminalMarkerGetterResult => {
     if (!rtlRangeRegex.test(line)) return;
     return {
         markerData: {
             classes: 'bg-warning text-warning-foreground',
-            labelShort: 'RTL',
-            labelLong: 'VIEW RIGHT-TO-LEFT TEXT',
+            labelShort: t('panel.live_console.markers.rtl_short'),
+            labelLong: t('panel.live_console.markers.rtl_long'),
             onClick: () => {
                 txToast.warning(
                     {
-                        title: 'Bidirectional Text Detected:',
+                        title: t('panel.live_console.markers.rtl_toast_title'),
                         md: true,
-                        msg: `Due to limitations, the terminal cannot display RTL text.\nThis is what the text is supposed to look like:\n\n${sanitizeTermLine(line)}`,
+                        msg: t('panel.live_console.markers.rtl_toast_msg', { text: sanitizeTermLine(line) }),
                     },
                     { duration: 7500 },
                 );
@@ -58,7 +60,7 @@ const parseCommandArg = (arg: string) => {
 /**
  * Checks if a terminal line is a txAdmin event line
  */
-export const getTermLineEventData = (line: string): TerminalMarkerGetterResult => {
+export const getTermLineEventData = (line: string, t: LocaleTranslate): TerminalMarkerGetterResult => {
     const clean = sanitizeTermLine(line);
     const regex = /^(?<bar>.)\s+TXADMIN\1 txaEvent "(?<arg0>\w+)" "(?<arg1>.*)"$/;
     const match = clean.match(regex);
@@ -72,12 +74,12 @@ export const getTermLineEventData = (line: string): TerminalMarkerGetterResult =
         newLine: line.replace(lineMatcher, newLinePart),
         markerData: {
             classes: 'bg-info text-info-foreground',
-            labelShort: 'EVENT',
-            labelLong: 'VIEW EVENT',
+            labelShort: t('panel.live_console.markers.event_short'),
+            labelLong: t('panel.live_console.markers.event_long'),
             onClick: () => {
                 txToast.info(
                     {
-                        title: `txAdmin:events:${arg0}:`,
+                        title: t('panel.live_console.markers.event_toast_title', { event: arg0 }),
                         md: true,
                         msg: '```json\n' + JSON.stringify(data, null, 2) + '\n```',
                     },
@@ -91,7 +93,7 @@ export const getTermLineEventData = (line: string): TerminalMarkerGetterResult =
 /**
  * Checks if a terminal line is a txAdmin event line
  */
-export const getTermLineInitialData = (line: string): TerminalMarkerGetterResult => {
+export const getTermLineInitialData = (line: string, t: LocaleTranslate): TerminalMarkerGetterResult => {
     const clean = sanitizeTermLine(line);
     const regex = /^(?<bar>.)\s+TXADMIN\1 txaInitialData "(?<arg0>.*)"$/;
     const match = clean.match(regex);
@@ -105,12 +107,12 @@ export const getTermLineInitialData = (line: string): TerminalMarkerGetterResult
         newLine: line.replace(lineMatcher, newLinePart),
         markerData: {
             classes: 'bg-info text-info-foreground',
-            labelShort: 'CMD',
-            labelLong: 'VIEW COMMAND',
+            labelShort: t('panel.live_console.markers.cmd_short'),
+            labelLong: t('panel.live_console.markers.cmd_long'),
             onClick: () => {
                 txToast.info(
                     {
-                        title: `Initial Player Data:`,
+                        title: t('panel.live_console.markers.initial_data_title'),
                         md: true,
                         msg: '```json\n' + JSON.stringify(data, null, 2) + '\n```',
                     },

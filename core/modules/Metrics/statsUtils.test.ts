@@ -145,6 +145,16 @@ suite('QuantileArray', () => {
             summary: 'not enough data available',
         });
     });
+    test('caches result until count or clear', () => {
+        const cached = new QuantileArray(4, 2);
+        cached.count(1);
+        cached.count(2);
+        const first = cached.result();
+        const second = cached.result();
+        expect(first).toBe(second);
+        cached.count(3);
+        expect(cached.result()).not.toBe(first);
+    });
 });
 
 suite('TimeCounter', async () => {

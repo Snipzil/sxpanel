@@ -81,6 +81,8 @@ export class DbInstance {
     readonly backupPath: string;
     obj: DatabaseObjectType | undefined = undefined;
     #writePending: SavePriority = SavePriority.STANDBY;
+    #writeBatchDepth = 0;
+    #deferredWritePriority: SavePriority | null = null;
     lastWrite: number = 0;
     isReady: boolean = false;
     readonly #readyPromise: Promise<void>;
@@ -164,13 +166,14 @@ export class DbInstance {
             if (
                 !Array.isArray(this.obj!.data.actions) ||
                 !Array.isArray(this.obj!.data.players) ||
-                !Array.isArray(this.obj!.data.whitelistApprovals) ||
-                !Array.isArray(this.obj!.data.whitelistRequests) ||
+                !Array.isArray(this.obj!.data.whitelistEntries) ||
+                !Array.isArray(this.obj!.data.whitelistApplications) ||
+                !Array.isArray(this.obj!.data.whitelistEvents) ||
                 !Array.isArray(this.obj!.data.botCommandEvents)
             ) {
                 fatalError.Database(2, [
                     'Your fxPanel player/actions database is corrupted!',
-                    'It is missing one of the required arrays (players, actions, whitelistApprovals, whitelistRequests, botCommandEvents).',
+                    'It is missing one of the required arrays (players, actions, whitelistEntries, whitelistApplications, whitelistEvents, botCommandEvents).',
                     'If you modified the database file manually, you may try to restore it from the automatic backup file.',
                     ['Database path', this.dbPath],
                 ]);
@@ -216,11 +219,36 @@ export class DbInstance {
     }
 
     /**
+     * Coalesce writeFlag calls until {@link endWriteBatch} (e.g. global playtime tick).
+     */
+    beginWriteBatch() {
+        this.#writeBatchDepth++;
+    }
+
+    /**
+     * Ends a write batch and applies a single deferred writeFlag if any writes occurred.
+     */
+    endWriteBatch() {
+        if (this.#writeBatchDepth === 0) return;
+        this.#writeBatchDepth--;
+        if (this.#writeBatchDepth !== 0 || this.#deferredWritePriority === null) return;
+        const deferred = this.#deferredWritePriority;
+        this.#deferredWritePriority = null;
+        this.writeFlag(deferred);
+    }
+
+    /**
      * Set write pending flag
      */
     writeFlag(flag = SavePriority.MEDIUM) {
         if (flag < SavePriority.LOW || flag > SavePriority.HIGH) {
             throw new Error('unknown priority flag!');
+        }
+        if (this.#writeBatchDepth > 0) {
+            if (this.#deferredWritePriority === null || flag > this.#deferredWritePriority) {
+                this.#deferredWritePriority = flag;
+            }
+            return;
         }
         if (flag > this.#writePending) {
             const flagName = SAVE_CONFIG[flag].name;

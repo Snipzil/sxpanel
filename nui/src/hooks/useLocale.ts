@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useServerCtxValue } from '../state/server.state';
-import localeMap from '@shared/localeMap';
+import type { LocaleType } from '@shared/localeMap';
+import { englishLocale, loadNuiLocale, normalizeNuiLangCode } from '../lib/nuiLocaleLoader';
 
 const isObject = (value: unknown): value is Record<string, unknown> => {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -24,19 +25,45 @@ const mergeLocaleFallback = <T extends Record<string, unknown>>(fallback: T, tar
 
 export const useLocale = () => {
     const serverCtx = useServerCtxValue();
+    const [loadedLocale, setLoadedLocale] = useState<LocaleType>(englishLocale);
+
+    const currentLang = useMemo(() => normalizeNuiLangCode(serverCtx.locale), [serverCtx.locale]);
+
+    useEffect(() => {
+        if (currentLang === 'custom') {
+            setLoadedLocale(englishLocale);
+            return;
+        }
+
+        if (currentLang === 'en') {
+            setLoadedLocale(englishLocale);
+            return;
+        }
+
+        let cancelled = false;
+        loadNuiLocale(currentLang)
+            .then((locale) => {
+                if (!cancelled) setLoadedLocale(locale);
+            })
+            .catch(() => {
+                if (!cancelled) setLoadedLocale(englishLocale);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentLang]);
 
     return useMemo(() => {
-        const fallbackLocale = localeMap.en;
-
         if (serverCtx.locale === 'custom' && typeof serverCtx.localeData === 'object') {
-            return mergeLocaleFallback(fallbackLocale, serverCtx.localeData);
-        } else {
-            if (localeMap[serverCtx.locale]) {
-                return mergeLocaleFallback(fallbackLocale, localeMap[serverCtx.locale]);
-            } else {
-                console.log(`Unable to find a locale with code ${serverCtx.locale} in cache, using English`);
-                return fallbackLocale;
-            }
+            return mergeLocaleFallback(englishLocale, serverCtx.localeData);
         }
-    }, [serverCtx.locale, serverCtx.localeData]);
+
+        if (loadedLocale) {
+            return loadedLocale;
+        }
+
+        console.log(`Unable to find a locale with code ${serverCtx.locale} in cache, using English`);
+        return englishLocale;
+    }, [serverCtx.locale, serverCtx.localeData, loadedLocale]);
 };

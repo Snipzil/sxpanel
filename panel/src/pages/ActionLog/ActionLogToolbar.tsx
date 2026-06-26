@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-import { cn } from '@/lib/utils';
+import { cn, submitAuthedDownload } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { openExternalLink } from '@/lib/navigation';
+import { useCsrfToken } from '@/hooks/auth';
 import {
     RadioIcon,
     PauseIcon,
@@ -77,6 +77,7 @@ export default function ActionLogToolbar({
 }: ActionLogToolbarProps) {
     const [showJumpInput, setShowJumpInput] = useState(false);
     const jumpInputRef = useRef<HTMLInputElement>(null);
+    const csrfToken = useCsrfToken();
 
     const handleJump = () => {
         if (!jumpInputRef.current?.value) return;
@@ -214,7 +215,12 @@ export default function ActionLogToolbar({
                 {/* Download */}
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="xs" onClick={() => openExternalLink('/logs/system/download')}>
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            disabled={!csrfToken}
+                            onClick={() => submitAuthedDownload('/logs/system/download', csrfToken)}
+                        >
                             <DownloadIcon className="size-3.5" />
                         </Button>
                     </TooltipTrigger>

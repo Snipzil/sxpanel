@@ -17,6 +17,7 @@ export type ResolvablePermission =
     | 'players.direct_message'
     | 'players.warn'
     | 'players.whitelist'
+    | 'players.write'
     | 'console.view'
     | 'console.write'
     | 'control.server'
@@ -32,6 +33,7 @@ export type ResolvablePermission =
     | 'menu.vehicle.delete'
     | 'menu.clear_area'
     | 'menu.viewids'
+    | 'menu.mapblips'
     | 'players.spectate'
     | 'players.troll'
     | 'players.freeze';

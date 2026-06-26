@@ -5,6 +5,7 @@
 const modulename = 'WebServer:TotpDisable';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
+import { verifyAdminPassword } from '@lib/adminPassword';
 import { verifyTotpCode } from '@lib/totp';
 import { ApiTotpDisableResp } from '@shared/authApiTypes';
 import { totpDisableBodySchema as bodySchema } from '@shared/authApiSchemas';
@@ -19,6 +20,12 @@ export default async function TotpDisable(ctx: AuthedCtx) {
     try {
         const adminName = ctx.admin.name;
 
+        if (txConfig.general.requireAdminTwoFactor) {
+            return sendTypedResp({
+                error: 'Two-factor authentication is required for all admins and cannot be disabled while that setting is on.',
+            });
+        }
+
         // Get raw admin data
         const rawAdmin = txCore.adminStore.getRawAdminByName(adminName);
         if (!rawAdmin?.totp_secret) {
@@ -26,7 +33,7 @@ export default async function TotpDisable(ctx: AuthedCtx) {
         }
 
         // Verify current password
-        const passwordValid = VerifyPasswordHash(postBody.password, rawAdmin.password_hash);
+        const passwordValid = await verifyAdminPassword(postBody.password, rawAdmin.password_hash);
         if (!passwordValid) {
             return sendTypedResp({ error: 'Invalid password.' });
         }

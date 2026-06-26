@@ -164,7 +164,9 @@ const resolveAddonInteractionHandler = (runtimeState, customId) => {
 
     return {
         parsed,
-        handler: runtimeState.interactionHandlers[parsed.kind].get(buildInteractionKey(parsed.addonId, parsed.action)) ?? null,
+        handler:
+            runtimeState.interactionHandlers[parsed.kind].get(buildInteractionKey(parsed.addonId, parsed.action)) ??
+            null,
     };
 };
 

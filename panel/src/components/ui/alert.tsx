@@ -36,7 +36,7 @@ const AlertTitle = ({ className, children, ref, ...props }: React.ComponentProps
 AlertTitle.displayName = 'AlertTitle';
 
 const AlertDescription = ({ className, ref, ...props }: React.ComponentPropsWithRef<'div'>) => (
-        <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
+    <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
 );
 AlertDescription.displayName = 'AlertDescription';
 

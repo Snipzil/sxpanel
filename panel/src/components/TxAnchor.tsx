@@ -23,8 +23,7 @@ export default function TxAnchor({ children, href, className, rel, onClick: onCl
     const setLocation = useLocation()[1];
     const kind = classifyTxAnchorHref(href);
     const isExternal = kind === 'external-http';
-    const resolvedExternalHref =
-        isExternal && href.trimStart().startsWith('//') ? `https:${href.trim()}` : href.trim();
+    const resolvedExternalHref = isExternal && href.trimStart().startsWith('//') ? `https:${href.trim()}` : href.trim();
     const onClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
         if (!href) return;
         onClickProp?.(e);

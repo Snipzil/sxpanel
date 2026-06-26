@@ -81,7 +81,9 @@ const buildStaffMetrics = (tickets: DatabaseTicketType[]) => {
             resolvedTickets += 1;
             ticketsWithResolutionHistory += 1;
             resolutionDurations.push((resolutionTs - ticket.tsCreated) * 1000);
-        } else if ((ticket.activityLog ?? []).some((entry) => entry.action === 'resolved' || entry.action === 'closed')) {
+        } else if (
+            (ticket.activityLog ?? []).some((entry) => entry.action === 'resolved' || entry.action === 'closed')
+        ) {
             ticketsWithResolutionHistory += 1;
         }
 
@@ -99,7 +101,8 @@ const buildStaffMetrics = (tickets: DatabaseTicketType[]) => {
         avgTimeToClaimMs: average(claimDurations),
         avgFirstStaffResponseMs: average(responseDurations),
         avgResolutionMs: average(resolutionDurations),
-        reopenRate: ticketsWithResolutionHistory > 0 ? Math.round((reopenedTickets / ticketsWithResolutionHistory) * 100) : 0,
+        reopenRate:
+            ticketsWithResolutionHistory > 0 ? Math.round((reopenedTickets / ticketsWithResolutionHistory) * 100) : 0,
     };
 };
 

@@ -13,6 +13,7 @@ export type ReactAuthDataType = {
     permissions: string[];
     isMaster: boolean;
     isTempPassword: boolean;
+    passwordRevision?: number;
     profilePicture?: string;
     csrfToken?: string;
     totpEnabled?: boolean;

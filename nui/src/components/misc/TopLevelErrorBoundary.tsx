@@ -37,7 +37,7 @@ export class TopLevelErrorBoundary extends Component<ErrorBoundaryProps, ErrorCo
     render() {
         if (this.state.hasError) {
             return (
-                <Dialog open={this.state.hasError}>
+                <Dialog open={this.state.hasError} disablePortal>
                     <DialogTitle>Fatal Error Encountered</DialogTitle>
                     <DialogContent>
                         <DialogContentText>

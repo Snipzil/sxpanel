@@ -2,110 +2,72 @@ import { Input } from '@/components/ui/input';
 import SwitchText from '@/components/SwitchText';
 import InlineCode from '@/components/InlineCode';
 import { AdvancedDivider, SettingItem, SettingItemDesc } from '../settingsItems';
-import { useState, useEffect, useMemo, useReducer } from 'react';
-import {
-    getConfigEmptyState,
-    getConfigAccessors,
-    SettingsCardProps,
-    getPageConfig,
-    configsReducer,
-    getConfigDiff,
-    reconcileCardPendingSave,
-} from '../utils';
-import SettingsCardShell from '../SettingsCardShell';
+import type { SettingsCardProps } from '../utils';
+import { getConfigAccessors, getPageConfig } from '../utils';
+import { useLocale } from '@/hooks/locale';
 
-export const pageConfigs = {
+export const gameMenuPageConfigs = {
     menuEnabled: getPageConfig('gameFeatures', 'menuEnabled', undefined, true),
     alignRight: getPageConfig('gameFeatures', 'menuAlignRight', undefined, false),
     pageKey: getPageConfig('gameFeatures', 'menuPageKey'),
+    playerIdDistance: getPageConfig('gameFeatures', 'menuPlayerIdDistance', undefined, 150),
+    overheadTwoRowLayout: getPageConfig('gameFeatures', 'overheadTwoRowLayout', undefined, true),
+    overheadSeatIcons: getPageConfig('gameFeatures', 'overheadSeatIcons', undefined, true),
+    overheadNoclipIcon: getPageConfig('gameFeatures', 'overheadNoclipIcon', undefined, true),
     playerModePtfx: getPageConfig('gameFeatures', 'playerModePtfx', true, true),
 } as const;
 
-export default function ConfigCardGameMenu({ cardCtx, pageCtx }: SettingsCardProps) {
-    const [showAdvanced, setShowAdvanced] = useState(false);
-    const [states, dispatch] = useReducer(configsReducer<typeof pageConfigs>, null, () =>
-        getConfigEmptyState(pageConfigs),
-    );
-    const cfg = useMemo(() => {
-        return getConfigAccessors(cardCtx.cardId, pageConfigs, pageCtx.apiData, dispatch);
-    }, [pageCtx.apiData, dispatch]);
+type GameMenuSettingsFieldsProps = {
+    cfg: ReturnType<typeof getConfigAccessors<typeof gameMenuPageConfigs>>;
+    states: Record<string, unknown>;
+    pageCtx: SettingsCardProps['pageCtx'];
+    showAdvanced: boolean;
+    playerIdDistanceRef: React.RefObject<HTMLInputElement | null>;
+    updatePageState: () => void;
+    handlePageKey: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+};
 
-    //Effects - handle changes and reset advanced settings
-    useEffect(() => {
-        updatePageState();
-    }, [states]);
-    useEffect(() => {
-        if (showAdvanced) return;
-        Object.values(cfg).forEach((c) => c.isAdvanced && c.state.discard());
-    }, [showAdvanced]);
-
-    //Processes the state of the page and sets the card as pending save if needed
-    const updatePageState = () => {
-        const overwrites = {};
-
-        const res = getConfigDiff(cfg, states, overwrites, showAdvanced);
-        pageCtx.setCardPendingSave(reconcileCardPendingSave(cardCtx, res.hasChanges));
-        return res;
-    };
-
-    //Validate changes (for UX only) and trigger the save API
-    const handleOnSave = () => {
-        const { hasChanges, localConfigs } = updatePageState();
-        if (!hasChanges) return;
-        //NOTE: nothing to validate
-        pageCtx.saveChanges(cardCtx, localConfigs);
-    };
-
-    //Card content stuff
-    const handlePageKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!e.metaKey) e.preventDefault();
-
-        if (['Escape', 'Backspace'].includes(e.code)) {
-            cfg.pageKey.state.set('Tab');
-        } else {
-            cfg.pageKey.state.set(e.code);
-        }
-    };
+export function GameMenuSettingsFields({
+    cfg,
+    states,
+    pageCtx,
+    showAdvanced,
+    playerIdDistanceRef,
+    updatePageState,
+    handlePageKey,
+}: GameMenuSettingsFieldsProps) {
+    const { t } = useLocale();
 
     return (
-        <SettingsCardShell
-            cardCtx={cardCtx}
-            pageCtx={pageCtx}
-            onClickSave={handleOnSave}
-            advancedVisible={showAdvanced}
-            advancedSetter={setShowAdvanced}
-        >
-            <SettingItem label="Game Menu">
+        <>
+            <SettingItem label={t('panel.settings.game_menu.menu_label')}>
                 <SwitchText
                     id={cfg.menuEnabled.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     variant="checkedGreen"
-                    checked={states.menuEnabled}
+                    checked={states.menuEnabled as boolean}
                     onCheckedChange={cfg.menuEnabled.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>
-                    When enabled, admins will be able to open the menu by typing <InlineCode>/tx</InlineCode> or using
-                    the keybind configured in the FiveM/RedM settings.
-                </SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_menu.menu_desc')}</SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Align Menu Right">
+            <SettingItem label={t('panel.settings.game_menu.align_right_label')}>
                 <SwitchText
                     id={cfg.alignRight.eid}
-                    checkedLabel="Right aligned"
-                    uncheckedLabel="Left aligned"
-                    checked={states.alignRight}
+                    checkedLabel={t('panel.settings.game_menu.align_right_on')}
+                    uncheckedLabel={t('panel.settings.game_menu.align_right_off')}
+                    checked={states.alignRight as boolean}
                     onCheckedChange={cfg.alignRight.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
-                <SettingItemDesc>Move menu to the right side of the screen.</SettingItemDesc>
+                <SettingItemDesc>{t('panel.settings.game_menu.align_right_desc')}</SettingItemDesc>
             </SettingItem>
-            <SettingItem label="Menu Page Switch Key" htmlFor={cfg.pageKey.eid} required>
+            <SettingItem label={t('panel.settings.game_menu.page_key_label')} htmlFor={cfg.pageKey.eid} required>
                 <Input
                     id={cfg.pageKey.eid}
-                    value={states.pageKey}
-                    placeholder="click here and use the key to change"
+                    value={states.pageKey as string}
+                    placeholder={t('panel.settings.game_menu.page_key_placeholder')}
                     onKeyDown={handlePageKey}
                     className="font-mono"
                     readOnly
@@ -113,32 +75,90 @@ export default function ConfigCardGameMenu({ cardCtx, pageCtx }: SettingsCardPro
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>
-                    The key used to to switch tabs in the menu. <br />
-                    Click above and press any key to change the configuration. <br />
-                    <strong>Note:</strong> The default is <InlineCode>Tab</InlineCode>, and you cannot use{' '}
-                    <InlineCode>Escape</InlineCode> or <InlineCode>Backspace</InlineCode>.
+                    {t('panel.settings.game_menu.page_key_desc')} <br />
+                    {t('panel.settings.game_menu.page_key_desc_click')} <br />
+                    <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
+                    {t('panel.settings.game_menu.page_key_note_prefix')} <InlineCode>Tab</InlineCode>,{' '}
+                    {t('panel.settings.game_menu.page_key_note_mid')} <InlineCode>Escape</InlineCode>{' '}
+                    {t('panel.settings.game_menu.page_key_note_or')} <InlineCode>Backspace</InlineCode>.
                 </SettingItemDesc>
+            </SettingItem>
+            <SettingItem
+                label={t('panel.settings.game_menu.player_id_distance_label')}
+                htmlFor={cfg.playerIdDistance.eid}
+            >
+                <Input
+                    id={cfg.playerIdDistance.eid}
+                    ref={playerIdDistanceRef}
+                    type="number"
+                    min={1}
+                    max={1000}
+                    defaultValue={cfg.playerIdDistance.initialValue}
+                    onInput={updatePageState}
+                    disabled={pageCtx.isReadOnly}
+                    className="w-24"
+                    placeholder="150"
+                />
+                <SettingItemDesc>{t('panel.settings.game_menu.player_id_distance_desc')}</SettingItemDesc>
+            </SettingItem>
+
+            <SettingItem label={t('panel.settings.game_menu.overhead_two_row_label')}>
+                <SwitchText
+                    id={cfg.overheadTwoRowLayout.eid}
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
+                    variant="checkedGreen"
+                    checked={states.overheadTwoRowLayout as boolean}
+                    onCheckedChange={cfg.overheadTwoRowLayout.state.set}
+                    disabled={pageCtx.isReadOnly}
+                />
+                <SettingItemDesc>{t('panel.settings.game_menu.overhead_two_row_desc')}</SettingItemDesc>
+            </SettingItem>
+
+            <SettingItem label={t('panel.settings.game_menu.overhead_seat_icons_label')}>
+                <SwitchText
+                    id={cfg.overheadSeatIcons.eid}
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
+                    variant="checkedGreen"
+                    checked={states.overheadSeatIcons as boolean}
+                    onCheckedChange={cfg.overheadSeatIcons.state.set}
+                    disabled={pageCtx.isReadOnly}
+                />
+                <SettingItemDesc>{t('panel.settings.game_menu.overhead_seat_icons_desc')}</SettingItemDesc>
+            </SettingItem>
+
+            <SettingItem label={t('panel.settings.game_menu.overhead_noclip_icon_label')}>
+                <SwitchText
+                    id={cfg.overheadNoclipIcon.eid}
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
+                    variant="checkedGreen"
+                    checked={states.overheadNoclipIcon as boolean}
+                    onCheckedChange={cfg.overheadNoclipIcon.state.set}
+                    disabled={pageCtx.isReadOnly}
+                />
+                <SettingItemDesc>{t('panel.settings.game_menu.overhead_noclip_icon_desc')}</SettingItemDesc>
             </SettingItem>
 
             {showAdvanced && <AdvancedDivider />}
 
-            <SettingItem label="Player Mode Change Effect" showIf={showAdvanced}>
+            <SettingItem label={t('panel.settings.game_menu.player_mode_effect_label')} showIf={showAdvanced}>
                 <SwitchText
                     id={cfg.playerModePtfx.eid}
-                    checkedLabel="Enabled"
-                    uncheckedLabel="Disabled"
+                    checkedLabel={t('panel.settings.switch.enabled')}
+                    uncheckedLabel={t('panel.settings.switch.disabled')}
                     variant="checkedGreen"
-                    checked={states.playerModePtfx}
+                    checked={states.playerModePtfx as boolean}
                     onCheckedChange={cfg.playerModePtfx.state.set}
                     disabled={pageCtx.isReadOnly}
                 />
                 <SettingItemDesc>
-                    Play a particle effect and sound when an admin uses NoClip, God Mode, etc. <br />
-                    <strong className="text-warning-inline">Warning:</strong> This options help prevent admin abuse
-                    during PvP by making it visible/audible to all players that an admin is using a special mode. We
-                    recommend keeping it enabled.
+                    {t('panel.settings.game_menu.player_mode_effect_desc')} <br />
+                    <strong className="text-warning-inline">{t('panel.settings.fxserver.warning_label')}</strong>{' '}
+                    {t('panel.settings.game_menu.player_mode_effect_warning')}
                 </SettingItemDesc>
             </SettingItem>
-        </SettingsCardShell>
+        </>
     );
 }

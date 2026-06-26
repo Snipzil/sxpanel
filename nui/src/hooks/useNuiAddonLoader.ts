@@ -42,15 +42,16 @@ const getSafeAddonResourcePath = (addonId: string, value: string | null | undefi
     if (/^[a-z]+:/i.test(trimmed)) return null;
     if (trimmed.includes('..')) return null;
     if (!/^[a-zA-Z0-9_./-]+$/.test(trimmed)) return null;
-    const allowedPrefix = `addons/${addonId}/`;
-    if (!trimmed.startsWith(allowedPrefix)) return null;
+    const allowedPrefixes = [`addons/${addonId}/`, `nui/addons/${addonId}/`];
+    if (!allowedPrefixes.some((prefix) => trimmed.startsWith(prefix))) return null;
     return trimmed;
 };
 
 async function loadNuiAddons(): Promise<void> {
     try {
         const resp = await fetchWebPipe<{ addons: AddonNuiDescriptor[] }>('/addons/nui-manifest');
-        if (!resp?.addons?.length) return;
+        const addons = resp && Array.isArray(resp.addons) ? resp.addons : [];
+        if (!addons.length) return;
 
         // Expose a minimal API for NUI addon scripts
         (window as any).txNuiAddonApi = {
@@ -69,7 +70,7 @@ async function loadNuiAddons(): Promise<void> {
             },
         };
 
-        for (const addon of resp.addons) {
+        for (const addon of addons) {
             try {
                 const appendScript = () => {
                     const safeEntryPath = getSafeAddonResourcePath(addon.id, addon.entryUrl);

@@ -1,6 +1,12 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { request } = require('../../bridge/requests');
-const { getNoReplyPayloadError, getRequesterPayload, resolveBridgeReply, resolveSearchId, sendBridgeError } = require('./common');
+const {
+    getNoReplyPayloadError,
+    getRequesterPayload,
+    resolveBridgeReply,
+    resolveSearchId,
+    sendBridgeError,
+} = require('./common');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,7 +20,10 @@ module.exports = {
                 .setName('member')
                 .setDescription('Searches for a player with matching Discord ID.')
                 .addUserOption((option) => {
-                    return option.setName('member').setDescription('The member that will be searched for.').setRequired(true);
+                    return option
+                        .setName('member')
+                        .setDescription('The member that will be searched for.')
+                        .setRequired(true);
                 });
         })
         .addSubcommand((subcommand) => {

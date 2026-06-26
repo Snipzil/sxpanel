@@ -1,3 +1,16 @@
+---@param key string
+---@param fallback string
+---@return string
+function GetInstructionalLabel(key, fallback)
+    if TX_SERVER_CTX and type(TX_SERVER_CTX.instructionalLabels) == 'table' then
+        local value = TX_SERVER_CTX.instructionalLabels[key]
+        if type(value) == 'string' and value ~= '' then
+            return value
+        end
+    end
+    return fallback
+end
+
 -- =============================================
 --  This file contains any strictly *pure* functions
 --  that are utilized by the rest of the menu.
@@ -9,11 +22,12 @@
 ---@param level string The level for the alert
 ---@param message string The message for this alert
 ---@param isTranslationKey boolean Whether the message is a translation key
-function SendPersistentAlert(key, level, message, isTranslationKey)
+---@param tOptions table|nil
+function SendPersistentAlert(key, level, message, isTranslationKey, tOptions)
     DebugPrint(('Sending persistent alert, key: %s, level: %s, message: %s'):format(key, level, message))
     SendMenuMessage(
         'setPersistentAlert',
-        { key = key, level = level, message = message, isTranslationKey = isTranslationKey }
+        { key = key, level = level, message = message, isTranslationKey = isTranslationKey, tOptions = tOptions }
     )
 end
 

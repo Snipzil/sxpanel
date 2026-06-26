@@ -10,11 +10,13 @@ const resolveChangedRoleIds = (auditLogEntry, changeKey) => {
     const roleChanges = auditLogEntry.changes.find((change) => change?.key === changeKey);
     if (!Array.isArray(roleChanges?.new)) return [];
 
-    return [...new Set(
-        roleChanges.new
-            .map((role) => (role && typeof role === 'object' ? role.id : null))
-            .filter((roleId) => typeof roleId === 'string' && roleId.length > 0),
-    )];
+    return [
+        ...new Set(
+            roleChanges.new
+                .map((role) => (role && typeof role === 'object' ? role.id : null))
+                .filter((roleId) => typeof roleId === 'string' && roleId.length > 0),
+        ),
+    ];
 };
 
 module.exports = {

@@ -134,12 +134,7 @@ const resolveLinkedAdminAccess = (
 
     const linkedAdmin = deps.adminStore.getAdminByProviderUID(requesterId);
     if (!linkedAdmin) {
-        return buildDeniedReply(
-            deps,
-            'warning',
-            t('access.no_access', { requesterId }),
-            'unlinked_account',
-        );
+        return buildDeniedReply(deps, 'warning', t('access.no_access', { requesterId }), 'unlinked_account');
     }
 
     const admin = {
@@ -318,7 +313,9 @@ const buildHistoryFieldValue = (action: DatabaseActionType, currentTs: number) =
     ];
 
     if (action.type === 'ban' && action.expiration !== false && action.expiration > currentTs) {
-        lines.push(t('history.duration_left', { duration: msToShortishDuration((action.expiration - currentTs) * 1000) }));
+        lines.push(
+            t('history.duration_left', { duration: msToShortishDuration((action.expiration - currentTs) * 1000) }),
+        );
     }
 
     return truncate(lines.join('\n'), 1024);
@@ -330,9 +327,9 @@ const buildNotesReply = (player: PlayerClass, deps: ModerationCommandDependencie
     const lastEdited =
         dbData?.notes?.lastAdmin && dbData?.notes?.tsLastEdit
             ? t('notes.last_updated', {
-                admin: escapeDiscordText(dbData.notes.lastAdmin),
-                timestamp: dbData.notes.tsLastEdit,
-            })
+                  admin: escapeDiscordText(dbData.notes.lastAdmin),
+                  timestamp: dbData.notes.tsLastEdit,
+              })
             : t('notes.no_metadata');
 
     return buildEmbedReply({
@@ -355,12 +352,9 @@ const buildNotesReply = (player: PlayerClass, deps: ModerationCommandDependencie
     });
 };
 
-const buildHistoryReply = (
-    player: PlayerClass,
-    deps: ModerationCommandDependencies,
-    limit: unknown,
-) => {
-    const parsedLimit = typeof limit === 'number' && Number.isInteger(limit) ? limit : Number.parseInt(String(limit ?? ''), 10);
+const buildHistoryReply = (player: PlayerClass, deps: ModerationCommandDependencies, limit: unknown) => {
+    const parsedLimit =
+        typeof limit === 'number' && Number.isInteger(limit) ? limit : Number.parseInt(String(limit ?? ''), 10);
     const historyLimit = Number.isInteger(parsedLimit)
         ? Math.min(MAX_HISTORY_LIMIT, Math.max(1, parsedLimit))
         : DEFAULT_HISTORY_LIMIT;
@@ -398,7 +392,9 @@ const buildHistoryReply = (
 const resolveSingleActiveBan = (player: PlayerClass, deps: ModerationCommandDependencies) => {
     const currentTs = deps.now ? deps.now() : runtimeNow();
     const activeBans = getSortedHistory(player).filter((entry): entry is DatabaseActionBanType => {
-        return entry.type === 'ban' && !entry.revocation && (entry.expiration === false || entry.expiration > currentTs);
+        return (
+            entry.type === 'ban' && !entry.revocation && (entry.expiration === false || entry.expiration > currentTs)
+        );
     });
 
     if (!activeBans.length) {
@@ -445,7 +441,11 @@ export const handleModerationCommand = async (
         const reason = typeof message.reason === 'string' ? message.reason.trim() : '';
         const ctx = createRouteCtx(adminResult.admin, { reason }, deps);
         const result = await handleWarning(ctx, playerResult.player);
-        return toRouteReply(deps, result, t('success.warned', { playerName: escapeDiscordText(playerResult.player.displayName) }));
+        return toRouteReply(
+            deps,
+            result,
+            t('success.warned', { playerName: escapeDiscordText(playerResult.player.displayName) }),
+        );
     }
 
     if (command === 'kick') {
@@ -458,7 +458,11 @@ export const handleModerationCommand = async (
         const reason = typeof message.reason === 'string' ? message.reason.trim() : '';
         const ctx = createRouteCtx(adminResult.admin, { reason }, deps);
         const result = await handleKick(ctx, playerResult.player);
-        return toRouteReply(deps, result, t('success.kicked', { playerName: escapeDiscordText(playerResult.player.displayName) }));
+        return toRouteReply(
+            deps,
+            result,
+            t('success.kicked', { playerName: escapeDiscordText(playerResult.player.displayName) }),
+        );
     }
 
     if (command === 'ban') {
@@ -509,7 +513,9 @@ export const handleModerationCommand = async (
             result,
             t('success.unbanned', {
                 actionId,
-                targetLabel: action?.playerName ? ` ${t('success.unbanned_target', { playerName: escapeDiscordText(action.playerName) })}` : '',
+                targetLabel: action?.playerName
+                    ? ` ${t('success.unbanned_target', { playerName: escapeDiscordText(action.playerName) })}`
+                    : '',
             }),
         );
     }

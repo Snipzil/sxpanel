@@ -97,9 +97,4 @@ const DropDownSelectItem = ({
 );
 DropDownSelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export {
-    DropDownSelect,
-    DropDownSelectTrigger,
-    DropDownSelectItem,
-    DropDownSelectContent,
-};
+export { DropDownSelect, DropDownSelectTrigger, DropDownSelectItem, DropDownSelectContent };

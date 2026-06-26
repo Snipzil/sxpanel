@@ -71,7 +71,7 @@ npm run dev
 npm run browser
 ```
 
-For more detail on env vars and builder behavior, read `scripts/build/dev.ts` and `shared/txDevEnv.ts`. Long-form guides (same sources as the website) live in the **[fxPanel-Docs](https://github.com/SomeAussieGaymer/fxPanel-Docs/tree/main)** repo — pick the folder for your version (e.g. `v0.3.0-Beta/`). The rendered site is [fxpanel.org/docs](https://fxpanel.org/docs).
+For more detail on env vars and builder behavior, read `scripts/build/dev.ts` and `shared/txDevEnv.ts`. Long-form guides (same sources as the website) live in the **[fxPanel-Docs](https://github.com/SomeAussieGaymer/fxPanel-Docs/tree/main)** repo — pick the folder for your version (e.g. `v0.3.1-Alpha-01/`). The rendered site is [fxpanel.org/docs](https://fxpanel.org/docs).
 
 ## Coding Style
 

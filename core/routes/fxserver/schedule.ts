@@ -41,7 +41,7 @@ export default async function FXServerSchedule(ctx: AuthedCtx) {
         }
     } else if (action === 'setNextSkip') {
         try {
-            txCore.fxScheduler.setNextSkip(parameter, ctx.admin.name);
+            txCore.fxScheduler.setNextSkip(parameter, ctx.admin.getActionAuthor());
             const logAct = parameter ? 'Cancelling' : 'Re-enabling';
             ctx.admin.logAction(
                 `${logAct} next scheduled restart.`,

@@ -13,6 +13,12 @@ export const discordLogRouteDefinitions = [
         supportsEntryFilter: true,
     },
     {
+        key: 'whitelist',
+        label: 'Whitelist Logs',
+        description: 'Log whitelist applications, approvals, grants, and revocations.',
+        supportsEntryFilter: true,
+    },
+    {
         key: 'system.command',
         label: 'Panel Command Logs',
         description: 'Log server control commands and live console commands executed through fxPanel.',
@@ -201,6 +207,12 @@ export const discordMenuCommandDefinitions = [
         permissionId: 'menu.viewids',
     },
     {
+        id: 'menu.mapblips',
+        label: 'Show Map Blips',
+        description: 'Toggle player blips on the in-game map.',
+        permissionId: 'menu.mapblips',
+    },
+    {
         id: 'players.troll.drunk',
         label: 'Drunk Effect',
         description: 'Trigger the drunk troll action on a player.',
@@ -225,6 +237,9 @@ export type DiscordLogRouteEntryId = DiscordMenuCommandId | SystemLogActionId;
 
 export const discordLogRouteEntryDefinitions = {
     'system.action': getSystemLogActionDefinitions('action'),
+    whitelist: getSystemLogActionDefinitions('action').filter((entry) => {
+        return entry.id.startsWith('whitelist.') || entry.id.startsWith('player.whitelist.');
+    }),
     'system.command': getSystemLogActionDefinitions('command'),
     'system.login': getSystemLogActionDefinitions('login'),
     'system.config': getSystemLogActionDefinitions('config'),
@@ -302,7 +317,8 @@ export const normalizeDiscordLogRoutes = (value: unknown) => {
         normalized.push({
             key: route.key,
             enabled: route.enabled === true,
-            channelId: typeof route.channelId === 'string' && route.channelId.trim().length ? route.channelId.trim() : null,
+            channelId:
+                typeof route.channelId === 'string' && route.channelId.trim().length ? route.channelId.trim() : null,
             useEntryFilter:
                 typeof route.useEntryFilter === 'boolean' ? route.useEntryFilter : route.useCommandFilter === true,
             entryFilter: normalizeDiscordLogRouteEntryFilter(
