@@ -13,7 +13,8 @@
     "scripts": {
         "build": "rimraf monitor tmp_core_tsc && npm run build -w nui && npm run build -w panel && npm run build -w core && npm run license:distfile",
         "prepare": "husky",
-        "test": "npm run test --workspaces && node scripts/list-dependencies.js core && node scripts/list-dependencies.js panel && node scripts/list-dependencies.js nui && node scripts/list-dependencies.js shared",
+        "test:scripts": "vitest run scripts/build/utils.test.ts",
+        "test": "npm run test:scripts && npm run test --workspaces && node scripts/list-dependencies.js core && node scripts/list-dependencies.js panel && node scripts/list-dependencies.js nui && node scripts/list-dependencies.js shared",
         "typecheck": "npm run typecheck --workspaces",
         "locale:rebase": "node scripts/locale-utils.js rebase",
         "locale:check": "node scripts/locale-utils.js check --color",

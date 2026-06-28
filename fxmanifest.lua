@@ -5,7 +5,7 @@
 author('snipz')
 description('sxPanel - A Replacement for txAdmin built on its source code.')
 repository('https://github.com/Snipzil/sxpanel')
-version '0.4.0-Alpha-04'
+version 'REPLACE-VERSION'
 ui_label 'sxPanel'
 fx_version('cerulean')
 game('common')

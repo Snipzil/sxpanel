@@ -6,6 +6,8 @@ import {
     clearCopyDestination,
     copyBotRuntimeDependencies,
     copyDirectoryIfDifferent,
+    getPublishVersion,
+    replaceFxmanifestVersion,
     shouldCopyStaticEntry,
     shouldSyncStaticContents,
     shouldWipeCopyDestination,
@@ -13,6 +15,8 @@ import {
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
+const originalGithubRef = process.env.GITHUB_REF;
+const originalTxNoExpiration = process.env.TX_NO_EXPIRATION;
 
 const makeTempDir = () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sxpanel-copy-'));
@@ -23,9 +27,57 @@ const makeTempDir = () => {
 afterEach(() => {
     vi.restoreAllMocks();
     process.chdir(originalCwd);
+    if (originalGithubRef === undefined) {
+        delete process.env.GITHUB_REF;
+    } else {
+        process.env.GITHUB_REF = originalGithubRef;
+    }
+    if (originalTxNoExpiration === undefined) {
+        delete process.env.TX_NO_EXPIRATION;
+    } else {
+        process.env.TX_NO_EXPIRATION = originalTxNoExpiration;
+    }
     for (const tempDir of tempDirs.splice(0)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
     }
+});
+
+suite('getPublishVersion', () => {
+    it('uses package.json as the local build fallback without prerelease expiration', () => {
+        const tempDir = makeTempDir();
+        fs.writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ version: '1.2.3-Beta' }));
+        process.chdir(tempDir);
+        delete process.env.GITHUB_REF;
+        delete process.env.TX_NO_EXPIRATION;
+
+        expect(getPublishVersion(true)).toEqual({
+            txVersion: '1.2.3-Beta',
+            isPreRelease: true,
+            preReleaseExpiration: '0',
+        });
+    });
+
+    it('uses the pushed tag version for release builds', () => {
+        process.env.GITHUB_REF = 'refs/tags/v1.2.3-Beta';
+        delete process.env.TX_NO_EXPIRATION;
+
+        const result = getPublishVersion(false);
+
+        expect(result.txVersion).toBe('1.2.3-Beta');
+        expect(result.isPreRelease).toBe(true);
+        expect(Number(result.preReleaseExpiration)).toBeGreaterThan(Date.now());
+    });
+});
+
+suite('replaceFxmanifestVersion', () => {
+    it('replaces placeholder or stale source versions with the release version', () => {
+        expect(replaceFxmanifestVersion("version 'REPLACE-VERSION'\nfx_version('cerulean')", '0.4.0-Beta')).toContain(
+            "version '0.4.0-Beta'",
+        );
+        expect(replaceFxmanifestVersion("version '0.4.0-Alpha-04'\nfx_version('cerulean')", '0.4.0-Beta')).toContain(
+            "version '0.4.0-Beta'",
+        );
+    });
 });
 
 suite('clearCopyDestination', () => {

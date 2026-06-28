@@ -243,7 +243,7 @@ function RegisterForm({ fivemId, fivemName, profilePicture }: ApiAddMasterCallba
                             </a>{' '}
                             {t('panel.auth.add_master.callback.terms_and')}{' '}
                             <a
-                                href="https://github.com/Snipzil/sxpanel/blob/master/LICENSE"
+                                href="https://github.com/Snipzil/sxpanel/blob/main/LICENSE"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-accent hover:underline"

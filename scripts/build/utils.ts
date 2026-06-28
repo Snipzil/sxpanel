@@ -51,6 +51,14 @@ export const licenseBanner = (baseDir = '.', isBundledFile = false) => {
     }
 };
 
+export const getLocalPackageVersion = () => {
+    const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8')) as { version?: string };
+    if (!packageJson.version) {
+        throw new Error('package.json is missing a version field.');
+    }
+    return packageJson.version;
+};
+
 /**
  * Processes a fxserver path to validate it as well as the monitor folder.
  *
@@ -101,7 +109,7 @@ export const getPublishVersion = (isOptional: boolean) => {
     try {
         if (!workflowRef) {
             if (isOptional) {
-                const txVersion = '0.4.0-Beta';
+                const txVersion = new SemVer(getLocalPackageVersion()).version;
                 return {
                     txVersion,
                     isPreRelease: /beta|alpha|rc/i.test(txVersion),
@@ -132,6 +140,14 @@ export const getPublishVersion = (isOptional: boolean) => {
     }
 };
 
+export const replaceFxmanifestVersion = (fxManifestContent: string, txVersion: string) => {
+    const nextContent = fxManifestContent.replace(/^version\s+['"][^'"]+['"]$/m, `version '${txVersion}'`);
+    if (nextContent === fxManifestContent) {
+        throw new Error('Could not find a fxmanifest version line to replace.');
+    }
+    return nextContent;
+};
+
 /**
  * Formats a lua table of strings for fxmanifest script sections.
  */
@@ -147,7 +163,7 @@ const formatLuaSection = (name: string, scripts: string[]) => {
 const setupDistFxmanifest = (targetPath: string, txVersion: string) => {
     const fxManifestPath = path.join(targetPath, 'fxmanifest.lua');
     let fxManifestContent = fs.readFileSync(fxManifestPath, 'utf8');
-    fxManifestContent = fxManifestContent.replace(/^version 'REPLACE-VERSION'$/m, `version '${txVersion}'`);
+    fxManifestContent = replaceFxmanifestVersion(fxManifestContent, txVersion);
 
     // Auto-generate script lists using fs.globSync (Node 22+)
     const findScripts = (pattern: string) =>

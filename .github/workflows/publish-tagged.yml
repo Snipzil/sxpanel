@@ -1,0 +1,93 @@
+name: Publish Tagged Build
+
+on:
+    push:
+        tags:
+            - 'v*'
+
+permissions:
+    contents: write
+
+jobs:
+    release:
+        name: Build and publish release
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Use Node.js 22
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Validate tag version
+              shell: bash
+              run: |
+                  tag_version="${GITHUB_REF_NAME#v}"
+                  package_version="$(node -p "require('./package.json').version")"
+                  if [ "$tag_version" != "$package_version" ]; then
+                      echo "::error::Tag v${tag_version} does not match package.json version ${package_version}."
+                      exit 1
+                  fi
+
+            - name: Create build env
+              run: |
+                  echo TXDEV_FXSERVER_PATH=$(pwd)/fxserver > .env
+                  echo TXDEV_VITE_URL='http://localhost:40122' >> .env
+
+            - name: Run release tests
+              env:
+                  CI: true
+              run: npm test
+
+            - name: Typecheck workspaces
+              run: npm run typecheck
+
+            - name: Build monitor artifact
+              run: |
+                  npm run build
+                  cat .github/.cienv >> $GITHUB_ENV
+
+            - name: Verify stamped manifest version
+              shell: bash
+              run: |
+                  tag_version="${GITHUB_REF_NAME#v}"
+                  grep -F "version '${tag_version}'" monitor/fxmanifest.lua
+
+            - name: Package monitor.zip
+              shell: bash
+              run: |
+                  cd monitor
+                  zip -r ../monitor.zip .
+                  cd ..
+                  sha256sum monitor.zip > monitor.zip.sha256
+
+            - name: Publish GitHub release
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  release_notes="docs/releases/${GITHUB_REF_NAME}.md"
+                  notes_args=(--generate-notes)
+                  if [ -f "$release_notes" ]; then
+                      notes_args=(--notes-file "$release_notes")
+                  fi
+
+                  prerelease_args=()
+                  if [ "$TX_IS_PRERELEASE" = "true" ]; then
+                      prerelease_args=(--prerelease)
+                  fi
+
+                  gh release create "$GITHUB_REF_NAME" \
+                      monitor.zip \
+                      monitor.zip.sha256 \
+                      --title "$GITHUB_REF_NAME" \
+                      "${notes_args[@]}" \
+                      "${prerelease_args[@]}"
