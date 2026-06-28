@@ -148,7 +148,7 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
                     {t('panel.settings.general.language.desc_custom')}{' '}
                     <InlineCode>{t('panel.settings.general.language.custom_inline')}</InlineCode>. <br />
                     {t('panel.settings.general.language.desc_docs')}{' '}
-                    <TxAnchor href="https://fxpanel.org/docs/v0.4.0-Beta/translation">
+                    <TxAnchor href="https://sxpanel.org/docs/v0.4.0-Beta/translation">
                         {t('panel.settings.general.language.documentation_link')}
                     </TxAnchor>
                     .

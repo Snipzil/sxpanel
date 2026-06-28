@@ -161,7 +161,7 @@ import {
     DEFERRAL_TXADMIN_WATERMARK_WIDTH_PX,
 } from './deferralCardWatermark';
 
-/** fxPanel watermark — txAdmin placement (bottom-right, 28px) or canvas absolute coords. */
+/** sxPanel watermark — txAdmin placement (bottom-right, 28px) or canvas absolute coords. */
 export function renderDeferralWatermarkLogoHtml(
     logoSrc: string,
     placement?: { x: number; y: number; width: number; height: number },

@@ -22,7 +22,7 @@ const priorityLabels: Record<TicketPriority, string> = {
 };
 
 const defaultColor = 0x4262e2;
-const ticketButtonPrefix = 'fxpanel:ticket:';
+const ticketButtonPrefix = 'sxpanel:ticket:';
 const discordComponentType = {
     actionRow: 1,
     button: 2,

@@ -74,7 +74,7 @@ function MobileTourFallbackOverlay({ onDismiss }: { onDismiss: () => void }) {
     return (
         <div
             ref={rootRef}
-            id="fxpanel-post-install-tour-mobile"
+            id="sxpanel-post-install-tour-mobile"
             popover="manual"
             className="pointer-events-none fixed inset-0 z-[2147483647] m-0 box-border h-[100dvh] w-screen max-w-none border-0 bg-transparent p-0 shadow-none outline-none"
         >

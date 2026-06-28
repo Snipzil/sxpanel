@@ -24,7 +24,7 @@ const changelogRespSchema = z.object({
     critical_download: z.string().url(),
     critical_txadmin: txVersion,
 });
-const fxpanelVersionSchema = z.object({
+const sxpanelVersionSchema = z.object({
     latest: z.string().min(1),
 });
 
@@ -50,27 +50,27 @@ export const queryChangelogApi = async () => {
         if (error instanceof z.ZodError) {
             msg = fromError(error, { prefix: null }).message;
         }
-        console.verbose.warn(`Failed to retrieve FXServer/fxPanel update data with error: ${msg}`);
+        console.verbose.warn(`Failed to retrieve FXServer/sxPanel update data with error: ${msg}`);
         return;
     }
 
-    //Checking fxPanel version against fxpanel.org API
+    //Checking sxPanel version against sxpanel.org API
     let txaUpdateData: DetailedUpdateDataType | undefined;
     try {
-        const fxpanelResp = await got('https://fxapi.fxpanel.org/api/version').json();
-        const fxpanelData = fxpanelVersionSchema.parse(fxpanelResp);
-        const isOutdated = semver.lt(txEnv.txaVersion, fxpanelData.latest);
+        const sxpanelResp = await got('https://fxapi.sxpanel.org/api/version').json();
+        const sxpanelData = sxpanelVersionSchema.parse(sxpanelResp);
+        const isOutdated = semver.lt(txEnv.txaVersion, sxpanelData.latest);
         if (isOutdated) {
-            const semverDiff = semver.diff(txEnv.txaVersion, fxpanelData.latest) ?? 'patch';
+            const semverDiff = semver.diff(txEnv.txaVersion, sxpanelData.latest) ?? 'patch';
             const isImportant = semverDiff === 'major' || semverDiff === 'minor';
             txaUpdateData = {
                 semverDiff,
                 isImportant,
-                version: fxpanelData.latest,
+                version: sxpanelData.latest,
             };
         }
     } catch (error) {
-        console.verbose.warn('Error checking for fxPanel updates.');
+        console.verbose.warn('Error checking for sxPanel updates.');
         console.verbose.dir(error);
     }
 

@@ -16,7 +16,7 @@ export interface ServerCtx {
     localeData: LocaleType | boolean;
     switchPageKey: string;
     announceNotiPos: string;
-    fxPanelVersion: string;
+    sxPanelVersion: string;
     alignRight: boolean;
     tagDefinitions: TagDefinition[];
     reportsEnabled: boolean;

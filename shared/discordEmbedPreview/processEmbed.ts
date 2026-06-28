@@ -10,7 +10,7 @@ export const actionRowType = 1;
 export const buttonType = 2;
 export const secondaryButtonStyle = 2;
 export const linkButtonStyle = 5;
-export const playerListPageButtonPrefix = 'fxpanel:playerList:page:';
+export const playerListPageButtonPrefix = 'sxpanel:playerList:page:';
 export const playerListInlineSeparatorFallback = ' | ';
 
 export type PlainObject = Record<string, unknown>;

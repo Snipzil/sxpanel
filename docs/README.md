@@ -1,5 +1,5 @@
-﻿<p align="center">
-    <img src="banner.png" alt="fxPanel" width="600">
+<p align="center">
+    <img src="banner.png" alt="sxPanel" width="600">
 </p>
 
 <p align="center">
@@ -7,29 +7,29 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/SomeAussieGaymer/fxpanel/blob/main/LICENSE"><img src="https://img.shields.io/github/license/SomeAussieGaymer/fxpanel?style=flat-square&color=blue" alt="License"></a>
-    <a href="https://github.com/SomeAussieGaymer/fxpanel/releases"><img src="https://img.shields.io/github/v/release/SomeAussieGaymer/fxpanel?style=flat-square&color=green" alt="Release"></a>
-    <a href="https://github.com/SomeAussieGaymer/fxpanel/stargazers"><img src="https://img.shields.io/github/stars/SomeAussieGaymer/fxpanel?style=flat-square" alt="Stars"></a>
+    <a href="https://github.com/Snipzil/sxpanel/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Snipzil/sxpanel?style=flat-square&color=blue" alt="License"></a>
+    <a href="https://github.com/Snipzil/sxpanel/releases"><img src="https://img.shields.io/github/v/release/Snipzil/sxpanel?style=flat-square&color=green" alt="Release"></a>
+    <a href="https://github.com/Snipzil/sxpanel/stargazers"><img src="https://img.shields.io/github/stars/Snipzil/sxpanel?style=flat-square" alt="Stars"></a>
     <a href="https://discord.gg/6FcqBYwxH5"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
-    <a href="https://fxpanel.org"><img src="https://img.shields.io/badge/docs-fxpanel.org-orange?style=flat-square" alt="Docs"></a>
+    <a href="https://sxpanel.org"><img src="https://img.shields.io/badge/docs-sxpanel.org-orange?style=flat-square" alt="Docs"></a>
 </p>
 
 <p align="center">
-    <a href="https://fxpanel.org/docs">Documentation</a> •
-    <a href="https://fxpanel.org/docs/recipes">Recipes</a> •
+    <a href="https://sxpanel.org/docs">Documentation</a> •
+    <a href="https://sxpanel.org/docs/recipes">Recipes</a> •
     <a href="https://discord.gg/6FcqBYwxH5">Discord</a> •
-    <a href="https://github.com/SomeAussieGaymer/fxpanel/releases">Releases</a> •
+    <a href="https://github.com/Snipzil/sxpanel/releases">Releases</a> •
     <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
 ---
 
-**fxPanel** is a full overhaul built on top of [txAdmin](https://github.com/tabarra/txAdmin) — designed as a **drop-in replacement** with full compatibility for existing txAdmin servers, databases, and configurations.
+**sxPanel** is a full overhaul built on top of [txAdmin](https://github.com/tabarra/txAdmin) — designed as a **drop-in replacement** with full compatibility for existing txAdmin servers, databases, and configurations.
 
-> **Migrating?** Just replace the `monitor` folder in your FXServer artifacts with the fxPanel build. Existing `txData` directories work without modification.
+> **Migrating?** Just replace the `monitor` folder in your FXServer artifacts with the sxPanel build. Existing `txData` directories work without modification.
 
 <!-- Replace with an actual screenshot of your panel -->
-<!-- <p align="center"><img src="screenshot.png" alt="fxPanel Dashboard" width="800"></p> -->
+<!-- <p align="center"><img src="screenshot.png" alt="sxPanel Dashboard" width="800"></p> -->
 
 ## Highlights
 
@@ -105,20 +105,20 @@
 </tr>
 </table>
 
-**Plus:** Recipe-based server deployer (<60s) with GitHub token support & headless CLI • Artifact management • Scheduled restarts with postponable temp schedules • Report system with Discord notifications • 30+ languages • [Full feature list →](https://fxpanel.org/docs)
+**Plus:** Recipe-based server deployer (<60s) with GitHub token support & headless CLI • Artifact management • Scheduled restarts with postponable temp schedules • Report system with Discord notifications • 30+ languages • [Full feature list →](https://sxpanel.org/docs)
 
 ## Quick Start
 
-**1.** Download the [latest release](https://github.com/SomeAussieGaymer/fxpanel/releases).
+**1.** Download the [latest release](https://github.com/Snipzil/sxpanel/releases).
 
-**2.** Replace the `monitor/` folder in your FXServer artifacts with the fxPanel build.
+**2.** Replace the `monitor/` folder in your FXServer artifacts with the sxPanel build.
 
-**3.** Start FXServer **without** `+exec server.cfg` — fxPanel starts automatically.
+**3.** Start FXServer **without** `+exec server.cfg` — sxPanel starts automatically.
 
 **4.** Open the URL shown in the console to set up your account and server.
 
-> See the [Configuration docs](https://fxpanel.org/docs/configuration) for environment variables and advanced options.
-> Listen to fxPanel server events in your resources with the [Events API](https://fxpanel.org/docs/events).
+> See the [Configuration docs](https://sxpanel.org/docs/configuration) for environment variables and advanced options.
+> Listen to sxPanel server events in your resources with the [Events API](https://sxpanel.org/docs/events).
 
 ## Contributing
 
@@ -126,7 +126,7 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 
 - All PRs target the `dev` branch
 - Join the [Discord](https://discord.gg/6FcqBYwxH5) before starting significant work
-- See [Development docs](https://fxpanel.org/docs/development) for build & dev setup
+- See [Development docs](https://sxpanel.org/docs/development) for build & dev setup
 
 ## License
 
@@ -135,5 +135,5 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 ---
 
 <p align="center">
-    <sub>Built with ❤️ by <a href="https://github.com/SomeAussieGaymer">SomeAussieGaymer</a> and <a href="https://github.com/SomeAussieGaymer/fxpanel/graphs/contributors">contributors</a></sub>
+    <sub>Built with ❤️ by <a href="https://github.com/Snipzil">snipz</a> and <a href="https://github.com/Snipzil/sxpanel/graphs/contributors">contributors</a></sub>
 </p>

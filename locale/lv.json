@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Šim serverim ir ieslēgts <strong>Tikai administratoriem</strong> režīms.",
-            "insufficient_ids": "Tev nav <code>discord</code> vai <code>fivem</code> identifikatoru, un vismaz viens no tiem ir nepieciešams, lai pārbaudītu, vai esi fxPanel administrators.",
-            "deny_message": "Tavi identifikatori nav piesaistīti nevienam fxPanel administratoram."
+            "insufficient_ids": "Tev nav <code>discord</code> vai <code>fivem</code> identifikatoru, un vismaz viens no tiem ir nepieciešams, lai pārbaudītu, vai esi sxPanel administrators.",
+            "deny_message": "Tavi identifikatori nav piesaistīti nevienam sxPanel administratoram."
         },
         "guild_member": {
             "mode_title": "Šim serverim ir ieslēgts <strong>Discord server Member Whitelist</strong> režīms.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menu ir iespējots, ieraksti /tx, lai to atvērtu.\nTu vari arī iestatīt taustiņu pats uzejot [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Tavi identifikatori neatbilst nevienam fxPanel reģistrētam administratoram.\nJa esi reģistrēts fxPanel, dodies uz Admin Manager un pārliecinies, ka tavi identifikatori ir saglabāti.",
-            "menu_auth_failed": "fxPanel Menu autentifikācija neizdevās ar iemeslu: %{reason}",
+            "help_message": "sxPanel Menu ir iespējots, ieraksti /tx, lai to atvērtu.\nTu vari arī iestatīt taustiņu pats uzejot [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Tavi identifikatori neatbilst nevienam sxPanel reģistrētam administratoram.\nJa esi reģistrēts sxPanel, dodies uz Admin Manager un pārliecinies, ka tavi identifikatori ir saglabāti.",
+            "menu_auth_failed": "sxPanel Menu autentifikācija neizdevās ar iemeslu: %{reason}",
             "no_perms": "Tev nav šīs atļaujas.",
             "unknown_error": "Radās nezināma kļūda.",
-            "not_enabled": "fxPanel Menu nav iespējots! Tu vari to iespējot fxPanel iestatījumu lapā.",
+            "not_enabled": "sxPanel Menu nav iespējots! Tu vari to iespējot sxPanel iestatījumu lapā.",
             "announcement_title": "Servera paziņojums no %{author}:",
             "dialog_empty_input": "Ievade nevar būt tukša.",
             "directmessage_title": "DM no admina %{author}:",

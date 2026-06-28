@@ -8,7 +8,7 @@ export const WhitelistWorkflowTypeSchema = z.enum([
     'auto_discord_member',
     'auto_discord_role',
     'manual_review',
-    /** fxPanel does not enforce joins; use for third-party allowlists + server browser padlock. */
+    /** sxPanel does not enforce joins; use for third-party allowlists + server browser padlock. */
     'external_whitelist',
 ]);
 export type WhitelistWorkflowType = z.infer<typeof WhitelistWorkflowTypeSchema>;

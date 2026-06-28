@@ -20,7 +20,7 @@ function BrandPanel() {
     const [location] = useLocation();
     const isMasterSetup = location.startsWith('/addMaster');
     // During master-account setup the server is not yet configured (often shows
-    // the default 'change-me' name), so always show the fxPanel brand instead.
+    // the default 'change-me' name), so always show the sxPanel brand instead.
     const server = isMasterSetup ? undefined : window?.txConsts?.server;
     return (
         <div className="border-border/40 relative hidden flex-col justify-between overflow-hidden border-r p-12 xl:flex xl:w-[42%]">
@@ -73,7 +73,7 @@ function BrandPanel() {
                             <div className="text-foreground text-3xl leading-tight font-semibold">
                                 Welcome to
                                 <br />
-                                <span className="text-accent">fxPanel</span>
+                                <span className="text-accent">sxPanel</span>
                             </div>
                             <div className="text-muted-foreground mt-3 text-sm leading-relaxed">
                                 Server management, simplified.
@@ -99,13 +99,13 @@ function BrandPanel() {
                 </div>
                 <div className="text-muted-foreground/35 mt-2 flex flex-col gap-0.5 text-xs">
                     <a
-                        href="https://github.com/SomeAussieGaymer/fxPanel/blob/main/LICENSE"
+                        href="https://github.com/Snipzil/sxpanel/blob/main/LICENSE"
                         onClick={handleExternalLinkClick}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-muted-foreground/60 transition-colors"
                     >
-                        &copy; 2026 SomeAussieGamer
+                        &copy; 2026 snipz
                     </a>
                 </div>
             </div>

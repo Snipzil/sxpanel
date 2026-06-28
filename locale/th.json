@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "This server is in <strong>Admin-only</strong> mode.",
-            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a fxPanel administrator.",
-            "deny_message": "Your identifiers are not assigned to any fxPanel administrator."
+            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a sxPanel administrator.",
+            "deny_message": "Your identifiers are not assigned to any sxPanel administrator."
         },
         "guild_member": {
             "mode_title": "This server is in <strong>Discord server Member Whitelist</strong> mode.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "เปิดใช้งานเมนู fxPanel แล้ว พิมพ์ /tx เพื่อเปิดมันขึ้น\nคุณยังสามารถกำหนดค่าปุ่ม keybind ได้ที่ [Game Settings > Key Bindings > FiveM > Menu: Open Main Page]",
-            "menu_not_admin": "ตัวตนของคุณไม่ตรงกับที่ผู้ดูแลระบบลงทะเบียนใน fxPanel\nหากคุณลงทะเบียนใน fxPanel แล้ว ให้ไปที่ Admin Manager และตรวจสอบให้แน่ใจว่าได้บันทึกตัวระบุของคุณแล้ว",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "เปิดใช้งานเมนู sxPanel แล้ว พิมพ์ /tx เพื่อเปิดมันขึ้น\nคุณยังสามารถกำหนดค่าปุ่ม keybind ได้ที่ [Game Settings > Key Bindings > FiveM > Menu: Open Main Page]",
+            "menu_not_admin": "ตัวตนของคุณไม่ตรงกับที่ผู้ดูแลระบบลงทะเบียนใน sxPanel\nหากคุณลงทะเบียนใน sxPanel แล้ว ให้ไปที่ Admin Manager และตรวจสอบให้แน่ใจว่าได้บันทึกตัวระบุของคุณแล้ว",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "คุณไม่ได้รับสิทธิ์นี้",
             "unknown_error": "เกิดข้อผิดพลาดที่ไม่รู้จัก",
-            "not_enabled": "ไม่ได้เปิดใช้งานเมนู fxPanel คุณสามารถเปิดใช้งานได้ในหน้า การตั้งค่าของ fxPanel",
+            "not_enabled": "ไม่ได้เปิดใช้งานเมนู sxPanel คุณสามารถเปิดใช้งานได้ในหน้า การตั้งค่าของ sxPanel",
             "announcement_title": "ประกาศจากเซิร์ฟเวอร์โดย %{author}:",
             "dialog_empty_input": "คุณไม่สามารถป้อนข้อมูลว่างได้",
             "directmessage_title": "DM from admin %{author}:",

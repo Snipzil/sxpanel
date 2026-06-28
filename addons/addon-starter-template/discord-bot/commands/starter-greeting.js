@@ -21,7 +21,7 @@ import {
 
 // Keep in sync with addon.json → id
 const ADDON_ID = 'addon-starter-template';
-const presetGreetingNames = ['fxPanel', 'Discord', 'Server Owner', 'there'];
+const presetGreetingNames = ['sxPanel', 'Discord', 'Server Owner', 'there'];
 
 const buildGreetingPayload = async (discord, interaction, name) => {
     return await discord.addonRoute({

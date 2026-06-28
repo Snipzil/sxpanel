@@ -17,7 +17,7 @@ local ServerCtxObj = {
     localeData = nil,
     instructionalLabels = nil,
     switchPageKey = '',
-    fxPanelVersion = '',
+    sxPanelVersion = '',
     alignRight = false,
     announceNotiPos = '', -- top-center, top-right, top-left, bottom-center, bottom-right, bottom-left
     tagDefinitions = {},
@@ -92,8 +92,8 @@ local function syncServerCtx()
     local alignRight = GetConvarBool('txAdmin-menuAlignRight')
     ServerCtxObj.alignRight = alignRight
 
-    local fxPanelVersion = GetConvar('txAdmin-version', '0.0.0')
-    ServerCtxObj.fxPanelVersion = fxPanelVersion
+    local sxPanelVersion = GetConvar('txAdmin-version', '0.0.0')
+    ServerCtxObj.sxPanelVersion = sxPanelVersion
 
     -- Default '' in fxServer
     local svProjectName = GetConvar('sv_projectname', '')

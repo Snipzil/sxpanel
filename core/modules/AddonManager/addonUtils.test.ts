@@ -81,7 +81,7 @@ suite('AddonManifestSchema validation', () => {
         description: 'A test addon',
         version: '1.0.0',
         author: 'Test',
-        fxpanel: { minVersion: '0.1.0' },
+        sxpanel: { minVersion: '0.1.0' },
         permissions: { required: ['storage'], optional: [] },
     };
 

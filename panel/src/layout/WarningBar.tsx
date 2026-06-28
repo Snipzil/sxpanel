@@ -95,7 +95,7 @@ function InnerWarningBar({
                         )}
 
                         <Button size="xs" variant="outline" asChild className="border-current hover:bg-white/10">
-                            <a href="https://github.com/SomeAussieGaymer/fxPanel/releases" target="_blank">
+                            <a href="https://github.com/Snipzil/sxpanel/releases" target="_blank">
                                 <GithubIcon className="mr-1 inline size-3.5" /> {t('panel.shell.warning_bar.download')}
                             </a>
                         </Button>

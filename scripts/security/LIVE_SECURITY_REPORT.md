@@ -128,7 +128,7 @@ docker compose -f scripts/security/docker-compose.nginx.yml up -d
 ## Re-run
 
 ```powershell
-cd C:\Users\Eli\Downloads\fxPanel\fxPanel-v1.0.0
+cd C:\Users\Eli\Downloads\sxPanel\sxPanel-v1.0.0
 $env:SECURITY_TEST_BASE_URL = 'http://127.0.0.1:40120'
 $env:SECURITY_TEST_USER = 'Cursor'
 $env:SECURITY_TEST_PASSWORD = '<your password>'

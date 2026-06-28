@@ -26,10 +26,6 @@ export default async function AuthChangeIdentifiers(ctx: AuthedCtx) {
         }
     }
 
-    if (ctx.admin.passwordRevision < 0) {
-        return ctx.send<GenericApiResp>({ error: 'This action is not available for this account.' });
-    }
-
     //Sanity check
     const body = ctx.getBody(bodySchema);
     if (!body) return;

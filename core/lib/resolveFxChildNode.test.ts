@@ -30,6 +30,8 @@ suite('resolveFxChildNode', () => {
         });
 
         expect(text).toContain('No executable Node binary found');
-        expect(text).toContain('FXPANEL_BOT_NODE_PATH=/home/container/alpine/opt/cfx-server/citizen/scripting/v8/node20/bin/node');
+        expect(text).toContain(
+            'SXPANEL_BOT_NODE_PATH=/home/container/alpine/opt/cfx-server/citizen/scripting/v8/node20/bin/node',
+        );
     });
 });

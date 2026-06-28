@@ -1,10 +1,10 @@
 ---
-name: fxpanel-keep-green
-description: Keep fxPanel changes green after audit or refactor work. Use when continuing audit fixes, changing package scripts/dependencies, touching core/panel/nui/shared code, or when the user asks to keep typecheck, tests, audit, and build passing.
+name: sxpanel-keep-green
+description: Keep sxPanel changes green after audit or refactor work. Use when continuing audit fixes, changing package scripts/dependencies, touching core/panel/nui/shared code, or when the user asks to keep typecheck, tests, audit, and build passing.
 user-invocable: true
 ---
 
-# fxPanel Keep Green
+# sxPanel Keep Green
 
 ## When To Use
 

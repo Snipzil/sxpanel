@@ -21,10 +21,6 @@ export default async function AuthChangePassword(ctx: AuthedCtx) {
         return ctx.send<GenericApiResp>({ error: policyResult.error });
     }
 
-    if (ctx.admin.passwordRevision < 0) {
-        return ctx.send<GenericApiResp>({ error: 'This action is not available for this account.' });
-    }
-
     //Get vault admin
     const vaultAdmin = txCore.adminStore.getAdminByName(ctx.admin.name);
     if (!vaultAdmin) throw new Error('Wait, what? Where is that admin?');

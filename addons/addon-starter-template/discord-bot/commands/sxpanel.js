@@ -7,14 +7,14 @@
 
 import { MessageFlags, SlashCommandBuilder } from 'discord.js';
 
-const FXPANEL_WEBSITE_URL = 'https://fxpanel.org/';
+const SXPANEL_WEBSITE_URL = 'https://sxpanel.org/';
 
 export default {
-    data: new SlashCommandBuilder().setName('fxpanel').setDescription('Link to the fxPanel site.'),
+    data: new SlashCommandBuilder().setName('sxpanel').setDescription('Link to the sxPanel site.'),
 
     async execute(interaction) {
         await interaction.reply({
-            content: `fxPanel: ${FXPANEL_WEBSITE_URL}`,
+            content: `sxPanel: ${SXPANEL_WEBSITE_URL}`,
             flags: MessageFlags.Ephemeral,
         });
     },

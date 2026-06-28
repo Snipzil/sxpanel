@@ -115,19 +115,19 @@ const clickButtonByText = (label: string) => {
  * - Filter on `[data-state="open"]` so closed-but-still-mounted Radix elements are skipped.
  * - Walk in reverse mount order so the most recently opened modal wins.
  * - Skip anything inside the tour overlay container.
- * - Skip welcome / future tour dialogs by their `fxpanel-` id or aria-labelledby.
+ * - Skip welcome / future tour dialogs by their `sxpanel-` id or aria-labelledby.
  * - Skip slide-in Sheets (their content has `data-state="open"` but uses
  *   `inset-y-0` positioning that hugs the viewport edge).
  */
 const findAppDialog = (): HTMLElement | null => {
-    const tourOverlay = document.getElementById('fxpanel-post-install-tour-overlay');
+    const tourOverlay = document.getElementById('sxpanel-post-install-tour-overlay');
     const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"]'));
     for (let i = dialogs.length - 1; i >= 0; i--) {
         const d = dialogs[i];
         if (tourOverlay && tourOverlay.contains(d)) continue;
-        if (d.id?.startsWith('fxpanel-')) continue;
+        if (d.id?.startsWith('sxpanel-')) continue;
         const labelledBy = d.getAttribute('aria-labelledby');
-        if (labelledBy && labelledBy.startsWith('fxpanel-')) continue;
+        if (labelledBy && labelledBy.startsWith('sxpanel-')) continue;
         // Sheets (mobile menu / players sidebar) hug a viewport edge; centered
         // app dialogs don't. Detect by class signature.
         const className = d.className || '';

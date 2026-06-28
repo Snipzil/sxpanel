@@ -27,7 +27,6 @@ const isAllowedPath = (path: string, allowed: Set<string>) => allowed.has(path);
  * Whether the admin is blocked from normal panel/NUI usage (temp password or missing required 2FA).
  */
 export const getAdminAccessBlockReason = (admin: AuthedAdmin): AdminAccessDeniedReason | null => {
-    if (admin.passwordRevision < 0) return null;
     if (admin.isTempPassword) return 'temp_password_change_required';
     if (txConfig.general.requireAdminTwoFactor && !admin.totpEnabled) {
         return 'two_factor_required';
@@ -58,7 +57,7 @@ export const getAdminAccessDenial = (admin: AuthedAdmin, path: string): AdminAcc
     if (blockReason === 'temp_password_change_required') {
         return {
             reason: blockReason,
-            message: 'You must change your temporary password before using fxPanel.',
+            message: 'You must change your temporary password before using sxPanel.',
         };
     }
 

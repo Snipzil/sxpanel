@@ -5,7 +5,7 @@ const {
     normalizeMessagePayload,
 } = require('../../componentsV2');
 const { request } = require('../../bridge/requests');
-const { buildReply, getRequesterPayload, translateBot } = require('../../commands/_fxpanel/common');
+const { buildReply, getRequesterPayload, translateBot } = require('../../commands/_sxpanel/common');
 const {
     buildCommandTelemetryEvent,
     createCommandTelemetryContext,
@@ -15,8 +15,8 @@ const {
     runWithCommandTelemetry,
 } = require('../../telemetry');
 
-const playerListPageButtonPrefix = 'fxpanel:playerList:page:';
-const ticketInteractionPrefix = 'fxpanel:ticket:';
+const playerListPageButtonPrefix = 'sxpanel:playerList:page:';
+const ticketInteractionPrefix = 'sxpanel:ticket:';
 const ticketAssignSelectAction = 'assignSelect';
 const supportedTicketActions = new Set(['summary', 'claim', 'assign', 'resolve', 'reopen']);
 
@@ -31,9 +31,9 @@ const getRetryAfterSeconds = (resetAt) => {
 };
 
 const recordAddonRuntimeIssue = (client, issue) => {
-    if (typeof client.fxpanel?.recordAddonRuntimeIssue !== 'function') return;
+    if (typeof client.sxpanel?.recordAddonRuntimeIssue !== 'function') return;
 
-    client.fxpanel.recordAddonRuntimeIssue({
+    client.sxpanel.recordAddonRuntimeIssue({
         ...issue,
         updatedAt: Date.now(),
     });
@@ -83,9 +83,9 @@ const handleAddonAutocomplete = async (interaction, client, bridge) => {
         return true;
     }
 
-    const addonCommand = client.fxpanel.getAddonCommandMetadata(interaction.commandName);
+    const addonCommand = client.sxpanel.getAddonCommandMetadata(interaction.commandName);
     if (addonCommand) {
-        const rateLimitResult = client.fxpanel.consumeAddonRateLimit({
+        const rateLimitResult = client.sxpanel.consumeAddonRateLimit({
             addonId: addonCommand.addonId,
             handlerId: `autocomplete:${interaction.commandName}`,
             requesterId: interaction.user?.id,
@@ -137,7 +137,7 @@ const handleAddonAutocomplete = async (interaction, client, bridge) => {
 };
 
 const handleAddonComponentInteraction = async (interaction, client, bridge) => {
-    const resolved = client.fxpanel.resolveAddonInteraction(interaction.customId);
+    const resolved = client.sxpanel.resolveAddonInteraction(interaction.customId);
     if (!resolved) return false;
 
     const { parsed, handler } = resolved;
@@ -170,7 +170,7 @@ const handleAddonComponentInteraction = async (interaction, client, bridge) => {
         return true;
     }
 
-    const rateLimitResult = client.fxpanel.consumeAddonRateLimit({
+    const rateLimitResult = client.sxpanel.consumeAddonRateLimit({
         addonId: handler.addonId,
         handlerId: `${parsed.kind}:${parsed.action}`,
         requesterId: interaction.user?.id,
@@ -234,7 +234,7 @@ const parseTicketInteractionId = (customId) => {
     if (typeof customId !== 'string' || !customId.startsWith(ticketInteractionPrefix)) return null;
 
     const parts = customId.split(':');
-    if (parts.length < 4 || parts[0] !== 'fxpanel' || parts[1] !== 'ticket') return null;
+    if (parts.length < 4 || parts[0] !== 'sxpanel' || parts[1] !== 'ticket') return null;
 
     const action = parts[2];
     const ticketId = parts[3];
@@ -518,11 +518,11 @@ module.exports = {
 
         const telemetryContext = createCommandTelemetryContext(interaction.commandName);
         const restoreInteractionAck = instrumentInteractionAck(interaction, telemetryContext);
-        const addonCommand = client.fxpanel.getAddonCommandMetadata(interaction.commandName);
+        const addonCommand = client.sxpanel.getAddonCommandMetadata(interaction.commandName);
 
         try {
             if (addonCommand) {
-                const rateLimitResult = client.fxpanel.consumeAddonRateLimit({
+                const rateLimitResult = client.sxpanel.consumeAddonRateLimit({
                     addonId: addonCommand.addonId,
                     handlerId: `command:${interaction.commandName}`,
                     requesterId: interaction.user?.id,

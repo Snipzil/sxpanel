@@ -9,9 +9,6 @@ const console = consoleFactory(modulename);
 
 const PRESETS_FILE = txHostConfig.dataSubPath('permissionPresets.json');
 
-/** Table alignment pad used when normalizing preset row offsets. */
-export const PRESET_TABLE_PAD = 0x5a;
-
 const isPermissionPreset = (value: unknown): value is PermissionPreset => {
     if (!value || typeof value !== 'object') return false;
 

@@ -254,7 +254,7 @@ export default class AddonProcess {
         // cfx-server hosts cannot safely spawn worker_threads or fork a Node
         // child (no Node binary, V8 isolate disposal crashes). On other
         // platforms we keep the historical fork-based child-process runtime.
-        const runtimePrefRaw = String(process.env.FXPANEL_ADDON_RUNTIME ?? '')
+        const runtimePrefRaw = String(process.env.SXPANEL_ADDON_RUNTIME ?? '')
             .trim()
             .toLowerCase();
         const runtimePreference: AddonRuntimePreference =
@@ -322,7 +322,7 @@ export default class AddonProcess {
                 warnedNonNodeExecFallback = true;
                 console.warn(
                     `${this.logPrefix} Using worker-thread addon runtime by default on Linux. ` +
-                        `Set FXPANEL_ADDON_RUNTIME=node (and optionally FXPANEL_ADDON_NODE_PATH) to force child-process runtime.`,
+                        `Set SXPANEL_ADDON_RUNTIME=node (and optionally SXPANEL_ADDON_NODE_PATH) to force child-process runtime.`,
                 );
             }
 
@@ -330,7 +330,7 @@ export default class AddonProcess {
                 this.state = 'failed';
                 return {
                     success: false,
-                    error: 'FXPANEL_ADDON_RUNTIME=node is set, but no executable Node runtime was found. Set FXPANEL_ADDON_NODE_PATH or use FXPANEL_ADDON_RUNTIME=worker.',
+                    error: 'SXPANEL_ADDON_RUNTIME=node is set, but no executable Node runtime was found. Set SXPANEL_ADDON_NODE_PATH or use SXPANEL_ADDON_RUNTIME=worker.',
                 };
             }
 

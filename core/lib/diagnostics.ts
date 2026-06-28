@@ -146,7 +146,7 @@ export const getProcessesData = async () => {
                 let procName: string;
                 let order = Date.now();
                 if (proc.ProcessId === txProcessId) {
-                    procName = 'fxPanel (inside FXserver)';
+                    procName = 'sxPanel (inside FXserver)';
                     order = 0;
                 } else if (memBytes <= 10 * MEGABYTE) {
                     procName = 'FXServer MiniDump';
@@ -156,7 +156,7 @@ export const getProcessesData = async () => {
 
                 procList.push({
                     pid: proc.ProcessId,
-                    ppid: proc.ParentProcessId === txProcessId ? `${txProcessId} (fxPanel)` : proc.ParentProcessId,
+                    ppid: proc.ParentProcessId === txProcessId ? `${txProcessId} (sxPanel)` : proc.ParentProcessId,
                     name: procName,
                     cpu: 0, // CIM doesn't provide instantaneous CPU %; would need a second sample
                     memory: memBytes / MEGABYTE,
@@ -181,7 +181,7 @@ export const getProcessesData = async () => {
                 let procName;
                 let order = curr.timestamp || 1;
                 if (currPidInt === txProcessId) {
-                    procName = 'fxPanel (inside FXserver)';
+                    procName = 'sxPanel (inside FXserver)';
                     order = 0;
                 } else if (curr.memory <= 10 * MEGABYTE) {
                     procName = 'FXServer MiniDump';
@@ -191,7 +191,7 @@ export const getProcessesData = async () => {
 
                 procList.push({
                     pid: currPidInt,
-                    ppid: curr.ppid === txProcessId ? `${txProcessId} (fxPanel)` : curr.ppid,
+                    ppid: curr.ppid === txProcessId ? `${txProcessId} (sxPanel)` : curr.ppid,
                     name: procName,
                     cpu: curr.cpu,
                     memory: curr.memory / MEGABYTE,
@@ -269,7 +269,7 @@ export const getFXServerData = async () => {
             resources: infoData.resources.length,
             onesync: infoData.vars && infoData.vars.onesync_enabled === 'true' ? 'enabled' : 'disabled',
             maxClients: infoData.vars && infoData.vars.sv_maxClients ? infoData.vars.sv_maxClients : '--',
-            txAdminVersion: infoData.vars && infoData.vars['fxPanel-version'] ? infoData.vars['fxPanel-version'] : '--',
+            txAdminVersion: infoData.vars && infoData.vars['sxPanel-version'] ? infoData.vars['sxPanel-version'] : '--',
         };
     } catch (error) {
         console.warn('Failed to process FXServer information.');
@@ -334,7 +334,7 @@ export const getHostStaticData = (): HostStaticDataType => {
 };
 
 /**
- * Gets fxPanel Data
+ * Gets sxPanel Data
  */
 export const getTxAdminData = async () => {
     const stats = txManager.txRuntime; //shortcut

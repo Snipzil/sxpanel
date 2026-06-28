@@ -45,7 +45,7 @@ export default async function MasterActionsAction(ctx: AuthedCtx) {
     }
     if (!ctx.txVars.isWebInterface) {
         return ctx.send({
-            error: 'This functionality cannot be used by the in-game menu, please use the web version of fxPanel.',
+            error: 'This functionality cannot be used by the in-game menu, please use the web version of sxPanel.',
         });
     }
 

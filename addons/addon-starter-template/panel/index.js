@@ -1,7 +1,7 @@
 /**
  * Starter template — panel entry (`addon.json` → `panel.entry`)
  *
- * Match fxPanel panel tokens (card, badge, page header). Icons are inline SVG
+ * Match sxPanel panel tokens (card, badge, page header). Icons are inline SVG
  * (lucide paths) — React is global, don't bundle.
  */
 

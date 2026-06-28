@@ -108,8 +108,8 @@ export default function WelcomeAfterInstallHost() {
             <div
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="fxpanel-welcome-title"
-                aria-describedby="fxpanel-welcome-desc"
+                aria-labelledby="sxpanel-welcome-title"
+                aria-describedby="sxpanel-welcome-desc"
                 style={{ backgroundColor: 'hsl(var(--card))', position: 'relative', zIndex: 1 }}
                 className="border-border/60 bg-card w-full max-w-lg rounded-xl border shadow-[0_22px_44px_-16px_rgba(0,0,0,0.65)]"
             >
@@ -122,12 +122,12 @@ export default function WelcomeAfterInstallHost() {
                         First run
                     </p>
                     <h2
-                        id="fxpanel-welcome-title"
+                        id="sxpanel-welcome-title"
                         className="text-foreground mt-2 text-xl leading-tight font-semibold tracking-tight"
                     >
-                        Welcome to fxPanel
+                        Welcome to sxPanel
                     </h2>
-                    <p id="fxpanel-welcome-desc" className="text-muted-foreground mt-3 text-sm leading-relaxed">
+                    <p id="sxpanel-welcome-desc" className="text-muted-foreground mt-3 text-sm leading-relaxed">
                         Your server is ready. Take a quick spin through the sidebar with the Basic tour, or pick the
                         Full tour for a guided walkthrough across every major page. You can also skip and explore on
                         your own.

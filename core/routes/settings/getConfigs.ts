@@ -62,10 +62,10 @@ export default async function GetSettingsConfigs(ctx: AuthedCtx) {
             toRedact.server.startupArgs = redactStartupSecrets(outData.storedConfigs.server.startupArgs);
         }
         if (outData.storedConfigs.discordBot?.token) {
-            toRedact.discordBot.token = '[redacted by fxPanel]';
+            toRedact.discordBot.token = '[redacted by sxPanel]';
         }
         if (outData.storedConfigs.discordBot?.oauthClientSecret) {
-            toRedact.discordBot.oauthClientSecret = '[redacted by fxPanel]';
+            toRedact.discordBot.oauthClientSecret = '[redacted by sxPanel]';
         }
     }
 

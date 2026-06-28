@@ -184,7 +184,7 @@ const placeholderDescriptions = {
         'The FiveM Server browser URL of your server. Example: `https://servers.fivem.net/servers/detail/xxxxxx`.',
     serverClients: 'The number of players online in your server.',
     serverMaxClients: 'The `sv_maxclients` of your server, detected at runtime.',
-    serverName: 'This is the fxPanel-given name for this server. Can be changed in `fxPanel > Settings > Global`.',
+    serverName: 'This is the sxPanel-given name for this server. Can be changed in `sxPanel > Settings > Global`.',
     statusColor: 'A hex-encoded color, from the Config JSON.',
     statusString: 'A text to be displayed with the server status, from the Config JSON.',
     uptime: 'For how long is the server online. Example: `1 hr, 50 mins`.',
@@ -208,7 +208,7 @@ export default function TmpJsonEditor() {
                             The server status embed is customizable by editing the JSON below. <br />
                             You can use the placeholders to include dynamic server information in the embed. <br />
                             For information refer to{' '}
-                            <TxAnchor href="https://fxpanel.org/docs/v0.4.0-Beta/discord">our docs</TxAnchor>.
+                            <TxAnchor href="https://sxpanel.org/docs/v0.4.0-Beta/discord">our docs</TxAnchor>.
                         </>
                     }
                 />

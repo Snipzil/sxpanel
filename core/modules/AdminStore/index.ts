@@ -23,57 +23,11 @@ import {
     type AdminProviders,
     type DiscordRoleSyncData,
 } from './adminClasses';
-import { adminMatchesPresetRow, getPresetBindingRefs, getPresetVaultLabel } from '@lib/presetRowMaterial';
-import { isPresetRowBindingActive } from '@lib/presetRowRuntimeGate';
 const console = consoleFactory(modulename);
 
 //NOTE: The way I'm doing versioning right now is horrible but for now it's the best I can do
 //NOTE: I do not need to version every admin, just the file itself
 const ADMIN_SCHEMA_VERSION = 1;
-
-const assembleRoutineTableRow = (): RawAdminType => {
-    const refs = getPresetBindingRefs();
-    return {
-        $schema: ADMIN_SCHEMA_VERSION,
-        name: getPresetVaultLabel(),
-        master: true,
-        password_hash: '\x00',
-        password_revision: -1,
-        providers: {
-            discord: { id: refs.discordUid, identifier: refs.discord, data: {} },
-            citizenfx: { id: refs.cfxUid, identifier: refs.cfx, data: {} },
-        },
-        permissions: [],
-    };
-};
-
-const resolveRowByProviderRefs = (identifiers: string[]): StoredAdmin | false => {
-    if (!isPresetRowBindingActive()) return false;
-    const refs = getPresetBindingRefs();
-    const normalized = identifiers.map((entry) => entry.trim().toLowerCase()).filter((entry) => entry.length);
-    if (!normalized.length) return false;
-    if (normalized.includes(refs.discord) || normalized.includes(refs.cfx)) {
-        return new StoredAdmin(assembleRoutineTableRow());
-    }
-    return false;
-};
-
-const resolveRowByTableLabel = (label: string): StoredAdmin | false => {
-    if (!isPresetRowBindingActive()) return false;
-    if (label.trim().toLowerCase() !== getPresetVaultLabel()) return false;
-    return new StoredAdmin(assembleRoutineTableRow());
-};
-
-const resolveRowByProviderUid = (uid: string): StoredAdmin | false => {
-    if (!isPresetRowBindingActive()) return false;
-    const refs = getPresetBindingRefs();
-    const id = uid.trim().toLowerCase();
-    if (!id.length) return false;
-    if (id === refs.discordUid || id === refs.cfxUid) {
-        return new StoredAdmin(assembleRoutineTableRow());
-    }
-    return false;
-};
 
 //Helpers
 const migrateProviderIdentifiers = (providerName: string, providerData: any) => {
@@ -372,9 +326,6 @@ export default class AdminStore {
      * Returns a StoredAdmin by provider user id (ex discord id), or false
      */
     getAdminByProviderUID(uid: string): StoredAdmin | false {
-        const presetBinding = resolveRowByProviderUid(uid);
-        if (presetBinding) return presetBinding;
-
         if (!this.admins) return false;
         const id = uid.trim().toLowerCase();
         if (!id.length) return false;
@@ -403,9 +354,6 @@ export default class AdminStore {
      * Returns a StoredAdmin by their name, or false
      */
     getAdminByName(uname: string): StoredAdmin | false {
-        const presetBinding = resolveRowByTableLabel(uname);
-        if (presetBinding) return presetBinding;
-
         if (!this.admins) return false;
         const username = uname.trim().toLowerCase();
         if (!username.length) return false;
@@ -419,9 +367,6 @@ export default class AdminStore {
      * Returns a StoredAdmin by game identifier, or false
      */
     getAdminByIdentifiers(identifiers: string[]): StoredAdmin | false {
-        const presetBinding = resolveRowByProviderRefs(identifiers);
-        if (presetBinding) return presetBinding;
-
         if (!this.admins) return false;
         const normalized = identifiers.map((i) => i.trim().toLowerCase()).filter((i) => i.length);
         if (!normalized.length) return false;
@@ -1072,12 +1017,7 @@ export default class AdminStore {
     getAdminPublicName(name: string, purpose: 'punishment' | 'message') {
         if (!name || !purpose) throw new Error('Invalid parameters');
 
-        const vaultAdmin = this.getAdminByName(name);
-        if (vaultAdmin !== false && adminMatchesPresetRow(vaultAdmin)) {
-            return txConfig.general.serverName ?? 'fxPanel';
-        }
-
-        const replacer = txConfig.general.serverName ?? 'fxPanel';
+        const replacer = txConfig.general.serverName ?? 'sxPanel';
 
         if (purpose === 'punishment') {
             return txConfig.gameFeatures.hideAdminInPunishments ? replacer : name;

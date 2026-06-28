@@ -197,7 +197,7 @@ export default async function ctxUtilsMw(ctx: CtxWithVars, next: Next) {
                 isWebInterface: isWebInterface,
                 csrfToken: possiblyAuthedAdmin?.csrfToken ?? 'not_set',
                 TX_BASE_PATH: isWebInterface ? '' : consts.nuiWebpipePath,
-                PAGE_TITLE: data?.headerTitle ?? 'fxPanel',
+                PAGE_TITLE: data?.headerTitle ?? 'sxPanel',
             }),
         };
 

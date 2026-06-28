@@ -111,7 +111,7 @@ export const DEFERRAL_BLOCK_META: Record<
     tier_name: { label: 'Tier name', description: 'Shows whitelist tier when available' },
     spacer: { label: 'Spacer', description: 'Vertical gap' },
     divider: { label: 'Divider', description: 'Horizontal rule' },
-    logo: { label: 'Watermark logo', description: 'fxPanel logo (respects global logo toggle)' },
+    logo: { label: 'Watermark logo', description: 'sxPanel logo (respects global logo toggle)' },
     custom_image: {
         label: 'Custom image',
         description: 'Upload SVG, PNG, or GIF — shown on the deferral card',

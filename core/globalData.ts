@@ -60,7 +60,7 @@ type TxDevEnvDisabledType = Overwrite<
 let _txDevEnv: TxDevEnvEnabledType | TxDevEnvDisabledType;
 const devVars = parseTxDevEnv();
 if (devVars.ENABLED) {
-    console.debug('Starting fxPanel in DEV mode.');
+    console.debug('Starting sxPanel in DEV mode.');
     if (!devVars.SRC_PATH || !devVars.VITE_URL) {
         fatalError.GlobalData(8, 'Missing TXDEV_VITE_URL and/or TXDEV_SRC_PATH env variables.');
     }
@@ -94,14 +94,14 @@ const fxsVerParsed = parseFxserverVersion(nativeVars.fxsVersion);
 const fxsVersion = fxsVerParsed.valid ? fxsVerParsed.build : 99999;
 if (!fxsVerParsed.valid) {
     console.error('It looks like you are running a custom build of fxserver.');
-    console.error('And because of that, there is no guarantee that fxPanel will work properly.');
+    console.error('And because of that, there is no guarantee that sxPanel will work properly.');
     console.error(`Convar: ${nativeVars.fxsVersion}`);
     console.error(`Parsed Build: ${fxsVerParsed.build}`);
     console.error(`Parsed Branch: ${fxsVerParsed.branch}`);
     console.error(`Parsed Platform: ${fxsVerParsed.platform}`);
 } else if (fxsVerParsed.build < minFxsVersion) {
     fatalError.GlobalData(2, [
-        'This version of FXServer is too outdated and NOT compatible with fxPanel',
+        'This version of FXServer is too outdated and NOT compatible with sxPanel',
         ['Current FXServer version', fxsVerParsed.build.toString()],
         ['Minimum required version', minFxsVersion.toString()],
         'Please update your FXServer to a newer version.',
@@ -110,18 +110,18 @@ if (!fxsVerParsed.valid) {
     console.warn(`You are running a custom branch of FXServer: ${fxsVerParsed.branch}`);
 }
 
-//Getting fxPanel version
+//Getting sxPanel version
 if (!nativeVars.txaResourceVersion) {
     fatalError.GlobalData(3, [
-        'fxPanel version not set or in the wrong format.',
+        'sxPanel version not set or in the wrong format.',
         ['Detected version', nativeVars.txaResourceVersion],
     ]);
 }
 const txaVersion = nativeVars.txaResourceVersion;
 
-//Get fxPanel Resource Path
+//Get sxPanel Resource Path
 if (!nativeVars.txaResourcePath) {
-    fatalError.GlobalData(4, ['Could not resolve fxPanel resource path.', ['Convar', nativeVars.txaResourcePath]]);
+    fatalError.GlobalData(4, ['Could not resolve sxPanel resource path.', ['Convar', nativeVars.txaResourcePath]]);
 }
 const txaPath = cleanPath(nativeVars.txaResourcePath);
 
@@ -196,7 +196,7 @@ const profilePath = cleanPath(path.join(dataPath, profileName));
 //No default, no convar/zap cfg
 const txaUrl = hostVars.TXA_URL;
 
-//fxPanel port
+//sxPanel port
 const txaPort = hostVars.TXA_PORT ?? 40120;
 
 //fxserver port

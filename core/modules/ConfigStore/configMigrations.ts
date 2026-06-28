@@ -34,11 +34,11 @@ export const migrateConfigFile = (fileData: any): ConfigFileData => {
     }
     if (typeof fileData.version === 'number' && fileData.version > CONFIG_VERSION) {
         fatalError.ConfigStore(21, [
-            `Your config.json file is on v${fileData.version}, and this txAdmin supports up to v${CONFIG_VERSION}.`,
-            'This means you likely downgraded your txAdmin or FXServer.',
-            'Please make sure your txAdmin is updated!',
+            `Your config.json file is on v${fileData.version}, and this sxPanel supports up to v${CONFIG_VERSION}.`,
+            'This means you likely downgraded your sxPanel or FXServer.',
+            'Please make sure your sxPanel is updated!',
             '',
-            'If you want to downgrade FXServer (the "artifact") but keep txAdmin updated,',
+            'If you want to downgrade FXServer (the "artifact") but keep sxPanel updated,',
             'you can move the updated "citizen/system_resources/monitor" folder',
             'to older FXserver artifact, replacing the old files.',
             `Alternatively, you can restore the v${fileData.version} backup on the folder below.`,
@@ -50,7 +50,7 @@ export const migrateConfigFile = (fileData: any): ConfigFileData => {
     }
 
     if (!('version' in workingConfig) && 'global' in workingConfig && 'fxRunner' in workingConfig) {
-        console.warn('Updating your txAdmin config.json from v1 to v2.');
+        console.warn('Updating your sxPanel config.json from v1 to v2.');
         oldVersion ??= 1;
         const justNonDefaults = migrateOldConfig(oldConfig) as PartialTxConfigs;
         workingConfig = {
@@ -60,7 +60,7 @@ export const migrateConfigFile = (fileData: any): ConfigFileData => {
     }
 
     if (workingConfig.version === 2) {
-        console.warn('Updating your txAdmin config.json from v2 to v3.');
+        console.warn('Updating your sxPanel config.json from v2 to v3.');
         console.warn('This process will migrate whitelist mode to workflows/tiers.');
         oldVersion ??= 2;
         const { whitelist: legacyWhitelist, version: _legacyVersion, ...rest } = workingConfig;
@@ -73,7 +73,7 @@ export const migrateConfigFile = (fileData: any): ConfigFileData => {
     }
 
     if (workingConfig.version === 3) {
-        console.warn('Updating your txAdmin config.json from v3 to v4.');
+        console.warn('Updating your sxPanel config.json from v3 to v4.');
         console.warn('This process will migrate whitelist tiers to the queue system.');
         oldVersion ??= 3;
 
@@ -115,7 +115,7 @@ export const migrateConfigFile = (fileData: any): ConfigFileData => {
     }
 
     if (workingConfig.version === 4) {
-        console.warn('Updating your txAdmin config.json from v4 to v5.');
+        console.warn('Updating your sxPanel config.json from v4 to v5.');
         console.warn('This process will migrate queue reserved access to per-rule settings.');
         oldVersion ??= 4;
 
@@ -137,7 +137,7 @@ export const migrateConfigFile = (fileData: any): ConfigFileData => {
     }
 
     if (workingConfig.version === 5) {
-        console.warn('Updating your txAdmin config.json from v5 to v6.');
+        console.warn('Updating your sxPanel config.json from v5 to v6.');
         console.warn('This process will migrate queue reserved settings to slot pools.');
         oldVersion ??= 5;
 

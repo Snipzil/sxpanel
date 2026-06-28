@@ -1,7 +1,7 @@
 {
-    "name": "fxpanel",
+    "name": "sxpanel",
     "version": "0.4.0-Beta",
-    "description": "fxPanel - A Replacement for txAdmin built on its source code.",
+    "description": "sxPanel - A Replacement for txAdmin built on its source code.",
     "module": "./core/index.js",
     "type": "module",
     "workspaces": [
@@ -26,27 +26,30 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/SomeAussieGaymer/fxpanel.git"
+        "url": "git+https://github.com/Snipzil/sxpanel.git"
     },
-    "author": "SomeAussieGaymer",
+    "author": "snipz",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/SomeAussieGaymer/fxpanel/issues"
+        "url": "https://github.com/Snipzil/sxpanel/issues"
     },
-    "homepage": "https://fxpanel.org/",
+    "homepage": "https://sxpanel.org/",
     "dependencies": {
         "chalk": "^5.6.2",
         "dequal": "^2.0.3",
-        "discord.js": "14.26.3",
+        "discord.js": "14.26.4",
         "humanize-duration": "^3.33.2",
         "jsonrepair": "^3.14.0",
         "lodash-es": "^4.18.1",
+        "monaco-editor": "0.53.0",
         "nanoid": "5.1.9",
         "semver": "^7.7.4",
-        "vite": "8.0.10"
+        "vite": "8.1.0"
     },
     "overrides": {
-        "dompurify": "3.4.9"
+        "monaco-editor": "0.53.0",
+        "undici": "6.27.0",
+        "ws": "8.21.0"
     },
     "devDependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",

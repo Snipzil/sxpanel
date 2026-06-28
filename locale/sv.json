@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Denna server är i <strong>Endast Admin</strong> läge.",
-            "insufficient_ids": "Du har inte en <code>discord</code> eller <code>fivem</code> identifikation, och minst en av dem är nödvändiga för att validera om du är en fxPanel administratör.",
-            "deny_message": "Dina identifikationer är inte tilldelade till något fxPanel administratörs konto."
+            "insufficient_ids": "Du har inte en <code>discord</code> eller <code>fivem</code> identifikation, och minst en av dem är nödvändiga för att validera om du är en sxPanel administratör.",
+            "deny_message": "Dina identifikationer är inte tilldelade till något sxPanel administratörs konto."
         },
         "guild_member": {
             "mode_title": "Denna server har <strong>Discord Server Medlems Whitelist</strong>.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menyn är aktiverad, skriv /tx i chatten för att öppna den.\nDu kan ändra knapp på [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Dina id stämmer inte överns med dom som är registerade i fxPanel regisrtert.\nOm du är registerad på fxPanel,gå till administratör hanteraren och dubbelkolla att id:en är korrekta.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel Menyn är aktiverad, skriv /tx i chatten för att öppna den.\nDu kan ändra knapp på [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Dina id stämmer inte överns med dom som är registerade i sxPanel regisrtert.\nOm du är registerad på sxPanel,gå till administratör hanteraren och dubbelkolla att id:en är korrekta.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Du har inte behörighet för detta.",
             "unknown_error": "Ett okänt problem har uppstått",
-            "not_enabled": "fxPanel menyn är inte aktiverad! Du kan aktivera den på fxPanel panelen.",
+            "not_enabled": "sxPanel menyn är inte aktiverad! Du kan aktivera den på sxPanel panelen.",
             "announcement_title": "Server meddelande skickat av %{author}:",
             "dialog_empty_input": "Du kan inte ha ett tomt fält.",
             "directmessage_title": "DM from admin %{author}:",

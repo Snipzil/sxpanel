@@ -1,7 +1,7 @@
 const { AuditLogEvent } = require('discord.js');
 
 const resolveConfiguredGuildId = (client) => {
-    return client.fxpanel.latestConfigSnapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? null;
+    return client.sxpanel.latestConfigSnapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? null;
 };
 
 const resolveChangedRoleIds = (auditLogEntry, changeKey) => {

@@ -1,7 +1,7 @@
 /**
- * @fxpanel/addon-sdk/ui — TypeScript definitions
+ * @sxpanel/addon-sdk/ui — TypeScript definitions
  *
- * Re-exports of fxPanel's shadcn/ui components for use in addon panel bundles.
+ * Re-exports of sxPanel's shadcn/ui components for use in addon panel bundles.
  */
 
 import type {

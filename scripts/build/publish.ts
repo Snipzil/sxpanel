@@ -8,7 +8,7 @@ fs.mkdirSync('.github', { recursive: true });
 fs.writeFileSync('.github/.cienv', `TX_IS_PRERELEASE=${isPreRelease}\n`);
 
 //Copy static files
-console.log('Starting fxPanel Prod Builder');
+console.log('Starting sxPanel Prod Builder');
 copyStaticFiles('./monitor/', txVersion, 'publish');
 copyBotRuntimeDependencies('./monitor');
 //yarn.installed Needs to be older than the package.json

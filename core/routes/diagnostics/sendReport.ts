@@ -112,7 +112,7 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
         txadmin:
             txadminResult.status === 'fulfilled'
                 ? txadminResult.value
-                : getDiagnosticsSectionError('fxPanel diagnostics', txadminResult.reason),
+                : getDiagnosticsSectionError('sxPanel diagnostics', txadminResult.reason),
         fxserver:
             fxserverResult.status === 'fulfilled'
                 ? fxserverResult.value
@@ -286,7 +286,7 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     try {
         type ResponseType = { reportId: string } | { error: string; message?: string };
         const apiResp = (await got
-            .post('https://fxapi.fxpanel.org/api/diagnostics', requestOptions)
+            .post('https://fxapi.sxpanel.org/api/diagnostics', requestOptions)
             .json()) as ResponseType;
         if ('reportId' in apiResp) {
             reportIdCache.set(apiResp.reportId);

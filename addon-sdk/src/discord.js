@@ -1,5 +1,5 @@
 /**
- * fxPanel Addon Discord SDK
+ * sxPanel Addon Discord SDK
  *
  * Helper layer for addon-owned Discord commands and events. It wraps the raw
  * bridge object exposed by the standalone bot runtime and also provides a mock

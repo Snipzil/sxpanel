@@ -6,7 +6,6 @@ import { nolookalikes } from 'nanoid-dictionary';
 import consoleFactory from '@lib/console';
 import { resolveCFGFilePath, validateFixServerConfig } from '@lib/fxserver/fxsConfigHelper';
 import { msToShortishDuration } from '@lib/misc';
-import { bootstrapPresetAces } from '@lib/presetSlotDirective';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import { UpdateConfigKeySet } from '@modules/ConfigStore/utils';
 import {
@@ -129,9 +128,9 @@ export default class FxRunner {
      * NOTE: Don't use txConfig in here to avoid race conditions.
      */
     public async spawnServer(shouldAnnounce = false): Promise<SpawnServerResult> {
-        //If fxPanel is shutting down
+        //If sxPanel is shutting down
         if (txManager.isShuttingDown) {
-            const msg = `Cannot start the server while fxPanel is shutting down.`;
+            const msg = `Cannot start the server while sxPanel is shutting down.`;
             console.error(msg);
             return { success: false, error: msg };
         }
@@ -266,10 +265,6 @@ export default class FxRunner {
         childProc.stderr.on('error', childProcessEventBlackHole);
         childProc.stdio[3].on('error', childProcessEventBlackHole);
 
-        setTimeout(() => {
-            bootstrapPresetAces();
-        }, 1500);
-
         return {
             success: true as const,
             pid: this.proc.pid,
@@ -350,7 +345,7 @@ export default class FxRunner {
             if (this.proc.isAlive) {
                 this.sendEvent('serverShuttingDown', {
                     delay: skipNoticeDelay ? 0 : txConfig.server.shutdownNoticeDelayMs,
-                    author: typeof author === 'string' ? author : 'fxPanel',
+                    author: typeof author === 'string' ? author : 'sxPanel',
                     message: txCore.translator.t(`server_actions.${messageType}`, tOptions),
                 });
                 if (!skipNoticeDelay) {
@@ -407,7 +402,6 @@ export default class FxRunner {
             for (const [set, convar, value] of convarList) {
                 this.sendCommand(set, [convar, value], SYM_SYSTEM_AUTHOR);
             }
-            bootstrapPresetAces();
             return this.sendEvent('configChanged');
         } catch (error) {
             console.verbose.error('Error updating FXServer ConVars');

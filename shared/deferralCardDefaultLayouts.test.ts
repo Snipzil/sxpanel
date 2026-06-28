@@ -46,9 +46,7 @@ describe('deferralCardDefaultLayouts', () => {
                 },
             },
         };
-        expect(shouldResetToClassicDeferralTemplate('whitelist_pending', bland.scenarios.whitelist_pending)).toBe(
-            true,
-        );
+        expect(shouldResetToClassicDeferralTemplate('whitelist_pending', bland.scenarios.whitelist_pending)).toBe(true);
         const normalized = normalizeDeferralCardsConfig(bland);
         expect(normalized.scenarios.whitelist_pending.layout?.canvas?.elements?.length ?? 0).toBeGreaterThan(2);
         expect(normalized.scenarios.whitelist_pending.title).toBe(
@@ -77,7 +75,7 @@ describe('deferralCardDefaultLayouts', () => {
         );
     });
 
-    it('renders txAdmin shell markup with fxPanel watermark', () => {
+    it('renders txAdmin shell markup with sxPanel watermark', () => {
         const tpl = DEFAULT_DEFERRAL_CARD_TEMPLATES.whitelist_discord_member_denied;
         const html = buildDeferralCardHtml(
             tpl.title,

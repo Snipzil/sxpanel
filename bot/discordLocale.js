@@ -20,7 +20,7 @@ const getNestedValue = (input, dottedKey) => {
 
 const getDiscordLocale = (source) => {
     const client = source?.client ?? source;
-    const runtimeLocale = client?.fxpanel?.latestConfigSnapshot?.discordBotLocale;
+    const runtimeLocale = client?.sxpanel?.latestConfigSnapshot?.discordBotLocale;
     return isObject(runtimeLocale) ? runtimeLocale : fallbackLocale;
 };
 

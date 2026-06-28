@@ -66,7 +66,7 @@ const createDeps = (admin?: { name: string; permissions?: string[]; isMaster?: b
         logAction: vi.fn(),
         now: () => 1_700_000_000,
         infoEmbedColor: 0x123456,
-        footer: { text: 'fxPanel test' },
+        footer: { text: 'sxPanel test' },
     };
 };
 
@@ -97,7 +97,7 @@ const resetMocks = () => {
 };
 
 suite('DiscordBot moderationCommands', () => {
-    it('requires a linked fxPanel admin account for moderation commands', async () => {
+    it('requires a linked sxPanel admin account for moderation commands', async () => {
         resetMocks();
 
         const response = await handleModerationCommand(
@@ -111,7 +111,7 @@ suite('DiscordBot moderationCommands', () => {
             createDeps(),
         );
 
-        expect(stringifyReplyComponents(response.reply)).toContain('does not have fxPanel access');
+        expect(stringifyReplyComponents(response.reply)).toContain('does not have sxPanel access');
         expect(mocks.findPlayersByIdentifier).not.toHaveBeenCalled();
     });
 

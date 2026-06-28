@@ -1,5 +1,5 @@
 const modulename = 'Deployer';
-import YAML from 'js-yaml';
+import * as YAML from 'js-yaml';
 import recipeEngine from './recipeEngine';
 import consoleFactory from '@lib/console';
 import { RECIPE_DEPLOYER_VERSION } from './consts';

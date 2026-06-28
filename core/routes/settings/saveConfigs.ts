@@ -453,7 +453,7 @@ const handleDiscordCard: CardHandler = async (inputConfig, sendTypedResp) => {
             - Navigate to \`Bot > Privileged Gateway Intents\`.
             - Enable the \`GUILD_MEMBERS\` intent.
             - Press save on the developer portal.
-            - Go to the \`fxPanel > Settings > Discord Bot\` and press save.`;
+            - Go to the \`sxPanel > Settings > Discord Bot\` and press save.`;
         } else if (errorCode === 'CustomNoGuild') {
             const inviteUrl =
                 'clientId' in (error as any)

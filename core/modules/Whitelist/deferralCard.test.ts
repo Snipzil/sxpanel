@@ -132,7 +132,7 @@ describe('renderDeferralCard', () => {
         expect(png?.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
     });
 
-    it('uses fxPanel logo from panel host, not txAdmin CDN', async () => {
+    it('uses sxPanel logo from panel host, not txAdmin CDN', async () => {
         const html = await renderDeferralCard({
             scenario: 'ban_permanent',
             title: 'Banned',

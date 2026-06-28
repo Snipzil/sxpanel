@@ -140,7 +140,7 @@ const MenuObject = {
                         type: 'Infinity',
                     },
                     switchPageKey: 'Tab',
-                    fxPanelVersion: '9.9.9',
+                    sxPanelVersion: '9.9.9',
                     tagDefinitions: [],
                     reportsEnabled: true,
                 },
@@ -212,9 +212,9 @@ export const registerDebugFunctions = () => {
     if (isBrowserEnv()) {
         (window as any).menuDebug = browserMenuDebug;
 
-        console.log('%cfxPanel Debug Utilities', 'font-weight: bold; font-size: 25px; color: red;');
+        console.log('%csxPanel Debug Utilities', 'font-weight: bold; font-size: 25px; color: red;');
         console.log(
-            '%cfxPanel debug utilities have been injected for browser use. Inspect `window.menuDebug` object for further details.',
+            '%csxPanel debug utilities have been injected for browser use. Inspect `window.menuDebug` object for further details.',
             'font-size: 15px; color: green;',
         );
     }

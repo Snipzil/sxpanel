@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Šis serveris yra <strong>Tik Administratoriams</strong> rėžime.",
-            "insufficient_ids": "Tu neturi <code>discord</code> arba <code>fivem</code> identifikatorių, ar bent vieno iš jų, jog patvirtinti, kad esi fxPanel administratorius.",
-            "deny_message": "Tavo identifikatoriai nėra sujungti su fxPanel administratoriumi."
+            "insufficient_ids": "Tu neturi <code>discord</code> arba <code>fivem</code> identifikatorių, ar bent vieno iš jų, jog patvirtinti, kad esi sxPanel administratorius.",
+            "deny_message": "Tavo identifikatoriai nėra sujungti su sxPanel administratoriumi."
         },
         "guild_member": {
             "mode_title": "Šois serveris yra <strong>Discord Gildijos (Serverio) Nario Baltojo Sąrašo</strong> rėžime",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Meniu įjungtas, rašykite /tx norėdami jį atidaryti.\nMygtuką galite priskirti ar pakeisti [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Jūsų identifikavimas fxPanel sistemai nebuvo rastas.\nJei esate užregistruotas fxPanel sistemoje, eikite į Admin Manager ir įsitikinkite, kad jūsų atpažinimas išsaugotas.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel Meniu įjungtas, rašykite /tx norėdami jį atidaryti.\nMygtuką galite priskirti ar pakeisti [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Jūsų identifikavimas sxPanel sistemai nebuvo rastas.\nJei esate užregistruotas sxPanel sistemoje, eikite į Admin Manager ir įsitikinkite, kad jūsų atpažinimas išsaugotas.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Neturite tam teisių.",
             "unknown_error": "Nežinoma klaida.",
-            "not_enabled": "fxPanel meniu nėra įjungtas! Tai galite padaryti per fxPanel nustatymų (settings) puslapį.",
+            "not_enabled": "sxPanel meniu nėra įjungtas! Tai galite padaryti per sxPanel nustatymų (settings) puslapį.",
             "announcement_title": "Serverio pranešimas nuo: %{author}:",
             "dialog_empty_input": "Turite užpildyti įvesties laukelius.",
             "directmessage_title": "PŽ. iš administratoriaus %{author}:",

@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "See server on <strong>Ainult Administraatori</strong> režiimis.",
-            "insufficient_ids": "Teil pole <code>discord</code> või <code>fivemi</code> identifikaatoreid ja vähemalt üks neist on vajalik kinnitada, kui olete fxPaneli administraator.",
-            "deny_message": "Teie identifikaatoreid ei ole määratud ühelegi fxPaneli administraatorile."
+            "insufficient_ids": "Teil pole <code>discord</code> või <code>fivemi</code> identifikaatoreid ja vähemalt üks neist on vajalik kinnitada, kui olete sxPaneli administraator.",
+            "deny_message": "Teie identifikaatoreid ei ole määratud ühelegi sxPaneli administraatorile."
         },
         "guild_member": {
             "mode_title": "See server on <strong>Discord Server Liikme Whitelisti</strong> režiimis.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPaneli menüü on lubatud, selle avamiseks kirjutage /tx.\nSaate konfigureerida ka klahvide sidumise menüüs [Mängu seaded > Klahvide sidumised > FiveM > Menüü: ava põhileht].",
-            "menu_not_admin": "Teie identifikaatorid ei ühti ühegi fxPanelis registreeritud administraatoriga.\nKui olete fxPanelis registreeritud, minge administraatorihaldurisse ja veenduge, et teie identifikaatorid on salvestatud.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPaneli menüü on lubatud, selle avamiseks kirjutage /tx.\nSaate konfigureerida ka klahvide sidumise menüüs [Mängu seaded > Klahvide sidumised > FiveM > Menüü: ava põhileht].",
+            "menu_not_admin": "Teie identifikaatorid ei ühti ühegi sxPanelis registreeritud administraatoriga.\nKui olete sxPanelis registreeritud, minge administraatorihaldurisse ja veenduge, et teie identifikaatorid on salvestatud.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Teil pole selleks luba.",
             "unknown_error": "Ilmnes tundmatu viga.",
-            "not_enabled": "fxPaneli menüü pole lubatud! Saate selle lubada fxPaneli seadete lehel.",
+            "not_enabled": "sxPaneli menüü pole lubatud! Saate selle lubada sxPaneli seadete lehel.",
             "announcement_title": "Serveri teadaanne %{author}:",
             "dialog_empty_input": "See ei saa olla tühi sisend.",
             "directmessage_title": "DM administraatorilt %{author}:",

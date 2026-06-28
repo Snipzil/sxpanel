@@ -446,7 +446,7 @@ function StepCustomInfo({ onNext, onBack }: { onNext: () => void; onBack: () => 
             <p className="text-muted-foreground text-sm">
                 {t('panel.setup.custom.docs_prefix')}{' '}
                 <a
-                    href="https://fxpanel.org/docs/recipe"
+                    href="https://sxpanel.org/docs/recipe"
                     target="_blank"
                     rel="noreferrer"
                     className="text-primary underline"

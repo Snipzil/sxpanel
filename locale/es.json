@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Este servidor está en modo <strong>sólo administrador</strong>.",
-            "insufficient_ids": "No tiene identificadores <code>discord o fivem</code>, y al menos uno de ellos es necesario para validar si es administrador de fxPanel.",
-            "deny_message": "Sus identificadores no están asignados a ningún administrador de fxPanel."
+            "insufficient_ids": "No tiene identificadores <code>discord o fivem</code>, y al menos uno de ellos es necesario para validar si es administrador de sxPanel.",
+            "deny_message": "Sus identificadores no están asignados a ningún administrador de sxPanel."
         },
         "guild_member": {
             "mode_title": "Este servidor está en modo <strong>Lista blanca de miembros de discord</strong>.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "Menú fxPanel disponible, escribe /tx para abrirlo.\nTambien puedes configurar una asignación de teclas en [Ajustes > Asignación de teclas > FiveM > Menu: Abrir página principal].",
-            "menu_not_admin": "Tus identificadores no estan registrados en fxPanel.\nSi estas registrado en fxPanel, ve a gestor de administradores y asegurate que tus identificadores estan guardados.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "Menú sxPanel disponible, escribe /tx para abrirlo.\nTambien puedes configurar una asignación de teclas en [Ajustes > Asignación de teclas > FiveM > Menu: Abrir página principal].",
+            "menu_not_admin": "Tus identificadores no estan registrados en sxPanel.\nSi estas registrado en sxPanel, ve a gestor de administradores y asegurate que tus identificadores estan guardados.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "No tienes este permiso",
             "unknown_error": "Ha ocurrido un error.",
-            "not_enabled": "¡Menú fxPanel no está activado! Puedes activarlo en la página de ajustes de fxPanel.",
+            "not_enabled": "¡Menú sxPanel no está activado! Puedes activarlo en la página de ajustes de sxPanel.",
             "announcement_title": "Anuncio del servidor de %{author}:",
             "dialog_empty_input": "La entrada no puede estar vacía.",
             "directmessage_title": "MD de admin %{author}:",

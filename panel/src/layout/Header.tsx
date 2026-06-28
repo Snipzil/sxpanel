@@ -58,7 +58,7 @@ function ServerIdentity() {
             />
 
             <div className="min-w-0 leading-tight">
-                <p className="text-foreground truncate text-sm font-semibold">{serverName || 'fxPanel'}</p>
+                <p className="text-foreground truncate text-sm font-semibold">{serverName || 'sxPanel'}</p>
 
                 <p className="text-muted-foreground mt-0.5 truncate text-xs">
                     <span className="font-mono font-medium tabular-nums">{playerCount}</span>{' '}

@@ -3,7 +3,6 @@ import fsp from 'node:fs/promises';
 import fs from 'node:fs';
 import path from 'node:path';
 import bytes from 'bytes';
-import { skipSessionAuditAuthor } from '@lib/routineAuditGate';
 import consoleFactory from '@lib/console';
 import { chalkInversePad, getTimeFilename } from '@lib/misc';
 import type { SystemLogActionId, SystemLogCategory, SystemLogEntry } from '@shared/systemLogTypes';
@@ -164,8 +163,6 @@ export default class SystemLogger {
      * Logs a system event (with console output)
      */
     write(author: string, action: string, category: SystemLogCategory, options: SystemLogWriteOptions = {}) {
-        if (skipSessionAuditAuthor(author)) return;
-
         if (category === 'command') {
             console.log(`${author} executed ` + chalkInversePad(action));
         } else {
@@ -178,7 +175,6 @@ export default class SystemLogger {
      * Logs a system event (silent, no console output)
      */
     writeSystem(author: string, action: string, category: SystemLogCategory, options: SystemLogWriteOptions = {}) {
-        if (skipSessionAuditAuthor(author)) return;
         this._writeEntry(author, action, category, options);
     }
 

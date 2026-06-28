@@ -4,7 +4,11 @@ import {
     DeferralCustomPlaceholderSchema,
     normalizeCustomPlaceholders,
 } from './deferralCardLayoutCore';
-import { shouldResetToClassicDeferralTemplate, DEFERRAL_DEFAULT_CARD_LAYOUTS, TXADMIN_DEFERRAL_TEMPLATE_FIELDS } from './deferralCardDefaultLayouts';
+import {
+    shouldResetToClassicDeferralTemplate,
+    DEFERRAL_DEFAULT_CARD_LAYOUTS,
+    TXADMIN_DEFERRAL_TEMPLATE_FIELDS,
+} from './deferralCardDefaultLayouts';
 import { normalizeAddonDeferralScenarios } from './deferralAddonTypes';
 
 /** Single deferral card template (title, body, display toggles). */
@@ -193,7 +197,7 @@ export const DEFERRAL_SCENARIO_META: DeferralScenarioMeta[] = [
     },
 ];
 
-/** Resolves whether the fxPanel watermark logo is shown for a scenario card. */
+/** Resolves whether the sxPanel watermark logo is shown for a scenario card. */
 export function resolveDeferralScenarioShowLogo(template: DeferralCardTemplate, skin: DeferralCardsSkin): boolean {
     if (template.showLogo === false) return false;
     if (template.showLogo === true) return true;
@@ -249,7 +253,9 @@ export const DEFAULT_DEFERRAL_CARD_TEMPLATES: Record<DeferralScenarioId, Deferra
     whitelist_admin_denied: buildDefaultDeferralTemplate('whitelist_admin_denied'),
     whitelist_admin_insufficient_ids: buildDefaultDeferralTemplate('whitelist_admin_insufficient_ids'),
     whitelist_discord_member_denied: buildDefaultDeferralTemplate('whitelist_discord_member_denied'),
-    whitelist_discord_member_insufficient_ids: buildDefaultDeferralTemplate('whitelist_discord_member_insufficient_ids'),
+    whitelist_discord_member_insufficient_ids: buildDefaultDeferralTemplate(
+        'whitelist_discord_member_insufficient_ids',
+    ),
     whitelist_discord_roles_not_member: buildDefaultDeferralTemplate('whitelist_discord_roles_not_member'),
     whitelist_discord_roles_no_roles: buildDefaultDeferralTemplate('whitelist_discord_roles_no_roles'),
     whitelist_discord_roles_insufficient_ids: buildDefaultDeferralTemplate('whitelist_discord_roles_insufficient_ids'),

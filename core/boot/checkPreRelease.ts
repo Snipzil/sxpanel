@@ -6,13 +6,13 @@ const console = consoleFactory('ATTENTION');
 //@ts-ignore esbuild will replace TX_PRERELEASE_EXPIRATION with a string
 const PRERELEASE_EXPIRATION = parseInt(TX_PRERELEASE_EXPIRATION);
 
-const expiredError = ['This pre-release version has expired, please update your fxPanel.', 'Bye bye 👋'];
+const expiredError = ['This pre-release version has expired, please update your sxPanel.', 'Bye bye 👋'];
 
 const printExpirationBanner = (timeUntilExpiration: number) => {
     const timeLeft = msToDuration(timeUntilExpiration);
-    console.error('This is a pre-release version of fxPanel!');
-    console.error('This build is meant to be used by fxPanel beta testers.');
-    console.error('fxPanel will automatically shut down when this pre-release expires.');
+    console.error('This is a pre-release version of sxPanel!');
+    console.error('This build is meant to be used by sxPanel beta testers.');
+    console.error('sxPanel will automatically shut down when this pre-release expires.');
     console.error(`Time until expiration: ${chalkInversePad(timeLeft)}.`);
     console.error('For more information: https://discord.gg/6FcqBYwxH5.');
 };

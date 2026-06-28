@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Deze server is in <strong>Admin-only</strong> modus.",
-            "insufficient_ids": "Je hebt geen <code>discord</code> of <code>fivem</code> identifiers, op zijn minst is een van deze vereist om te valideren of jij een fxPanel administrator bent.",
-            "deny_message": "Jouw identifiers zijn niet gekoppeld aan een fxPanel administrator."
+            "insufficient_ids": "Je hebt geen <code>discord</code> of <code>fivem</code> identifiers, op zijn minst is een van deze vereist om te valideren of jij een sxPanel administrator bent.",
+            "deny_message": "Jouw identifiers zijn niet gekoppeld aan een sxPanel administrator."
         },
         "guild_member": {
             "mode_title": "Deze server is in <strong>Discord server Member Whitelist</strong> modus.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menu ingeschakeld, type /tx om het te openen.\nJe kan ook een keybind registreren in [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Jouw identifiers zijn niet gelijk aan degenen die in fxPanel zijn geregistreerd.\nAls je wel geregistreerd staat bij fxPanel, ga naar Admin Manager en sla je identifiers op.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel Menu ingeschakeld, type /tx om het te openen.\nJe kan ook een keybind registreren in [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Jouw identifiers zijn niet gelijk aan degenen die in sxPanel zijn geregistreerd.\nAls je wel geregistreerd staat bij sxPanel, ga naar Admin Manager en sla je identifiers op.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Je hebt hier geen permissie voor.",
             "unknown_error": "Er is een onbekende error opgetreden.",
-            "not_enabled": "Het fxPanel Menu is uitgeschakeld! Je kan hem inschakelen bij de fxPanel instellingen pagina.",
+            "not_enabled": "Het sxPanel Menu is uitgeschakeld! Je kan hem inschakelen bij de sxPanel instellingen pagina.",
             "announcement_title": "Server Mededeling door %{author}:",
             "dialog_empty_input": "Je moet iets invullen.",
             "directmessage_title": "Privé Bericht van %{author}:",

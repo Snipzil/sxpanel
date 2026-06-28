@@ -22,7 +22,7 @@ if GetCurrentResourceName() ~= 'monitor' then
 end
 
 -- =============================================
--- Command to trigger events from fxPanel (CFXBOT-compatible)
+-- Command to trigger events from sxPanel (CFXBOT-compatible)
 -- =============================================
 RegisterCommand('txaSendEvent', function(source, args)
     if source ~= 0 then return end
@@ -153,7 +153,7 @@ local function txaReportResources(source, args)
         txAdminToken = TX_LUACOMTOKEN,
         resources = resources,
     }
-    TxPrint('Sending resources list to fxPanel.')
+    TxPrint('Sending resources list to sxPanel.')
     PerformHttpRequest(url, function(httpCode, data, resultHeaders)
         local resp = tostring(data)
         if httpCode ~= 200 then
@@ -198,7 +198,7 @@ local cvHideDirectMessage = GetConvarBool('txAdmin-hideDefaultDirectMessage')
 local cvHideWarning = GetConvarBool('txAdmin-hideDefaultWarning')
 local cvHideScheduledRestartWarning = GetConvarBool('txAdmin-hideDefaultScheduledRestartWarning')
 
---- Refreshes cached notification convars after fxPanel pushes updated settings.
+--- Refreshes cached notification convars after sxPanel pushes updated settings.
 local function refreshNotificationConvars()
     txServerName = GetConvar('txAdmin-serverName', 'txAdmin')
     cvHideAdminInPunishments = GetConvarBool('txAdmin-hideAdminInPunishments')
@@ -274,7 +274,7 @@ local function requestPlayerTagChange(action, serverId, tagId)
         return false, 'tagId cannot be empty'
     end
     if TX_LUACOMHOST == 'invalid' or TX_LUACOMTOKEN == 'invalid' then
-        return false, 'fxPanel intercom is not configured'
+        return false, 'sxPanel intercom is not configured'
     end
 
     local intercomUrl = 'http://' .. TX_LUACOMHOST .. '/intercom/playerTag'
@@ -320,7 +320,7 @@ end
 
 --- Export: add a custom tag to a player (persisted in DB)
 --- @param serverId number The player's server ID (GetPlayers() returns strings — use tonumber)
---- @param tagId string The custom tag ID (must be defined in fxPanel settings)
+--- @param tagId string The custom tag ID (must be defined in sxPanel settings)
 --- @return boolean success
 exports('addPlayerTag', function(serverId, tagId)
     local ok, err = requestPlayerTagChange('add', serverId, tagId)
@@ -363,7 +363,7 @@ local function adminHasPerm(admin, permission)
     return false
 end
 
---- Export: check if a player has a specific fxPanel permission
+--- Export: check if a player has a specific sxPanel permission
 --- @param serverId number The player's server ID
 --- @param permission string The permission to check (e.g. 'players.ban', 'players.kick')
 --- @return boolean
@@ -379,7 +379,7 @@ exports('hasPermission', function(serverId, permission)
     return adminHasPerm(admin, permission)
 end)
 
---- Export: check if a player is an fxPanel admin
+--- Export: check if a player is an sxPanel admin
 --- @param serverId number The player's server ID
 --- @return boolean
 exports('isPlayerAdmin', function(serverId)
@@ -424,7 +424,7 @@ exports('getAdminPermissions', function(serverId)
     return nil
 end)
 
---- Export: kick a player through fxPanel (logs to action history)
+--- Export: kick a player through sxPanel (logs to action history)
 --- @param serverId number The admin's server ID (must have players.kick permission)
 --- @param targetId number The target player's server ID
 --- @param reason string|nil The kick reason
@@ -449,7 +449,7 @@ exports('kickPlayer', function(serverId, targetId, reason)
     return true
 end)
 
---- Export: ban a player through fxPanel (logs to action history)
+--- Export: ban a player through sxPanel (logs to action history)
 --- @param serverId number The admin's server ID (must have players.ban permission)
 --- @param targetId number The target player's server ID
 --- @param reason string|nil The ban reason
@@ -476,7 +476,7 @@ exports('banPlayer', function(serverId, targetId, reason, duration)
     return true
 end)
 
---- Export: warn a player through fxPanel (logs to action history)
+--- Export: warn a player through sxPanel (logs to action history)
 --- @param serverId number The admin's server ID (must have players.warn permission)
 --- @param targetId number The target player's server ID
 --- @param reason string|nil The warn reason
@@ -501,7 +501,7 @@ exports('warnPlayer', function(serverId, targetId, reason)
     return true
 end)
 
---- Export: send a server-wide announcement through fxPanel
+--- Export: send a server-wide announcement through sxPanel
 --- @param serverId number The admin's server ID (must have announcement permission)
 --- @param message string The announcement message
 exports('sendAnnouncement', function(serverId, message)
@@ -570,11 +570,11 @@ TX_EVENT_HANDLERS.playerKicked = function(eventData)
     if eventData.target == -1 then
         TxPrint('Kicking everyone: ' .. eventData.reason)
         for _, pid in pairs(GetPlayers()) do
-            DropPlayer(pid, '[fxPanel] ' .. eventData.dropMessage)
+            DropPlayer(pid, '[sxPanel] ' .. eventData.dropMessage)
         end
     else
         TxPrint('Kicking: #' .. eventData.target .. ': ' .. eventData.reason)
-        DropPlayer(eventData.target, '[fxPanel] ' .. eventData.dropMessage)
+        DropPlayer(eventData.target, '[sxPanel] ' .. eventData.dropMessage)
     end
 end
 
@@ -657,7 +657,7 @@ TX_EVENT_HANDLERS.playerBanned = function(eventData)
                     if searchIdentifier == playerIdentifier then
                         TxPrint('[handleBanEvent] Kicking #' .. playerID .. ': ' .. eventData.reason)
                         kickCount = kickCount + 1
-                        DropPlayer(playerID, '[fxPanel] ' .. eventData.kickMessage)
+                        DropPlayer(playerID, '[sxPanel] ' .. eventData.kickMessage)
                         found = true
                         break
                     end
@@ -678,7 +678,7 @@ TX_EVENT_HANDLERS.serverShuttingDown = function(eventData)
     TX_IS_SERVER_SHUTTING_DOWN = true
     local players = GetPlayers()
     for _, serverID in pairs(players) do
-        DropPlayer(serverID, '[fxPanel] ' .. eventData.message)
+        DropPlayer(serverID, '[sxPanel] ' .. eventData.message)
     end
 end
 
@@ -917,7 +917,7 @@ local function handleConnections(name, setKickReason, d)
     -- if server is shutting down
     if TX_IS_SERVER_SHUTTING_DOWN then
         CancelEvent()
-        setKickReason('[fxPanel] Server is shutting down, try again in a few seconds.')
+        setKickReason('[sxPanel] Server is shutting down, try again in a few seconds.')
         return
     end
 
@@ -939,7 +939,7 @@ local function handleConnections(name, setKickReason, d)
             if type(payload.adaptiveCard) == 'string' and payload.adaptiveCard ~= '' then
                 d.presentCard(payload.adaptiveCard)
             else
-                d.update('[fxPanel] Waiting in queue...')
+                d.update('[sxPanel] Waiting in queue...')
             end
         end
         local exData = {
@@ -950,13 +950,13 @@ local function handleConnections(name, setKickReason, d)
         }
         if #exData.playerIds <= 1 then
             d.done(
-                '\n[fxPanel] This server has bans or whitelisting enabled, which requires every player to have at least one identifier, but you have none.\nIf you own this server, make sure sv_lan is disabled in your server.cfg.'
+                '\n[sxPanel] This server has bans or whitelisting enabled, which requires every player to have at least one identifier, but you have none.\nIf you own this server, make sure sv_lan is disabled in your server.cfg.'
             )
             return
         end
 
         --Attempt to validate the user
-        d.update('\n[fxPanel] Checking banlist/whitelist... (0/5)')
+        d.update('\n[sxPanel] Checking banlist/whitelist... (0/5)')
         CreateThread(function()
             local attempts = 0
             local isDone = false
@@ -964,7 +964,7 @@ local function handleConnections(name, setKickReason, d)
             --Do 5 attempts (2.5 mins)
             while isDone == false and attempts < 5 do
                 attempts = attempts + 1
-                d.update('\n[fxPanel] Checking banlist/whitelist... (' .. attempts .. '/5)')
+                d.update('\n[sxPanel] Checking banlist/whitelist... (' .. attempts .. '/5)')
                 PerformHttpRequest(url, function(httpCode, rawData, resultHeaders)
                     if isDone then
                         return
@@ -1054,7 +1054,7 @@ local function handleConnections(name, setKickReason, d)
                                     end
                                 end, 'POST', json.encode(exData), { ['Content-Type'] = 'application/json' })
                             else
-                                local reason = respObj.reason or ('\n[fxPanel] ' .. translator.t('kick_messages.unknown_reason'))
+                                local reason = respObj.reason or ('\n[sxPanel] ' .. translator.t('kick_messages.unknown_reason'))
                                 d.done('\n' .. reason)
                                 isDone = true
                             end
@@ -1066,7 +1066,7 @@ local function handleConnections(name, setKickReason, d)
 
             --Block client if failed
             if not isDone then
-                d.done('\n[fxPanel] Failed to validate your banlist/whitelist status. Try again in a few minutes.')
+                d.done('\n[sxPanel] Failed to validate your banlist/whitelist status. Try again in a few minutes.')
                 isDone = true
             end
 

@@ -1,5 +1,5 @@
 //NOTE: due to the monkey patching of the console, this should be imported before anything else
-//      which means in this file you cannot import anything from inside fxPanel to prevent cyclical dependencies
+//      which means in this file you cannot import anything from inside sxPanel to prevent cyclical dependencies
 import { Console } from 'node:console';
 import { InspectOptions } from 'node:util';
 import { Writable } from 'node:stream';
@@ -234,8 +234,8 @@ export const cleanTerminal = () => {
  * Sets terminal title
  */
 export const setTTYTitle = (title?: string) => {
-    const txVers = _txAdminVersion ? `fxPanel v${_txAdminVersion}` : 'fxPanel';
-    const out = title ? `${title} - fxPanel` : txVers;
+    const txVers = _txAdminVersion ? `sxPanel v${_txAdminVersion}` : 'sxPanel';
+    const out = title ? `${title} - sxPanel` : txVers;
     process.stdout.write(`\x1B]0;${out}\x07`);
 };
 

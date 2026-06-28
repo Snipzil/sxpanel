@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel 菜单已启用，键入 /tx 以打开它。\n您也可以在 [游戏设置 > 按键绑定 > FiveM > 菜单：打开主页] 配置按键绑定。",
-            "menu_not_admin": "您的标识符与在 fxPanel 上注册的任何管理员都不匹配。\n如果您在 fxPanel 上注册，请转到管理员管理器并确保您的标识符已保存",
-            "menu_auth_failed": "fxPanel菜单身份认证失败，原因：%{reason}",
+            "help_message": "sxPanel 菜单已启用，键入 /tx 以打开它。\n您也可以在 [游戏设置 > 按键绑定 > FiveM > 菜单：打开主页] 配置按键绑定。",
+            "menu_not_admin": "您的标识符与在 sxPanel 上注册的任何管理员都不匹配。\n如果您在 sxPanel 上注册，请转到管理员管理器并确保您的标识符已保存",
+            "menu_auth_failed": "sxPanel菜单身份认证失败，原因：%{reason}",
             "no_perms": "您没有权限",
             "unknown_error": "出现未知错误。",
-            "not_enabled": "fxPanel 菜单未启用！您可以在 fxPanel 设置页面中启用它。",
+            "not_enabled": "sxPanel 菜单未启用！您可以在 sxPanel 设置页面中启用它。",
             "announcement_title": "公告%{author}：",
             "dialog_empty_input": "提交内客不能为空，请重新输入。",
             "directmessage_title": "来自管理员 %{author} 的消息:",

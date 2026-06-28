@@ -1,5 +1,4 @@
 const modulename = 'WebServer:AdminManagerGetModal';
-import { getPresetVaultLabel } from '@lib/presetRowMaterial';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 const console = consoleFactory(modulename);
@@ -79,9 +78,8 @@ export default async function AdminManagerGetModal(ctx: AuthedCtx) {
     const name = ctx.request.body.name.trim();
 
     //Get admin data
-    if (name.toLowerCase() === getPresetVaultLabel()) return ctx.send('Admin not found');
     const admin = txCore.adminStore.getAdminByName(name);
-    if (!admin || admin.passwordRevision < 0) return ctx.send('Admin not found');
+    if (!admin) return ctx.send('Admin not found');
 
     //Check if editing an master admin
     if (!ctx.admin.isMaster && admin.isMaster) {

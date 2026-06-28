@@ -6,7 +6,7 @@
 try {
     if (!IsDuplicityVersion()) throw new Error();
 } catch (error) {
-    console.log('fxPanel must be run inside FXServer in monitor mode!');
+    console.log('sxPanel must be run inside FXServer in monitor mode!');
     process.exit(999);
 }
 

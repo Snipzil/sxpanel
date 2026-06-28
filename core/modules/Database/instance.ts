@@ -125,7 +125,7 @@ export class DbInstance {
             dbo = new LowWithLodash(adapterAsync, defaultDatabase);
             await dbo.read();
         } catch (errorMain) {
-            const errTitle = 'Your fxPanel player/actions database could not be loaded.';
+            const errTitle = 'Your sxPanel player/actions database could not be loaded.';
             try {
                 await fsp.copyFile(this.backupPath, this.dbPath);
                 const adapterAsync = new JSONFile<DatabaseDataType>(this.dbPath);
@@ -172,7 +172,7 @@ export class DbInstance {
                 !Array.isArray(this.obj!.data.botCommandEvents)
             ) {
                 fatalError.Database(2, [
-                    'Your fxPanel player/actions database is corrupted!',
+                    'Your sxPanel player/actions database is corrupted!',
                     'It is missing one of the required arrays (players, actions, whitelistEntries, whitelistApplications, whitelistEvents, botCommandEvents).',
                     'If you modified the database file manually, you may try to restore it from the automatic backup file.',
                     ['Database path', this.dbPath],

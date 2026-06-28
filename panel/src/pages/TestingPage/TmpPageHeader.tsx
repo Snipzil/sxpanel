@@ -23,7 +23,7 @@ export default function TmpPageHeader() {
                 <PageHeader title="Simple + links" icon={<Settings2Icon />}>
                     <PageHeaderLinks
                         topLabel="Documentation"
-                        topLink="https://fxpanel.org/docs/"
+                        topLink="https://sxpanel.org/docs/"
                         bottomLabel="Support"
                         bottomLink="https://discord.gg/6FcqBYwxH5"
                     />
@@ -32,7 +32,7 @@ export default function TmpPageHeader() {
             <Divider />
             <Wrapper>
                 <PageHeader title="Simple + changelog" icon={<Settings2Icon />}>
-                    <PageHeaderChangelog changelogData={[{ author: 'SomeAussieGamer', keys: [], ts: 0 }]} />
+                    <PageHeaderChangelog changelogData={[{ author: 'snipz', keys: [], ts: 0 }]} />
                 </PageHeader>
             </Wrapper>
             <Divider />
@@ -42,7 +42,7 @@ export default function TmpPageHeader() {
             <Divider />
             <Wrapper>
                 <PageHeader icon={<Settings2Icon />} title="Breadcrumbs" parentName="Parent" parentLink="/parent">
-                    <PageHeaderChangelog changelogData={[{ author: 'SomeAussieGamer', keys: [], ts: 1741168243520 }]} />
+                    <PageHeaderChangelog changelogData={[{ author: 'snipz', keys: [], ts: 1741168243520 }]} />
                 </PageHeader>
             </Wrapper>
             <Divider />

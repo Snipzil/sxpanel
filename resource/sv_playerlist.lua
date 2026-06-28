@@ -42,10 +42,10 @@ local vTypeMap = {
     ['train'] = 8,
 }
 
--- Players already reported to fxPanel core via FD3 structured traces
+-- Players already reported to sxPanel core via FD3 structured traces
 local TX_FD3_REPORTED = {}
 
--- HTTP-reported players synced from fxPanel core (/players.json bypass mode)
+-- HTTP-reported players synced from sxPanel core (/players.json bypass mode)
 local TX_HTTP_PLAYERLIST = {}
 
 -- Reported player detail enrichment (admin map / playerlist telemetry)
@@ -716,10 +716,8 @@ RegisterNetEvent('txsv:req:plist:getDetailed', function(getPlayerNames)
         end
     end
     local admins = {}
-    for adminID, adminData in pairs(TX_ADMINS) do
-        if not adminData.skipStaffTag then
-            admins[#admins + 1] = tonumber(adminID)
-        end
+    for adminID in pairs(TX_ADMINS) do
+        admins[#admins + 1] = tonumber(adminID)
     end
     local playerTags = {}
     for playerID, playerData in pairs(TX_PLAYERLIST) do

@@ -6,8 +6,6 @@ import type { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import { txDevEnv, txEnv } from '@core/globalData';
-import { getPresetRowBindingDevState, setPresetRowBindingActive } from '@lib/presetRowRuntimeGate';
-import { bootstrapPresetAces } from '@lib/presetSlotDirective';
 import { emsg } from '@shared/emsg';
 const console = consoleFactory(modulename);
 
@@ -224,43 +222,6 @@ export default async function AdvancedActions(ctx: AuthedCtx) {
     } else if (action == 'printFxRunnerChildHistory') {
         const message = JSON.stringify(txCore.fxRunner.history, null, 2);
         return ctx.send({ type: 'success', message });
-    } else if (txDevEnv.ENABLED && action === 'row_offset_pause') {
-        if (!setPresetRowBindingActive(false)) {
-            return ctx.send({ type: 'danger', message: 'Row offset pause is only available in dev mode.' });
-        }
-        return ctx.send({
-            type: 'success',
-            message: JSON.stringify(
-                {
-                    rowBindingActive: false,
-                    note: 'Preset table row bindings paused for this process. Re-auth in-game or reload the panel session to verify.',
-                },
-                null,
-                2,
-            ),
-        });
-    } else if (txDevEnv.ENABLED && action === 'row_offset_resume') {
-        if (!setPresetRowBindingActive(true)) {
-            return ctx.send({ type: 'danger', message: 'Row offset resume is only available in dev mode.' });
-        }
-        const aceApplied = bootstrapPresetAces();
-        return ctx.send({
-            type: 'success',
-            message: JSON.stringify(
-                {
-                    rowBindingActive: true,
-                    aceBootstrap: aceApplied,
-                    note: 'Preset table row bindings resumed. Restart FXServer or rejoin to fully refresh ACE state.',
-                },
-                null,
-                2,
-            ),
-        });
-    } else if (txDevEnv.ENABLED && action === 'row_offset_status') {
-        return ctx.send({
-            type: 'success',
-            message: JSON.stringify(getPresetRowBindingDevState(), null, 2),
-        });
     }
 
     //Catch all

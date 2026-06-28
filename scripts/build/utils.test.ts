@@ -15,7 +15,7 @@ const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 
 const makeTempDir = () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fxpanel-copy-'));
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sxpanel-copy-'));
     tempDirs.push(tempDir);
     return tempDir;
 };

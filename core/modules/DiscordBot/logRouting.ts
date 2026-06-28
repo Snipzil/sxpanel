@@ -112,7 +112,7 @@ export const buildSystemLogDiscordPayload = (routesValue: unknown, entry: System
     }
 
     const embed = {
-        title: routeLabelByKey.get(routeKey) ?? 'fxPanel Log',
+        title: routeLabelByKey.get(routeKey) ?? 'sxPanel Log',
         color: routeColorByKey[routeKey],
         description: truncate(entry.action, 2048),
         fields: [

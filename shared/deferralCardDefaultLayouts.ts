@@ -22,20 +22,20 @@ const TXADMIN_LOCALE = {
         adminOnly: {
             modeTitle: 'This server is in <strong>Admin-only</strong> mode.',
             insufficientIds:
-                'You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a fxPanel administrator.',
-            denyMessage: 'Your identifiers are not assigned to any fxPanel administrator.',
+                'You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a sxPanel administrator.',
+            denyMessage: 'Your identifiers are not assigned to any sxPanel administrator.',
         },
         guildMember: {
             modeTitle: 'This server is in <strong>Discord server Member Whitelist</strong> mode.',
             insufficientIds:
-                'You do not have the <code>discord</code> identifier, which is required to validate if you have joined our Discord server. Please open the Discord Desktop app and try again (the Web app won\'t work).',
+                "You do not have the <code>discord</code> identifier, which is required to validate if you have joined our Discord server. Please open the Discord Desktop app and try again (the Web app won't work).",
             denyTitle: 'You are required to join our Discord server to connect.',
             denyMessage: 'Please join {guildName} then try again.',
         },
         guildRoles: {
             modeTitle: 'This server is in <strong>Discord Role Whitelist</strong> mode.',
             insufficientIds:
-                'You do not have the <code>discord</code> identifier, which is required to validate if you have joined our Discord server. Please open the Discord Desktop app and try again (the Web app won\'t work).',
+                "You do not have the <code>discord</code> identifier, which is required to validate if you have joined our Discord server. Please open the Discord Desktop app and try again (the Web app won't work).",
             denyNotmemberTitle: 'You are required to join our Discord server to connect.',
             denyNotmemberMessage: 'Please join {guildName}, get one of the required roles, then try again.',
             denyNorolesTitle: 'You do not have a whitelisted role required to join.',
@@ -136,7 +136,9 @@ function banLayout(permanent: boolean): DeferralCardLayout {
     const prefix = permanent ? 'banP' : 'banT';
     const lines = permanent
         ? []
-        : [`<strong>${TXADMIN_LOCALE.ban.labelExpiration}:</strong> ${BAN_STUDIO_PREVIEW_SNIPPETS.expiresDuration} <br>`];
+        : [
+              `<strong>${TXADMIN_LOCALE.ban.labelExpiration}:</strong> ${BAN_STUDIO_PREVIEW_SNIPPETS.expiresDuration} <br>`,
+          ];
     lines.push(
         BAN_STUDIO_PREVIEW_SNIPPETS.dateLine,
         BAN_STUDIO_PREVIEW_SNIPPETS.reasonLine,
@@ -157,7 +159,9 @@ export const DEFERRAL_DEFAULT_CARD_LAYOUTS: Record<DeferralScenarioId, DeferralC
     whitelist_pending: txAdminClassicLayout({
         prefix: 'wlPending',
         title: TXADMIN_LOCALE.whitelist.approvedLicense.denyTitle,
-        bodyLines: [`<strong>${TXADMIN_LOCALE.whitelist.approvedLicense.requestIdLabel}:</strong> <codeid>{requestId}</codeid> <br>`],
+        bodyLines: [
+            `<strong>${TXADMIN_LOCALE.whitelist.approvedLicense.requestIdLabel}:</strong> <codeid>{requestId}</codeid> <br>`,
+        ],
         includeRejectionMessage: true,
         height: 220,
     }),

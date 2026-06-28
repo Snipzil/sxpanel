@@ -1,5 +1,5 @@
 {
-    "name": "fxpanel-shared",
+    "name": "sxpanel-shared",
     "version": "0.4.0-Beta",
     "description": "The shared package contains stuff used in more than one package, no build step required.",
     "type": "module",
@@ -10,7 +10,7 @@
         "license:report": "npx license-report > ../.reports/license/shared.html"
     },
     "keywords": [],
-    "author": "SomeAussieGamer",
+    "author": "snipz",
     "license": "MIT",
     "dependencies": {
         "zod": "^4.3.6"

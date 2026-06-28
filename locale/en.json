@@ -38,8 +38,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "This server is in <strong>Admin-only</strong> mode.",
-            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a fxPanel administrator.",
-            "deny_message": "Your identifiers are not assigned to any fxPanel administrator."
+            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a sxPanel administrator.",
+            "deny_message": "Your identifiers are not assigned to any sxPanel administrator."
         },
         "guild_member": {
             "mode_title": "This server is in <strong>Discord server Member Whitelist</strong> mode.",
@@ -78,16 +78,16 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menu enabled, type /tx to open it.\nYou can also configure a keybind at [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Your identifiers do not match any admin registered on fxPanel.\nIf you are registered on fxPanel, go to Admin Manager and make sure your identifiers are saved.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel Menu enabled, type /tx to open it.\nYou can also configure a keybind at [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Your identifiers do not match any admin registered on sxPanel.\nIf you are registered on sxPanel, go to Admin Manager and make sure your identifiers are saved.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "two_factor_required": "Two-factor authentication is required. Enable 2FA in the web panel Account settings before using the in-game menu.",
             "temp_password_required": "You must change your temporary password in the web panel before using the in-game menu.",
             "no_perms": "You do not have this permission.",
             "no_perms_action": "You do not have permission to %{action} players.",
             "usage_action": "Usage: /%{action} [playerID]",
             "unknown_error": "An unknown error occurred.",
-            "not_enabled": "The fxPanel Menu is not enabled! You can enable it in the fxPanel settings page.",
+            "not_enabled": "The sxPanel Menu is not enabled! You can enable it in the sxPanel settings page.",
             "announcement_title": "Server Announcement by %{author}:",
             "directmessage_title": "DM from admin %{author}:",
             "dialog_empty_input": "You cannot have an empty input.",
@@ -114,7 +114,7 @@
             "vehicle_spawn": "Vehicle: Spawn"
         },
         "chat": {
-            "tx_description": "Opens the main fxPanel Menu or specific page for a player.",
+            "tx_description": "Opens the main sxPanel Menu or specific page for a player.",
             "tx_arg_help": "(Optional) Open player modal for specific ID or name.",
             "tx_reauth": "Retries to authenticate the menu NUI.",
             "goto_description": "Teleport to a player by their server ID.",
@@ -458,7 +458,7 @@
     "discord_bot": {
         "common": {
             "could_not_resolve_user": "Could not resolve the Discord user for this command.",
-            "no_fxpanel_access": "**Your account does not have fxPanel access.**\nIf you are already registered in fxPanel, make sure your Discord ID is set to `%{requesterId}`.",
+            "no_sxpanel_access": "**Your account does not have sxPanel access.**\nIf you are already registered in sxPanel, make sure your Discord ID is set to `%{requesterId}`.",
             "invalid_identifier": "Invalid identifier.",
             "invalid_server_id": "Invalid server ID.",
             "subcommand_not_found": "Subcommand %{subcommand} not found.",
@@ -483,7 +483,7 @@
                 "change_failed": "Player list page change failed: %{message}"
             },
             "ticket": {
-                "assign_prompt": "Select the linked fxPanel admin that should own this ticket.",
+                "assign_prompt": "Select the linked sxPanel admin that should own this ticket.",
                 "assign_placeholder": "Choose a staff member",
                 "invalid_request": "Invalid ticket interaction request.",
                 "no_updated_payload": "No updated ticket payload was returned.",
@@ -524,8 +524,8 @@
         },
         "player_lookup": {
             "lookup_failed": "Player lookup failed: %{message}",
-            "no_players_found": "Identifier (`%{searchId}`) does not seem to be associated to any player in the fxPanel database.",
-            "too_many_players": "The identifier (`%{searchId}`) is associated with more than 10 players, please use the fxPanel web panel to search for it.",
+            "no_players_found": "Identifier (`%{searchId}`) does not seem to be associated to any player in the sxPanel database.",
+            "too_many_players": "The identifier (`%{searchId}`) is associated with more than 10 players, please use the sxPanel web panel to search for it.",
             "fields": {
                 "play_time": "Play time",
                 "join_date": "Join date",
@@ -636,7 +636,7 @@
                     "assigned_note": "Assigned to **%{adminName}**.",
                     "unassigned_note": "This ticket is now unassigned.",
                     "assign_missing_member": "Choose a Discord member to assign the ticket to.",
-                    "assign_unlinked_member": "That Discord account is not linked to an fxPanel admin, so it cannot own ticket assignments.",
+                    "assign_unlinked_member": "That Discord account is not linked to an sxPanel admin, so it cannot own ticket assignments.",
                     "assignment_title": "Ticket Assignment · %{ticketId}",
                     "already_assigned_note": "This ticket is already assigned to **%{adminName}**.",
                     "assign_failed": "Failed to assign ticket `%{ticketId}`.",
@@ -662,16 +662,16 @@
         "moderation": {
             "access": {
                 "could_not_resolve_user": "Could not resolve the Discord user for this command.",
-                "no_access": "**Your account does not have fxPanel access.**\nIf you are already registered in fxPanel, make sure your Discord ID is set to `%{requesterId}`.",
-                "missing_permission": "Your linked fxPanel account does not have the \"%{permissionLabel}\" permission required for this action.",
-                "missing_permission_mapped": "Your linked fxPanel account and mapped Discord role presets do not have the \"%{permissionLabel}\" permission required for this action.",
+                "no_access": "**Your account does not have sxPanel access.**\nIf you are already registered in sxPanel, make sure your Discord ID is set to `%{requesterId}`.",
+                "missing_permission": "Your linked sxPanel account does not have the \"%{permissionLabel}\" permission required for this action.",
+                "missing_permission_mapped": "Your linked sxPanel account and mapped Discord role presets do not have the \"%{permissionLabel}\" permission required for this action.",
                 "discord_role_missing_permission": "Your Discord roles do not grant the \"%{permissionLabel}\" permission required for this action."
             },
             "target": {
                 "invalid_identifier": "Invalid identifier.",
                 "invalid_server_id": "Invalid server ID.",
                 "server_id_not_resolved": "Server ID (`%{serverId}`) could not be resolved from the current playerlist. %{message}",
-                "no_player_match": "Identifier (`%{searchId}`) does not seem to be associated with any player in the fxPanel database.",
+                "no_player_match": "Identifier (`%{searchId}`) does not seem to be associated with any player in the sxPanel database.",
                 "multiple_players": "Identifier (`%{searchId}`) matches multiple players. Use a more specific identifier, preferably a license.",
                 "multiple_players_more": "...and %{count} more.",
                 "invalid_license": "This player does not have a valid license identifier."
@@ -724,7 +724,7 @@
         },
         "status_message": {
             "defaults": {
-                "configurable_embed_description": "You can configure this embed in `fxPanel > Settings > Discord Bot`.",
+                "configurable_embed_description": "You can configure this embed in `sxPanel > Settings > Discord Bot`.",
                 "fields": {
                     "status": "STATUS",
                     "players": "PLAYERS",
@@ -735,7 +735,7 @@
                 },
                 "buttons": {
                     "connect": "Connect",
-                    "community": "fxPanel Discord",
+                    "community": "sxPanel Discord",
                     "server_page": "Server Page"
                 },
                 "values": {
@@ -745,7 +745,7 @@
             },
             "errors": {
                 "invalid_url_details": "Every URL must start with one of (`http://`, `https://`, `discord://`).\nURLs cannot be empty, if you do not want a URL then remove the URL line.",
-                "invalid_placeholder_details": "Your URL starts with `{{`, try removing it.\nIf you just tried to edit a placeholder like `{{serverBrowserUrl}}` or `{{serverJoinUrl}}`, remember that those placeholders are replaced automatically by fxPanel, meaning you do not need to edit them at all.",
+                "invalid_placeholder_details": "Your URL starts with `{{`, try removing it.\nIf you just tried to edit a placeholder like `{{serverBrowserUrl}}` or `{{serverJoinUrl}}`, remember that those placeholders are replaced automatically by sxPanel, meaning you do not need to edit them at all.",
                 "invalid_emoji_details": "All emojis must be one of:\n- UTF-8 emoji ('😄')\n- Valid emoji ID ('1062339910654246964')\n- Discord custom emoji (`<:name:id>` or `<a:name:id>`).\nTo get the full emoji code, insert it into discord, and add `\\` before it then send the message",
                 "invalid_url": "Invalid URL `%{url}`.",
                 "empty_url": "Empty URL.",
@@ -1169,9 +1169,9 @@
                 "discord": "Discord",
                 "logged_out": "Logged out.",
                 "session_expired": "Session expired.",
-                "updated_relogin": "fxPanel updated — please sign in again.",
+                "updated_relogin": "sxPanel updated — please sign in again.",
                 "master_already_set": "Master account already configured.",
-                "shutdown": "fxPanel server shut down.\nStart it again to sign in.",
+                "shutdown": "sxPanel server shut down.\nStart it again to sign in.",
                 "discord_id": "Discord ID",
                 "backup_password": "Backup Password",
                 "confirm_password": "Confirm Password"
@@ -1194,7 +1194,7 @@
                     "terms_prefix": "I have read and agree to the",
                     "terms_creator_pla": "Creator PLA",
                     "terms_and": "as well as the",
-                    "terms_fxpanel_license": "fxPanel License",
+                    "terms_sxpanel_license": "sxPanel License",
                     "register": "Register",
                     "first_time_setup": "First-time setup",
                     "authenticating": "Authenticating...",
@@ -1271,7 +1271,7 @@
                 "title": "Custom Template",
                 "description": "You will be able to paste or write your own recipe YAML in the deployer editor on the next page.",
                 "docs_prefix": "For recipe documentation and examples, check the",
-                "docs_link": "fxPanel docs",
+                "docs_link": "sxPanel docs",
                 "next": "Next"
             },
             "deploy_target": {
@@ -1405,7 +1405,7 @@
         },
         "system_log_page": {
             "title": "Console Log",
-            "description": "Raw fxPanel process output, including startup and debug messages.",
+            "description": "Raw sxPanel process output, including startup and debug messages.",
             "stream_title": "Captured terminal stream",
             "loading": "Loading…",
             "fetch_error": "Error fetching %{title}:",
@@ -1611,7 +1611,7 @@
                 },
                 "logo": {
                     "label": "Watermark logo",
-                    "description": "fxPanel logo (respects global logo toggle)",
+                    "description": "sxPanel logo (respects global logo toggle)",
                     "default_content": ""
                 },
                 "custom_image": {
@@ -1729,7 +1729,7 @@
             "general": {
                 "server_name": {
                     "label": "Server Name",
-                    "desc": "A short server name to be used in the fxPanel interface and Server/Discord messages.",
+                    "desc": "A short server name to be used in the sxPanel interface and Server/Discord messages.",
                     "desc_length": "The name must be between 1 and 18 characters.",
                     "placeholder": "Example RP"
                 },
@@ -1757,7 +1757,7 @@
             "bans": {
                 "checking_label": "Ban Checking",
                 "checking_desc": "Enable checking for ban status on player join.",
-                "checking_note": "fxPanel bans will not work if this option is disabled.",
+                "checking_note": "sxPanel bans will not work if this option is disabled.",
                 "note_label": "Note:",
                 "templates_label": "Ban Templates",
                 "edit_templates": "Edit Ban Templates",
@@ -1889,7 +1889,7 @@
                 "clean_success": "Players deleted: %{players}\nActions deleted: %{actions}\nHWIDs deleted: %{hwids}\nFinished in %{ms}ms.",
                 "revoke_success": "Whitelists revoked: %{count}\nFinished in %{ms}ms.",
                 "telemetry_title": "Anonymous usage data",
-                "telemetry_desc": "When collection is enabled, fxPanel periodically sends anonymous install statistics (panel version, player slot usage, coarse region, resource folder names). No player names, licenses, or chat content are transmitted.",
+                "telemetry_desc": "When collection is enabled, sxPanel periodically sends anonymous install statistics (panel version, player slot usage, coarse region, resource folder names). No player names, licenses, or chat content are transmitted.",
                 "telemetry_opt_out_label": "Opt out of data collection",
                 "telemetry_opted_out": "Opted out",
                 "telemetry_collecting": "Collecting"
@@ -1983,13 +1983,13 @@
                     "serverClients": "The number of players online in your server.",
                     "serverMaxClients": "The sv_maxclients of your server, detected at runtime.",
                     "serverOccupancyPercent": "The current player occupancy percentage, including the % suffix.",
-                    "serverName": "This is the fxPanel-given name for this server. Can be changed in fxPanel > Settings > Global.",
+                    "serverName": "This is the sxPanel-given name for this server. Can be changed in sxPanel > Settings > Global.",
                     "statusColor": "A hex-encoded color, from the Config JSON.",
                     "statusString": "A text to be displayed with the server status, from the Config JSON.",
                     "uptime": "For how long is the server online. Example: 1 hr, 50 mins.",
                     "nextScheduledRestart": "String with when is the next scheduled restart. Example: in 2 hrs, 48 mins.",
-                    "recentJoinCount": "How many player joins were recorded in the recent rolling window tracked by fxPanel.",
-                    "recentLeaveCount": "How many player leaves were recorded in the recent rolling window tracked by fxPanel.",
+                    "recentJoinCount": "How many player joins were recorded in the recent rolling window tracked by sxPanel.",
+                    "recentLeaveCount": "How many player leaves were recorded in the recent rolling window tracked by sxPanel.",
                     "playerList": "A multiline rendered player list for the current page using the player line template from the Config JSON.",
                     "playerListColumns": "Expands a single embed field into compact inline roster columns for the current player-list page.",
                     "playerListInline": "A compact rendered player list for the current page using the inline player template from the Config JSON.",
@@ -2001,15 +2001,15 @@
                 "player_placeholders": {
                     "index": "1-based player position in the rendered list.",
                     "netid": "The player network id.",
-                    "displayName": "The current display name shown in the fxPanel player list.",
+                    "displayName": "The current display name shown in the sxPanel player list.",
                     "pureName": "The raw player name before tag decorations.",
                     "license": "The player license identifier.",
-                    "playTimeMinutes": "The player playtime stored by fxPanel, in minutes.",
-                    "playTime": "A human-readable version of the player playtime stored by fxPanel. Example: 48 mins.",
+                    "playTimeMinutes": "The player playtime stored by sxPanel, in minutes.",
+                    "playTime": "A human-readable version of the player playtime stored by sxPanel. Example: 48 mins.",
                     "sessionTimeSeconds": "How many seconds the player has been connected in the current server session.",
                     "sessionTimeMinutes": "How many minutes the player has been connected in the current server session.",
                     "sessionTime": "A human-readable session duration for the player. Example: 1 hr, 16 mins.",
-                    "tags": "The player tags computed by fxPanel, joined by commas."
+                    "tags": "The player tags computed by sxPanel, joined by commas."
                 }
             },
             "whitelist": {
@@ -2023,7 +2023,7 @@
                     },
                     "auto_admin": {
                         "title": "Admin-only (maintenance)",
-                        "desc": "Only fxPanel administrators with linked fivem/discord identifiers may join."
+                        "desc": "Only sxPanel administrators with linked fivem/discord identifiers may join."
                     },
                     "auto_discord_member": {
                         "title": "Discord server member",
@@ -2039,7 +2039,7 @@
                     },
                     "external_whitelist": {
                         "title": "External whitelist",
-                        "desc": "fxPanel does not block joins — use your own allowlist resource or service. Server browser padlock and instructions apply while this mode is selected."
+                        "desc": "sxPanel does not block joins — use your own allowlist resource or service. Server browser padlock and instructions apply while this mode is selected."
                     }
                 },
                 "browser_instructions_label": "Allowlist instructions",
@@ -2144,7 +2144,7 @@
                 "field_priority": "Priority",
                 "hud_color": "HUD %{index}",
                 "add_tag": "Add Tag",
-                "auto_tag_staff": "Shown on anyone who has an fxPanel admin account.",
+                "auto_tag_staff": "Shown on anyone who has an sxPanel admin account.",
                 "auto_tag_problematic": "Shown on anyone with an active (non-revoked) ban or warning.",
                 "auto_tag_newplayer": "Shown on anyone with less than the threshold minutes of total playtime.",
                 "discord_roles_label": "Discord Roles",
@@ -2283,7 +2283,7 @@
                 "onesync_desc": "Most servers should be using OneSync On.",
                 "onesync_deprecated": "The other options are considered deprecated and should not be used unless you know what you're doing. For more information, please read the documentation.",
                 "autostart_label": "Autostart",
-                "autostart_desc": "Start the server automatically after fxPanel starts.",
+                "autostart_desc": "Start the server automatically after sxPanel starts.",
                 "resource_tolerance_label": "Resource Starting Tolerance",
                 "resource_tolerance_90": "1.5 minutes (default)",
                 "resource_tolerance_180": "3 minutes",
@@ -2292,7 +2292,7 @@
                 "resource_tolerance_desc": "At server boot, how much time to wait for any single resource to start before restarting the server.",
                 "resource_tolerance_note": "If you are getting failed to start in time errors, increase this value.",
                 "disable_health_check_label": "Disable HTTP health check",
-                "disable_health_check_desc": "When enabled, fxPanel does not use the game HTTP API for server status or player list polling.",
+                "disable_health_check_desc": "When enabled, sxPanel does not use the game HTTP API for server status or player list polling.",
                 "disable_health_check_note": "When off, player counts are read from the game port, the optional host override below, and the public server listing.",
                 "http_playerlist_host_label": "HTTP playerlist host override",
                 "http_playerlist_host_desc": "Optional host:port for the player HTTP endpoint when it is not reachable on localhost (e.g. public connect address). Leave empty to auto-detect.",
@@ -2317,7 +2317,7 @@
                 "toast_onesync_args_msg": "Please use the selectbox below it.",
                 "reset_dialog_title": "Reset Server Data Path",
                 "reset_dialog_confirm": "Are you sure you want to reset the server data path?",
-                "reset_dialog_no_delete": "This will not delete any resource files or database, but just reset the fxPanel configuration, allowing you to go back to the Setup page.",
+                "reset_dialog_no_delete": "This will not delete any resource files or database, but just reset the sxPanel configuration, allowing you to go back to the Setup page.",
                 "reset_dialog_restore": "If you want, you can set the path back to the current value later.",
                 "reset_dialog_warning": "take note of the current path before proceeding, so you can set it back later if you need to. Current path:",
                 "reset_loading": "Resetting server data path..."
@@ -2349,7 +2349,7 @@
                 "presence_text_placeholder": "[{playerCount}/{maxPlayers}] on {serverName}",
                 "presence_text_desc": "Supports {playerCount}, {maxPlayers}, {serverName}, and {uptime} placeholders.",
                 "presence_interval_label": "Refresh Interval (seconds)",
-                "presence_interval_desc": "Controls how often the bot refreshes the live activity text from fxPanel.",
+                "presence_interval_desc": "Controls how often the bot refreshes the live activity text from sxPanel.",
                 "presence_status_online": "Online",
                 "presence_status_idle": "Idle",
                 "presence_status_dnd": "Do Not Disturb",
@@ -2369,10 +2369,10 @@
                 "mapping_preset_placeholder": "Select a permission preset",
                 "mapping_preset_unassigned": "Select a permission preset",
                 "mapping_preset_desc": "Matching Discord roles sync this preset's permissions onto linked admin accounts.",
-                "mapping_empty": "No role mappings configured. Add one to grant fxPanel permission presets to Discord roles.",
+                "mapping_empty": "No role mappings configured. Add one to grant sxPanel permission presets to Discord roles.",
                 "mapping_no_presets": "No permission presets are available yet. Create one in Admin Manager before saving role mappings here.",
                 "add_mapping": "Add Mapping",
-                "role_mapping_desc": "Link Discord roles to fxPanel permission presets for linked admins. If an admin matches multiple mappings, all matched preset permissions are merged and synced onto their admin account.",
+                "role_mapping_desc": "Link Discord roles to sxPanel permission presets for linked admins. If an admin matches multiple mappings, all matched preset permissions are merged and synced onto their admin account.",
                 "status_embed_label": "Status Embed",
                 "edit_status_embed": "Edit status embed",
                 "edit_player_list_embed": "Edit player list embed",
@@ -2905,7 +2905,7 @@
             }
         },
         "account": {
-            "welcome_title": "Welcome to fxPanel!",
+            "welcome_title": "Welcome to sxPanel!",
             "your_account": "Your Account - %{name}",
             "tabs": {
                 "password": "Password",
@@ -2916,7 +2916,7 @@
             "password": {
                 "temp_warning": "Your account has a temporary password that needs to be changed before you can use this web panel.",
                 "temp_note": "Make sure to take note of your new password before saving.",
-                "description": "You can use your password to login to the fxPanel interface even without using the Cfx.re login button.",
+                "description": "You can use your password to login to the sxPanel interface even without using the Cfx.re login button.",
                 "current_label": "Current Password",
                 "current_placeholder": "Enter current password",
                 "new_label": "New Password",
@@ -3036,11 +3036,11 @@
             },
             "settings_write": {
                 "label": "Settings: Change",
-                "description": "Modify fxPanel settings."
+                "description": "Modify sxPanel settings."
             },
             "txadmin_log_view": {
                 "label": "View System Logs",
-                "description": "View fxPanel system and admin action logs."
+                "description": "View sxPanel system and admin action logs."
             },
             "console_view": {
                 "label": "Console: View",
@@ -3183,12 +3183,12 @@
             },
             "warning_bar": {
                 "socket_lost_title": "Socket connection lost.",
-                "socket_lost_desc": "The connection to the fxPanel server has been lost.",
+                "socket_lost_desc": "The connection to the sxPanel server has been lost.",
                 "socket_lost_restart": "If you closed FXServer, please restart it.",
                 "postpone": "Postpone",
                 "download": "Download",
-                "tx_outdated_title": "This version of fxPanel is outdated.",
-                "tx_patch_title": "A patch (bug fix) update is available for fxPanel.",
+                "tx_outdated_title": "This version of sxPanel is outdated.",
+                "tx_patch_title": "A patch (bug fix) update is available for sxPanel.",
                 "tx_outdated_desc": "Version v%{version} has been released bringing new features, bug fixes and improvements.",
                 "tx_patch_desc": "If you are experiencing any kind of issue, please update to v%{version}.",
                 "fx_outdated_title": "This version of FXServer is outdated.",
@@ -3236,7 +3236,7 @@
             },
             "system_command": {
                 "label": "Panel Command Logs",
-                "description": "Log server control commands and live console commands executed through fxPanel."
+                "description": "Log server control commands and live console commands executed through sxPanel."
             },
             "system_login": {
                 "label": "Login Logs",
@@ -3244,7 +3244,7 @@
             },
             "system_config": {
                 "label": "Config Change Logs",
-                "description": "Log configuration changes saved through fxPanel."
+                "description": "Log configuration changes saved through sxPanel."
             },
             "system_monitor": {
                 "label": "Monitor Logs",
@@ -3256,7 +3256,7 @@
             },
             "system_system": {
                 "label": "System Logs",
-                "description": "Log other fxPanel system events that do not fall into a more specific category."
+                "description": "Log other sxPanel system events that do not fall into a more specific category."
             },
             "server_menu": {
                 "label": "Admin Command Logs",
@@ -3265,7 +3265,7 @@
         },
         "system_log": {
             "advanced_profile_monitor": {
-                "label": "Profile fxPanel Instance"
+                "label": "Profile sxPanel Instance"
             },
             "admin_presets_save": {
                 "label": "Save Permission Presets"

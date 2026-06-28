@@ -187,7 +187,7 @@ const generateEmbedMessage = (
             includePlayerListPager: options?.includePlayerListPager,
             defaultFooter: {
                 icon_url: defaultFooterIconUrl,
-                text: `fxPanel ${txEnv.txaVersion} • ${t('footer_updated_every_minute')}`,
+                text: `sxPanel ${txEnv.txaVersion} • ${t('footer_updated_every_minute')}`,
             },
         },
     });

@@ -113,7 +113,7 @@ export const AddonManifestSchema = z.object({
     license: z.string().optional(),
 
     // Compatibility
-    fxpanel: z.object({
+    sxpanel: z.object({
         minVersion: z.string(),
         maxVersion: z.string().optional(),
     }),
@@ -339,7 +339,7 @@ export interface AddonPanelDescriptor {
     id: string;
     name: string;
     version: string;
-    fxpanelMinVersion: string;
+    sxpanelMinVersion: string;
     entryUrl: string;
     stylesUrl: string | null;
     pages: z.infer<typeof AddonPageSchema>[];

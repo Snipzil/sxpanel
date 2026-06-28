@@ -7,7 +7,7 @@ import { getConfiguredServerIconPath } from './fxsConfigHelper';
 const tempDirs: string[] = [];
 
 const createServerDataPath = async () => {
-    const serverDataPath = await fsp.mkdtemp(path.join(os.tmpdir(), 'fxpanel-server-icon-'));
+    const serverDataPath = await fsp.mkdtemp(path.join(os.tmpdir(), 'sxpanel-server-icon-'));
     tempDirs.push(serverDataPath);
     return serverDataPath;
 };

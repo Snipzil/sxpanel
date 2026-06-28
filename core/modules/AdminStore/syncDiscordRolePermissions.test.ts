@@ -58,7 +58,7 @@ suite('AdminStore.syncAdminDiscordRolePermissions', () => {
     it('clears synced Discord role permissions when sync data is removed', async () => {
         const store = makeStore();
         store.admins[0].permissions = ['players.warn', 'players.kick'];
-        store.admins[0].providers.discord!.data.fxpanelRoleSync = {
+        store.admins[0].providers.discord!.data.sxpanelRoleSync = {
             permissions: ['players.kick'],
             presetIds: ['custom:supporter'],
             roleIds: ['role-moderator'],
@@ -76,7 +76,7 @@ suite('AdminStore.syncAdminDiscordRolePermissions', () => {
     it('replaces previously synced permissions without dropping manual permissions', async () => {
         const store = makeStore();
         store.admins[0].permissions = ['players.warn', 'players.kick'];
-        store.admins[0].providers.discord!.data.fxpanelRoleSync = {
+        store.admins[0].providers.discord!.data.sxpanelRoleSync = {
             permissions: ['players.kick'],
             presetIds: ['custom:supporter'],
             roleIds: ['role-moderator'],
@@ -101,7 +101,7 @@ suite('AdminStore.syncAdminDiscordRolePermissions', () => {
     it('preserves synced role permissions when editing a linked admin', async () => {
         const store = makeStore();
         store.admins[0].permissions = ['players.warn', 'players.kick'];
-        store.admins[0].providers.discord!.data.fxpanelRoleSync = {
+        store.admins[0].providers.discord!.data.sxpanelRoleSync = {
             permissions: ['players.kick'],
             presetIds: ['custom:supporter'],
             roleIds: ['role-moderator'],
@@ -131,7 +131,7 @@ suite('AdminStore.syncAdminDiscordRolePermissions', () => {
     it('does not rewrite admins.json when the sync data is unchanged', async () => {
         const store = makeStore();
         store.admins[0].permissions = ['players.warn', 'players.kick'];
-        store.admins[0].providers.discord!.data.fxpanelRoleSync = {
+        store.admins[0].providers.discord!.data.sxpanelRoleSync = {
             permissions: ['players.kick'],
             presetIds: ['custom:supporter'],
             roleIds: ['role-moderator'],

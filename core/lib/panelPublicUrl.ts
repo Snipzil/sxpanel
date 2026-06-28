@@ -6,7 +6,7 @@ const PANEL_PUBLIC_URL_CACHE_KEY = 'stats:panelPublicUrl';
 const PANEL_CFX_URL_CACHE_KEY = 'stats:panelUrlCfx';
 const PANEL_CFX_URL_MISS_KEY = 'stats:panelUrlCfxMiss';
 
-const PANEL_URL_HINT = /txadmin|fivem-server\.net|fxpanel/i;
+const PANEL_URL_HINT = /txadmin|fivem-server\.net|sxpanel/i;
 const IPV4_HOST = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
 export const normalizePanelUrl = (raw: string) => {
@@ -120,7 +120,7 @@ const resolveIpFallbackPanelUrl = (): string | undefined => {
 };
 
 /**
- * Resolves the best-known public fxPanel URL for telemetry and dashboards.
+ * Resolves the best-known public sxPanel URL for telemetry and dashboards.
  *
  * Priority:
  * 1. TXHOST_TXA_URL (set by host / GSP — e.g. txadmin-*.fivem-server.net)

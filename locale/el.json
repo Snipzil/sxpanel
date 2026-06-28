@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Ο διακομιστής βρίσκεται σε <strong>Admin-only</strong> mode.",
-            "insufficient_ids": "Δεν έχεις <code>discord</code> or <code>fivem</code> identifiers, και τουλάχιστον ένα από αυτά απαιτείται για επικύρωση εάν είστε διαχειριστής στο fxPanel.",
-            "deny_message": "Τα identifiers σου δεν σχετίζονται με κάποιον fxPanel administrator."
+            "insufficient_ids": "Δεν έχεις <code>discord</code> or <code>fivem</code> identifiers, και τουλάχιστον ένα από αυτά απαιτείται για επικύρωση εάν είστε διαχειριστής στο sxPanel.",
+            "deny_message": "Τα identifiers σου δεν σχετίζονται με κάποιον sxPanel administrator."
         },
         "guild_member": {
             "mode_title": "Ο διακομιστής βρίσκεται σε <strong>Discord server Member Whitelist</strong> mode.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "To fxPanel Menu ενεργοποιήθηκε, πληκτρολόγησε /tx για να το ανοίξεις.\nΕπίσης μπορείς να καθορίσεις και keybind [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Τα αναγνωριστικά σου δεν ταιρίαζουν με αυτά κάποιου δηλωμένου Admin στο fxPanel.\nΕαν είσαι δηλωμένος στο fxPanel, πήγαινε στο Admin Manager και επιβεβαίωσε ότι τα αναγνωριστικά σου έχουν αποθηκευτεί.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "To sxPanel Menu ενεργοποιήθηκε, πληκτρολόγησε /tx για να το ανοίξεις.\nΕπίσης μπορείς να καθορίσεις και keybind [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Τα αναγνωριστικά σου δεν ταιρίαζουν με αυτά κάποιου δηλωμένου Admin στο sxPanel.\nΕαν είσαι δηλωμένος στο sxPanel, πήγαινε στο Admin Manager και επιβεβαίωσε ότι τα αναγνωριστικά σου έχουν αποθηκευτεί.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Δεν έχεις αυτή την άδεια",
             "unknown_error": "Προκλήθηκε ένα άγνωστο σφάλμα.",
-            "not_enabled": "Tο fxPanel Menu δεν είναι ενεργοποιημένο ! Μπορείς να το ενεργοποιήσεις στήν σελίδα ρυθμίσεων του fxPanel.",
+            "not_enabled": "Tο sxPanel Menu δεν είναι ενεργοποιημένο ! Μπορείς να το ενεργοποιήσεις στήν σελίδα ρυθμίσεων του sxPanel.",
             "announcement_title": "Ανακοίνωση από τον %{author}:",
             "dialog_empty_input": "Δεν μπορείς να μην εισάγεις τίποτα.",
             "directmessage_title": "DM from admin %{author}:",

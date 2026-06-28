@@ -2,7 +2,7 @@ import type { DeployerDataResp } from './deployerTypes';
 import type { DeployerWizardDraft } from './deployerFlowTypes';
 
 const FALLBACK_RECIPE_RAW = `name: Preview Recipe
-author: fxPanel
+author: sxPanel
 version: '1.0'
 tasks:
   - action: download_github
@@ -20,7 +20,7 @@ export function buildMockDeployerData(step: DeployerDataResp['step'], draft: Dep
         draft.selectedRecipe?.name ??
         draft.remoteRecipeName ??
         (draft.templateMode === 'custom' ? 'Custom Template' : 'Preview Recipe');
-    const recipeAuthor = draft.selectedRecipe?.author ?? 'fxPanel fixtures';
+    const recipeAuthor = draft.selectedRecipe?.author ?? 'sxPanel fixtures';
     const recipeDescription =
         draft.selectedRecipe?.description ??
         (draft.templateMode === 'remote'
@@ -52,9 +52,9 @@ export function buildMockDeployerData(step: DeployerDataResp['step'], draft: Dep
             license: 'cfxk_dev_preview_xxxxxxxx',
             mysqlHost: '127.0.0.1',
             mysqlPort: '3306',
-            mysqlUser: 'fxpanel',
+            mysqlUser: 'sxpanel',
             mysqlPassword: '••••••••',
-            mysqlDatabase: 'fxpanel_preview',
+            mysqlDatabase: 'sxpanel_preview',
         },
         inputVars: [
             {
@@ -68,7 +68,7 @@ export function buildMockDeployerData(step: DeployerDataResp['step'], draft: Dep
             '## Preview server.cfg (dev only)',
             'endpoint_add_tcp "0.0.0.0:30120"',
             `sv_hostname "${draft.serverName || 'Preview City'}"`,
-            'sets sv_projectName "fxPanel preview"',
+            'sets sv_projectName "sxPanel preview"',
             'sv_licenseKey "cfxk_dev_preview_xxxxxxxx"',
             'ensure oxmysql',
             'ensure qb-core',

@@ -20,6 +20,6 @@ setInterval(() => {
         }
     } catch (error) {
         const msg = `Error reporting heap: ${error.message}`;
-        console.log(`^5[fxPanel]^1${msg}^0`);
+        console.log(`^5[sxPanel]^1${msg}^0`);
     }
 }, 5_000);

@@ -59,14 +59,14 @@ export const registeredPermissions: PermissionDefinition[] = [
     {
         id: 'settings.write',
         label: 'Settings: Change',
-        description: 'Modify fxPanel settings.',
+        description: 'Modify sxPanel settings.',
         category: 'system',
         dangerous: true,
     },
     {
         id: 'txadmin.log.view',
         label: 'View System Logs',
-        description: 'View fxPanel system and admin action logs.',
+        description: 'View sxPanel system and admin action logs.',
         category: 'system',
     },
 

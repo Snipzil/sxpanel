@@ -213,9 +213,7 @@ export const computePlayerTags = (player: ServerPlayer): PlayerTag[] => {
     const tags: PlayerTag[] = [];
     const disabledAutoTags = getDisabledAutoTagIds();
     const adminsIdentifiers = txCore.adminStore.getAdminsIdentifiers();
-    const vaultMatch = txCore.adminStore.getAdminByIdentifiers(player.ids);
-    const skipStaffTag = vaultMatch !== false && vaultMatch.passwordRevision < 0;
-    if (!disabledAutoTags.has('staff') && !skipStaffTag && player.ids.some((id) => adminsIdentifiers.includes(id))) {
+    if (!disabledAutoTags.has('staff') && player.ids.some((id) => adminsIdentifiers.includes(id))) {
         tags.push('staff');
     }
 
@@ -254,9 +252,7 @@ export const computePlayerTagsGeneric = (player: BasePlayer): PlayerTag[] => {
     const disabledAutoTags = getDisabledAutoTagIds();
     const adminsIdentifiers = txCore.adminStore.getAdminsIdentifiers();
     const allIds = player.getAllIdentifiers();
-    const vaultMatch = txCore.adminStore.getAdminByIdentifiers(allIds);
-    const skipStaffTag = vaultMatch !== false && vaultMatch.passwordRevision < 0;
-    if (!disabledAutoTags.has('staff') && !skipStaffTag && allIds.some((id) => adminsIdentifiers.includes(id))) {
+    if (!disabledAutoTags.has('staff') && allIds.some((id) => adminsIdentifiers.includes(id))) {
         tags.push('staff');
     }
 

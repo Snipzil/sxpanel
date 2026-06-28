@@ -2,11 +2,11 @@
 -- Feel free to open an issue or pull request in our GitHub.
 -- Official discord server: https://discord.gg/6FcqBYwxH5
 
-author('SomeAussieGamer')
-description('fxPanel - A Replacement for txAdmin built on its source code.')
-repository('https://github.com/SomeAussieGaymer/fxPanel')
+author('snipz')
+description('sxPanel - A Replacement for txAdmin built on its source code.')
+repository('https://github.com/Snipzil/sxpanel')
 version '0.4.0-Alpha-04'
-ui_label 'fxPanel'
+ui_label 'sxPanel'
 fx_version('cerulean')
 game('common')
 -- nui_callback_strict_mode 'true'

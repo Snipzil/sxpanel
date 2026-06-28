@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "This server is in <strong>Admin-only</strong> mode.",
-            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a fxPanel administrator.",
-            "deny_message": "Your identifiers are not assigned to any fxPanel administrator."
+            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a sxPanel administrator.",
+            "deny_message": "Your identifiers are not assigned to any sxPanel administrator."
         },
         "guild_member": {
             "mode_title": "This server is in <strong>Discord server Member Whitelist</strong> mode.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menu enabled, type /tx to open it.\nYou can also configure a keybind at [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Your identifiers do not match any admin registered on fxPanel.\nIf you are registered on fxPanel, go to Admin Manager and make sure your identifiers are saved.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel Menu enabled, type /tx to open it.\nYou can also configure a keybind at [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Your identifiers do not match any admin registered on sxPanel.\nIf you are registered on sxPanel, go to Admin Manager and make sure your identifiers are saved.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "You do not have this permission.",
             "unknown_error": "An unknown error occurred.",
-            "not_enabled": "The fxPanel Menu is not enabled! You can enable it in the fxPanel settings page.",
+            "not_enabled": "The sxPanel Menu is not enabled! You can enable it in the sxPanel settings page.",
             "announcement_title": "Server Announcement by %{author}:",
             "dialog_empty_input": "You cannot have an empty input.",
             "directmessage_title": "DM from admin %{author}:",

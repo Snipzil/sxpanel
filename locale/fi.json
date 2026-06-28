@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "This server is in <strong>Admin-only</strong> mode.",
-            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a fxPanel administrator.",
-            "deny_message": "Your identifiers are not assigned to any fxPanel administrator."
+            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a sxPanel administrator.",
+            "deny_message": "Your identifiers are not assigned to any sxPanel administrator."
         },
         "guild_member": {
             "mode_title": "This server is in <strong>Discord server Member Whitelist</strong> mode.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menu päällä. Kirjoita /tx avataksesi.\nVoit myös asettaa menulle oman näppäimen: [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Tietosi eivät vastaa yhtäkään fxPaneliin rekisteröityä ylläpitäjää.\nMikäli olet rekisteröitynyt fxPaneliin, siirry kohtaan [Admin Manager] ja varmista että tietosi ovat tallennettu.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel Menu päällä. Kirjoita /tx avataksesi.\nVoit myös asettaa menulle oman näppäimen: [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Tietosi eivät vastaa yhtäkään sxPaneliin rekisteröityä ylläpitäjää.\nMikäli olet rekisteröitynyt sxPaneliin, siirry kohtaan [Admin Manager] ja varmista että tietosi ovat tallennettu.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Sinulla ei ole oikeuksia tähän.",
             "unknown_error": "Tuntematon virhe",
-            "not_enabled": "fxPanel Menu ei ole käytössä! Voit ottaa sen käyttöön fxPanelin asetuksista.",
+            "not_enabled": "sxPanel Menu ei ole käytössä! Voit ottaa sen käyttöön sxPanelin asetuksista.",
             "announcement_title": "Palvelinilmoitus henkilöltä %{author}:",
             "dialog_empty_input": "Tekstikenttä ei voi olla tyhjä.",
             "directmessage_title": "Yksityisviesti ylläpitäjältä %{author}:",

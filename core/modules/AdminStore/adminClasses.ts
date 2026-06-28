@@ -1,5 +1,4 @@
 import { resolveAdminActionAuthor, resolveAdminCommandAuthor, resolveAdminDisplayName } from '@lib/adminAttribution';
-import { skipSessionAuditAdmin } from '@lib/routineAuditGate';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
 import consoleFactory from '@lib/console';
 import type { ReactAuthDataType } from '@shared/authApiTypes';
@@ -20,7 +19,7 @@ export type AdminProviders = {
     discord?: AdminProviderData;
 };
 
-export const DISCORD_ROLE_SYNC_DATA_KEY = 'fxpanelRoleSync';
+export const DISCORD_ROLE_SYNC_DATA_KEY = 'sxpanelRoleSync';
 
 export type DiscordRoleSyncData = {
     permissions: string[];
@@ -60,7 +59,6 @@ export const getDiscordRoleSyncData = (providers: AdminProviders | undefined): D
 
 /** Monotonic counter bumped whenever the admin password hash changes; used for session invalidation. */
 export const getAdminPasswordRevision = (raw: { password_revision?: number }) => {
-    if (raw.password_revision === -1) return -1;
     return typeof raw.password_revision === 'number' && raw.password_revision >= 0 ? raw.password_revision : 0;
 };
 
@@ -159,7 +157,6 @@ export class AuthedAdmin extends StoredAdmin {
      * Logs an action to the console and the action logger
      */
     logAction(action: string, actionId?: SystemLogActionId) {
-        if (skipSessionAuditAdmin(this)) return;
         txCore.logger.system.write(resolveAdminActionAuthor(this), action, 'action', { actionId });
     }
 
@@ -167,7 +164,6 @@ export class AuthedAdmin extends StoredAdmin {
      * Logs a command to the console and the action logger
      */
     logCommand(data: string, actionId?: SystemLogActionId) {
-        if (skipSessionAuditAdmin(this)) return;
         txCore.logger.system.write(resolveAdminActionAuthor(this), data, 'command', { actionId });
     }
 

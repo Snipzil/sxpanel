@@ -1,7 +1,7 @@
 //NOTE: don't import anything at the root of this file or it breaks the type definitions
 
 /**
- * MARK: fxPanel stuff
+ * MARK: sxPanel stuff
  */
 type RefreshConfigFunc = import('@modules/ConfigStore/').RefreshConfigFunc;
 interface GenericTxModuleInstance {

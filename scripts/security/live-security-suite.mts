@@ -1,5 +1,5 @@
 /**
- * Live security verification against a running fxPanel instance.
+ * Live security verification against a running sxPanel instance.
  *
  * Usage:
  *   $env:SECURITY_TEST_BASE_URL = 'http://127.0.0.1:40120'
@@ -351,7 +351,7 @@ async function loadTest() {
 }
 
 async function main() {
-    console.log(`\n=== fxPanel live security suite ===\nBase: ${BASE}\n`);
+    console.log(`\n=== sxPanel live security suite ===\nBase: ${BASE}\n`);
 
     const health = await fetch(`${BASE}/`);
     if (!health.ok) {

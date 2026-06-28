@@ -561,7 +561,7 @@ export default function DiscordLogRoutesEditorPage() {
             <div className="xs:px-3 mx-auto flex min-h-0 w-full grow flex-col px-0 md:px-0">
                 <div className="mb-4 flex-none space-y-2">
                     <p className="text-muted-foreground">
-                        Route fxPanel activity into Discord without cluttering the main settings page. Configure the
+                        Route sxPanel activity into Discord without cluttering the main settings page. Configure the
                         shared guild override for log delivery when needed, then select a log stream or the warnings
                         channel from the list and route it to the right channel.
                     </p>

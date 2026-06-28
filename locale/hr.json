@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Ovaj server je u  <strong>Admin-only</strong> modu.",
-            "insufficient_ids": "Nemaš Discord <code>discord</code> ili <code>fivem</code> profil, i barem jedan od njih je potreban za potvrdu ako ste fxPanel administrator.",
-            "deny_message": "Ni jedan tvoj profil nije spojen sa fxPanel administratorom."
+            "insufficient_ids": "Nemaš Discord <code>discord</code> ili <code>fivem</code> profil, i barem jedan od njih je potreban za potvrdu ako ste sxPanel administrator.",
+            "deny_message": "Ni jedan tvoj profil nije spojen sa sxPanel administratorom."
         },
         "guild_member": {
             "mode_title": "Ovaj server je u <strong>Discord Whitelist</strong> modu.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Meni upaljen, napiši /tx da bi ga otvorio.\nIsto tako možeš staviti svoji keybind u  [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Vaši profili ne odgovaraju niti jednom registriranom adminu na fxPanel.\nAko ste registrirani na fxPanel, idite na Admin Manager i provjerite jesu li vaši identifikatori spremljeni.",
-            "menu_auth_failed": "Provjera autentičnosti izbornika fxPanel nije uspjela s razlogom: %{reason}",
+            "help_message": "sxPanel Meni upaljen, napiši /tx da bi ga otvorio.\nIsto tako možeš staviti svoji keybind u  [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Vaši profili ne odgovaraju niti jednom registriranom adminu na sxPanel.\nAko ste registrirani na sxPanel, idite na Admin Manager i provjerite jesu li vaši identifikatori spremljeni.",
+            "menu_auth_failed": "Provjera autentičnosti izbornika sxPanel nije uspjela s razlogom: %{reason}",
             "no_perms": "Nemaš permisiju.",
             "unknown_error": "Nepoznata greška se desila.",
-            "not_enabled": "fxPanel Meni nije omogučen! Možete ga omogučiti u fxPanel web postavkama.",
+            "not_enabled": "sxPanel Meni nije omogučen! Možete ga omogučiti u sxPanel web postavkama.",
             "announcement_title": "Server obavještenje od %{author}:",
             "dialog_empty_input": "Ne možete imati prazan unos.",
             "directmessage_title": "DM od admina %{author}:",

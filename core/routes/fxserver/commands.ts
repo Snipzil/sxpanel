@@ -1,5 +1,4 @@
 const modulename = 'WebServer:FXServerCommands';
-import { adminMatchesPresetRow } from '@lib/presetRowMaterial';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { ApiToastResp } from '@shared/genericApiTypes';
@@ -48,17 +47,15 @@ export default async function FXServerCommands(ctx: AuthedCtx) {
         });
         ctx.admin.logAction(`Sending announcement: ${parameter}`, 'announcement.send');
 
-        if (!adminMatchesPresetRow(ctx.admin)) {
-            const publicAuthor = txCore.adminStore.getAdminPublicName(ctx.admin.name, 'message');
-            txCore.discordBot.sendAnnouncement({
-                type: 'info',
-                title: {
-                    key: 'nui_menu.misc.announcement_title',
-                    data: { author: publicAuthor },
-                },
-                description: message,
-            });
-        }
+        const publicAuthor = txCore.adminStore.getAdminPublicName(ctx.admin.name, 'message');
+        txCore.discordBot.sendAnnouncement({
+            type: 'info',
+            title: {
+                key: 'nui_menu.misc.announcement_title',
+                data: { author: publicAuthor },
+            },
+            description: message,
+        });
 
         return ctx.send<ApiToastResp>({
             type: 'success',

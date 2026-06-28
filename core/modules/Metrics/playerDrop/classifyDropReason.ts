@@ -17,7 +17,7 @@ const serverShutdownRules = [
     `server shutting down:`,
 
     //NOTE: Happens when txAdmin kicks players
-    `[fxpanel]`,
+    `[sxpanel]`,
 ];
 const timeoutRules = [
     `server->client connection timed out`,
@@ -230,7 +230,7 @@ export const classifyDrop = (payload: PlayerDropEvent): ClassifyDropReasonRespon
             } else {
                 return {
                     category: 'resource',
-                    resource: 'fxPanel',
+                    resource: 'sxPanel',
                 };
             }
         } else {

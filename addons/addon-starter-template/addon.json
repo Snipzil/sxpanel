@@ -3,9 +3,9 @@
     "name": "Shift Board (Starter)",
     "description": "Example staff shift board — pulse meter, pins, roster, live traffic. Copy and rename.",
     "version": "1.0.0",
-    "author": "fxPanel Community",
+    "author": "sxPanel Community",
     "license": "MIT",
-    "fxpanel": {
+    "sxpanel": {
         "minVersion": "0.4.0-Beta"
     },
     "permissions": {

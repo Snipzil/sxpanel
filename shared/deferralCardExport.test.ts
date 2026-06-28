@@ -80,7 +80,7 @@ describe('deferralCardExport', () => {
             },
         });
         const file = exportDeferralCardsFull(withAddon);
-        expect(file.fxPanelDeferralCard).toBe(2);
+        expect(file.sxPanelDeferralCard).toBe(2);
         const result = importDeferralCardFile(DEFAULT_DEFERRAL_CARDS_CONFIG, file, {
             installedAddonIds: ['demo-addon'],
         });

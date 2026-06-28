@@ -2,7 +2,7 @@
 
 Example addon: a small **shift board** for staff — server pulse (join/drop traffic), who's clocked in, a pin wall, and a live traffic feed. The UI is deliberately built like a real feature so you can copy the patterns, not just hello-world routes.
 
-Docs: [fxPanel addon development](https://github.com/fxPanel/fxPanel-Docs/tree/main/v0.4.0-Beta)
+Docs: [sxPanel addon development](https://github.com/sxPanel/sxPanel-Docs/tree/main/v0.4.0-Beta)
 
 ## What it does
 
@@ -15,12 +15,12 @@ Docs: [fxPanel addon development](https://github.com/fxPanel/fxPanel-Docs/tree/m
 
 ## Developing on this repo
 
-fxPanel addons are split across a few runtimes. That affects what you need to reload after a change.
+sxPanel addons are split across a few runtimes. That affects what you need to reload after a change.
 
 **Where files live**
 
-- You edit addons under `fxPanel/addons/<id>/` in the git repo.
-- A running dev server does **not** read that folder directly. `npm run dev` copies `addons/` into the FXServer monitor resource at `TXDEV_FXSERVER_PATH/citizen/system_resources/monitor/addons/`. That copy is what fxPanel loads and serves.
+- You edit addons under `sxPanel/addons/<id>/` in the git repo.
+- A running dev server does **not** read that folder directly. `npm run dev` copies `addons/` into the FXServer monitor resource at `TXDEV_FXSERVER_PATH/citizen/system_resources/monitor/addons/`. That copy is what sxPanel loads and serves.
 
 **Panel UI** (`panel/index.js`)
 
@@ -30,7 +30,7 @@ fxPanel addons are split across a few runtimes. That affects what you need to re
 
 **Server** (`server/index.js`)
 
-- Runs in a separate addon process started by fxPanel.
+- Runs in a separate addon process started by sxPanel.
 - Saving the file on disk is not enough: use **Addons → Reload** on this addon so the process restarts and picks up new routes.
 - If the page loads but API calls return `Route not found`, the panel updated and the server did not.
 

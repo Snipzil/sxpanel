@@ -154,7 +154,7 @@ const rolePermissions = typeDefinedConfig({
                 label: z.string(),
                 discordRoleIds: z.array(z.string()),
                 permissionPresetId: z.string().min(1).nullable().optional(),
-                fxPanelPermissions: z.array(z.string()).optional(),
+                sxPanelPermissions: z.array(z.string()).optional(),
             }),
         )
         .transform((mappings) =>

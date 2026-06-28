@@ -11,7 +11,7 @@ const {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('info')
-        .setDescription('Searches for a player in the fxPanel database and prints information.')
+        .setDescription('Searches for a player in the sxPanel database and prints information.')
         .addSubcommand((subcommand) => {
             return subcommand.setName('self').setDescription('Searches for whomever is using the command.');
         })

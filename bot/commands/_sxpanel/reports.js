@@ -49,7 +49,7 @@ module.exports = {
         .addSubcommand((subcommand) => {
             return subcommand
                 .setName('assign')
-                .setDescription('Assign a ticket to a linked fxPanel admin.')
+                .setDescription('Assign a ticket to a linked sxPanel admin.')
                 .addUserOption((option) => {
                     return option
                         .setName('member')

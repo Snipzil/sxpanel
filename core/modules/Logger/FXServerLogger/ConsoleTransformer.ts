@@ -88,7 +88,7 @@ export default class ConsoleTransformer {
     private lastSrc = '0:undefined';
     private lastMarkerTs = 0; //in seconds
     private STYLES = STYLES;
-    private PREFIX_SYSTEM = getConsoleLinePrefix('FXPANEL');
+    private PREFIX_SYSTEM = getConsoleLinePrefix('SXPANEL');
     private PREFIX_STDERR = getConsoleLinePrefix('STDERR');
 
     public process(type: ConsoleLineEnum, data: string, context?: string): MultiBuffer {

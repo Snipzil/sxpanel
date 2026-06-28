@@ -42,7 +42,7 @@ const getLocalNetworkIpv4Addresses = () => {
 };
 
 /**
- * When true, fxPanel must not treat FXServer HTTP endpoints as a liveness signal.
+ * When true, sxPanel must not treat FXServer HTTP endpoints as a liveness signal.
  * Playerlist sync uses CFXBOT-style push (POST /dev/addPlayers) instead of HTTP polling.
  */
 export const isHttpHealthCheckDisabled = () => {
@@ -54,7 +54,7 @@ export const isHttpHealthCheckDisabled = () => {
 export const isHttpPlayerlistPushMode = () => isHttpHealthCheckDisabled();
 
 /**
- * When true, fxPanel merges /players.json rows into panel + in-game playerlists (poll mode only).
+ * When true, sxPanel merges /players.json rows into panel + in-game playerlists (poll mode only).
  * Automatically enabled when HTTP reports more players than FD3.
  */
 export const isHttpPlayerlistBypassEnabled = () => {
@@ -122,7 +122,7 @@ const normalizeHostEndpoint = (host: string, port: string) => {
 };
 
 /**
- * Bot tools often expose fake players on the public bind, while fxPanel polls 127.0.0.1.
+ * Bot tools often expose fake players on the public bind, while sxPanel polls 127.0.0.1.
  * Poll every candidate and union the richest /players.json result.
  */
 export const resolveHttpPollEndpoints = (localEndpoint: string) => {
@@ -209,7 +209,7 @@ const fetchPlayersFromCfxListing = async (): Promise<HttpPlayerJsonEntry[]> => {
             timeout: { request: 4000 },
             retry: { limit: 0 },
             headers: {
-                'User-Agent': 'fxPanel/1.0',
+                'User-Agent': 'sxPanel/1.0',
             },
         }).json<Record<string, unknown>>();
 

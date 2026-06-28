@@ -110,12 +110,12 @@ export default class UpdateChecker {
                     isImportant: updates.txa.isImportant,
                 };
                 if (updates.txa.isImportant) {
-                    console.error('This version of fxPanel is outdated.');
+                    console.error('This version of sxPanel is outdated.');
                     console.error('Please update as soon as possible.');
                     console.error('For more information: https://discord.gg/6FcqBYwxH5');
                 } else {
-                    console.warn('This version of fxPanel is outdated.');
-                    console.warn('A patch (bug fix) update is available for fxPanel.');
+                    console.warn('This version of sxPanel is outdated.');
+                    console.warn('A patch (bug fix) update is available for sxPanel.');
                     console.warn('If you are experiencing any kind of issue, please update now.');
                     console.warn('For more information: https://discord.gg/6FcqBYwxH5');
                 }

@@ -6,8 +6,8 @@ import { z } from 'zod';
 const console = consoleFactory(modulename);
 
 const DISCOURSE_BASE_URL = 'https://forum.cfx.re';
-const APPLICATION_NAME = 'fxPanel';
-const CLIENT_ID = 'fxpanel_discourse_auth';
+const APPLICATION_NAME = 'sxPanel';
+const CLIENT_ID = 'sxpanel_discourse_auth';
 
 const discourseUserSchema = z.object({
     current_user: z.object({

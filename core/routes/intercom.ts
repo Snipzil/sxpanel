@@ -39,7 +39,7 @@ const STATS_INVENTORY_REPORT_TIMEOUT_MS = 5000;
 
 const isString = (val: unknown): val is string => typeof val === 'string' && val.length > 0;
 
-const STATS_ENDPOINT = 'https://fxapi.fxpanel.org/api/stats';
+const STATS_ENDPOINT = 'https://fxapi.sxpanel.org/api/stats';
 
 let statsInstallId: string | null = null;
 
@@ -179,7 +179,7 @@ const sendStatsToFxApi = async () => {
             retry: { limit: 0 },
         });
     } catch (error) {
-        console.verbose.warn('Failed to send stats to fxapi.fxpanel.org', { error: (error as Error).message });
+        console.verbose.warn('Failed to send stats to fxapi.sxpanel.org', { error: (error as Error).message });
     }
 };
 

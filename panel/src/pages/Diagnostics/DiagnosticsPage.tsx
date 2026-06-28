@@ -134,11 +134,11 @@ function Pill({ children, className }: { children: ReactNode; className?: string
 
 const REPORT_PAYLOAD_BULLETS = [
     'All diagnostics page data',
-    'Recent fxPanel (system), live console and server log',
+    'Recent sxPanel (system), live console and server log',
     'Environment variables',
     'Server performance (dashboard chart) data',
     'Player database statistics',
-    'fxPanel settings (no bot token)',
+    'sxPanel settings (no bot token)',
     'List of admins (no passwords/hashes)',
     'List of files/folders in server data and monitor folders',
     'Config files in server data folder',
@@ -308,7 +308,7 @@ export default function DiagnosticsPage() {
 
                         <DiagnosticsCard
                             icon={LayoutDashboardIcon}
-                            title="fxPanel runtime"
+                            title="sxPanel runtime"
                             subtitle="Versions, paths, monitor, performance, memory"
                         >
                             <div className="space-y-4">
@@ -541,10 +541,7 @@ export default function DiagnosticsPage() {
                             </DiagnosticsMiniCard>
 
                             <DiagnosticsMiniCard title="Node child runtime">
-                                <KeyValueRow
-                                    label="Resolved"
-                                    value={discordBot.nodeRuntime.resolved ? 'Yes' : 'No'}
-                                />
+                                <KeyValueRow label="Resolved" value={discordBot.nodeRuntime.resolved ? 'Yes' : 'No'} />
                                 <KeyValueRow
                                     label="Runtime path"
                                     value={discordBot.nodeRuntime.resolvedChildLabel ?? '—'}
@@ -568,7 +565,7 @@ export default function DiagnosticsPage() {
                                 />
                                 {!discordBot.nodeRuntime.resolved && discordBot.nodeRuntime.suggestedBotNodePath ? (
                                     <KeyValueRow
-                                        label="Suggested FXPANEL_BOT_NODE_PATH"
+                                        label="Suggested SXPANEL_BOT_NODE_PATH"
                                         value={discordBot.nodeRuntime.suggestedBotNodePath}
                                         mono
                                         breakAll
@@ -955,11 +952,11 @@ export default function DiagnosticsPage() {
                                 {fxserver.versionMismatch ? (
                                     <div className="border-destructive/30 bg-destructive/10 mb-4 rounded-lg border p-3 text-center text-sm">
                                         <p className="text-destructive font-semibold">
-                                            This version doesn&apos;t match fxPanel&apos;s version!
+                                            This version doesn&apos;t match sxPanel&apos;s version!
                                         </p>
                                         <p className="text-muted-foreground mt-2 text-xs">
-                                            If you just updated FXServer, restart fxPanel. Otherwise, it means FXServer
-                                            was already running before fxPanel started, and nothing is going to work
+                                            If you just updated FXServer, restart sxPanel. Otherwise, it means FXServer
+                                            was already running before sxPanel started, and nothing is going to work
                                             properly.
                                         </p>
                                     </div>
@@ -995,7 +992,7 @@ export default function DiagnosticsPage() {
                                         <KeyValueRow label="OneSync" value={fxserver.onesync ?? '—'} mono />
                                         <KeyValueRow label="Max clients" value={fxserver.maxClients ?? '—'} mono />
                                         <KeyValueRow
-                                            label="fxPanel version"
+                                            label="sxPanel version"
                                             value={fxserver.txAdminVersion ?? '—'}
                                             mono
                                         />
@@ -1041,7 +1038,7 @@ export default function DiagnosticsPage() {
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                             <div className="max-w-xl space-y-3">
                                 <p className="text-sm">
-                                    To receive fxPanel Support, it is recommended that you send the diagnostics data
+                                    To receive sxPanel Support, it is recommended that you send the diagnostics data
                                     directly to the Support Team.
                                 </p>
                                 <div>
@@ -1091,7 +1088,7 @@ export default function DiagnosticsPage() {
                     {reportState === 'info' && (
                         <div className="space-y-3 text-sm">
                             <p>
-                                This <em>optional</em> feature sends a diagnostics report to the fxPanel/Cfx.re teams,
+                                This <em>optional</em> feature sends a diagnostics report to the sxPanel/Cfx.re teams,
                                 and may be required to diagnose a wide range of server issues. After sending the data,
                                 you will receive a Report ID you can send in the support channels.
                             </p>
@@ -1099,11 +1096,11 @@ export default function DiagnosticsPage() {
                                 <strong>Which data will be sent?</strong>
                                 <ul className="mt-1 list-inside list-disc space-y-0.5">
                                     <li>All diagnostics page data</li>
-                                    <li>Recent fxPanel (system), live console and server log</li>
+                                    <li>Recent sxPanel (system), live console and server log</li>
                                     <li>Environment variables</li>
                                     <li>Server performance (dashboard chart) data</li>
                                     <li>Player database statistics</li>
-                                    <li>fxPanel settings (no bot token)</li>
+                                    <li>sxPanel settings (no bot token)</li>
                                     <li>List of admins (no passwords/hashes)</li>
                                     <li>List of files/folders in server data and monitor folders</li>
                                     <li>Config files in server data folder</li>

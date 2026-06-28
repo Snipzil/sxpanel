@@ -17,7 +17,7 @@ const txDevEnv = parseTxDevEnv();
 if (!txDevEnv.FXSERVER_PATH || !txDevEnv.VITE_URL) {
     console.error(`Missing 'TXDEV_FXSERVER_PATH' and/or 'TXDEV_VITE_URL' env variables.`);
     console.error(
-        'See docs/CONTRIBUTING.md, shared/txDevEnv.ts, and https://github.com/SomeAussieGaymer/fxPanel-Docs/tree/main for setup.',
+        'See docs/CONTRIBUTING.md, shared/txDevEnv.ts, and https://github.com/Snipzil/sxPanel-Docs/tree/main for setup.',
     );
     process.exit(1);
 }
@@ -44,7 +44,7 @@ try {
     console.error(error);
     process.exit(1);
 }
-console.log(`[BUILDER] Starting fxPanel Dev Builder for ${fxsPaths.root}`);
+console.log(`[BUILDER] Starting sxPanel Dev Builder for ${fxsPaths.root}`);
 
 //Sync target path and start chokidar
 //We don't really care about the path, just remove everything and copy again

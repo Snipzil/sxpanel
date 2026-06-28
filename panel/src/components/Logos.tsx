@@ -7,7 +7,7 @@ type LogoProps = {
 
 function LogoSquareGreen({ style, className }: LogoProps) {
     const src = window.txConsts?.addonThemeLogo || resolvePanelAssetUrl('/logo.svg');
-    return <img className={className} style={style} src={src} alt="fxPanel" />;
+    return <img className={className} style={style} src={src} alt="sxPanel" />;
 }
 
 export const LogoFullSquareGreen = LogoSquareGreen;

@@ -1,6 +1,6 @@
 -- Shift Board — server-side game snapshot (addon-starter-template)
 -- Loaded automatically via build glob: addons/**/resource/sv_*.lua
--- Docs: https://github.com/fxPanel/fxPanel-Docs/tree/main/v0.4.0-Beta
+-- Docs: https://github.com/sxPanel/sxPanel-Docs/tree/main/v0.4.0-Beta
 
 if not TX_SERVER_MODE then
     return

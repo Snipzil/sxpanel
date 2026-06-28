@@ -1,10 +1,10 @@
-title = "fxPanel gitleaks config"
+title = "sxPanel gitleaks config"
 
 [extend]
 useDefault = true
 
 [[rules]]
-id = "fxpanel-test-passwords"
+id = "sxpanel-test-passwords"
 description = "Exclude known test fixtures"
 regex = '''teste123|test-csrf-token|test-lua-com-token|JBSWY3DPEHPK3PXP'''
 paths = ['''\.test\.ts$''', '''auth\.integration\.test\.ts''']

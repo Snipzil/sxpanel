@@ -35,7 +35,6 @@ import {
     buildSystemLogDiscordPayload,
     type DiscordLogMessagePayload,
 } from './logRouting';
-import { shouldDropPlayerServerLog, skipSessionAuditAuthor } from '@lib/routineAuditGate';
 import { handleModerationCommand } from './moderationCommands';
 import { getActiveWorkflow } from '@modules/Whitelist/WhitelistService';
 import { approveWhitelistRequest, handleWhitelistThreadReaction } from '@modules/Whitelist/requestActions';
@@ -179,7 +178,7 @@ const replyColors = {
 const infoEmbedColor = 0x4262e2;
 const commandFooter = {
     icon_url: 'https://cdn.discordapp.com/emojis/1062339910654246964.webp?size=96&quality=lossless',
-    text: `fxPanel ${txEnv.txaVersion}`,
+    text: `sxPanel ${txEnv.txaVersion}`,
 };
 
 const buildReply = (type: keyof typeof replyColors, description: string, ephemeral = false): ReplyPayload => {
@@ -274,7 +273,6 @@ const normalizeBotCommandEvent = (message: BridgeMessage): DatabaseBotCommandEve
 };
 
 const logDiscordAdminAction = (adminName: string, message: string, actionId?: SystemLogActionId) => {
-    if (skipSessionAuditAuthor(adminName)) return;
     txCore.logger.system.write(adminName, message, 'action', { actionId });
 };
 
@@ -287,7 +285,7 @@ const resolveAdminUser = (requesterId: unknown) => {
     if (!admin) {
         return buildDeniedReply(
             'warning',
-            translateBot('common.no_fxpanel_access', { requesterId }),
+            translateBot('common.no_sxpanel_access', { requesterId }),
             'unlinked_account',
         );
     }
@@ -337,10 +335,10 @@ const buildAddonRequestHeaders = (headers: unknown, requesterId: unknown, reques
             : {};
 
     if (typeof requesterId === 'string' && requesterId.length) {
-        sanitizedHeaders['x-fxpanel-discord-user-id'] = requesterId;
+        sanitizedHeaders['x-sxpanel-discord-user-id'] = requesterId;
     }
     if (typeof requesterName === 'string' && requesterName.length) {
-        sanitizedHeaders['x-fxpanel-discord-user-name'] = requesterName;
+        sanitizedHeaders['x-sxpanel-discord-user-name'] = requesterName;
     }
 
     return sanitizedHeaders;
@@ -955,8 +953,6 @@ export default class DiscordBot {
     }
 
     async handleSystemLogEntry(entry: SystemLogEntry) {
-        if (skipSessionAuditAuthor(entry.author)) return false;
-
         const payload = buildSystemLogDiscordPayload(txConfig.discordBot.logRoutes, entry);
         if (!payload) return false;
 
@@ -967,11 +963,6 @@ export default class DiscordBot {
         rawEvent: { type?: unknown; data?: unknown },
         logEntry: { ts: number; src: { id: string | false; name: string }; msg: string; type: string },
     ) {
-        if (typeof logEntry.src?.id === 'number' && logEntry.src.id > 0) {
-            const player = txCore.fxPlayerlist.getPlayerById(logEntry.src.id);
-            if (player && shouldDropPlayerServerLog(player.ids)) return false;
-        }
-
         const payload = buildServerMenuDiscordPayload(txConfig.discordBot.logRoutes, rawEvent, logEntry);
         if (!payload) return false;
 

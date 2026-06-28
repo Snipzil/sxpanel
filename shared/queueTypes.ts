@@ -16,7 +16,7 @@ export const QueueSlotPoolSchema = z.object({
     id: z.string().min(1),
     label: z.string().min(1),
     slots: z.number().int().nonnegative().default(0),
-    /** fxPanel admins may use this pool when public slots are full. */
+    /** sxPanel admins may use this pool when public slots are full. */
     staffCanAccess: z.boolean().default(false),
     /** Queue rule IDs whose Discord roles grant access to this pool. */
     ruleIds: z.array(z.string()).default([]),

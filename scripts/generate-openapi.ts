@@ -186,12 +186,12 @@ const generator = new OpenApiGeneratorV3(registry.definitions);
 const spec = generator.generateDocument({
     openapi: '3.0.3',
     info: {
-        title: 'fxPanel API',
+        title: 'sxPanel API',
         version: '0.1.0',
-        description: 'Auto-generated API documentation for fxPanel. Covers routes with shared Zod validation schemas.',
+        description: 'Auto-generated API documentation for sxPanel. Covers routes with shared Zod validation schemas.',
         license: { name: 'MIT' },
     },
-    servers: [{ url: 'http://localhost:40120', description: 'Default fxPanel server' }],
+    servers: [{ url: 'http://localhost:40120', description: 'Default sxPanel server' }],
 });
 
 // ── Write output ───────────────────────────────────────────────────────

@@ -75,13 +75,13 @@ suite('buildDiscordEmbedPreview', () => {
             description: 'Test',
             footer: {
                 icon_url: 'https://cdn.discordapp.com/emojis/1062339910654246964.webp?size=96&quality=lossless',
-                text: 'fxPanel 0.4.0-Beta',
+                text: 'sxPanel 0.4.0-Beta',
             },
         });
 
         const serialized = JSON.stringify(payload);
         expect(serialized).not.toContain('![](');
-        expect(serialized).toContain('fxPanel 0.4.0-Beta');
+        expect(serialized).toContain('sxPanel 0.4.0-Beta');
         expect(serialized).toContain('1062339910654246964.webp');
     });
 

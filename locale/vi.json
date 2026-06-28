@@ -35,7 +35,7 @@
         "admin_only": {
             "mode_title": "Máy chủ đang trong chế độ <strong> chỉ Admin</strong>.",
             "insufficient_ids": "Bạn không có bất kì định danh <code>discord</code> hay <code>fivem</code>, bạn cần có ít nhất một định danh để xác thực bạn là Admin.",
-            "deny_message": "Mã định danh của bạn không được chỉ định cho bất kỳ quản trị viên fxPanel nào."
+            "deny_message": "Mã định danh của bạn không được chỉ định cho bất kỳ quản trị viên sxPanel nào."
         },
         "guild_member": {
             "mode_title": "Máy chủ đang trong chế độ <strong>Whitelist Discord</strong>.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel đang bật, dùng /tx để mở.\nBạn có thể cài đặt phím tắt bằng cách vào cài đặt game [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Thông tin tài khoản của bạn không có quyền thao tác.\nNếu bạn đã có tài khoản fxPanel, hãy chắc chắn rằng bạn có đủ các quyền.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel đang bật, dùng /tx để mở.\nBạn có thể cài đặt phím tắt bằng cách vào cài đặt game [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Thông tin tài khoản của bạn không có quyền thao tác.\nNếu bạn đã có tài khoản sxPanel, hãy chắc chắn rằng bạn có đủ các quyền.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Bạn không có quyền!",
             "unknown_error": "Có lỗi xảy ra.",
-            "not_enabled": "fxPanel Menu chưa được bật, bạn có thể bật tại mục cài đặt.",
+            "not_enabled": "sxPanel Menu chưa được bật, bạn có thể bật tại mục cài đặt.",
             "announcement_title": "Thông báo máy chủ bởi %{author}:",
             "directmessage_title": "Tin nhắn từ Admin %{author}:",
             "dialog_empty_input": "Bạn không thể để trống mục này.",

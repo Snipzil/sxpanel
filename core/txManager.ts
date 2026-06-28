@@ -15,7 +15,7 @@ const console = consoleFactory('Manager');
 //Types
 type gameNames = 'fivem' | 'redm';
 type HostStatusType = {
-    //fxPanel state
+    //sxPanel state
     cfgPath: string | null;
     dataPath: string | null;
     isConfigured: boolean;
@@ -63,7 +63,7 @@ export default class TxManager {
 
         //Updates the terminal title every 15 seconds
         setInterval(() => {
-            setTTYTitle(`(${getDisplayPlayerCount()}) ${txConfig.general.serverName} - fxPanel`);
+            setTTYTitle(`(${getDisplayPlayerCount()}) ${txConfig.general.serverName} - sxPanel`);
         }, 15000);
 
         //Pre-calculate static data as early as possible (TxRuntimeMetrics needs it)
@@ -109,7 +109,7 @@ export default class TxManager {
     }
 
     /**
-     * Adds a handler to be run when fxPanel gets a SIG* event
+     * Adds a handler to be run when sxPanel gets a SIG* event
      */
     public addShutdownHandler(handler: () => void) {
         this.moduleShutdownHandlers.push(handler);
@@ -157,7 +157,7 @@ export default class TxManager {
         const cfxId = txCore.cacheStore.getTyped('fxsRuntime:cfxId', isString) ?? null;
         const isGameName = (val: any): val is gameNames => val === 'fivem' || val === 'redm';
         return {
-            //fxPanel state
+            //sxPanel state
             isConfigured: this.configState === TxConfigState.Ready,
             dataPath: serverPaths?.dataPath ?? null,
             cfgPath: serverPaths?.cfgPath ?? null,

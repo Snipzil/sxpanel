@@ -6,7 +6,7 @@
  * Use cases:
  *  - Developing on macOS (where FXServer doesn't run natively).
  *  - Developing against a remote / Dockerized FXServer where you just want
- *    fxPanel to rebuild + sync files into a mounted `monitor/` folder, and
+ *    sxPanel to rebuild + sync files into a mounted `monitor/` folder, and
  *    you'll restart FXServer yourself (e.g. via SSH or `docker restart`).
  */
 process.env.TXDEV_NO_SPAWN = '1';

@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Цэс идэвхжсэн, нээхийн тулд /tx гэж бичнэ үү.\nМөн та товчлуурын холбоосыг [Game Settings > Key Bindings > FiveM > Menu: Open Main Page] хэсгээс тохируулах боломжтой.",
+            "help_message": "sxPanel Цэс идэвхжсэн, нээхийн тулд /tx гэж бичнэ үү.\nМөн та товчлуурын холбоосыг [Game Settings > Key Bindings > FiveM > Menu: Open Main Page] хэсгээс тохируулах боломжтой.",
             "menu_not_admin": "Caugh 4k HD, чиний бүх ID Log-д хадгалагдсан.",
-            "menu_auth_failed": "fxPanel Цэсийн баталгаажуулалт дараах шалтгааны улмаас амжилтгүй болсон : %{reason}",
+            "menu_auth_failed": "sxPanel Цэсийн баталгаажуулалт дараах шалтгааны улмаас амжилтгүй болсон : %{reason}",
             "no_perms": "Чи шааж болохгүй. Чамайг бид харж байна. . .",
             "unknown_error": "Үл мэдэгдэх алдаа гарлаа.",
-            "not_enabled": "fxPanel цэс идэвхжээгүй байна! Та үүнийг fxPanel тохиргооны хуудаснаас идэвхжүүлж болно.",
+            "not_enabled": "sxPanel цэс идэвхжээгүй байна! Та үүнийг sxPanel тохиргооны хуудаснаас идэвхжүүлж болно.",
             "announcement_title": "Зарлал - %{author}:",
             "directmessage_title": "Нууц шивнээ %{author}:",
             "dialog_empty_input": "Та хоосон бичигтэй байж болохгүй.",

@@ -21,7 +21,7 @@ export default async function MasterActionsGet(ctx: AuthedCtx) {
     if (!ctx.txVars.isWebInterface) {
         return ctx.send({
             type: 'danger',
-            message: 'This functionality cannot be used by the in-game menu, please use the web version of fxPanel.',
+            message: 'This functionality cannot be used by the in-game menu, please use the web version of sxPanel.',
         });
     }
 

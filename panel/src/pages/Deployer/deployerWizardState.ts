@@ -1,6 +1,6 @@
 import type { DeployerWizardDraft } from './deployerFlowTypes';
 
-const WIZARD_DRAFT_KEY = 'fxpanel-deployer-wizard-draft';
+const WIZARD_DRAFT_KEY = 'sxpanel-deployer-wizard-draft';
 
 export const EMPTY_WIZARD_DRAFT: DeployerWizardDraft = {
     game: null,

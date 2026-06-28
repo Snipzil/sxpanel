@@ -5,7 +5,7 @@ export const DEFERRAL_CARD_WATERMARK_PATH = '/deferral-card-logo.png';
 export const DEFERRAL_CARD_LOGO_PATH = '/logo.svg';
 
 /**
- * Extracts embedded PNG bytes from logo.svg (fxPanel ships SVG wrappers around a raster logo).
+ * Extracts embedded PNG bytes from logo.svg (sxPanel ships SVG wrappers around a raster logo).
  */
 export function extractPngBufferFromLogoSvg(svgText: string): Buffer | null {
     if (!svgText?.trim()) return null;

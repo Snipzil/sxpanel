@@ -116,8 +116,8 @@ suite('ticketCommandUtils', () => {
         expect(container.type).toBe(17);
         expect(actionRow.components).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ custom_id: 'fxpanel:ticket:summary:TKT-12345', label: 'Refresh' }),
-                expect.objectContaining({ custom_id: 'fxpanel:ticket:assign:TKT-12345', label: 'Assign' }),
+                expect.objectContaining({ custom_id: 'sxpanel:ticket:summary:TKT-12345', label: 'Refresh' }),
+                expect.objectContaining({ custom_id: 'sxpanel:ticket:assign:TKT-12345', label: 'Assign' }),
             ]),
         );
     });

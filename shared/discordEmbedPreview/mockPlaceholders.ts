@@ -62,5 +62,5 @@ export const buildMockEmbedPlaceholders = (
 
 export const PREVIEW_DEFAULT_FOOTER = {
     icon_url: 'https://cdn.discordapp.com/emojis/1062339910654246964.webp?size=96&quality=lossless',
-    text: 'fxPanel preview • Updated every minute',
+    text: 'sxPanel preview • Updated every minute',
 };

@@ -12,7 +12,7 @@ suite('filterTermLine', () => {
 
     const exampleLines = {
         empty: '',
-        info: '[             fxPanel] ================================================================ ',
+        info: '[             sxPanel] ================================================================ ',
         resGroup: '[resources:[builders]] Warning: [builders]x does not have a resource manifest (fxmanifest.lua)',
         // Tag segment must be `[` + exactly 20 chars + `] ` to match filterTermLine regex.
         input: '[12345678901234567890] dd ',

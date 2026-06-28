@@ -13,7 +13,7 @@ const { addTargetSubcommands } = require('./moderationCommon');
 
 const data = new SlashCommandBuilder()
     .setName('notes')
-    .setDescription('View or update player notes using your linked fxPanel account.');
+    .setDescription('View or update player notes using your linked sxPanel account.');
 
 addTargetSubcommands(
     data
@@ -50,7 +50,7 @@ addTargetSubcommands(
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('notes')
-        .setDescription('View or update player notes using your linked fxPanel account.')
+        .setDescription('View or update player notes using your linked sxPanel account.')
         .addSubcommandGroup((group) => {
             return addTargetSubcommands(
                 group.setName('view').setDescription('View player notes.'),

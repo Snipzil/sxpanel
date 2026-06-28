@@ -1,4 +1,4 @@
-# Contributing to fxPanel
+# Contributing to sxPanel
 
 Thanks for your interest in contributing! This guide covers everything you need to get started.
 
@@ -21,8 +21,8 @@ Thanks for your interest in contributing! This guide covers everything you need 
 1. Clone the repository:
 
 ```sh
-git clone https://github.com/SomeAussieGaymer/fxPanel
-cd fxPanel
+git clone https://github.com/Snipzil/sxpanel.git
+cd sxPanel
 ```
 
 2. Install dependencies and prepare git hooks:
@@ -71,7 +71,7 @@ npm run dev
 npm run browser
 ```
 
-For more detail on env vars and builder behavior, read `scripts/build/dev.ts` and `shared/txDevEnv.ts`. Long-form guides (same sources as the website) live in the **[fxPanel-Docs](https://github.com/SomeAussieGaymer/fxPanel-Docs/tree/main)** repo — pick the folder for your version (e.g. `v0.3.1-Alpha-01/`). The rendered site is [fxpanel.org/docs](https://fxpanel.org/docs).
+For more detail on env vars and builder behavior, read `scripts/build/dev.ts` and `shared/txDevEnv.ts`. Long-form guides (same sources as the website) live in the **[sxPanel-Docs](https://github.com/Snipzil/sxPanel-Docs/tree/main)** repo — pick the folder for your version (e.g. `v0.3.1-Alpha-01/`). The rendered site is [sxpanel.org/docs](https://sxpanel.org/docs).
 
 ## Coding Style
 

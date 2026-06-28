@@ -22,7 +22,7 @@ module.exports = {
         let guildName;
         try {
             const snapshot = await request('configSnapshot');
-            client.fxpanel.latestConfigSnapshot = snapshot;
+            client.sxpanel.latestConfigSnapshot = snapshot;
 
             const guildId = snapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? undefined;
             const guild = guildId
@@ -49,8 +49,8 @@ module.exports = {
             }
 
             guildName = guild?.name;
-            await client.fxpanel.reloadAddonModules({ clearAddonCache: true });
-            await client.fxpanel.registerCommands(guildId);
+            await client.sxpanel.reloadAddonModules({ clearAddonCache: true });
+            await client.sxpanel.registerCommands(guildId);
         } catch (error) {
             console.error('[Bot] Failed to hydrate config snapshot:', error);
             sendFatalStatus(bridge, {

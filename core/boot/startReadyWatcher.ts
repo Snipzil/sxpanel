@@ -73,7 +73,7 @@ const getPublicIpv6 = () =>
 
 const getOSMessage = async () => {
     const serverMessage = [
-        `To be able to access fxPanel from the internet open port ${txHostConfig.txaPort}`,
+        `To be able to access sxPanel from the internet open port ${txHostConfig.txaPort}`,
         'on your OS Firewall as well as in the hosting company.',
     ];
     const winWorkstationMessage = [

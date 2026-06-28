@@ -158,7 +158,7 @@ export const createMockGlobalStatus = (now = Date.now(), baseStatus?: GlobalStat
             name:
                 baseStatus?.server.name ||
                 (typeof window !== 'undefined' ? window?.txConsts?.server?.name : undefined) ||
-                'fxPanel Showcase',
+                'sxPanel Showcase',
             uptime: Math.round(uptimeBaseMs + (now % (18 * 60 * 1000))),
             health: FxMonitorHealth.ONLINE,
             healthReason: 'All monitored resources are running and accepting connections.',

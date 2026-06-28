@@ -52,5 +52,5 @@ export const getLogDivider = (msg: string) => {
  * Returns the boot divider, with the txAdmin and FXServer versions
  */
 export const getBootDivider = () => {
-    return getLogDivider(`fxPanel v${txEnv.txaVersion} atop fxserver ${txEnv.fxsVersion} Starting`);
+    return getLogDivider(`sxPanel v${txEnv.txaVersion} atop fxserver ${txEnv.fxsVersion} Starting`);
 };

@@ -49,7 +49,7 @@ export const getNativeVars = () => {
     //Check for deprecated ConVars that are no longer used
     for (const [convarName, envVarName] of Object.entries(deprecatedConvars)) {
         if (getConvarString(convarName) !== undefined) {
-            console.warn(`WARNING: The '${convarName}' ConVar has been deprecated and is no longer used by fxPanel.`);
+            console.warn(`WARNING: The '${convarName}' ConVar has been deprecated and is no longer used by sxPanel.`);
             console.warn(`         Please use the '${envVarName}' environment variable instead.`);
             anyWarnSent = true;
         }

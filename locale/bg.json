@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Сървърът е в <strong>Администраторски</strong> режим.",
-            "insufficient_ids": "Вие нямате <code>discord</code> или <code>fivem</code> идентификатори, и поне един от тях трябва да потвърди дали сте fxPanel администратор.",
-            "deny_message": "Вашите идентификатори не са присвоени на нито един администратор на fxPanel."
+            "insufficient_ids": "Вие нямате <code>discord</code> или <code>fivem</code> идентификатори, и поне един от тях трябва да потвърди дали сте sxPanel администратор.",
+            "deny_message": "Вашите идентификатори не са присвоени на нито един администратор на sxPanel."
         },
         "guild_member": {
             "mode_title": "Сървърът е в <strong>Discord server Member Whitelist</strong> режим.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel менюто е включено, напиши /tx, за да го отвориш.\nМоже също да го конфигурирате с копче в [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Твоите идентификатори не са съвместими с тези, които са регистрирани в fxPanel.\nАко си регистриран в fxPanel, отиди в Admin Manager и се увери, че идентификаторите са запазиени.",
-            "menu_auth_failed": "Удостоверяването на fxPanel менюто е неуспешно по причина: %{reason}",
+            "help_message": "sxPanel менюто е включено, напиши /tx, за да го отвориш.\nМоже също да го конфигурирате с копче в [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Твоите идентификатори не са съвместими с тези, които са регистрирани в sxPanel.\nАко си регистриран в sxPanel, отиди в Admin Manager и се увери, че идентификаторите са запазиени.",
+            "menu_auth_failed": "Удостоверяването на sxPanel менюто е неуспешно по причина: %{reason}",
             "no_perms": "Нямаш правомощията за това.",
             "unknown_error": "Възникна неизвестна грешка..",
-            "not_enabled": "fxPanel менюто не е включено! Може да го включиш чрез настройките на fxPanel.",
+            "not_enabled": "sxPanel менюто не е включено! Може да го включиш чрез настройките на sxPanel.",
             "announcement_title": "Сървърно съобщение от %{author}:",
             "dialog_empty_input": "Полето е празно.",
             "directmessage_title": "ЛС от администратор %{author}:",

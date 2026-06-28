@@ -24,7 +24,7 @@ function loadWatermarkPng(): Buffer | null {
     return cachedPng;
 }
 
-/** Serves the fxPanel watermark as PNG (FiveM cannot render SVG in img tags). */
+/** Serves the sxPanel watermark as PNG (FiveM cannot render SVG in img tags). */
 export default async function deferralCardLogo(ctx: InitializedCtx) {
     const png = loadWatermarkPng();
     if (!png?.length) {

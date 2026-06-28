@@ -6,7 +6,7 @@
 import { TOTP, Secret } from 'otpauth';
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 
-const TOTP_ISSUER = 'fxPanel';
+const TOTP_ISSUER = 'sxPanel';
 const TOTP_PERIOD = 30;
 const TOTP_DIGITS = 6;
 const TOTP_ALGORITHM = 'SHA1';

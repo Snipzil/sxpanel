@@ -1,15 +1,15 @@
 /**
- * @fxpanel/addon-sdk/ui
+ * @sxpanel/addon-sdk/ui
  *
- * Re-exports fxPanel's shadcn/ui components for use in addon panel bundles.
+ * Re-exports sxPanel's shadcn/ui components for use in addon panel bundles.
  * Addon bundlers should mark this as an external — the host panel provides
- * these components at runtime via the FxPanelUI global.
+ * these components at runtime via the SxPanelUI global.
  *
  * This file serves as the runtime entry point. The actual components come from
- * the FxPanelUI global object set by the panel host.
+ * the SxPanelUI global object set by the panel host.
  */
 
-const ui = typeof globalThis !== 'undefined' && globalThis.FxPanelUI ? globalThis.FxPanelUI : {};
+const ui = typeof globalThis !== 'undefined' && globalThis.SxPanelUI ? globalThis.SxPanelUI : {};
 
 export const Button = ui.Button;
 export const Card = ui.Card;

@@ -236,8 +236,8 @@ export default class WebServer {
                 if (error.code !== 'EADDRINUSE') return;
                 fatalError.WebServer(0, [
                     `Failed to start HTTP server, port ${error.port} is already in use.`,
-                    'Maybe you already have another fxPanel running in this port.',
-                    'If you want to run multiple fxPanel instances, check the documentation for the port convar.',
+                    'Maybe you already have another sxPanel running in this port.',
+                    'If you want to run multiple sxPanel instances, check the documentation for the port convar.',
                     'You can also try restarting the host machine.',
                 ]);
             };

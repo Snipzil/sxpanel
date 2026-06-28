@@ -13,7 +13,7 @@ const { addTargetSubcommands } = require('./moderationCommon');
 
 const data = new SlashCommandBuilder()
     .setName('unban')
-    .setDescription('Revoke an active player ban using your linked fxPanel account permissions.')
+    .setDescription('Revoke an active player ban using your linked sxPanel account permissions.')
     .addSubcommand((subcommand) => {
         return subcommand
             .setName('action')

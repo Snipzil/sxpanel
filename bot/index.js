@@ -130,7 +130,7 @@ client.on('invalidated', () => {
 });
 
 const collectAddonRoots = (key) => {
-    const addons = client.fxpanel.latestConfigSnapshot?.discordBotAddons;
+    const addons = client.sxpanel.latestConfigSnapshot?.discordBotAddons;
     if (!Array.isArray(addons)) return [];
 
     return [
@@ -143,7 +143,7 @@ const collectAddonRoots = (key) => {
 };
 
 const resolveAddonDescriptorForFile = (filePath) => {
-    const addons = client.fxpanel.latestConfigSnapshot?.discordBotAddons;
+    const addons = client.sxpanel.latestConfigSnapshot?.discordBotAddons;
     if (!Array.isArray(addons)) return null;
 
     for (const addon of addons) {
@@ -168,20 +168,20 @@ const resolveAddonIdForFile = (filePath) => {
 };
 
 const pushRuntimeDiagnostics = () => {
-    const failures = [...client.fxpanel.addonLoadFailures.command, ...client.fxpanel.addonLoadFailures.event];
+    const failures = [...client.sxpanel.addonLoadFailures.command, ...client.sxpanel.addonLoadFailures.event];
 
     bridge.send({
         type: 'botDiagnostics',
         payload: {
             addonLoadFailures: failures,
-            addonRuntimeIssues: client.fxpanel.addonRuntime.runtimeIssues,
+            addonRuntimeIssues: client.sxpanel.addonRuntime.runtimeIssues,
             updatedAt: Date.now(),
         },
     });
 };
 
 const setAddonLoadFailures = (kind, failures) => {
-    client.fxpanel.addonLoadFailures[kind] = failures;
+    client.sxpanel.addonLoadFailures[kind] = failures;
     pushRuntimeDiagnostics();
 };
 
@@ -202,7 +202,7 @@ const loadCommandFiles = async (filePaths, { shouldBustCache = () => false, tole
 
             client.commands.set(command.data.name, command);
             if (addonDescriptor?.id) {
-                registerAddonCommandModule(client.fxpanel.addonRuntime, {
+                registerAddonCommandModule(client.sxpanel.addonRuntime, {
                     addonId: addonDescriptor.id,
                     addonRateLimit: addonDescriptor.rateLimit ?? null,
                     commandName: command.data.name,
@@ -263,7 +263,7 @@ const loadEventFiles = async (
             const listener = createEventListener(event);
             client.on(event.name, listener);
             if (trackAddon) {
-                client.fxpanel.addonEventBindings.push({ name: event.name, listener });
+                client.sxpanel.addonEventBindings.push({ name: event.name, listener });
             }
 
             if ((event.name === 'ready' || event.name === 'clientReady') && client.isReady()) {
@@ -292,7 +292,7 @@ const loadBaseEvents = async () => {
 };
 
 client.commands = new Collection();
-client.fxpanel = {
+client.sxpanel = {
     latestConfigSnapshot: null,
     addonEventBindings: [],
     addonRuntime: createAddonRuntimeState(),
@@ -301,23 +301,23 @@ client.fxpanel = {
         event: [],
     },
     getAddonCommandMetadata(commandName) {
-        return getAddonCommandMetadata(client.fxpanel.addonRuntime, commandName);
+        return getAddonCommandMetadata(client.sxpanel.addonRuntime, commandName);
     },
     resolveAddonInteraction(customId) {
-        return resolveAddonInteractionHandler(client.fxpanel.addonRuntime, customId);
+        return resolveAddonInteractionHandler(client.sxpanel.addonRuntime, customId);
     },
     consumeAddonRateLimit(options) {
-        return consumeAddonRateLimit(client.fxpanel.addonRuntime, options);
+        return consumeAddonRateLimit(client.sxpanel.addonRuntime, options);
     },
     recordAddonRuntimeIssue(issue) {
-        const recordedIssue = recordAddonRuntimeIssue(client.fxpanel.addonRuntime, issue);
+        const recordedIssue = recordAddonRuntimeIssue(client.sxpanel.addonRuntime, issue);
         if (recordedIssue) {
             pushRuntimeDiagnostics();
         }
         return recordedIssue;
     },
     loadCommands: async ({ clearCustomCache = false, clearAddonCache = false } = {}) => {
-        resetAddonRuntimeRegistries(client.fxpanel.addonRuntime);
+        resetAddonRuntimeRegistries(client.sxpanel.addonRuntime);
         client.commands.clear();
 
         await loadCommandFiles(getAllFiles(commandsRoot), {
@@ -333,10 +333,10 @@ client.fxpanel = {
         return client.commands;
     },
     reloadAddonEvents: async ({ clearAddonCache = false } = {}) => {
-        for (const binding of client.fxpanel.addonEventBindings) {
+        for (const binding of client.sxpanel.addonEventBindings) {
             client.off(binding.name, binding.listener);
         }
-        client.fxpanel.addonEventBindings = [];
+        client.sxpanel.addonEventBindings = [];
 
         const addonEventFiles = collectAddonRoots('eventsPath').flatMap((rootPath) => getAllFiles(rootPath));
         await loadEventFiles(addonEventFiles, {
@@ -346,14 +346,14 @@ client.fxpanel = {
         });
     },
     reloadAddonModules: async ({ clearCustomCache = false, clearAddonCache = false } = {}) => {
-        await client.fxpanel.loadCommands({ clearCustomCache, clearAddonCache });
-        await client.fxpanel.reloadAddonEvents({ clearAddonCache });
+        await client.sxpanel.loadCommands({ clearCustomCache, clearAddonCache });
+        await client.sxpanel.reloadAddonEvents({ clearAddonCache });
         pushRuntimeDiagnostics();
     },
     registerCommands: async (guildId) => {
         if (!client.application) return;
 
-        const reportsEnabled = client.fxpanel.latestConfigSnapshot?.gameFeatures?.reportsEnabled !== false;
+        const reportsEnabled = client.sxpanel.latestConfigSnapshot?.gameFeatures?.reportsEnabled !== false;
 
         const commandPayload = [...client.commands.values()]
             .map((command) => {
@@ -377,7 +377,7 @@ client.fxpanel = {
 };
 
 const start = async () => {
-    await client.fxpanel.loadCommands();
+    await client.sxpanel.loadCommands();
     await loadBaseEvents();
     bridge.connect(client);
     await client.login(process.env.BOT_TOKEN);

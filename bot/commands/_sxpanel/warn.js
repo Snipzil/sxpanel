@@ -13,7 +13,7 @@ module.exports = {
     data: addTargetSubcommands(
         new SlashCommandBuilder()
             .setName('warn')
-            .setDescription('Warn a player using your linked fxPanel account permissions.'),
+            .setDescription('Warn a player using your linked sxPanel account permissions.'),
         {
             member: 'Warn the player linked to a Discord member.',
             id: 'Warn a player by identifier.',

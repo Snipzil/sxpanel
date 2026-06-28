@@ -15,7 +15,7 @@ const playerInitiatedExamples = [
 ];
 const serverInitiatedExamples = [
     `Server shutting down: %s`,
-    `[fxPanel] Server restarting (scheduled restart at 03:00).`, //not so sure about this
+    `[sxPanel] Server restarting (scheduled restart at 03:00).`, //not so sure about this
 ];
 const timeoutExamples = [
     `Server->client connection timed out. Pending commands: %d.\nCommand list:\n%s`,
@@ -149,7 +149,7 @@ suite('classifyDrop new mode', () => {
         });
         expect(fnc('rsn', 'monitor', 1)).toEqual({
             category: 'resource',
-            resource: 'fxPanel',
+            resource: 'sxPanel',
         });
         expect(fnc('server_shutting_down', 'monitor', 1)).toEqual({
             category: false,

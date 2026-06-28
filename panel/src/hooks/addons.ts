@@ -307,7 +307,7 @@ async function importAddonEntry(entryUrl: string): Promise<any> {
     } catch (error) {
         throw new Error(
             `Failed to load addon module from ${sanitized}. ` +
-                'fxPanel panel addons must ship a bundled ESM entry file (for example panel/index.js) ' +
+                'sxPanel panel addons must ship a bundled ESM entry file (for example panel/index.js) ' +
                 `that can be fetched and evaluated directly. ${(error as Error).message}`,
         );
     }

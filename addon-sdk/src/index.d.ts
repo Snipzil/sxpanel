@@ -1,5 +1,5 @@
 /**
- * fxPanel Addon SDK — TypeScript definitions
+ * sxPanel Addon SDK — TypeScript definitions
  */
 
 export interface AddonRequest {

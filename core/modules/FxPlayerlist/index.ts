@@ -3,7 +3,6 @@ import { ServerPlayer } from '@lib/player/playerClasses.js';
 import { buildPlayerSessionId } from '@lib/player/playerSessionId.js';
 import { DatabaseActionWarnType, DatabasePlayerType } from '@modules/Database/databaseTypes';
 import consoleFactory from '@lib/console';
-import { queueSlotPresetAces } from '@lib/presetSlotDirective';
 import { now } from '@lib/misc';
 import { PlayerDroppedEventType, PlayerJoiningEventType, PlayerlistPlayerType } from '@shared/socketioTypes';
 import {
@@ -440,7 +439,6 @@ export default class FxPlayerlist {
 
                 const svPlayer = new ServerPlayer(payload.id, payload.player, this, mutex, this.#rolloverCount);
                 this.#playerlist[payload.id] = svPlayer;
-                queueSlotPresetAces(payload.id, svPlayer.ids);
                 this.dispatchInitialPlayerData(payload.id);
                 this.joinLeaveLog.push([currTs, true]);
                 txCore.logger.server.write(

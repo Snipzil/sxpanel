@@ -294,18 +294,18 @@ export default class AddonManager {
     }
 
     /**
-     * Check if the addon is compatible with the current fxPanel version.
+     * Check if the addon is compatible with the current sxPanel version.
      */
     private checkVersionCompat(manifest: AddonManifest): boolean {
         const currentVersion = txEnv.txaVersion;
 
         // Check minVersion
-        if (manifest.fxpanel.minVersion) {
+        if (manifest.sxpanel.minVersion) {
             try {
-                if (semver.valid(currentVersion) && semver.valid(manifest.fxpanel.minVersion)) {
-                    if (semver.lt(currentVersion, manifest.fxpanel.minVersion)) {
+                if (semver.valid(currentVersion) && semver.valid(manifest.sxpanel.minVersion)) {
+                    if (semver.lt(currentVersion, manifest.sxpanel.minVersion)) {
                         console.warn(
-                            `Addon ${manifest.id}: requires fxPanel >= ${manifest.fxpanel.minVersion}, ` +
+                            `Addon ${manifest.id}: requires sxPanel >= ${manifest.sxpanel.minVersion}, ` +
                                 `current is ${currentVersion}, skipping`,
                         );
                         return false;
@@ -318,12 +318,12 @@ export default class AddonManager {
         }
 
         // Check maxVersion
-        if (manifest.fxpanel.maxVersion) {
+        if (manifest.sxpanel.maxVersion) {
             try {
-                if (semver.valid(currentVersion) && semver.validRange(manifest.fxpanel.maxVersion)) {
-                    if (!semver.satisfies(currentVersion, `<=${manifest.fxpanel.maxVersion}`)) {
+                if (semver.valid(currentVersion) && semver.validRange(manifest.sxpanel.maxVersion)) {
+                    if (!semver.satisfies(currentVersion, `<=${manifest.sxpanel.maxVersion}`)) {
                         console.warn(
-                            `Addon ${manifest.id}: max version ${manifest.fxpanel.maxVersion}, ` +
+                            `Addon ${manifest.id}: max version ${manifest.sxpanel.maxVersion}, ` +
                                 `current is ${currentVersion}, skipping`,
                         );
                         return false;
@@ -572,7 +572,7 @@ export default class AddonManager {
                 id: addon.manifest.id,
                 name: addon.manifest.name,
                 version: addon.manifest.version,
-                fxpanelMinVersion: addon.manifest.fxpanel.minVersion,
+                sxpanelMinVersion: addon.manifest.sxpanel.minVersion,
                 entryUrl: `${panelEntryBase}?v=${panelCacheBust}`,
                 stylesUrl: addon.manifest.panel.styles
                     ? `/addons/${addon.manifest.id}/panel/${path.basename(addon.manifest.panel.styles)}?v=${this.getAddonAssetCacheBust(addon, addon.manifest.panel.styles)}`

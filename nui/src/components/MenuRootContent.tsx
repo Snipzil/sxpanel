@@ -45,8 +45,8 @@ export const MenuRootContent: React.FC = React.memo(() => {
             <StyledRoot px={1.5} pt={1.25} pb={1}>
                 <HeaderRow mb={0.25}>
                     <img
-                        src="images/fxPanel.png"
-                        alt="fxPanel"
+                        src="images/sxPanel.png"
+                        alt="sxPanel"
                         style={{ height: 16, width: 'auto', display: 'block' }}
                     />
                     <Typography
@@ -56,7 +56,7 @@ export const MenuRootContent: React.FC = React.memo(() => {
                             color: theme.tokens.textMuted,
                         }}
                     >
-                        v{serverCtx.fxPanelVersion}
+                        v{serverCtx.sxPanelVersion}
                     </Typography>
                 </HeaderRow>
                 <MainPageList />

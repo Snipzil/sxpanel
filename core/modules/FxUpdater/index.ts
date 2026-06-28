@@ -295,7 +295,7 @@ export default class FxUpdater {
             //Stop the game server if running (skip notice delay — we're replacing the whole artifact)
             if (!txCore.fxRunner.isIdle) {
                 console.warn('Stopping game server for update...');
-                const killError = await txCore.fxRunner.killServer('artifact update', 'fxPanel', false, true);
+                const killError = await txCore.fxRunner.killServer('artifact update', 'sxPanel', false, true);
                 if (killError) {
                     throw new Error(`Failed to stop game server: ${killError}`);
                 }

@@ -91,7 +91,7 @@ const interpolate = (template, snapshot) => {
     const replacements = {
         playerCount: snapshot?.playerCount ?? 0,
         maxPlayers: snapshot?.maxPlayers ?? '??',
-        serverName: snapshot?.serverName ?? 'fxPanel',
+        serverName: snapshot?.serverName ?? 'sxPanel',
         uptime: snapshot?.uptime ?? 0,
     };
 
@@ -102,12 +102,12 @@ const interpolate = (template, snapshot) => {
 
 const resolveSnapshot = (client, msg) => {
     const snapshot = msg?.payload ?? msg?.data ?? msg?.snapshot ?? msg ?? null;
-    client.fxpanel.latestConfigSnapshot = snapshot;
+    client.sxpanel.latestConfigSnapshot = snapshot;
     return snapshot;
 };
 
 const resolveGuildId = (client) => {
-    return client.fxpanel.latestConfigSnapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? null;
+    return client.sxpanel.latestConfigSnapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? null;
 };
 
 const resolveGuild = async (client) => {
@@ -133,7 +133,7 @@ const resolveMember = async (client, uid) => {
 const applyPresence = async (client, presenceConfig) => {
     if (!client.user || !presenceConfig) return;
 
-    const snapshot = client.fxpanel.latestConfigSnapshot;
+    const snapshot = client.sxpanel.latestConfigSnapshot;
     const resolvedText = interpolate(presenceConfig.activityText, snapshot);
     const resolvedType = ActivityType[presenceConfig.activityType] ?? ActivityType.Watching;
 
@@ -144,7 +144,7 @@ const applyPresence = async (client, presenceConfig) => {
 };
 
 const sendAnnouncement = async (msg, client) => {
-    const snapshot = client.fxpanel.latestConfigSnapshot;
+    const snapshot = client.sxpanel.latestConfigSnapshot;
     const payload = msg?.payload ?? msg;
     const channelId = payload.channelId ?? snapshot?.discordBot?.warningsChannel ?? null;
     const announcementType = payload.announcementType ?? payload.embedType ?? null;
@@ -304,7 +304,7 @@ const createWhitelistReviewThread = async (msg, client) => {
         title: `[${msg.applicationId}] Whitelist application`,
         body: `**Player:** ${msg.playerName}\n**License:** \`${msg.license}\``,
         sections: [`Use \`/whitelist application ${msg.applicationId}\` to approve.`],
-        footer: 'fxPanel Whitelist',
+        footer: 'sxPanel Whitelist',
     });
 
     let thread;
@@ -415,15 +415,15 @@ const resolveMemberProfile = async (client, uid) => {
 };
 
 const reloadCommands = async (client) => {
-    await client.fxpanel.reloadAddonModules({ clearCustomCache: true, clearAddonCache: true });
+    await client.sxpanel.reloadAddonModules({ clearCustomCache: true, clearAddonCache: true });
     const guildId = resolveGuildId(client) ?? undefined;
-    await client.fxpanel.registerCommands(guildId);
+    await client.sxpanel.registerCommands(guildId);
 };
 
 const handleRequest = async (msg, client) => {
     switch (msg.type) {
         case 'configSnapshot': {
-            sendResponse(msg.requestId, client.fxpanel.latestConfigSnapshot ?? null);
+            sendResponse(msg.requestId, client.sxpanel.latestConfigSnapshot ?? null);
             return;
         }
         case 'createTicketThread': {
@@ -472,7 +472,7 @@ const handle = async (msg, client) => {
             await applyPresence(client, snapshot?.discordBot?.presence);
             const guildId = resolveGuildId(client) ?? undefined;
             if (guildId) {
-                await client.fxpanel.registerCommands(guildId);
+                await client.sxpanel.registerCommands(guildId);
             }
             return;
         }

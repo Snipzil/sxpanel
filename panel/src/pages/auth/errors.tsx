@@ -29,7 +29,7 @@ export function AuthError({ error }: AuthErrorProps) {
         titleNode = 'Invalid Browser Session.';
         bodyNode = (
             <ErrorText>
-                You may have restarted fxPanel right before entering this page. <br />
+                You may have restarted sxPanel right before entering this page. <br />
                 Please return and try again.
             </ErrorText>
         );
@@ -73,7 +73,7 @@ export function AuthError({ error }: AuthErrorProps) {
         bodyNode = (
             <ErrorText>
                 The account above with identifier <InlineCode>{fivemId}</InlineCode> is not assigned to any account
-                registered on fxPanel. <br />
+                registered on sxPanel. <br />
                 You can also try to login using your username and backup password.
             </ErrorText>
         );
@@ -125,7 +125,7 @@ export const processFetchError = (error: any) => {
     if (error.message?.startsWith('NetworkError')) {
         return {
             errorTitle: 'Network Error',
-            errorMessage: 'If you closed fxPanel, please restart it and try again.',
+            errorMessage: 'If you closed sxPanel, please restart it and try again.',
         };
     } else {
         return {

@@ -9,15 +9,15 @@ vi.stubGlobal('ExecuteCommand', (commandString: string) => {
 vi.stubGlobal('GetConvar', (varName: string, defaultValue: string) => {
     if (varName === 'version') {
         if (os.platform() === 'win32') {
-            return 'FXServer-test/fxPanel SERVER v1.0.0.55555 win32';
+            return 'FXServer-test/sxPanel SERVER v1.0.0.55555 win32';
         } else {
-            return 'FXServer-test/fxPanel v1.0.0.55555 linux';
+            return 'FXServer-test/sxPanel v1.0.0.55555 linux';
         }
     } else if (varName === 'citizen_root') {
         return inject('fxsPath');
-    } else if (varName === 'fxPanelDevMode') {
+    } else if (varName === 'sxPanelDevMode') {
         return 'false';
-    } else if (varName === 'fxPanelVerbose') {
+    } else if (varName === 'sxPanelVerbose') {
         return 'false';
     } else {
         return defaultValue;

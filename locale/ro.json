@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "This server is in <strong>Admin-only</strong> mode.",
-            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a fxPanel administrator.",
-            "deny_message": "Your identifiers are not assigned to any fxPanel administrator."
+            "insufficient_ids": "You do not have <code>discord</code> or <code>fivem</code> identifiers, and at least one of them is required to validate if you are a sxPanel administrator.",
+            "deny_message": "Your identifiers are not assigned to any sxPanel administrator."
         },
         "guild_member": {
             "mode_title": "This server is in <strong>Discord server Member Whitelist</strong> mode.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "Meniul fxPanel este activat, Scrie /tx pentru a îl deschide.\nPoți reconfigura keybind-ul utilizând [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Identificatorii dvs. nu se potrivesc cu niciun administrator înregistrat pe fxPanel.\nDacă sunteți înregistrat pe fxPanel, accesați Admin Manager și asigurați-vă că identificatorii dvs. bine configurați.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "Meniul sxPanel este activat, Scrie /tx pentru a îl deschide.\nPoți reconfigura keybind-ul utilizând [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Identificatorii dvs. nu se potrivesc cu niciun administrator înregistrat pe sxPanel.\nDacă sunteți înregistrat pe sxPanel, accesați Admin Manager și asigurați-vă că identificatorii dvs. bine configurați.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Nu ai această permisie.",
             "unknown_error": "A apărut o eroare necunoscută.",
-            "not_enabled": "Meniul fxPanel nu este activat! Puteți să o activați din pagina de setări fxPanel.",
+            "not_enabled": "Meniul sxPanel nu este activat! Puteți să o activați din pagina de setări sxPanel.",
             "announcement_title": "Anunț de la %{author}:",
             "dialog_empty_input": "Nu poți avea un input gol.",
             "directmessage_title": "DM from admin %{author}:",

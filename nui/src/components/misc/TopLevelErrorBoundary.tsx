@@ -41,7 +41,7 @@ export class TopLevelErrorBoundary extends Component<ErrorBoundaryProps, ErrorCo
                     <DialogTitle>Fatal Error Encountered</DialogTitle>
                     <DialogContent>
                         <DialogContentText>
-                            The fxPanel menu has an encountered an error it was unable to recover from, the NUI frame
+                            The sxPanel menu has an encountered an error it was unable to recover from, the NUI frame
                             will need to be reloaded. The error message is shown below for developer reference.
                             <br />
                             <br />

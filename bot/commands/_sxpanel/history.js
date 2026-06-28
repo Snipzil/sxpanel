@@ -12,21 +12,24 @@ const { addTargetSubcommands } = require('./moderationCommon');
 module.exports = {
     data: addTargetSubcommands(
         new SlashCommandBuilder()
-            .setName('kick')
-            .setDescription('Kick a connected player using your linked fxPanel account permissions.'),
+            .setName('history')
+            .setDescription('Show recent moderation history using your linked sxPanel account.'),
         {
-            member: 'Kick the player linked to a Discord member.',
-            id: 'Kick a player by identifier.',
+            self: 'Show your linked player history.',
+            member: 'Show history for the player linked to a Discord member.',
+            id: 'Show history for a player by identifier.',
         },
         (subcommand) => {
-            return subcommand.addStringOption((option) => {
+            return subcommand.addIntegerOption((option) => {
                 return option
-                    .setName('reason')
-                    .setDescription('Reason for the kick.')
-                    .setRequired(true)
-                    .setMaxLength(300);
+                    .setName('limit')
+                    .setDescription('How many recent actions to show (default 5, max 10).')
+                    .setRequired(false)
+                    .setMinValue(1)
+                    .setMaxValue(10);
             });
         },
+        { includeSelf: true },
     ),
     async execute(interaction) {
         const result = resolveSearchId(interaction);
@@ -37,16 +40,16 @@ module.exports = {
 
         try {
             const response = await request('moderationCommand', {
-                command: 'kick',
+                command: 'history',
                 searchId: result.searchId,
-                reason: interaction.options.getString('reason', true).trim(),
+                limit: interaction.options.getInteger('limit') ?? undefined,
                 ...getRequesterPayload(interaction),
             });
 
             if (await resolveBridgeReply(interaction, response)) return;
-            throw getNoReplyPayloadError(interaction, '/kick');
+            throw getNoReplyPayloadError(interaction, '/history');
         } catch (error) {
-            await sendBridgeError(interaction, '/kick', error);
+            await sendBridgeError(interaction, '/history', error);
         }
     },
 };

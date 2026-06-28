@@ -1,4 +1,4 @@
-# fxPanel Theme
+# sxPanel Theme
 
 ## Colors
 

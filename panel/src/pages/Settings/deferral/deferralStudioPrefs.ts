@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'fxpanel.deferralStudio.prefs';
+const STORAGE_KEY = 'sxpanel.deferralStudio.prefs';
 
 export type DeferralStudioPrefs = {
     showGrid: boolean;

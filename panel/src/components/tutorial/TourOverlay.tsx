@@ -282,7 +282,7 @@ export function TourOverlay({ targetRect, tooltipProps, layoutKey, preferredSide
 
     const overlay = (
         <div
-            id="fxpanel-post-install-tour-overlay"
+            id="sxpanel-post-install-tour-overlay"
             style={{
                 position: 'fixed',
                 inset: 0,

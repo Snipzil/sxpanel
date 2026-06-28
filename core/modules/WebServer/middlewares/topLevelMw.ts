@@ -35,7 +35,7 @@ const timeoutLimit = 47 * 1000; //REQ_TIMEOUT_REALLY_REALLY_LONG is 45s
  * Middleware responsible for timeout/error/no-output/413
  */
 const topLevelMw = async (ctx: RawKoaCtx, next: Next) => {
-    ctx.set('Server', `fxPanel v${txEnv.txaVersion}`);
+    ctx.set('Server', `sxPanel v${txEnv.txaVersion}`);
     const incomingRid = (ctx.get('x-request-id') ?? '').trim();
     const requestId = incomingRid.length > 0 && incomingRid.length <= 128 ? incomingRid : crypto.randomUUID();
     ctx.set('X-Request-Id', requestId);
@@ -55,7 +55,7 @@ const topLevelMw = async (ctx: RawKoaCtx, next: Next) => {
             return (ctx.body = '[no output from route]');
         }
     } catch (error) {
-        const prefix = `[fxPanel v${txEnv.txaVersion}]`;
+        const prefix = `[sxPanel v${txEnv.txaVersion}]`;
         const reqPath = ctx.path.length > 80 ? `${ctx.path.slice(0, 77)}...` : ctx.path;
         const methodName = 'routeHandler';
 

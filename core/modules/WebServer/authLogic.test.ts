@@ -1,7 +1,6 @@
 import { suite, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@modules/AdminStore/permissionPresets', () => ({
-    PRESET_TABLE_PAD: 0x5a,
     getAllPermissionPresets: () => [
         {
             id: 'custom:supporter',
@@ -392,7 +391,7 @@ suite('resolveEffectiveAuthedAdmin', () => {
                     id: '123456789012345678',
                     identifier: 'discord:123456789012345678',
                     data: {
-                        fxpanelRoleSync: {
+                        sxpanelRoleSync: {
                             permissions: ['players.kick', 'menu.viewids'],
                             presetIds: ['custom:supporter'],
                             roleIds: ['role-moderator'],

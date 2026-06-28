@@ -1,7 +1,7 @@
 {
-    "name": "fxpanel-core",
+    "name": "sxpanel-core",
     "version": "0.4.0-Beta",
-    "description": "The core package is the backend of fxPanel and handles running fxserver and the web server and every other internal backend stuff.",
+    "description": "The core package is the backend of sxPanel and handles running fxserver and the web server and every other internal backend stuff.",
     "type": "module",
     "scripts": {
         "build": "cd ../ && npx tsx scripts/build/publish.ts",
@@ -16,7 +16,7 @@
         "license:report": "npx license-report > ../.reports/license/core.html"
     },
     "keywords": [],
-    "author": "SomeAussieGaymer",
+    "author": "snipz",
     "license": "MIT",
     "dependencies": {
         "@koa/cors": "^5.0.0",
@@ -36,7 +36,7 @@
         "hash-wasm": "^4.12.0",
         "is-localhost-ip": "^3.0.1",
         "jose": "^6.2.2",
-        "js-yaml": "^4.1.1",
+        "js-yaml": "^5.2.0",
         "keygrip": "^1.1.0",
         "koa": "^3.2.0",
         "koa-bodyparser": "^4.4.1",
@@ -60,8 +60,8 @@
         "string-argv": "^0.3.2",
         "systeminformation": "^5.31.5",
         "throttle-debounce": "^5.0.2",
-        "vite": "8.0.10",
-        "ws": "^8.18.3",
+        "vite": "8.1.0",
+        "ws": "^8.21.0",
         "xss": "^1.0.15",
         "zod": "^4.3.6",
         "zod-validation-error": "^5.0.0"

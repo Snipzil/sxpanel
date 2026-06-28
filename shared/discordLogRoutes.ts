@@ -21,7 +21,7 @@ export const discordLogRouteDefinitions = [
     {
         key: 'system.command',
         label: 'Panel Command Logs',
-        description: 'Log server control commands and live console commands executed through fxPanel.',
+        description: 'Log server control commands and live console commands executed through sxPanel.',
         supportsEntryFilter: true,
     },
     {
@@ -33,7 +33,7 @@ export const discordLogRouteDefinitions = [
     {
         key: 'system.config',
         label: 'Config Change Logs',
-        description: 'Log configuration changes saved through fxPanel.',
+        description: 'Log configuration changes saved through sxPanel.',
         supportsEntryFilter: true,
     },
     {
@@ -51,7 +51,7 @@ export const discordLogRouteDefinitions = [
     {
         key: 'system.system',
         label: 'System Logs',
-        description: 'Log other fxPanel system events that do not fall into a more specific category.',
+        description: 'Log other sxPanel system events that do not fall into a more specific category.',
         supportsEntryFilter: true,
     },
     {

@@ -1,5 +1,4 @@
 const modulename = 'WebServer:AdminManagerActions';
-import { getPresetVaultLabel } from '@lib/presetRowMaterial';
 import { generateTempAdminPassword } from '@shared/generateTempPassword';
 import got from '@lib/got';
 import consts from '@shared/consts';
@@ -253,11 +252,8 @@ async function handleEdit(ctx: AuthedCtx) {
     }
 
     //Check if admin exists (look up by original name if renaming)
-    if (lookupName.toLowerCase() === getPresetVaultLabel()) {
-        return ctx.send({ type: 'danger', message: 'Admin not found.' });
-    }
     const admin = txCore.adminStore.getAdminByName(lookupName);
-    if (!admin || admin.passwordRevision < 0) return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
 
     //Check if editing an master admin
     if (!ctx.admin.isMaster && admin.isMaster) {
@@ -305,11 +301,8 @@ async function handleDelete(ctx: AuthedCtx) {
     }
 
     //Check if admin exists
-    if (name.toLowerCase() === getPresetVaultLabel()) {
-        return ctx.send({ type: 'danger', message: 'Admin not found.' });
-    }
     const admin = txCore.adminStore.getAdminByName(name);
-    if (!admin || admin.passwordRevision < 0) return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
 
     //Check if editing an master admin
     if (admin.isMaster) {
@@ -345,11 +338,8 @@ async function handleResetPassword(ctx: AuthedCtx) {
     }
 
     //Check if admin exists
-    if (name.toLowerCase() === getPresetVaultLabel()) {
-        return ctx.send({ type: 'danger', message: 'Admin not found.' });
-    }
     const admin = txCore.adminStore.getAdminByName(name);
-    if (!admin || admin.passwordRevision < 0) return ctx.send({ type: 'danger', message: 'Admin not found.' });
+    if (!admin) return ctx.send({ type: 'danger', message: 'Admin not found.' });
 
     //Check if resetting a master admin
     if (!ctx.admin.isMaster && admin.isMaster) {

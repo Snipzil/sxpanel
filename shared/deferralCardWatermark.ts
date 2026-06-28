@@ -1,4 +1,4 @@
-/** fxPanel wordmark watermark (txAdmin bottom-right placement; wider than txAdmin icon for readability). */
+/** sxPanel wordmark watermark (txAdmin bottom-right placement; wider than txAdmin icon for readability). */
 export const DEFERRAL_TXADMIN_WATERMARK_WIDTH_PX = 88;
 export const DEFERRAL_TXADMIN_WATERMARK_HEIGHT_PX = 32;
 export const DEFERRAL_TXADMIN_WATERMARK_OPACITY = 0.45;

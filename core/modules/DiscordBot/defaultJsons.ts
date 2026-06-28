@@ -38,7 +38,7 @@ export const defaultEmbedJson = JSON.stringify({
     },
     footer: {
         icon_url: 'https://media.discordapp.net/attachments/1489272229157142538/1489655810555515061/Logo.png',
-        text: `fxPanel ${txEnv.txaVersion}`,
+        text: `sxPanel ${txEnv.txaVersion}`,
     },
 });
 
@@ -81,7 +81,7 @@ export const defaultPlayerListEmbedJson = JSON.stringify({
     },
     footer: {
         icon_url: 'https://media.discordapp.net/attachments/1489272229157142538/1489655810555515061/Logo.png',
-        text: `fxPanel ${txEnv.txaVersion}`,
+        text: `sxPanel ${txEnv.txaVersion}`,
     },
 });
 

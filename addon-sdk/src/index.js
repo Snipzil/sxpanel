@@ -1,12 +1,12 @@
 /**
- * fxPanel Addon SDK
+ * sxPanel Addon SDK
  *
- * Runtime SDK for fxPanel addon server processes.
+ * Runtime SDK for sxPanel addon server processes.
  *
  * Two transport modes are supported transparently:
  *   1. CHILD-PROCESS / WORKER  — addon runs in its own Node process or worker.
  *      IPC uses process.send / process.on('message').
- *   2. IN-PROCESS              — addon runs in the same realm as fxPanel core
+ *   2. IN-PROCESS              — addon runs in the same realm as sxPanel core
  *      (used on Linux/cfx-server hosts where no separate Node binary is
  *      available and worker_threads cannot be safely terminated). IPC uses a
  *      per-addon channel object handed to createAddon() via globalThis.
@@ -15,7 +15,7 @@
  */
 
 /**
- * Creates and returns an addon instance that communicates with fxPanel core.
+ * Creates and returns an addon instance that communicates with sxPanel core.
  */
 export function createAddon() {
     // In-process runtime hands us a channel object via a single-shot global
@@ -29,7 +29,7 @@ export function createAddon() {
 
     const addonId = (pending && typeof pending === 'object' && pending.addonId) || process.env.ADDON_ID;
     if (!addonId) {
-        throw new Error('@fxpanel/addon-sdk: ADDON_ID environment variable not set. Is this running inside fxPanel?');
+        throw new Error('@sxpanel/addon-sdk: ADDON_ID environment variable not set. Is this running inside sxPanel?');
     }
 
     // Abstract IPC: in-process uses the channel; otherwise process.send/on.

@@ -90,7 +90,7 @@ Make sure everything is correct in the recipe and try again.`;
             data.serverCFG = errorMessage;
         }
     } else {
-        return ctx.send({ error: 'Unknown Deployer step, please report this bug and restart fxPanel.' });
+        return ctx.send({ error: 'Unknown Deployer step, please report this bug and restart sxPanel.' });
     }
 
     return ctx.send(data);

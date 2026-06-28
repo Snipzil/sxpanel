@@ -1,7 +1,7 @@
 {
-    "name": "@fxpanel/addon-sdk",
+    "name": "@sxpanel/addon-sdk",
     "version": "0.2.0",
-    "description": "SDK for building fxPanel addons",
+    "description": "SDK for building sxPanel addons",
     "main": "src/index.js",
     "types": "src/index.d.ts",
     "type": "module",

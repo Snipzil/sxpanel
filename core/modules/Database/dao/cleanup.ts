@@ -130,7 +130,7 @@ export default class CleanupDao {
 
         this.db.writeFlag(SavePriority.LOW);
         console.ok(
-            `Internal Database optimized. This applies only for the fxPanel internal database, and does not affect your MySQL or framework (ESX/QBCore/etc) databases.`,
+            `Internal Database optimized. This applies only for the sxPanel internal database, and does not affect your MySQL or framework (ESX/QBCore/etc) databases.`,
         );
         console.ok(
             `- ${playerRemoved} players that haven't connected in the past 16 days and had less than 2 hours of playtime.`,

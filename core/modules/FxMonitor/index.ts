@@ -311,12 +311,12 @@ export default class FxMonitor {
         //Check if process was frozen
         if (this.swLastStatusUpdate.isOver(10)) {
             console.error(
-                `fxPanel was frozen for ${this.swLastStatusUpdate.elapsed - 1} seconds for unknown reason (random issue, VPS Lag, DDoS, etc).`,
+                `sxPanel was frozen for ${this.swLastStatusUpdate.elapsed - 1} seconds for unknown reason (random issue, VPS Lag, DDoS, etc).`,
             );
             this.swLastStatusUpdate.restart();
             return {
                 action: 'SKIP',
-                reason: 'fxPanel was frozen',
+                reason: 'sxPanel was frozen',
             };
         }
         this.swLastStatusUpdate.restart();
@@ -516,7 +516,7 @@ export default class FxMonitor {
 
             // Dispatch `txAdmin:events:announcement`
             txCore.fxRunner.sendEvent('announcement', {
-                author: 'fxPanel',
+                author: 'sxPanel',
                 message: txCore.translator.t('restarter.partial_hang_warn'),
             });
         }

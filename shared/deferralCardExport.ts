@@ -9,7 +9,7 @@ export const DEFERRAL_CARD_EXPORT_VERSION = 1 as const;
 export const DEFERRAL_CARD_EXPORT_VERSION_V2 = 2 as const;
 
 const DeferralCardExportFileV1Schema = z.object({
-    fxPanelDeferralCard: z.literal(DEFERRAL_CARD_EXPORT_VERSION),
+    sxPanelDeferralCard: z.literal(DEFERRAL_CARD_EXPORT_VERSION),
     exportedAt: z.string().optional(),
     scenario: DeferralScenarioIdSchema.optional(),
     skin: DeferralCardsConfigSchema.shape.skin.optional(),
@@ -27,7 +27,7 @@ const DeferralCardExportAddonMetaSchema = z.record(
 );
 
 const DeferralCardExportFileV2Schema = z.object({
-    fxPanelDeferralCard: z.literal(DEFERRAL_CARD_EXPORT_VERSION_V2),
+    sxPanelDeferralCard: z.literal(DEFERRAL_CARD_EXPORT_VERSION_V2),
     exportedAt: z.string().optional(),
     scenario: z.string().optional(),
     skin: DeferralCardsConfigSchema.shape.skin.optional(),
@@ -75,7 +75,7 @@ export function exportDeferralScenario(
     }
     const version = isAddon ? DEFERRAL_CARD_EXPORT_VERSION_V2 : exportVersion(normalized);
     const base = {
-        fxPanelDeferralCard: version,
+        sxPanelDeferralCard: version,
         exportedAt: new Date().toISOString(),
         scenario: scenarioId,
         skin: normalized.skin,
@@ -99,7 +99,7 @@ export function exportDeferralCardsFull(config: DeferralCardsConfig): DeferralCa
     }
     const version = exportVersion(normalized);
     const base = {
-        fxPanelDeferralCard: version,
+        sxPanelDeferralCard: version,
         exportedAt: new Date().toISOString(),
         skin: normalized.skin,
         discordInvite: normalized.discordInvite,
@@ -158,7 +158,7 @@ export function importDeferralCardFile(
 ): ImportDeferralResult {
     const parsed = DeferralCardExportFileSchema.safeParse(raw);
     if (!parsed.success) {
-        return { ok: false, error: 'Invalid deferral card file (missing fxPanelDeferralCard header).' };
+        return { ok: false, error: 'Invalid deferral card file (missing sxPanelDeferralCard header).' };
     }
     const file = parsed.data;
     const base = normalizeDeferralCardsConfig(current);

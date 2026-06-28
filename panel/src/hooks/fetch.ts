@@ -206,7 +206,7 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
             if (abortController.current?.signal.aborted) return;
             console.log('[TIMEOUT]', apiCallDesc);
             abortController.current?.abort('timeout');
-            handleError('Request Timeout', 'If you closed fxPanel, please restart it and try again.');
+            handleError('Request Timeout', 'If you closed sxPanel, please restart it and try again.');
         }, opts.timeout ?? ApiTimeout.DEFAULT);
 
         try {
@@ -273,7 +273,7 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
             if (typeof error.message !== 'string') {
                 errorMessage = JSON.stringify(error);
             } else if (error.message.startsWith('NetworkError')) {
-                errorMessage = 'Network error.\nIf you closed fxPanel, please restart it and try again.';
+                errorMessage = 'Network error.\nIf you closed sxPanel, please restart it and try again.';
             } else if (error.message.startsWith('JSON.parse:')) {
                 errorMessage = 'Invalid JSON response from server.';
             } else {

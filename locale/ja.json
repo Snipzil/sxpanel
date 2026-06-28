@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "このサーバーは<strong>管理者専用</strong>モードになっています。",
-            "insufficient_ids": "あなたは<code>Discord</code>か<code>Fivem</code>のIDを持っておらず、fxPanelの管理者であるかを確認するためには、少なくともどちらかのIDが必要です。",
-            "deny_message": "あなたのIDはどのfxPanel管理者にも割り当てられていません。"
+            "insufficient_ids": "あなたは<code>Discord</code>か<code>Fivem</code>のIDを持っておらず、sxPanelの管理者であるかを確認するためには、少なくともどちらかのIDが必要です。",
+            "deny_message": "あなたのIDはどのsxPanel管理者にも割り当てられていません。"
         },
         "guild_member": {
             "mode_title": "このサーバーは<strong>Discordサーバーメンバーホワイトリスト</strong>モードになっています。",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanelメニューが有効になっている場合は、/tx と入力して開いてください。\nまた、[ゲーム設定 > キーバインド > FiveM > メニュー: メインページを開く]でキーバインドを設定することもできます。",
-            "menu_not_admin": "あなたのIDがfxPanelに登録されている管理者と一致しません。\nfxPanelに登録されている場合は、IDが保存されていることを確認してください。",
-            "menu_auth_failed": "fxPanelメニューの認証に失敗しました 理由: %{reason}",
+            "help_message": "sxPanelメニューが有効になっている場合は、/tx と入力して開いてください。\nまた、[ゲーム設定 > キーバインド > FiveM > メニュー: メインページを開く]でキーバインドを設定することもできます。",
+            "menu_not_admin": "あなたのIDがsxPanelに登録されている管理者と一致しません。\nsxPanelに登録されている場合は、IDが保存されていることを確認してください。",
+            "menu_auth_failed": "sxPanelメニューの認証に失敗しました 理由: %{reason}",
             "no_perms": "権限を持っていません。",
             "unknown_error": "不明なエラーが発生しました。",
-            "not_enabled": "fxPanelメニューが有効になっていません! fxPanelの設定ページで有効にできます。",
+            "not_enabled": "sxPanelメニューが有効になっていません! sxPanelの設定ページで有効にできます。",
             "announcement_title": "%{author}によるサーバーに関するお知らせ:",
             "directmessage_title": "管理者%{author}からのDM:",
             "dialog_empty_input": "空の入力はできない。",

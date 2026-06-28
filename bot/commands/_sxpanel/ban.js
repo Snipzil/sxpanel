@@ -13,7 +13,7 @@ module.exports = {
     data: addTargetSubcommands(
         new SlashCommandBuilder()
             .setName('ban')
-            .setDescription('Ban a player using your linked fxPanel account permissions.'),
+            .setDescription('Ban a player using your linked sxPanel account permissions.'),
         {
             member: 'Ban the player linked to a Discord member.',
             id: 'Ban a player by identifier.',

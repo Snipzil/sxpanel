@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Ez a szerver <strong>csak Adminok</strong> módban van.",
-            "insufficient_ids": "Nincs <code>discord</code> vagy <code>fivem</code> azonosítód, valamelyik szükséges ahhoz, hogy azonosítsd magad ha fxPanel adminisztrátor vagy.",
-            "deny_message": "Az azonosítód nem tartozik egy fxPanel adminisztrátorhoz sem."
+            "insufficient_ids": "Nincs <code>discord</code> vagy <code>fivem</code> azonosítód, valamelyik szükséges ahhoz, hogy azonosítsd magad ha sxPanel adminisztrátor vagy.",
+            "deny_message": "Az azonosítód nem tartozik egy sxPanel adminisztrátorhoz sem."
         },
         "guild_member": {
             "mode_title": "Ez a szerver <strong>Discord szerver tag whitelist</strong> módban van.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "A fxPanel rendelkezik játékon belüli menüvel!\nGyorsgomb [Game Settings > Key Bindings > FiveM > Open the fxPanel Menu] Próbáld ki!",
-            "menu_not_admin": "Az azonosítód nem egyezik a fxPanelban található admin azonosítókkal.\nHa regisztrálva vagy fxPanelban, bizonyosodj meg róla hogy el van mentve az Admin Managerben.",
-            "menu_auth_failed": "A fxPanel menü hitelesítés meghiúsult ezzel az okkal: %{reason}",
+            "help_message": "A sxPanel rendelkezik játékon belüli menüvel!\nGyorsgomb [Game Settings > Key Bindings > FiveM > Open the sxPanel Menu] Próbáld ki!",
+            "menu_not_admin": "Az azonosítód nem egyezik a sxPanelban található admin azonosítókkal.\nHa regisztrálva vagy sxPanelban, bizonyosodj meg róla hogy el van mentve az Admin Managerben.",
+            "menu_auth_failed": "A sxPanel menü hitelesítés meghiúsult ezzel az okkal: %{reason}",
             "no_perms": "Ehhez nincs engedélyed.",
             "unknown_error": "Ismeretlen hiba lépett fel.",
-            "not_enabled": "A fxPanel menü nincs engedélyezve! Engedélyezheted a fxPanel beállítások fülön.",
+            "not_enabled": "A sxPanel menü nincs engedélyezve! Engedélyezheted a sxPanel beállítások fülön.",
             "announcement_title": "Szerver felhívás %{author}:",
             "dialog_empty_input": "Nem lehet üresen hagyni.",
             "directmessage_title": "Privát üzenet admintól %{author}:",

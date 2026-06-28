@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": "Dieser Server befindet sich derzeit im <strong>Wartungsmodus</strong>",
-            "insufficient_ids": "Du hast keinen <code>discord</code>oder <code>FiveM</code> Identifier. Mindestens einer von beiden ist erforderlich, um dich als registrierten fxPanel-Administrator zu erkennen.",
-            "deny_message": "Deine Identifier sind keinem fxPanel-Administrator zugewiesen. Der Zugang wurde verweigert."
+            "insufficient_ids": "Du hast keinen <code>discord</code>oder <code>FiveM</code> Identifier. Mindestens einer von beiden ist erforderlich, um dich als registrierten sxPanel-Administrator zu erkennen.",
+            "deny_message": "Deine Identifier sind keinem sxPanel-Administrator zugewiesen. Der Zugang wurde verweigert."
         },
         "guild_member": {
             "mode_title": "Dieser Server befindet sich im <strong>Discord-Whitelist</strong> Modus.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menü aktiviert, tippe /tx ein, um es zu öffnen.\nDu kannst zusätzlich in den Einstellungen eine Taste zuweisen [Einstellungen > Steuerung > FiveM > fxPanel].",
-            "menu_not_admin": "Deine IDs stimmen mit keiner bei fxPanel registrierten überein.\n Wenn du bei fxPanel registriert bist, stelle sicher, dass die richtigen IDs gespeichert sind.",
-            "menu_auth_failed": "Authentifizierung vom fxPanel Menü fehlgeschlagen. Grund: %{reason}.",
+            "help_message": "sxPanel Menü aktiviert, tippe /tx ein, um es zu öffnen.\nDu kannst zusätzlich in den Einstellungen eine Taste zuweisen [Einstellungen > Steuerung > FiveM > sxPanel].",
+            "menu_not_admin": "Deine IDs stimmen mit keiner bei sxPanel registrierten überein.\n Wenn du bei sxPanel registriert bist, stelle sicher, dass die richtigen IDs gespeichert sind.",
+            "menu_auth_failed": "Authentifizierung vom sxPanel Menü fehlgeschlagen. Grund: %{reason}.",
             "no_perms": "Dafür hast du keine Berechtigung.",
             "unknown_error": "Ein unbekannter Fehler ist aufgetreten.",
-            "not_enabled": "Das fxPanel Menü ist nicht aktiviert. Du kannst es in den fxPanel Einstellungen aktivieren.",
+            "not_enabled": "Das sxPanel Menü ist nicht aktiviert. Du kannst es in den sxPanel Einstellungen aktivieren.",
             "announcement_title": "Serverweite Ankündigung von %{author}:",
             "dialog_empty_input": "Du kannst keine leere Eingabe senden.",
             "directmessage_title": "DM von Admin %{author}:",
@@ -383,7 +383,7 @@
     "discord_bot": {
         "common": {
             "could_not_resolve_user": "Der Discord-Nutzer für diesen Befehl konnte nicht aufgelöst werden.",
-            "no_fxpanel_access": "**Dein Konto hat keinen fxPanel-Zugriff.**\nWenn du bereits in fxPanel registriert bist, stelle sicher, dass deine Discord-ID auf `%{requesterId}` gesetzt ist.",
+            "no_sxpanel_access": "**Dein Konto hat keinen sxPanel-Zugriff.**\nWenn du bereits in sxPanel registriert bist, stelle sicher, dass deine Discord-ID auf `%{requesterId}` gesetzt ist.",
             "invalid_identifier": "Ungültiger Identifier.",
             "invalid_server_id": "Ungültige Server-ID.",
             "subcommand_not_found": "Unterbefehl %{subcommand} nicht gefunden.",
@@ -408,7 +408,7 @@
                 "change_failed": "Seitenwechsel der Spielerliste fehlgeschlagen: %{message}"
             },
             "ticket": {
-                "assign_prompt": "Wähle den verknüpften fxPanel-Admin, dem dieses Ticket gehören soll.",
+                "assign_prompt": "Wähle den verknüpften sxPanel-Admin, dem dieses Ticket gehören soll.",
                 "assign_placeholder": "Teammitglied auswählen",
                 "invalid_request": "Ungültige Ticket-Interaktionsanfrage.",
                 "no_updated_payload": "Es wurde keine aktualisierte Ticket-Payload zurückgegeben.",
@@ -449,8 +449,8 @@
         },
         "player_lookup": {
             "lookup_failed": "Spielersuche fehlgeschlagen: %{message}",
-            "no_players_found": "Der Identifier (`%{searchId}`) scheint keinem Spieler in der fxPanel-Datenbank zugeordnet zu sein.",
-            "too_many_players": "Der Identifier (`%{searchId}`) ist mit mehr als 10 Spielern verknüpft, bitte nutze das fxPanel-Webpanel für die Suche.",
+            "no_players_found": "Der Identifier (`%{searchId}`) scheint keinem Spieler in der sxPanel-Datenbank zugeordnet zu sein.",
+            "too_many_players": "Der Identifier (`%{searchId}`) ist mit mehr als 10 Spielern verknüpft, bitte nutze das sxPanel-Webpanel für die Suche.",
             "fields": {
                 "play_time": "Spielzeit",
                 "join_date": "Beitrittsdatum",
@@ -561,7 +561,7 @@
                     "assigned_note": "Zugewiesen an **%{adminName}**.",
                     "unassigned_note": "Dieses Ticket ist jetzt nicht zugewiesen.",
                     "assign_missing_member": "Wähle ein Discord-Mitglied aus, dem das Ticket zugewiesen werden soll.",
-                    "assign_unlinked_member": "Dieses Discord-Konto ist nicht mit einem fxPanel-Admin verknüpft und kann daher keine Ticket-Zuweisungen besitzen.",
+                    "assign_unlinked_member": "Dieses Discord-Konto ist nicht mit einem sxPanel-Admin verknüpft und kann daher keine Ticket-Zuweisungen besitzen.",
                     "assignment_title": "Ticket-Zuweisung · %{ticketId}",
                     "already_assigned_note": "Dieses Ticket ist bereits **%{adminName}** zugewiesen.",
                     "assign_failed": "Ticket `%{ticketId}` konnte nicht zugewiesen werden.",
@@ -587,16 +587,16 @@
         "moderation": {
             "access": {
                 "could_not_resolve_user": "Der Discord-Nutzer für diesen Befehl konnte nicht aufgelöst werden.",
-                "no_access": "**Dein Konto hat keinen fxPanel-Zugriff.**\nWenn du bereits in fxPanel registriert bist, stelle sicher, dass deine Discord-ID auf `%{requesterId}` gesetzt ist.",
-                "missing_permission": "Dein verknüpftes fxPanel-Konto hat nicht die für diese Aktion erforderliche Berechtigung \"%{permissionLabel}\".",
-                "missing_permission_mapped": "Dein verknüpftes fxPanel-Konto und die zugeordneten Discord-Rollen-Presets haben nicht die für diese Aktion erforderliche Berechtigung \"%{permissionLabel}\".",
+                "no_access": "**Dein Konto hat keinen sxPanel-Zugriff.**\nWenn du bereits in sxPanel registriert bist, stelle sicher, dass deine Discord-ID auf `%{requesterId}` gesetzt ist.",
+                "missing_permission": "Dein verknüpftes sxPanel-Konto hat nicht die für diese Aktion erforderliche Berechtigung \"%{permissionLabel}\".",
+                "missing_permission_mapped": "Dein verknüpftes sxPanel-Konto und die zugeordneten Discord-Rollen-Presets haben nicht die für diese Aktion erforderliche Berechtigung \"%{permissionLabel}\".",
                 "discord_role_missing_permission": "Deine Discord-Rollen geben dir nicht die für diese Aktion erforderliche Berechtigung \"%{permissionLabel}\"."
             },
             "target": {
                 "invalid_identifier": "Ungültiger Identifier.",
                 "invalid_server_id": "Ungültige Server-ID.",
                 "server_id_not_resolved": "Server-ID (`%{serverId}`) konnte in der aktuellen Spielerliste nicht aufgelöst werden. %{message}",
-                "no_player_match": "Der Identifier (`%{searchId}`) scheint keinem Spieler in der fxPanel-Datenbank zugeordnet zu sein.",
+                "no_player_match": "Der Identifier (`%{searchId}`) scheint keinem Spieler in der sxPanel-Datenbank zugeordnet zu sein.",
                 "multiple_players": "Der Identifier (`%{searchId}`) passt zu mehreren Spielern. Verwende einen genaueren Identifier, vorzugsweise eine License.",
                 "multiple_players_more": "...und %{count} weitere.",
                 "invalid_license": "Dieser Spieler hat keinen gültigen License-Identifier."
@@ -649,7 +649,7 @@
         },
         "status_message": {
             "defaults": {
-                "configurable_embed_description": "Du kannst dieses Embed unter `fxPanel > Einstellungen > Discord-Bot` konfigurieren.",
+                "configurable_embed_description": "Du kannst dieses Embed unter `sxPanel > Einstellungen > Discord-Bot` konfigurieren.",
                 "fields": {
                     "status": "STATUS",
                     "players": "SPIELER",
@@ -660,7 +660,7 @@
                 },
                 "buttons": {
                     "connect": "Verbinden",
-                    "community": "fxPanel Discord",
+                    "community": "sxPanel Discord",
                     "server_page": "Serverseite"
                 },
                 "values": {
@@ -670,7 +670,7 @@
             },
             "errors": {
                 "invalid_url_details": "Jede URL muss mit einem der folgenden Präfixe beginnen (`http://`, `https://`, `discord://`).\nURLs dürfen nicht leer sein. Wenn du keine URL möchtest, entferne die URL-Zeile.",
-                "invalid_placeholder_details": "Deine URL beginnt mit `{{`, versuche das zu entfernen.\nWenn du gerade versucht hast, einen Platzhalter wie `{{serverBrowserUrl}}` oder `{{serverJoinUrl}}` zu bearbeiten, beachte, dass diese Platzhalter automatisch von fxPanel ersetzt werden und nicht manuell bearbeitet werden müssen.",
+                "invalid_placeholder_details": "Deine URL beginnt mit `{{`, versuche das zu entfernen.\nWenn du gerade versucht hast, einen Platzhalter wie `{{serverBrowserUrl}}` oder `{{serverJoinUrl}}` zu bearbeiten, beachte, dass diese Platzhalter automatisch von sxPanel ersetzt werden und nicht manuell bearbeitet werden müssen.",
                 "invalid_emoji_details": "Alle Emojis müssen eines der folgenden sein:\n- UTF-8-Emoji ('😄')\n- Gültige Emoji-ID ('1062339910654246964')\n- Benutzerdefiniertes Discord-Emoji (`<:name:id>` oder `<a:name:id>`).\nUm den vollständigen Emoji-Code zu erhalten, füge ihn in Discord ein, setze ein `\\` davor und sende die Nachricht.",
                 "invalid_url": "Ungültige URL `%{url}`.",
                 "empty_url": "Leere URL.",

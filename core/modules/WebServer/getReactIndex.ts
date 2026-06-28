@@ -463,8 +463,8 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
     const replacers: { [key: string]: string } = {};
     replacers.basePath = `<base href="${basePath}">`;
     replacers.faviconLink = buildFaviconLinkTag(serverIcon.dataUrl, serverIcon.filename);
-    replacers.ogTitle = `fxPanel - ${htmlEscape(txConfig.general.serverName)}`;
-    replacers.ogDescripttion = `Manage & Monitor your FiveM/RedM Server with fxPanel v${txEnv.txaVersion} atop FXServer ${txEnv.fxsVersion}`;
+    replacers.ogTitle = `sxPanel - ${htmlEscape(txConfig.general.serverName)}`;
+    replacers.ogDescripttion = `Manage & Monitor your FiveM/RedM Server with sxPanel v${txEnv.txaVersion} atop FXServer ${txEnv.fxsVersion}`;
     replacers.txConstsInjection = `<script${nonce}>window.txConsts = ${safeSerialize(injectedConsts)};</script>`;
     // Vite HMR only works in the external browser — never inject into the in-game iframe.
     replacers.devModules = txDevEnv.ENABLED && ctx.txVars.isWebInterface ? devModulesScript : '';

@@ -29,7 +29,7 @@ export const getMutableConvars = (isCmdLine = false) => {
     const checkPlayerJoin = txConfig.banlist.enabled || txConfig.whitelist.enabled;
     const convars: RawConvarSetTuple[] = [
         ['setr', 'locale', txConfig.general.language ?? 'en'],
-        ['set', 'serverName', txConfig.general.serverName ?? 'fxPanel'],
+        ['set', 'serverName', txConfig.general.serverName ?? 'sxPanel'],
         ['set', 'checkPlayerJoin', checkPlayerJoin],
         ['setr', 'reportsEnabled', txConfig.gameFeatures.reportsEnabled],
         ['setr', 'ticketCategories', (txConfig.gameFeatures.ticketCategories ?? []).join(',')],

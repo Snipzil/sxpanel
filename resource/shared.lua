@@ -64,12 +64,12 @@ end
 
 --- Prints formatted string to console
 function TxPrint(...)
-    local msg = ('^5[fxPanel]^0%s^0'):format(_formatTxString({ ... }))
+    local msg = ('^5[sxPanel]^0%s^0'):format(_formatTxString({ ... }))
     print(msg)
 end
 
 function TxPrintError(...)
-    local msg = ('^5[fxPanel]^1%s^0'):format(_formatTxString({ ... }))
+    local msg = ('^5[sxPanel]^1%s^0'):format(_formatTxString({ ... }))
     print(msg)
 end
 

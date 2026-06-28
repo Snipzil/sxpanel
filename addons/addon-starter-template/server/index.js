@@ -4,7 +4,7 @@
  * Example app: a tiny staff "shift board" (pins, who's on shift, live traffic).
  * Panel + Discord hit the same routes under /addons/addon-starter-template/api/*
  *
- * Docs: https://fxpanel.org/docs/
+ * Docs: https://sxpanel.org/docs/
  */
 
 import { createAddon } from 'addon-sdk';

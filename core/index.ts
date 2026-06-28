@@ -13,14 +13,14 @@ const console = consoleFactory();
 
 //Early process stuff
 try {
-    process.title = 'fxPanel'; //doesn't work for now
+    process.title = 'sxPanel'; //doesn't work for now
     setupProcessHandlers();
     setTTYTitle();
     checkPreRelease();
 } catch (error) {
     fatalError.Boot(0, 'Failed early process setup.', error);
 }
-console.log(`Starting fxPanel v${txEnv.txaVersion}/b${txEnv.fxsVersionTag}...`);
+console.log(`Starting sxPanel v${txEnv.txaVersion}/b${txEnv.fxsVersionTag}...`);
 
 //Setting up txData & Profile
 try {
@@ -54,11 +54,11 @@ if (isNewProfile && txEnv.profileName !== 'default') {
     console.log(`Profile path: ${txEnv.profilePath}`);
 }
 
-//Start fxPanel (have fun 😀)
+//Start sxPanel (have fun 😀)
 try {
     bootTxAdmin();
 } catch (error) {
-    fatalError.Boot(3, 'Failed to start fxPanel.', error);
+    fatalError.Boot(3, 'Failed to start sxPanel.', error);
 }
 
 //Freeze detector - starts after 10 seconds due to the initial bootup lag
@@ -70,7 +70,7 @@ setTimeout(() => {
     setInterval(() => {
         const now = Date.now();
         if (now - hdTimer > loopElapsedLimit) {
-            console.majorMultilineError(['Major VPS freeze/lag detected!', 'THIS IS NOT AN ERROR CAUSED BY FXPANEL!']);
+            console.majorMultilineError(['Major VPS freeze/lag detected!', 'THIS IS NOT AN ERROR CAUSED BY SXPANEL!']);
         }
         hdTimer = now;
     }, loopInterval);

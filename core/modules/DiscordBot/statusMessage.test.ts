@@ -135,7 +135,7 @@ suite('generatePlayerListMessage', () => {
 
         expect(actionRow.components).toEqual([
             expect.objectContaining({
-                custom_id: 'fxpanel:playerList:page:1',
+                custom_id: 'sxpanel:playerList:page:1',
                 disabled: false,
                 label: 'Prev',
             }),
@@ -144,7 +144,7 @@ suite('generatePlayerListMessage', () => {
                 label: 'Page 2/3',
             }),
             expect.objectContaining({
-                custom_id: 'fxpanel:playerList:page:3',
+                custom_id: 'sxpanel:playerList:page:3',
                 disabled: false,
                 label: 'Next',
             }),

@@ -51,20 +51,6 @@ local function pushTagsToAdmins(netId, tags)
     end
 end
 
---- Removes the staff auto-tag while preserving other tags.
-function WithoutStaffTag(tags)
-    if type(tags) ~= 'table' then
-        return {}
-    end
-    local filtered = {}
-    for _, t in ipairs(tags) do
-        if t ~= 'staff' then
-            filtered[#filtered + 1] = t
-        end
-    end
-    return filtered
-end
-
 --- Ensures the staff tag is present (in-game menu admins + panel admin accounts).
 function EnsureStaffInTags(tags)
     if type(tags) ~= 'table' then

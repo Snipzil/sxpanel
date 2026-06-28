@@ -136,7 +136,7 @@ export const systemLogActionDefinitions = [
     {
         id: 'advanced.profile_monitor',
         category: 'action',
-        label: 'Profile fxPanel Instance',
+        label: 'Profile sxPanel Instance',
         description: 'Capture a monitor runtime profile from the advanced tools page.',
     },
     {

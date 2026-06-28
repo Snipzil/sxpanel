@@ -38,7 +38,7 @@ export const STATUS_EMBED_JSON_PRESET = JSON.stringify({
     },
     footer: {
         icon_url: 'https://media.discordapp.net/attachments/1489272229157142538/1489655810555515061/Logo.png',
-        text: 'fxPanel',
+        text: 'sxPanel',
     },
 });
 
@@ -81,7 +81,7 @@ export const PLAYER_LIST_EMBED_JSON_PRESET = JSON.stringify({
     },
     footer: {
         icon_url: 'https://media.discordapp.net/attachments/1489272229157142538/1489655810555515061/Logo.png',
-        text: 'fxPanel',
+        text: 'sxPanel',
     },
 });
 

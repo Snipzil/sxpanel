@@ -657,7 +657,7 @@ export default function LeftSidebar() {
                             className="flex size-8 items-center justify-center rounded-md opacity-90 transition-opacity hover:opacity-100"
                             title={t('panel.shell.sidebar.expand_sidebar')}
                         >
-                            <img src={resolvePanelAssetUrl('/logo2.svg')} alt="fxPanel" className="size-8 rounded-lg" />
+                            <img src={resolvePanelAssetUrl('/logo2.svg')} alt="sxPanel" className="size-8 rounded-lg" />
                         </button>
                     ) : (
                         <>

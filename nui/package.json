@@ -1,7 +1,7 @@
 {
-    "name": "fxpanel-nui",
+    "name": "sxpanel-nui",
     "version": "0.4.0-Beta",
-    "description": "The NUI package contains all the in-game interface (menu and warn page) of fxPanel.",
+    "description": "The NUI package contains all the in-game interface (menu and warn page) of sxPanel.",
     "main": "index.js",
     "type": "module",
     "scripts": {
@@ -15,7 +15,7 @@
         "license:report": "npx license-report > ../.reports/license/nui.html"
     },
     "keywords": [],
-    "author": "SomeAussieGaymer",
+    "author": "snipz",
     "license": "MIT",
     "dependencies": {
         "@emotion/react": "^11.14.0",
@@ -36,12 +36,12 @@
         "@types/node-polyglot": "^2.5.0",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
-        "@vitejs/plugin-react": "^5.0.0",
+        "@vitejs/plugin-react": "^6.0.3",
         "@vitest/ui": "^4.1.5",
         "jsdom": "^29.0.2",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
-        "vite": "^8.0.10",
+        "vite": "^8.1.0",
         "vitest": "^4.1.5"
     }
 }

@@ -19,11 +19,11 @@ export default async (dbo) => {
     }
     if (dbo.data.version > DATABASE_VERSION) {
         fatalError.Database(51, [
-            `Your players database is on v${dbo.data.version}, and this fxPanel supports up to v${DATABASE_VERSION}.`,
-            'This means you likely downgraded your fxPanel or FXServer.',
-            'Please make sure your fxPanel is updated!',
+            `Your players database is on v${dbo.data.version}, and this sxPanel supports up to v${DATABASE_VERSION}.`,
+            'This means you likely downgraded your sxPanel or FXServer.',
+            'Please make sure your sxPanel is updated!',
             '',
-            'If you want to downgrade FXServer (the "artifact") but keep fxPanel updated,',
+            'If you want to downgrade FXServer (the "artifact") but keep sxPanel updated,',
             'you can move the updated "citizen/system_resources/monitor" folder',
             'to older FXserver artifact, replacing the old files.',
             `Alternatively, you can restore the database v${dbo.data.version} backup on the data folder.`,
@@ -68,7 +68,7 @@ export default async (dbo) => {
         console.warn('Updating your players database from v2 to v3.');
         console.warn('This process will:');
         console.warn('\t- process player names for better readability/searchability');
-        console.warn('\t- allow fxPanel to save old player identifiers');
+        console.warn('\t- allow sxPanel to save old player identifiers');
         console.warn('\t- remove the whitelist action in favor of player property');
         console.warn('\t- remove empty notes');
         console.warn('\t- improve whitelist handling');
@@ -353,7 +353,7 @@ export default async (dbo) => {
         fatalError.Database(52, [
             'Unexpected migration error: Did not reach the expected database version.',
             `Your players database is on v${dbo.data.version}, but the expected version is v${DATABASE_VERSION}.`,
-            'Please make sure your fxPanel is on the most updated version!',
+            'Please make sure your sxPanel is on the most updated version!',
         ]);
     }
     console.ok('Database migrated successfully');

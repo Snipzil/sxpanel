@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menu habilitado, digite /tx para abri-lo.\nVocê também pode configurar uma tecla atalho [Configurações do jogo > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "Seus IDs não estão cadastrados como administrador no fxPanel.\nSe você tiver acesso ao fxPanel web, acesse a página Admin Manager e adicione seus IDs pro seu usuário.",
+            "help_message": "sxPanel Menu habilitado, digite /tx para abri-lo.\nVocê também pode configurar uma tecla atalho [Configurações do jogo > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "Seus IDs não estão cadastrados como administrador no sxPanel.\nSe você tiver acesso ao sxPanel web, acesse a página Admin Manager e adicione seus IDs pro seu usuário.",
             "menu_auth_failed": "A autenticação do menu falhou com motivo: %{reason}",
             "no_perms": "Você não tem permissão para esta atividade.",
             "unknown_error": "Ocorreu um erro inesperado.",
-            "not_enabled": "O menu do fxPanel não está habilitado! Você pode habilita-lo na página de configurações do fxPanel web.",
+            "not_enabled": "O menu do sxPanel não está habilitado! Você pode habilita-lo na página de configurações do sxPanel web.",
             "announcement_title": "Aviso ao servidor por %{author}:",
             "dialog_empty_input": "Você precisa digitar alguma coisa.",
             "directmessage_title": "DM do admin %{author}:",

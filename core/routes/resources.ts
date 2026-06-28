@@ -81,7 +81,7 @@ export default async function Resources(ctx: AuthedCtx) {
     const timeoutMessage = `<strong>Couldn't load the resources list.</strong> <br>
     - Make sure the server is online (try to join it). <br>
     - Make sure you don't have more than 1000 resources. <br>
-    - Make sure you are not running the FXServer outside of fxPanel. <br>
+    - Make sure you are not running the FXServer outside of sxPanel. <br>
     - Check the <strong>Live Console</strong> for any errors which may indicate that some resource has a malformed <code>fxmanifest.lua</code> file.`;
 
     //Send command request

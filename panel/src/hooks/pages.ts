@@ -52,12 +52,12 @@ export const pageErrorStatusAtom = atom(false);
 /**
  * Page title management
  */
-const DEFAULT_TITLE = 'fxPanel';
+const DEFAULT_TITLE = 'sxPanel';
 const faviconEl = document.getElementById('favicon') as HTMLLinkElement;
 const runtimeIconRegex = /^icon-([a-f0-9]{16})\.(png|jpe?g|gif|webp|svg|ico)$/i;
 const pageTitleAtom = atom(DEFAULT_TITLE);
 
-/** Favicon from `load_server_icon` in server.cfg (inlined or runtime path), else fxPanel default. */
+/** Favicon from `load_server_icon` in server.cfg (inlined or runtime path), else sxPanel default. */
 const resolveFaviconHref = (): string => {
     const server = window.txConsts?.server;
     if (server?.iconDataUrl) {

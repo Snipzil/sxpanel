@@ -34,8 +34,8 @@
     "whitelist_messages": {
         "admin_only": {
             "mode_title": ".<strong>المسؤول فقط</strong> هذا الخادم في وضع",
-            "insufficient_ids": ".fxPanel المعرفات، ومطلوب واحد منهم على الأقل للتحقق من صحتك إذا كنت مسؤولاً في <code>discord</code> أو <code>fivem</code>  لم يكن لديك",
-            "deny_message": ".fxPanel لم يتم تعيين المعرفات الخاصة بك لأي مسؤول"
+            "insufficient_ids": ".sxPanel المعرفات، ومطلوب واحد منهم على الأقل للتحقق من صحتك إذا كنت مسؤولاً في <code>discord</code> أو <code>fivem</code>  لم يكن لديك",
+            "deny_message": ".sxPanel لم يتم تعيين المعرفات الخاصة بك لأي مسؤول"
         },
         "guild_member": {
             "mode_title": "<strong>عضو في القائمة</strong> هذا الخادم في الوضع",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "[Game Settings> Key Bindings> FiveM> Menu: Open Main Page]. في keybind يمكنك أيضًا تكوين \n  /tx لفتحه. اكتب ،fxPanel تم تمكين قائمة",
-            "menu_not_admin": ".وتأكد من حفظ المعرفات الخاصة بك Admin Manager فانتقل إلى ،fxPanel إذا كنت مسجلاً في \n .fxPanel المعرفات الخاصة بك لا تتطابق مع أي مسؤول مسجل في",
-            "menu_auth_failed": "%{reason} :بسبب fxPanel فشلت مصادقة قائمة",
+            "help_message": "[Game Settings> Key Bindings> FiveM> Menu: Open Main Page]. في keybind يمكنك أيضًا تكوين \n  /tx لفتحه. اكتب ،sxPanel تم تمكين قائمة",
+            "menu_not_admin": ".وتأكد من حفظ المعرفات الخاصة بك Admin Manager فانتقل إلى ،sxPanel إذا كنت مسجلاً في \n .sxPanel المعرفات الخاصة بك لا تتطابق مع أي مسؤول مسجل في",
+            "menu_auth_failed": "%{reason} :بسبب sxPanel فشلت مصادقة قائمة",
             "no_perms": ".ليس لديك هذا الإذن",
             "unknown_error": ".حدث خطأ غير معروف",
-            "not_enabled": ".fxPanel يمكنك تمكينه في صفحة إعدادات !fxPanel لم يتم تمكين قائمة",
+            "not_enabled": ".sxPanel يمكنك تمكينه في صفحة إعدادات !sxPanel لم يتم تمكين قائمة",
             "announcement_title": ":%{author} تنويه من الإداري",
             "dialog_empty_input": ".لا يمكن أن يكون لديك إدخال فارغ",
             "directmessage_title": ":%{author} رسالة مباشرة من المشرف",

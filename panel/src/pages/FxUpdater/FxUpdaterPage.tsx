@@ -509,7 +509,7 @@ export default function FxUpdaterPage() {
         openConfirmDialog({
             title: 'Apply Artifact Update',
             message:
-                'This will stop the game server, replace the artifact files, and restart the entire fxPanel process. Make sure you have warned your players. Continue?',
+                'This will stop the game server, replace the artifact files, and restart the entire sxPanel process. Make sure you have warned your players. Continue?',
             confirmBtnVariant: 'warning',
             onConfirm: () => {
                 applyApi({

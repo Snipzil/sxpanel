@@ -205,12 +205,10 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
     const hasReachedEnd = players.length <= DEFAULT_LIMIT;
     const disabledAutoTags = getDisabledAutoTagIds();
     const processedPlayers: PlayersTablePlayerType[] = players.slice(0, DEFAULT_LIMIT).map((p) => {
-        const vaultMatch = txCore.adminStore.getAdminByIdentifiers(p.ids);
-        const skipStaffTag = vaultMatch !== false && vaultMatch.passwordRevision < 0;
         const isAdmin = p.ids.some((id) => adminsIdentifiers.includes(id));
         const actionInfo = getPlayerActionInfo(p);
         const tags: string[] = [];
-        if (!disabledAutoTags.has('staff') && isAdmin && !skipStaffTag) tags.push('staff');
+        if (!disabledAutoTags.has('staff') && isAdmin) tags.push('staff');
         const threshold = txConfig.gameFeatures.newplayerThreshold;
         if (!disabledAutoTags.has('newplayer') && threshold > 0 && p.playTime < threshold) tags.push('newplayer');
         if (!disabledAutoTags.has('problematic') && (actionInfo.banCount > 0 || actionInfo.warnCount > 0))

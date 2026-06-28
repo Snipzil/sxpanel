@@ -187,7 +187,7 @@ describe('deferralCardBan', () => {
             template,
             {
                 serverName: 'TestServer',
-                playerName: 'SomeAussieGamer',
+                playerName: 'snipz',
                 queuePosition: '3',
                 queueSize: '12',
                 queueEta: '00:11',

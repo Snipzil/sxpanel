@@ -24,7 +24,7 @@ module.exports = {
         else if (DENY_EMOJIS.has(emoji)) action = 'deny';
         else return;
 
-        const guildId = client.fxpanel?.latestConfigSnapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID;
+        const guildId = client.sxpanel?.latestConfigSnapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID;
         const guild = guildId ? client.guilds.cache.get(guildId) : null;
         const member =
             guild?.members.cache.get(user.id) ?? (guild ? await guild.members.fetch(user.id).catch(() => null) : null);

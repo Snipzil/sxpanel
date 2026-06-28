@@ -5,22 +5,20 @@ import { SemVer } from 'semver';
 import config from './config';
 
 /**
- * fxPanel in ASCII
+ * sxPanel in ASCII
  */
-export const fxPanelASCII = () => {
+export const sxPanelASCII = () => {
     //NOTE: precalculating the ascii art for efficiency
     // const figlet = require('figlet');
-    // let ascii = figlet.textSync('fxPanel');
+    // let ascii = figlet.textSync('sxPanel');
     // let b64 = Buffer.from(ascii).toString('base64');
     // console.log(b64);
-    const preCalculated = `ICAgX18gICAgICBfX19fICAgICAgICAgICAgICAgICAgXyAKICAvIF98XyAgX3wgIF8gXCBfXyBfIF8g
- X18gICBfX198IHwKIHwgfF9cIFwvIC8gfF8pIC8gXyB8ICdfIFwgLyBfIFwgfAogfCAgX3w+ICA8fCAgX18vIChffCB8IHwg
- fCB8ICBfXy8gfAogfF98IC9fL1xfXF98ICAgXF9fLF98X3wgfF98XF9fX3xffA==`;
+    const preCalculated = `ICAgICAgICAgICAgICBfX19fICAgICAgICAgICAgICAgICAgXyAKICBfX18gX18gIF9ffCAgXyBcIF9fIF8gXyBfXyAgIF9fX3wgfAogLyBfX3xcIFwvIC98IHxfKSAvIF9gIHwgJ18gXCAvIF8gXCB8CiBcX18gXCA+ICA8IHwgIF9fLyAoX3wgfCB8IHwgfCAgX18vIHwKIHxfX18vL18vXF9cfF98ICAgXF9fLF98X3wgfF98XF9fX3xffA==`;
     return Buffer.from(preCalculated, 'base64').toString('ascii');
 };
 
 /**
- * fxPanel + license banner for bundled files
+ * sxPanel + license banner for bundled files
  */
 export const licenseBanner = (baseDir = '.', isBundledFile = false) => {
     const licensePath = path.join(baseDir, 'LICENSE');
@@ -29,13 +27,13 @@ export const licenseBanner = (baseDir = '.', isBundledFile = false) => {
     const logoPad = ' '.repeat(18);
     const contentLines = [
         lineSep,
-        ...fxPanelASCII()
+        ...sxPanelASCII()
             .split('\n')
             .map((x) => logoPad + x),
         lineSep,
-        'Author: SomeAussieGaymer (https://github.com/SomeAussieGaymer)',
-        'Repository: https://github.com/SomeAussieGaymer/fxPanel',
-        'fxPanel is a free open source software provided under the license below.',
+        'Author: snipz (https://github.com/Snipzil)',
+        'Repository: https://github.com/Snipzil/sxpanel',
+        'sxPanel is a free open source software provided under the license below.',
         lineSep,
         ...fs.readFileSync(licensePath, 'utf8').trim().split('\n'),
         lineSep,
@@ -117,7 +115,7 @@ export const getPublishVersion = (isOptional: boolean) => {
         const parsedVersion = new SemVer(refRemoved);
         const isPreRelease = parsedVersion.prerelease.length > 0;
         const potentialExpiration = new Date().setUTCHours(24 * config.preReleaseExpirationDays, 0, 0, 0);
-        console.log(`fxPanel version ${parsedVersion.version}.`);
+        console.log(`sxPanel version ${parsedVersion.version}.`);
         return {
             txVersion: parsedVersion.version,
             isPreRelease,

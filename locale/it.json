@@ -35,7 +35,7 @@
         "admin_only": {
             "mode_title": "Questo server è in modalità <strong>Solo-Admin</strong>.",
             "insufficient_ids": "Non siamo riusciti a recuperare il tuo identificatore <code>discord</code> o il tuo identificatore <code>fivem</code>, almeno uno degli identificatori è necessario per verificare che tu sia un Amministratore.",
-            "deny_message": "I tuoi identificatori non sono assegnati a nessun account amministratore su fxPanel."
+            "deny_message": "I tuoi identificatori non sono assegnati a nessun account amministratore su sxPanel."
         },
         "guild_member": {
             "mode_title": "Questo server è in modalità <strong>Discord Member Whitelist</strong>.",
@@ -74,12 +74,12 @@
     },
     "nui_menu": {
         "misc": {
-            "help_message": "fxPanel Menu attivato, scrivi /tx per aprirlo.\nPuoi bindare un tasto in [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
-            "menu_not_admin": "I tuoi identificativi non corrispondono ad un admin registrato nel fxPanel.\nSe sei registrato al fxPanel, vai nella sezione Admin Manager e controlla che siano presenti i tuoi identificativi.",
-            "menu_auth_failed": "fxPanel Menu authentication failed with reason: %{reason}",
+            "help_message": "sxPanel Menu attivato, scrivi /tx per aprirlo.\nPuoi bindare un tasto in [Game Settings > Key Bindings > FiveM > Menu: Open Main Page].",
+            "menu_not_admin": "I tuoi identificativi non corrispondono ad un admin registrato nel sxPanel.\nSe sei registrato al sxPanel, vai nella sezione Admin Manager e controlla che siano presenti i tuoi identificativi.",
+            "menu_auth_failed": "sxPanel Menu authentication failed with reason: %{reason}",
             "no_perms": "Non hai questo permesso.",
             "unknown_error": "Si è verificato un errore sconosciuto.",
-            "not_enabled": "Il menu fxPanel non è attivo! Puoi attivarlo dalle impostazioni del fxPanel.",
+            "not_enabled": "Il menu sxPanel non è attivo! Puoi attivarlo dalle impostazioni del sxPanel.",
             "announcement_title": "Annuncio da %{author}:",
             "dialog_empty_input": "Non puoi dare un input vuoto.",
             "directmessage_title": "DM dall'admin %{author}:",

@@ -1,7 +1,6 @@
 import { anyUndefined, calcExpirationFromDuration } from '@lib/misc';
 import { ServerPlayer } from '@lib/player/playerClasses';
 import { applyPlayerTagChange } from '@lib/player/playerTags';
-import { shouldDropBridgedMenuAuthor } from '@lib/routineAuditGate';
 import consoleFactory from '@lib/console';
 const console = consoleFactory('FXProc:FD3');
 
@@ -70,11 +69,8 @@ const handleBridgedCommands = (payload: any) => {
             if (!message.length) throw new Error(`empty message`);
 
             const author = payload.author;
-            const omitAudit = shouldDropBridgedMenuAuthor(author);
 
             txCore.fxRunner.sendEvent('announcement', { message, author });
-
-            if (omitAudit) return;
 
             txCore.logger.system.write(author, `Sending announcement: ${message}`, 'action', {
                 actionId: 'announcement.send',
@@ -106,14 +102,11 @@ const handleBridgedCommands = (payload: any) => {
 
             const allIds = player.getAllIdentifiers();
             if (!allIds.length) throw new Error(`no identifiers found for player netid ${payload.targetNetId}`);
-            const omitAudit = shouldDropBridgedMenuAuthor(payload.author);
 
             txCore.database.actions.registerKick(allIds, payload.author, reason, player.displayName);
-            if (!omitAudit) {
-                txCore.logger.system.write(payload.author, `Kicked "${player.displayName}": ${reason}`, 'action', {
-                    actionId: 'player.kick',
-                });
-            }
+            txCore.logger.system.write(payload.author, `Kicked "${player.displayName}": ${reason}`, 'action', {
+                actionId: 'player.kick',
+            });
 
             const dropMessage = txCore.translator.t('kick_messages.player', { reason });
             txCore.fxRunner.sendEvent('playerKicked', {
@@ -144,7 +137,6 @@ const handleBridgedCommands = (payload: any) => {
             const allHwids = player.getAllHardwareIdentifiers();
             if (!allIds.length) throw new Error(`player has no identifiers`);
 
-            const omitAudit = shouldDropBridgedMenuAuthor(payload.author);
             const actionId = txCore.database.actions.registerBan(
                 allIds,
                 payload.author,
@@ -154,17 +146,13 @@ const handleBridgedCommands = (payload: any) => {
                 allHwids,
             );
 
-            if (!omitAudit) {
-                txCore.logger.system.write(payload.author, `Banned "${player.displayName}": ${reason}`, 'action', {
-                    actionId: 'player.ban',
-                });
-            }
+            txCore.logger.system.write(payload.author, `Banned "${player.displayName}": ${reason}`, 'action', {
+                actionId: 'player.ban',
+            });
 
             let kickMessage;
             let durationTranslated: string | null = null;
-            const publicAuthor = omitAudit
-                ? (txConfig.general.serverName ?? 'fxPanel')
-                : txCore.adminStore.getAdminPublicName(payload.author, 'punishment');
+            const publicAuthor = txCore.adminStore.getAdminPublicName(payload.author, 'punishment');
             const tOptions: any = { author: publicAuthor, reason };
             if (expiration !== false && duration) {
                 durationTranslated = txCore.translator.tDuration(duration * 1000, { units: ['d', 'h'] as any });
@@ -205,14 +193,11 @@ const handleBridgedCommands = (payload: any) => {
             const allIds = player.getAllIdentifiers();
             if (!allIds.length) throw new Error(`player has no identifiers`);
 
-            const omitAudit = shouldDropBridgedMenuAuthor(payload.author);
             const actionId = txCore.database.actions.registerWarn(allIds, payload.author, reason, player.displayName);
 
-            if (!omitAudit) {
-                txCore.logger.system.write(payload.author, `Warned "${player.displayName}": ${reason}`, 'action', {
-                    actionId: 'player.warn',
-                });
-            }
+            txCore.logger.system.write(payload.author, `Warned "${player.displayName}": ${reason}`, 'action', {
+                actionId: 'player.warn',
+            });
 
             txCore.fxRunner.sendEvent('playerWarned', {
                 author: payload.author,
