@@ -9,6 +9,9 @@ const RootStyled = styled(Box)(({ theme }) => ({
     backgroundColor: theme.tokens.surface,
     border: `1px solid ${theme.tokens.border}`,
     height: '50vh',
+    minWidth: 0,
+    boxSizing: 'border-box',
+    overflow: 'hidden',
     borderRadius: theme.tokens.radiusCard,
     flex: 1,
 }));
@@ -17,6 +20,8 @@ const GridStyled = styled(Box)(({ theme }) => ({
     display: 'flex',
     flexDirection: 'column',
     height: '85%',
+    minHeight: 0,
+    minWidth: 0,
 }));
 
 export const PlayersPage: React.FC<{ visible: boolean }> = ({ visible }) => {

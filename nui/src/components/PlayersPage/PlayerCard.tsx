@@ -71,6 +71,7 @@ const StyledBox = styled(Box)(({ theme }) => ({
         backgroundColor: theme.tokens.surfaceRaised,
         cursor: 'pointer',
         transition: 'background-color 120ms ease, border-color 120ms ease',
+        minWidth: 0,
         '&:hover': {
             backgroundColor: theme.tokens.surfaceHover,
             borderColor: theme.tokens.borderStrong,
@@ -99,6 +100,8 @@ const StyledBox = styled(Box)(({ theme }) => ({
         letterSpacing: '0.02em',
         lineHeight: 1,
         whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
     },
 }));
 
@@ -177,7 +180,7 @@ const PlayerCard: React.FC<{ playerData: PlayerData }> = ({ playerData }) => {
                             : undefined
                     }
                 >
-                    <Box display="flex" alignItems="center" pb="5px">
+                    <Box display="flex" alignItems="center" pb="5px" minWidth={0}>
                         <Box flexGrow={1} display="flex" overflow="hidden" minWidth={0}>
                             <Tooltip
                                 title={upperCaseStatus}
@@ -200,7 +203,7 @@ const PlayerCard: React.FC<{ playerData: PlayerData }> = ({ playerData }) => {
                                 noWrap
                                 variant="subtitle1"
                                 color="textPrimary"
-                                sx={{ flexShrink: 1, minWidth: 0 }}
+                                sx={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}
                             >
                                 {playerData.displayName}
                             </Typography>
@@ -214,7 +217,7 @@ const PlayerCard: React.FC<{ playerData: PlayerData }> = ({ playerData }) => {
                             </Typography>
                         </Box>
                         {primaryTag && (
-                            <Box ml={1} flexShrink={0} minWidth={0}>
+                            <Box ml={1} flexShrink={0} minWidth={0} maxWidth={110}>
                                 <span className={classes.tagChip} style={primaryTag.styles} title={primaryTag.label}>
                                     {primaryTag.label}
                                 </span>

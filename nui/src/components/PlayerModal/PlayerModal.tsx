@@ -78,13 +78,24 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ onClose }) => {
 
     return (
         <>
-            <DialogTitle style={{ borderBottom: `1px solid ${tokens.border}` }}>
-                [{assocPlayer.id}] {playerName}
+            <DialogTitle style={{ borderBottom: `1px solid ${tokens.border}`, paddingRight: 58 }}>
+                <Box
+                    component="span"
+                    sx={{
+                        display: 'block',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    [{assocPlayer.id}] {playerName}
+                </Box>
                 <StyledCloseButton onClick={onClose} size="large">
                     <Close />
                 </StyledCloseButton>
             </DialogTitle>
-            <Box display="flex" px={2} pb={2} pt={2} flexGrow={1} overflow="hidden">
+            <Box display="flex" px={2} pb={2} pt={2} flexGrow={1} overflow="hidden" minWidth={0}>
                 <PlayerModalErrorBoundary>
                     {error ? (
                         <>
@@ -138,9 +149,10 @@ const DialogTab: React.FC<DialogTabProps> = ({ isDisabled, curTab, tab, icon, ti
             selected={isSelected}
             onClick={() => setTab(tab)}
             disabled={isDisabled}
+            sx={{ minWidth: 0 }}
         >
             <ListItemIcon>{icon}</ListItemIcon>
-            <ListItemText primary={title} />
+            <ListItemText primary={title} sx={{ minWidth: 0 }} primaryTypographyProps={{ noWrap: true }} />
         </ListItemButton>
     );
 };

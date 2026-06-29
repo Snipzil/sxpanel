@@ -22,6 +22,9 @@ const WarnInnerStyles = styled('div')(({ theme }) => ({
     color: theme.tokens.textPrimary,
     transition: 'transform 300ms ease-in-out',
     maxWidth: '700px',
+    width: 'calc(100vw - 48px)',
+    boxSizing: 'border-box',
+    overflowWrap: 'anywhere',
 
     [`& .${boxClasses.inner}`]: {
         padding: 32,
@@ -31,15 +34,19 @@ const WarnInnerStyles = styled('div')(({ theme }) => ({
     [`& .${boxClasses.title}`]: {
         display: 'flex',
         margin: '-20px auto 18px auto',
-        width: 'max-content',
+        width: 'fit-content',
+        maxWidth: '100%',
         borderBottom: `2px solid ${theme.tokens.textPrimary}`,
         paddingBottom: 5,
         fontWeight: 700,
         letterSpacing: '0.02em',
+        alignItems: 'center',
+        overflowWrap: 'normal',
     },
     [`& .${boxClasses.message}`]: {
         fontSize: '1.5em',
         lineHeight: 1.5,
+        overflowWrap: 'anywhere',
     },
     [`& .${boxClasses.author}`]: {
         textAlign: 'right',
@@ -119,6 +126,8 @@ const WarnInnerComp: React.FC<WarnInnerComp> = ({ message, warnedBy, isWarningNe
                         variant="h5"
                         style={{
                             textAlign: 'center',
+                            overflowWrap: 'anywhere',
+                            wordBreak: 'break-word',
                         }}
                     >
                         {message}
@@ -129,6 +138,8 @@ const WarnInnerComp: React.FC<WarnInnerComp> = ({ message, warnedBy, isWarningNe
                             textAlign: 'right',
                             marginBottom: -20,
                             opacity: 0.85,
+                            overflowWrap: 'anywhere',
+                            wordBreak: 'break-word',
                         }}
                         variant="body2"
                     >
@@ -144,8 +155,12 @@ const WarnInnerComp: React.FC<WarnInnerComp> = ({ message, warnedBy, isWarningNe
             <Box>
                 <span
                     style={{
+                        display: 'block',
+                        maxWidth: 'calc(100vw - 48px)',
                         color: theme.tokens.textPrimary,
                         fontSize: `${instructionFontSize}em`,
+                        textAlign: 'center',
+                        overflowWrap: 'anywhere',
                     }}
                 >
                     {iHead} {iKey} {iTail}

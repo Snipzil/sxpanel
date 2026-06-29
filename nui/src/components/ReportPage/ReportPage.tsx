@@ -61,14 +61,16 @@ type View = 'menu' | 'create' | 'list' | 'detail' | 'feedback';
 // =============================================
 
 const Panel = styled(Box)(({ theme }) => ({
-    width: '100%',
-    maxWidth: 480,
-    maxHeight: '80vh',
+    width: 480,
+    maxWidth: 'calc(100vw - 32px)',
+    maxHeight: 'calc(100vh - 40px)',
+    boxSizing: 'border-box',
     background: theme.tokens.surface,
     borderRadius: theme.tokens.radiusCard,
     border: `1px solid ${theme.tokens.border}`,
     display: 'flex',
     flexDirection: 'column',
+    minHeight: 0,
     // Content scrolls internally; panel stays visible so non-portaled Select menus aren't clipped.
     overflow: 'visible',
 }));
@@ -77,14 +79,19 @@ const Header = styled(Box)(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
     padding: '14px 18px',
     borderBottom: `1px solid ${theme.tokens.border}`,
+    minWidth: 0,
 }));
 
 const Content = styled(Box)({
     flex: 1,
+    minHeight: 0,
+    minWidth: 0,
     overflow: 'auto',
     padding: '16px 18px',
+    boxSizing: 'border-box',
 });
 
 const Footer = styled(Box)(({ theme }) => ({
@@ -93,6 +100,19 @@ const Footer = styled(Box)(({ theme }) => ({
     display: 'flex',
     gap: 8,
 }));
+
+const boundedTextSx = {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+} as const;
+
+const ellipsisTextSx = {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+} as const;
 
 // =============================================
 // Helpers
@@ -120,22 +140,40 @@ function timeAgo(t: (key: string, options?: Record<string, unknown>) => string, 
 }
 
 const getInputSx = (tokens: MenuTokens) => ({
+    minWidth: 0,
     '& .MuiOutlinedInput-root': {
+        minWidth: 0,
         color: tokens.textPrimary,
         '& fieldset': { borderColor: tokens.border },
         '&:hover fieldset': { borderColor: tokens.textMuted },
         '&.Mui-focused fieldset': { borderColor: tokens.info },
     },
+    '& .MuiInputBase-input, & .MuiInputBase-inputMultiline': {
+        color: tokens.textPrimary,
+        minWidth: 0,
+        overflowWrap: 'anywhere',
+    },
+    '& .MuiInputBase-input::placeholder': { color: tokens.textMuted, opacity: 1 },
     '& .MuiInputLabel-root': { color: tokens.textMuted },
     '& .MuiInputLabel-root.Mui-focused': { color: tokens.info },
     '& .MuiFormHelperText-root': { color: tokens.textMuted },
     '& .MuiSelect-icon': { color: tokens.textMuted },
+    '& .MuiSelect-select': {
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
 });
 
 const getMenuPaperSx = (tokens: MenuTokens) => ({
     bgcolor: tokens.surfaceRaised,
     color: tokens.textPrimary,
     border: `1px solid ${tokens.border}`,
+    maxWidth: 'calc(100vw - 32px)',
+    '& .MuiMenuItem-root': {
+        whiteSpace: 'normal',
+        overflowWrap: 'anywhere',
+    },
 });
 
 /** Keep menus inside the overlay — portaled menus cause removeChild crashes on close. */
@@ -161,7 +199,8 @@ const StatusChip: React.FC<{ status: TicketStatus; size?: 'small' | 'medium' }> 
                 color,
                 borderColor: color,
                 fontWeight: 600,
-                '& .MuiChip-label': { color },
+                maxWidth: '100%',
+                '& .MuiChip-label': { color, overflow: 'hidden', textOverflow: 'ellipsis' },
             }}
         />
     );
@@ -187,6 +226,9 @@ const MenuView: React.FC<{
                     py: 1.2,
                     color: tokens.textPrimary,
                     borderColor: tokens.border,
+                    minWidth: 0,
+                    textAlign: 'left',
+                    overflowWrap: 'anywhere',
                     '&:hover': { borderColor: tokens.textMuted, bgcolor: 'rgba(255,255,255,0.04)' },
                 }}
             >
@@ -202,6 +244,10 @@ const MenuView: React.FC<{
                     py: 1.2,
                     color: tokens.textPrimary,
                     borderColor: tokens.border,
+                    minWidth: 0,
+                    textAlign: 'left',
+                    overflowWrap: 'anywhere',
+                    '& .MuiButton-startIcon': { flexShrink: 0 },
                     '&:hover': { borderColor: tokens.textMuted, bgcolor: 'rgba(255,255,255,0.04)' },
                 }}
             >
@@ -258,7 +304,7 @@ const CreateView: React.FC<{
                         MenuProps={selectMenuProps}
                     >
                         {categories.map((cat) => (
-                            <MenuItem key={cat} value={cat} sx={{ color: tokens.textPrimary }}>
+                            <MenuItem key={cat} value={cat} sx={{ color: tokens.textPrimary, ...boundedTextSx }}>
                                 {cat}
                             </MenuItem>
                         ))}
@@ -285,7 +331,7 @@ const CreateView: React.FC<{
                         MenuProps={selectMenuProps}
                     >
                         {players.map((p) => (
-                            <MenuItem key={p.id} value={p.id} sx={{ color: tokens.textPrimary }}>
+                            <MenuItem key={p.id} value={p.id} sx={{ color: tokens.textPrimary, ...boundedTextSx }}>
                                 [{p.id}] {p.name}
                             </MenuItem>
                         ))}
@@ -369,7 +415,7 @@ const ListView: React.FC<{
     }
 
     return (
-        <Box display="flex" flexDirection="column" gap={1}>
+        <Box display="flex" flexDirection="column" gap={1} minWidth={0}>
             {tickets.map((ticket) => (
                 <Box
                     key={ticket.id}
@@ -384,29 +430,44 @@ const ListView: React.FC<{
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 0.5,
+                        minWidth: 0,
                     }}
                 >
-                    <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Typography variant="body2" fontWeight={600} sx={{ color: tokens.textPrimary }}>
+                    <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1} minWidth={0}>
+                        <Typography variant="body2" fontWeight={600} sx={{ color: tokens.textPrimary, ...boundedTextSx }}>
                             {ticket.category}
                         </Typography>
-                        <Box display="flex" alignItems="center" gap={1}>
+                        <Box
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="flex-end"
+                            gap={0.5}
+                            flexWrap="wrap"
+                            sx={{ flexShrink: 0, maxWidth: '60%' }}
+                        >
                             {ticket.unreadCount > 0 && (
                                 <Chip
                                     label={t('nui_reports.unread_new', { count: ticket.unreadCount })}
                                     size="small"
-                                    sx={{ height: 16, fontSize: '0.65rem', bgcolor: tokens.info, color: '#fff' }}
+                                    sx={{
+                                        height: 16,
+                                        fontSize: '0.65rem',
+                                        bgcolor: tokens.info,
+                                        color: '#fff',
+                                        maxWidth: '100%',
+                                        '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
+                                    }}
                                 />
                             )}
                             <StatusChip status={ticket.status} />
                         </Box>
                     </Box>
-                    <Typography variant="body2" noWrap sx={{ color: tokens.textMuted }}>
+                    <Typography variant="body2" noWrap sx={{ color: tokens.textMuted, ...ellipsisTextSx }}>
                         {ticket.descriptionPreview}
                     </Typography>
                     <Typography
                         variant="caption"
-                        sx={{ color: ticket.awaitingFeedback ? tokens.warning : tokens.textMuted }}
+                        sx={{ color: ticket.awaitingFeedback ? tokens.warning : tokens.textMuted, ...boundedTextSx }}
                     >
                         {ticket.awaitingFeedback
                             ? t('nui_reports.rate_prompt')
@@ -509,22 +570,32 @@ const DetailView: React.FC<{
     const isClosed = ticket.status === 'resolved' || ticket.status === 'closed';
 
     return (
-        <Box display="flex" flexDirection="column" height="100%">
-            <Box mb={2}>
-                <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                    <Typography variant="body2" fontWeight={600} sx={{ color: tokens.textPrimary }}>
+        <Box display="flex" flexDirection="column" height="100%" minHeight={0} minWidth={0}>
+            <Box mb={2} minWidth={0}>
+                <Box display="flex" alignItems="center" gap={1} mb={0.5} flexWrap="wrap" minWidth={0}>
+                    <Typography variant="body2" fontWeight={600} sx={{ color: tokens.textPrimary, ...boundedTextSx }}>
                         {ticket.category}
                     </Typography>
                     <StatusChip status={ticket.status} />
                 </Box>
-                <Typography variant="body2" sx={{ color: tokens.textMuted, wordBreak: 'break-word' }}>
+                <Typography variant="body2" sx={{ color: tokens.textMuted, ...boundedTextSx }}>
                     {ticket.descriptionPreview}
                 </Typography>
             </Box>
 
             <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
 
-            <Box flex={1} overflow="auto" display="flex" flexDirection="column" gap={1} mb={2} sx={{ maxHeight: 300 }}>
+            <Box
+                flex={1}
+                minHeight={0}
+                minWidth={0}
+                overflow="auto"
+                display="flex"
+                flexDirection="column"
+                gap={1}
+                mb={2}
+                sx={{ maxHeight: 300 }}
+            >
                 {messages.length === 0 ? (
                     <Typography variant="body2" sx={{ color: tokens.textMuted, textAlign: 'center', py: 2 }}>
                         {t('nui_reports.no_messages_player')}
@@ -539,10 +610,23 @@ const DetailView: React.FC<{
                                 bgcolor: m.authorType === 'admin' ? alpha(tokens.info, 0.1) : 'rgba(255,255,255,0.04)',
                                 borderLeft:
                                     m.authorType === 'admin' ? `3px solid ${tokens.info}` : '3px solid transparent',
+                                minWidth: 0,
                             }}
                         >
-                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.25}>
-                                <Typography variant="caption" fontWeight={600} sx={{ color: tokens.textPrimary }}>
+                            <Box
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="flex-start"
+                                gap={1}
+                                mb={0.25}
+                                minWidth={0}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    fontWeight={600}
+                                    component="div"
+                                    sx={{ color: tokens.textPrimary, ...boundedTextSx }}
+                                >
                                     {m.author}
                                     {m.authorType === 'admin' && (
                                         <Chip
@@ -555,22 +639,26 @@ const DetailView: React.FC<{
                                                 color: tokens.info,
                                                 borderColor: tokens.info,
                                                 bgcolor: alpha(tokens.info, 0.15),
-                                                '& .MuiChip-label': { color: tokens.info },
+                                                maxWidth: '100%',
+                                                '& .MuiChip-label': { color: tokens.info, overflow: 'hidden', textOverflow: 'ellipsis' },
                                             }}
                                         />
                                     )}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: tokens.textMuted }}>
+                                <Typography variant="caption" sx={{ color: tokens.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>
                                     {timeAgo(t, m.ts)}
                                 </Typography>
                             </Box>
                             {m.content && (
-                                <Typography variant="body2" sx={{ color: tokens.textPrimary, wordBreak: 'break-word' }}>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ color: tokens.textPrimary, whiteSpace: 'pre-wrap', ...boundedTextSx }}
+                                >
                                     {m.content}
                                 </Typography>
                             )}
                             {m.imageUrls && m.imageUrls.length > 0 && (
-                                <Box mt={0.5} display="flex" flexWrap="wrap" gap={0.5}>
+                                <Box mt={0.5} display="flex" flexWrap="wrap" gap={0.5} minWidth={0}>
                                     {m.imageUrls.map((url, j) => (
                                         <img
                                             key={j}
@@ -581,6 +669,7 @@ const DetailView: React.FC<{
                                             onClick={() => setLightboxUrl(url)}
                                             style={{
                                                 maxHeight: 80,
+                                                maxWidth: '100%',
                                                 borderRadius: 4,
                                                 border: `1px solid ${tokens.border}`,
                                                 cursor: 'zoom-in',
@@ -595,8 +684,8 @@ const DetailView: React.FC<{
             </Box>
 
             {!isClosed && (
-                <Box display="flex" flexDirection="column" gap={0.75}>
-                    <Box display="flex" gap={1}>
+                <Box display="flex" flexDirection="column" gap={0.75} minWidth={0}>
+                    <Box display="flex" gap={1} minWidth={0}>
                         <TextField
                             size="small"
                             fullWidth
@@ -605,18 +694,18 @@ const DetailView: React.FC<{
                             onChange={(e) => setMsg(e.target.value.slice(0, 2048))}
                             onKeyDown={handleKeyDown}
                             disabled={sending}
-                            sx={inputSx}
+                            sx={{ ...inputSx, flex: 1 }}
                         />
                         <IconButton
                             onClick={handleSend}
                             disabled={sending || !canSend}
                             size="small"
-                            sx={{ color: tokens.info }}
+                            sx={{ color: tokens.info, flexShrink: 0 }}
                         >
                             <Send />
                         </IconButton>
                     </Box>
-                    <Box display="flex" alignItems="center" gap={0.75}>
+                    <Box display="flex" alignItems="center" gap={0.75} minWidth={0}>
                         <Image sx={{ fontSize: 16, color: tokens.textMuted, flexShrink: 0 }} />
                         <TextField
                             size="small"
@@ -628,6 +717,7 @@ const DetailView: React.FC<{
                             inputProps={{ style: { fontSize: '0.75rem' }, maxLength: URL_MAX }}
                             sx={{
                                 ...inputSx,
+                                flex: 1,
                                 '& .MuiOutlinedInput-root': { ...inputSx['& .MuiOutlinedInput-root'], py: 0.25 },
                             }}
                         />
@@ -635,7 +725,7 @@ const DetailView: React.FC<{
                 </Box>
             )}
             {isClosed && (
-                <Typography variant="body2" sx={{ color: tokens.success, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: tokens.success, textAlign: 'center', ...boundedTextSx }}>
                     {t('nui_reports.ticket_has_been', { status: statusMap[ticket.status]?.label ?? ticket.status })}
                 </Typography>
             )}
@@ -655,9 +745,13 @@ const FeedbackView: React.FC<{
     const [comment, setComment] = useState('');
 
     return (
-        <Box display="flex" flexDirection="column" gap={2} alignItems="center" py={2}>
+        <Box display="flex" flexDirection="column" gap={2} alignItems="center" py={2} minWidth={0}>
             <Star sx={{ fontSize: 40, color: tokens.warning }} />
-            <Typography variant="body1" fontWeight={600} sx={{ color: tokens.textPrimary, textAlign: 'center' }}>
+            <Typography
+                variant="body1"
+                fontWeight={600}
+                sx={{ color: tokens.textPrimary, textAlign: 'center', ...boundedTextSx }}
+            >
                 {t('nui_reports.feedback_title')}
             </Typography>
             <Rating size="large" value={rating} onChange={(_, val) => setRating(val)} sx={{ color: tokens.warning }} />
@@ -915,16 +1009,17 @@ export const ReportPage: React.FC = () => {
                 justifyContent: 'center',
                 zIndex: 1200,
                 color: tokens.textPrimary,
+                boxSizing: 'border-box',
             }}
         >
             <Panel role="dialog" aria-modal="true" aria-labelledby="ticket-dialog-title">
                 <Header>
-                    <Box display="flex" alignItems="center" gap={1}>
+                    <Box display="flex" alignItems="center" gap={1} minWidth={0} flex={1}>
                         {view !== 'menu' && (
                             <Button
                                 size="small"
                                 onClick={handleBack}
-                                sx={{ minWidth: 0, textTransform: 'none', mr: 0.5, color: tokens.textMuted }}
+                                sx={{ minWidth: 0, textTransform: 'none', mr: 0.5, color: tokens.textMuted, flexShrink: 0 }}
                             >
                                 {t('nui_reports.back')}
                             </Button>
@@ -933,12 +1028,13 @@ export const ReportPage: React.FC = () => {
                             id="ticket-dialog-title"
                             variant="subtitle1"
                             fontWeight={600}
-                            sx={{ color: tokens.textPrimary }}
+                            noWrap
+                            sx={{ color: tokens.textPrimary, ...ellipsisTextSx }}
                         >
                             {getTitle()}
                         </Typography>
                     </Box>
-                    <IconButton size="small" onClick={handleClose} sx={{ color: tokens.textMuted }}>
+                    <IconButton size="small" onClick={handleClose} sx={{ color: tokens.textMuted, flexShrink: 0 }}>
                         <Close fontSize="small" />
                     </IconButton>
                 </Header>
@@ -949,7 +1045,7 @@ export const ReportPage: React.FC = () => {
                             role="alert"
                             sx={{ px: 2, py: 1, mb: 1, bgcolor: alpha(tokens.error, 0.15), borderRadius: 1 }}
                         >
-                            <Typography variant="body2" sx={{ color: tokens.error }}>
+                            <Typography variant="body2" sx={{ color: tokens.error, ...boundedTextSx }}>
                                 {errorMessage}
                             </Typography>
                         </Box>

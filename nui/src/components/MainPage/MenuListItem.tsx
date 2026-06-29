@@ -43,6 +43,7 @@ const Root = styled('div')(({ theme }) => ({
     [`& .${classes.icon}`]: {
         color: theme.palette.text.secondary,
         transition: 'color 120ms ease',
+        flexShrink: 0,
     },
 
     [`& .Mui-selected .${classes.icon}`]: {
@@ -57,6 +58,18 @@ const Root = styled('div')(({ theme }) => ({
         color: theme.palette.text.primary,
         fontSize: 13,
         lineHeight: 1.3,
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+    },
+
+    '& .MuiListItemButton-root': {
+        minWidth: 0,
+    },
+
+    '& .MuiListItemText-root': {
+        minWidth: 0,
     },
 }));
 
@@ -128,6 +141,7 @@ export const MenuListItem: React.FC<MenuListItemProps> = memo(
                     <ListItemIcon className={classes.icon}>{icon}</ListItemIcon>
                     <ListItemText
                         primary={title}
+                        sx={{ minWidth: 0 }}
                         classes={{
                             primary: classes.overrideText,
                         }}
@@ -277,6 +291,10 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
                                         fontSize: 13,
                                         fontWeight: selected ? 600 : 400,
                                         opacity: isCurrentActionAllowed ? 1 : 0.4,
+                                        minWidth: 0,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
                                     }}
                                 >
                                     {actions[curState]?.name ?? '???'}
@@ -286,6 +304,7 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
                         classes={{
                             primary: classes.overrideText,
                         }}
+                        sx={{ minWidth: 0 }}
                     />
                     <ListItemSecondaryAction>
                         <Code className={classes.icon} />

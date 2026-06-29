@@ -22,9 +22,11 @@ export const PlayersListEmpty: React.FC = () => {
             height="100%"
             justifyContent="center"
             alignItems="center"
+            minWidth={0}
+            px={2}
         >
-            <ErrorIcon fontSize="large" color="inherit" />
-            <Typography color="inherit" variant="h6">
+            <ErrorIcon fontSize="large" color="inherit" sx={{ flexShrink: 0 }} />
+            <Typography color="inherit" variant="h6" sx={{ overflowWrap: 'anywhere', minWidth: 0 }}>
                 {t('nui_menu.page_players.misc.zero_players')}
             </Typography>
         </BoxRoot>

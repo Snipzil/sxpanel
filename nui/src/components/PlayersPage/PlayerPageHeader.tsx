@@ -17,11 +17,13 @@ import { useDebounce } from '@nui/src/hooks/useDebouce';
 
 const TypographyTitle = styled(Typography)(({ theme }) => ({
     fontWeight: 600,
+    overflowWrap: 'anywhere',
 }));
 
 const TypographyPlayerCount = styled(Typography)(({ theme }) => ({
     color: theme.palette.text.secondary,
     fontWeight: 500,
+    overflowWrap: 'anywhere',
 }));
 
 const InputAdornmentIcon = styled(InputAdornment)(({ theme }) => ({
@@ -30,7 +32,22 @@ const InputAdornmentIcon = styled(InputAdornment)(({ theme }) => ({
 
 const TextFieldInputs = styled(TextField)({
     minWidth: 150,
+    maxWidth: '100%',
+    '& .MuiInputBase-root': {
+        minWidth: 0,
+    },
+    '& .MuiInputBase-input, & .MuiSelect-select': {
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+    },
 });
+
+const menuItemSx = {
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+} as const;
 
 export const PlayerPageHeader: React.FC = () => {
     const [filterType, setFilterType] = usePlayersFilterBy();
@@ -71,14 +88,14 @@ export const PlayerPageHeader: React.FC = () => {
     const playerCountText = `${allPlayers.length}/${serverCtx.maxClients} ${playerTranslation} - ${oneSyncStatus}`;
 
     return (
-        <Box display="flex" justifyContent="space-between">
-            <Box px={2}>
+        <Box display="flex" justifyContent="space-between" gap={2} minWidth={0} flexWrap="wrap">
+            <Box px={2} minWidth={0} flex="1 1 220px">
                 <TypographyTitle variant="h5" color="primary">
                     {t('nui_menu.page_players.misc.online_players')}
                 </TypographyTitle>
                 <TypographyPlayerCount>{playerCountText}</TypographyPlayerCount>
             </Box>
-            <Box display="flex" alignItems="center" justifyContent="center" gap={3}>
+            <Box display="flex" alignItems="center" justifyContent="flex-end" gap={3} flexWrap="wrap" minWidth={0}>
                 <TextFieldInputs
                     label={t('nui_menu.page_players.misc.search')}
                     value={searchVal}
@@ -104,12 +121,16 @@ export const PlayerPageHeader: React.FC = () => {
                         ),
                     }}
                 >
-                    <MenuItem value={PlayerDataFilter.NoFilter}>{t('nui_menu.page_players.filter.no_filter')}</MenuItem>
-                    <MenuItem value={PlayerDataFilter.IsAdmin}>{t('nui_menu.page_players.filter.is_admin')}</MenuItem>
-                    <MenuItem value={PlayerDataFilter.IsInjured}>
+                    <MenuItem value={PlayerDataFilter.NoFilter} sx={menuItemSx}>
+                        {t('nui_menu.page_players.filter.no_filter')}
+                    </MenuItem>
+                    <MenuItem value={PlayerDataFilter.IsAdmin} sx={menuItemSx}>
+                        {t('nui_menu.page_players.filter.is_admin')}
+                    </MenuItem>
+                    <MenuItem value={PlayerDataFilter.IsInjured} sx={menuItemSx}>
                         {t('nui_menu.page_players.filter.is_injured')}
                     </MenuItem>
-                    <MenuItem value={PlayerDataFilter.InVehicle}>
+                    <MenuItem value={PlayerDataFilter.InVehicle} sx={menuItemSx}>
                         {t('nui_menu.page_players.filter.in_vehicle')}
                     </MenuItem>
                 </TextFieldInputs>
@@ -126,16 +147,16 @@ export const PlayerPageHeader: React.FC = () => {
                         ),
                     }}
                 >
-                    <MenuItem value={PlayerDataSort.IdJoinedFirst}>
+                    <MenuItem value={PlayerDataSort.IdJoinedFirst} sx={menuItemSx}>
                         {`${t('nui_menu.page_players.sort.id')} (${t('nui_menu.page_players.sort.joined_first')})`}
                     </MenuItem>
-                    <MenuItem value={PlayerDataSort.IdJoinedLast}>
+                    <MenuItem value={PlayerDataSort.IdJoinedLast} sx={menuItemSx}>
                         {`${t('nui_menu.page_players.sort.id')} (${t('nui_menu.page_players.sort.joined_last')})`}
                     </MenuItem>
-                    <MenuItem value={PlayerDataSort.DistanceClosest}>
+                    <MenuItem value={PlayerDataSort.DistanceClosest} sx={menuItemSx}>
                         {`${t('nui_menu.page_players.sort.distance')} (${t('nui_menu.page_players.sort.closest')})`}
                     </MenuItem>
-                    <MenuItem value={PlayerDataSort.DistanceFarthest}>
+                    <MenuItem value={PlayerDataSort.DistanceFarthest} sx={menuItemSx}>
                         {`${t('nui_menu.page_players.sort.distance')} (${t('nui_menu.page_players.sort.farthest')})`}
                     </MenuItem>
                 </TextFieldInputs>
