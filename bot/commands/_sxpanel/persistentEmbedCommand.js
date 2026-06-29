@@ -3,17 +3,42 @@ const { normalizeMessageEditPayload } = require('../../componentsV2');
 const { request } = require('../../bridge/requests');
 const { buildReply, getRequesterPayload, resolveBridgeReply, sendBridgeError, translateBot } = require('./common');
 
-const deleteStoredEmbedMessage = async (source, client, channelId, messageId, embedLabel) => {
-    const oldChannel = await client.channels.fetch(channelId).catch(() => null);
+const staleStoredEmbedErrorCodes = new Set([10003, 10008, 'StoredChannelNotFound']);
+
+const getErrorCode = (error) => {
+    return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+};
+
+const isStaleStoredEmbedError = (error) => {
+    return staleStoredEmbedErrorCodes.has(getErrorCode(error));
+};
+
+const getStoredEmbedChannel = async (source, client, channelId, embedLabel) => {
+    const oldChannel = await client.channels.fetch(channelId).catch((error) => {
+        if (isStaleStoredEmbedError(error)) return null;
+        throw error;
+    });
     if (!oldChannel) {
-        throw new Error(translateBot(source, 'persistent_embed.channel_not_found', { channelId }));
+        const error = new Error(translateBot(source, 'persistent_embed.channel_not_found', { channelId }));
+        error.code = 'StoredChannelNotFound';
+        throw error;
     }
 
     if (oldChannel.type !== ChannelType.GuildText && oldChannel.type !== ChannelType.GuildAnnouncement) {
         throw new Error(translateBot(source, 'persistent_embed.stored_channel_not_supported', { embedLabel }));
     }
 
+    return oldChannel;
+};
+
+const deleteStoredEmbedMessage = async (source, client, channelId, messageId, embedLabel) => {
+    const oldChannel = await getStoredEmbedChannel(source, client, channelId, embedLabel);
     await oldChannel.messages.delete(messageId);
+};
+
+const editStoredEmbedMessage = async (source, client, channelId, messageId, embedLabel, messagePayload) => {
+    const oldChannel = await getStoredEmbedChannel(source, client, channelId, embedLabel);
+    await oldChannel.messages.edit(messageId, normalizeMessageEditPayload(messagePayload));
 };
 
 const createPersistentEmbedCommand = ({
@@ -110,14 +135,77 @@ const createPersistentEmbedCommand = ({
                     return;
                 }
 
+                const messageResponse = await request('persistentEmbedCommand', {
+                    action: 'getMessage',
+                    ...requesterPayload,
+                });
+                if (await resolveBridgeReply(interaction, messageResponse)) return;
+                if (!messageResponse?.messagePayload) {
+                    throw new Error(translateBot(interaction, 'persistent_embed.no_bridge_payload', { embedLabel }));
+                }
+
+                if (hasStoredEmbed && stateResponse.channelId === interaction.channelId) {
+                    try {
+                        await editStoredEmbedMessage(
+                            interaction,
+                            interaction.client,
+                            stateResponse.channelId,
+                            stateResponse.messageId,
+                            embedLabel,
+                            messageResponse.messagePayload,
+                        );
+                        const saveResponse = await request('persistentEmbedCommand', {
+                            action: 'saveLocation',
+                            ...requesterPayload,
+                            channelId: stateResponse.channelId,
+                            messageId: stateResponse.messageId,
+                        });
+                        if (await resolveBridgeReply(interaction, saveResponse)) return;
+
+                        await interaction.reply(buildReply('success', savedReply, true));
+                        return;
+                    } catch (error) {
+                        if (!isStaleStoredEmbedError(error)) {
+                            await interaction.reply(
+                                buildReply(
+                                    'warning',
+                                    translateBot(interaction, 'persistent_embed.failed_remove_error', {
+                                        embedLabel,
+                                        message: error instanceof Error ? error.message : String(error),
+                                    }),
+                                    true,
+                                ),
+                            );
+                            return;
+                        }
+                    }
+                }
+
                 if (hasStoredEmbed) {
-                    await deleteStoredEmbedMessage(
-                        interaction,
-                        interaction.client,
-                        stateResponse.channelId,
-                        stateResponse.messageId,
-                        embedLabel,
-                    ).catch(() => {});
+                    try {
+                        await deleteStoredEmbedMessage(
+                            interaction,
+                            interaction.client,
+                            stateResponse.channelId,
+                            stateResponse.messageId,
+                            embedLabel,
+                        );
+                    } catch (error) {
+                        if (!isStaleStoredEmbedError(error)) {
+                            await interaction.reply(
+                                buildReply(
+                                    'warning',
+                                    translateBot(interaction, 'persistent_embed.failed_remove_error', {
+                                        embedLabel,
+                                        message: error instanceof Error ? error.message : String(error),
+                                    }),
+                                    true,
+                                ),
+                            );
+                            return;
+                        }
+                    }
+
                     const clearResponse = await request('persistentEmbedCommand', {
                         action: 'clearLocation',
                         logAction: false,
@@ -127,15 +215,6 @@ const createPersistentEmbedCommand = ({
                         await resolveBridgeReply(interaction, clearResponse);
                         return;
                     }
-                }
-
-                const messageResponse = await request('persistentEmbedCommand', {
-                    action: 'getMessage',
-                    ...requesterPayload,
-                });
-                if (await resolveBridgeReply(interaction, messageResponse)) return;
-                if (!messageResponse?.messagePayload) {
-                    throw new Error(translateBot(interaction, 'persistent_embed.no_bridge_payload', { embedLabel }));
                 }
 
                 const newMessage = await interaction.channel.send(

@@ -6,6 +6,7 @@ Initial sxPanel-branded beta release.
 
 - Rebrands the project, package metadata, Discord commands, docs, and UI from legacy branding to sxPanel.
 - Keeps legacy fxPanel Discord/runtime compatibility during migration, including `FXPANEL_*` runtime env vars, old Discord button IDs, and legacy addon request headers.
+- Fixes `/status add` and `/players add` creating duplicate persistent embeds when the previously saved message should be updated or when deleting it fails.
 - Ships the 0.4.0 beta panel overhaul with queue, whitelist, deferral card, addon, and diagnostics updates.
 - Packages the FiveM/RedM `monitor/` resource with generated third-party license notices.
 
