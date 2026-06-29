@@ -40,6 +40,33 @@ describe('buildHttpPrimaryPlayerlist', () => {
         expect(merged[1]?.displayName).toBe('vex');
         expect(merged[2]?.displayName).toBe('ZYN');
     });
+
+    it('resolves tags for HTTP-only rows without replacing FD3 tags', () => {
+        const fd3Players = [
+            {
+                netid: 7,
+                displayName: 'Admin',
+                pureName: 'admin',
+                ids: ['license:real'],
+                license: 'real',
+                tags: ['staff'],
+                playTimeMinutes: 10,
+                sessionTimeSeconds: 60,
+            },
+        ];
+
+        const merged = buildHttpPrimaryPlayerlist(
+            fd3Players,
+            [
+                { id: 7, name: 'Admin', identifiers: ['license:real'] },
+                { id: 42, name: 'HTTP Staff', identifiers: ['discord:123456789012345678'] },
+            ],
+            (player) => (player.ids.includes('discord:123456789012345678') ? ['staff'] : []),
+        );
+
+        expect(merged[0]?.tags).toEqual(['staff']);
+        expect(merged[1]?.tags).toEqual(['staff']);
+    });
 });
 
 describe('mergeHttpPlayersIntoPlayerlist', () => {

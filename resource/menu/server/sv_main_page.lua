@@ -65,10 +65,7 @@ RegisterNetEvent('txsv:req:healEveryone', function()
         TriggerClientEvent('txcl:heal', -1)
         -- For use with third party resources that handle players
         -- 'revive state' standalone from health (esx-ambulancejob, qb-ambulancejob, etc)
-        TriggerEvent('txAdmin:events:playerHealed', {
-            target = -1,
-            author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
-        })
+        TxAdminNotifyPlayerHealed(-1, TxAdminActionAuthor(TX_ADMINS[tostring(src)]))
     end
 end)
 
@@ -80,10 +77,7 @@ RegisterNetEvent('txsv:req:healMyself', function()
         TriggerClientEvent('txcl:heal', src)
         -- For use with third party resources that handle players
         -- 'revive state' standalone from health (esx-ambulancejob, qb-ambulancejob, etc)
-        TriggerEvent('txAdmin:events:playerHealed', {
-            target = src,
-            author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
-        })
+        TxAdminNotifyPlayerHealed(src, TxAdminActionAuthor(TX_ADMINS[tostring(src)]))
     end
 end)
 
@@ -115,10 +109,7 @@ RegisterNetEvent('txsv:req:healRadius', function(radius)
                 )
                 if dist <= radius then
                     TriggerClientEvent('txcl:heal', tonumber(playerId))
-                    TriggerEvent('txAdmin:events:playerHealed', {
-                        target = tonumber(playerId),
-                        author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
-                    })
+                    TxAdminNotifyPlayerHealed(tonumber(playerId), TxAdminActionAuthor(TX_ADMINS[tostring(src)]))
                     healed = healed + 1
                 end
             end
@@ -139,10 +130,7 @@ RegisterNetEvent('txsv:req:healPlayer', function(id)
             TriggerClientEvent('txcl:heal', id)
             -- For use with third party resources that handle players
             -- 'revive state' standalone from health (esx-ambulancejob, qb-ambulancejob, etc)
-            TriggerEvent('txAdmin:events:playerHealed', {
-                target = id,
-                author = TxAdminActionAuthor(TX_ADMINS[tostring(src)]),
-            })
+            TxAdminNotifyPlayerHealed(id, TxAdminActionAuthor(TX_ADMINS[tostring(src)]))
         end
     end
     TriggerEvent('txsv:logger:menuEvent', src, 'healPlayer', allow, id)

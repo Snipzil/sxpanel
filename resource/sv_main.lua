@@ -235,6 +235,27 @@ TX_EVENT_HANDLERS = {
 
 local isBridgingLegacyHealedPlayer = false
 
+function TxAdminNotifyPlayerHealed(target, author)
+    isBridgingLegacyHealedPlayer = true
+    local ok, err = pcall(function()
+        TriggerEvent('txAdmin:events:healedPlayer', {
+            id = target,
+            target = target,
+            author = author or 'unknown',
+        })
+    end)
+    isBridgingLegacyHealedPlayer = false
+
+    if not ok then
+        TxPrintError('[txAdmin:events:healedPlayer] failed to emit legacy event', err)
+    end
+
+    TriggerEvent('txAdmin:events:playerHealed', {
+        target = target,
+        author = author or 'unknown',
+    })
+end
+
 AddEventHandler('txAdmin:events:healedPlayer', function(eventData)
     if isBridgingLegacyHealedPlayer then
         return
@@ -690,10 +711,7 @@ TX_EVENT_HANDLERS.webPlayerHealed = function(eventData)
     if eventData.target == -1 then
         TxPrint('[webPlayerHealed] Healing all players (by ' .. (eventData.author or 'unknown') .. ')')
         TriggerClientEvent('txcl:heal', -1)
-        TriggerEvent('txAdmin:events:playerHealed', {
-            target = -1,
-            author = eventData.author or 'unknown',
-        })
+        TxAdminNotifyPlayerHealed(-1, eventData.author)
     else
         local ped = GetPlayerPed(eventData.target)
         if ped then
@@ -701,10 +719,7 @@ TX_EVENT_HANDLERS.webPlayerHealed = function(eventData)
                 '[webPlayerHealed] Healing #' .. eventData.target .. ' (by ' .. (eventData.author or 'unknown') .. ')'
             )
             TriggerClientEvent('txcl:heal', eventData.target)
-            TriggerEvent('txAdmin:events:playerHealed', {
-                target = eventData.target,
-                author = eventData.author or 'unknown',
-            })
+            TxAdminNotifyPlayerHealed(eventData.target, eventData.author)
         else
             TxPrintError('[webPlayerHealed] Player #' .. eventData.target .. ' ped not found')
         end

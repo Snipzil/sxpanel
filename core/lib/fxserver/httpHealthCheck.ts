@@ -92,6 +92,17 @@ export const clearHttpRuntimePlayerCache = () => {
     txCore.cacheStore.delete(HTTP_CLIENTS_CACHE_KEY);
 };
 
+export const removeCachedHttpPlayer = (netid: number) => {
+    const previousLength = cachedHttpPlayers.length;
+    cachedHttpPlayers = cachedHttpPlayers.filter((player) => player.id !== netid);
+    if (cachedHttpPlayers.length === previousLength) return false;
+
+    if (getCachedHttpPlayerCount() <= previousLength) {
+        txCore.cacheStore.set(HTTP_CLIENTS_CACHE_KEY, cachedHttpPlayers.length);
+    }
+    return true;
+};
+
 /**
  * Best-effort connected player count for UI (panel header, Discord, host status).
  * Prefer FD3 playerlist; when bypass is active, also consider /dynamic.json and /players.json.
@@ -241,6 +252,12 @@ const applyPlayersJsonMetadata = (players: HttpPlayerJsonEntry[]) => {
     txCore.cacheStore.set(HTTP_CLIENTS_CACHE_KEY, players.length);
 };
 
+const clearCachedHttpPlayersIfCoveredByReportedCount = () => {
+    const fd3Count = txCore.fxPlayerlist?.onlineCount ?? 0;
+    if (getCachedHttpPlayerCount() > fd3Count) return;
+    cachedHttpPlayers = [];
+};
+
 /**
  * Poll /players.json from local + public candidate endpoints and cache the union.
  */
@@ -260,8 +277,11 @@ export const fetchAndCachePlayersJson = async (localEndpoint: string, timeout = 
         fetchPlayersFromCfxListing(),
     ]);
     const fresh = unionHttpPlayers([...lists, cfxPlayers]);
-    const merged = fresh.length ? fresh : getCachedHttpPlayers();
-    applyPlayersJsonMetadata(merged);
+    if (fresh.length) {
+        applyPlayersJsonMetadata(fresh);
+    } else {
+        clearCachedHttpPlayersIfCoveredByReportedCount();
+    }
     return getCachedHttpPlayers();
 };
 

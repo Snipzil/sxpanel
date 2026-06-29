@@ -1,6 +1,6 @@
 import cleanPlayerName from '@shared/cleanPlayerName';
 import { parsePlayerIds } from '@lib/player/idUtils';
-import type { PlayerlistPlayerType } from '@shared/socketioTypes';
+import type { PlayerlistPlayerType, PlayerTag } from '@shared/socketioTypes';
 import { z } from 'zod';
 
 const httpPlayerSchema = z.object({
@@ -19,6 +19,9 @@ export type DisplayPlayerlistRow = PlayerlistPlayerType & {
     playTimeMinutes: number;
     sessionTimeSeconds: number;
 };
+
+type HttpPlayerTagContext = Pick<PlayerlistPlayerType, 'netid' | 'displayName' | 'pureName' | 'ids' | 'license'>;
+export type ResolveHttpPlayerTags = (player: HttpPlayerTagContext, source: HttpPlayerJsonEntry) => PlayerTag[];
 
 /**
  * Parses FXServer /players.json entries, ignoring invalid rows.
@@ -66,17 +69,23 @@ export const parsePlayersJson = (body: unknown): HttpPlayerJsonEntry[] => {
 /**
  * Maps a /players.json row into the panel playerlist shape.
  */
-export const mapHttpPlayerToPlayerlistEntry = (player: HttpPlayerJsonEntry): DisplayPlayerlistRow => {
+export const mapHttpPlayerToPlayerlistEntry = (
+    player: HttpPlayerJsonEntry,
+    resolveTags?: ResolveHttpPlayerTags,
+): DisplayPlayerlistRow => {
     const { displayName, pureName } = cleanPlayerName(player.name);
     const { validIdsArray, validIdsObject } = parsePlayerIds(player.identifiers ?? []);
-
-    return {
+    const tagContext = {
         netid: player.id,
         displayName,
         pureName,
         ids: validIdsArray,
         license: validIdsObject.license,
-        tags: [],
+    };
+
+    return {
+        ...tagContext,
+        tags: resolveTags?.(tagContext, player) ?? [],
         playTimeMinutes: 0,
         sessionTimeSeconds: 0,
     };
@@ -89,6 +98,7 @@ export const mapHttpPlayerToPlayerlistEntry = (player: HttpPlayerJsonEntry): Dis
 export const mergeHttpPlayersIntoPlayerlist = (
     fd3Players: DisplayPlayerlistRow[],
     httpPlayers: HttpPlayerJsonEntry[],
+    resolveTags?: ResolveHttpPlayerTags,
 ): DisplayPlayerlistRow[] => {
     if (!httpPlayers.length) return fd3Players;
 
@@ -99,7 +109,7 @@ export const mergeHttpPlayersIntoPlayerlist = (
     for (const httpPlayer of httpPlayers) {
         if (occupiedNetids.has(httpPlayer.id)) continue;
 
-        const mapped = mapHttpPlayerToPlayerlistEntry(httpPlayer);
+        const mapped = mapHttpPlayerToPlayerlistEntry(httpPlayer, resolveTags);
         if (occupiedPureNames.has(mapped.pureName)) continue;
 
         merged.push(mapped);
@@ -116,6 +126,7 @@ export const mergeHttpPlayersIntoPlayerlist = (
 export const buildHttpPrimaryPlayerlist = (
     fd3Players: DisplayPlayerlistRow[],
     httpPlayers: HttpPlayerJsonEntry[],
+    resolveTags?: ResolveHttpPlayerTags,
 ): DisplayPlayerlistRow[] => {
     if (!httpPlayers.length) return fd3Players;
 
@@ -125,7 +136,7 @@ export const buildHttpPrimaryPlayerlist = (
 
     for (const httpPlayer of httpPlayers) {
         const fd3Match = fd3ByNetid.get(httpPlayer.id);
-        result.push(fd3Match ?? mapHttpPlayerToPlayerlistEntry(httpPlayer));
+        result.push(fd3Match ?? mapHttpPlayerToPlayerlistEntry(httpPlayer, resolveTags));
         seenNetids.add(httpPlayer.id);
     }
 

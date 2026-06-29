@@ -1,5 +1,5 @@
 const modulename = 'FxPlayerlist';
-import { ServerPlayer } from '@lib/player/playerClasses.js';
+import { ReportedPlayer, ServerPlayer } from '@lib/player/playerClasses.js';
 import { buildPlayerSessionId } from '@lib/player/playerSessionId.js';
 import { DatabaseActionWarnType, DatabasePlayerType } from '@modules/Database/databaseTypes';
 import consoleFactory from '@lib/console';
@@ -7,6 +7,7 @@ import { now } from '@lib/misc';
 import { PlayerDroppedEventType, PlayerJoiningEventType, PlayerlistPlayerType } from '@shared/socketioTypes';
 import {
     computePlayerTags,
+    computePlayerTagsGeneric,
     getTagDefinitions,
     hasDiscordManagedTagMappings,
     refreshPlayerDiscordTags,
@@ -18,9 +19,10 @@ import {
     isHttpPlayerlistBypassEnabled,
     isHttpPlayerlistPushMode,
     clearHttpRuntimePlayerCache,
+    removeCachedHttpPlayer,
     syncReportedPlayersToResource,
 } from '@lib/fxserver/httpHealthCheck';
-import { buildHttpPrimaryPlayerlist } from '@lib/fxserver/httpPlayerlist';
+import { buildHttpPrimaryPlayerlist, type HttpPlayerJsonEntry, type ResolveHttpPlayerTags } from '@lib/fxserver/httpPlayerlist';
 const console = consoleFactory(modulename);
 
 export type ManualPlayerUpdateEntry = {
@@ -97,6 +99,14 @@ export default class FxPlayerlist {
     get onlineCount() {
         return this.#playerlist.filter((p) => p && p.isConnected).length;
     }
+
+    #resolveHttpPlayerTags: ResolveHttpPlayerTags = (_mappedPlayer, source: HttpPlayerJsonEntry) => {
+        try {
+            return computePlayerTagsGeneric(new ReportedPlayer(source.id, source.name, source.identifiers ?? []));
+        } catch {
+            return [];
+        }
+    };
 
     /**
      * Number of players that joined/left in the last hour.
@@ -209,7 +219,7 @@ export default class FxPlayerlist {
 
         const httpPlayers = getCachedHttpPlayers();
         if (!httpPlayers.length) return fd3Players;
-        return buildHttpPrimaryPlayerlist(fd3Players, httpPlayers);
+        return buildHttpPrimaryPlayerlist(fd3Players, httpPlayers, this.#resolveHttpPlayerTags);
     }
 
     /**
@@ -487,6 +497,7 @@ export default class FxPlayerlist {
                 const player = this.#playerlist[payload.id]!;
                 const sessionTimeSeconds = Math.max(now() - player.tsConnected, 0);
                 player.disconnect();
+                removeCachedHttpPlayer(payload.id);
                 this.joinLeaveLog.push([currTs, false]);
                 const reasonCategory = txCore.metrics.playerDrop.handlePlayerDrop({
                     ...payload,
