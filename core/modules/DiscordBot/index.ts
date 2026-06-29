@@ -336,9 +336,11 @@ const buildAddonRequestHeaders = (headers: unknown, requesterId: unknown, reques
 
     if (typeof requesterId === 'string' && requesterId.length) {
         sanitizedHeaders['x-sxpanel-discord-user-id'] = requesterId;
+        sanitizedHeaders['x-fxpanel-discord-user-id'] = requesterId;
     }
     if (typeof requesterName === 'string' && requesterName.length) {
         sanitizedHeaders['x-sxpanel-discord-user-name'] = requesterName;
+        sanitizedHeaders['x-fxpanel-discord-user-name'] = requesterName;
     }
 
     return sanitizedHeaders;

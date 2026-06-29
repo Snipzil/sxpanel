@@ -16,7 +16,11 @@ const {
 } = require('../../telemetry');
 
 const playerListPageButtonPrefix = 'sxpanel:playerList:page:';
+const legacyPlayerListPageButtonPrefix = 'fxpanel:playerList:page:';
+const playerListPageButtonPrefixes = [playerListPageButtonPrefix, legacyPlayerListPageButtonPrefix];
 const ticketInteractionPrefix = 'sxpanel:ticket:';
+const legacyTicketInteractionPrefix = 'fxpanel:ticket:';
+const ticketInteractionPrefixes = [ticketInteractionPrefix, legacyTicketInteractionPrefix];
 const ticketAssignSelectAction = 'assignSelect';
 const supportedTicketActions = new Set(['summary', 'claim', 'assign', 'resolve', 'reopen']);
 
@@ -70,6 +74,18 @@ const getAddonInteractionType = (interaction) => {
     if (interaction.isChannelSelectMenu()) return 'channelSelectMenu';
 
     return null;
+};
+
+const getPlayerListPageButtonPrefix = (customId) => {
+    return typeof customId === 'string'
+        ? playerListPageButtonPrefixes.find((prefix) => customId.startsWith(prefix))
+        : undefined;
+};
+
+const getTicketInteractionPrefix = (customId) => {
+    return typeof customId === 'string'
+        ? ticketInteractionPrefixes.find((prefix) => customId.startsWith(prefix))
+        : undefined;
 };
 
 const isAddonInteractionTypeMatch = (interaction, expectedType) => {
@@ -231,10 +247,10 @@ const handleAddonComponentInteraction = async (interaction, client, bridge) => {
 };
 
 const parseTicketInteractionId = (customId) => {
-    if (typeof customId !== 'string' || !customId.startsWith(ticketInteractionPrefix)) return null;
+    if (!getTicketInteractionPrefix(customId)) return null;
 
     const parts = customId.split(':');
-    if (parts.length < 4 || parts[0] !== 'sxpanel' || parts[1] !== 'ticket') return null;
+    if (parts.length < 4 || !['sxpanel', 'fxpanel'].includes(parts[0]) || parts[1] !== 'ticket') return null;
 
     const action = parts[2];
     const ticketId = parts[3];
@@ -288,7 +304,8 @@ const editSourceTicketMessage = async (interaction, messageId, messagePayload) =
 };
 
 const handlePlayerListPageButton = async (interaction) => {
-    const rawPage = interaction.customId.slice(playerListPageButtonPrefix.length);
+    const matchingPrefix = getPlayerListPageButtonPrefix(interaction.customId);
+    const rawPage = matchingPrefix ? interaction.customId.slice(matchingPrefix.length) : '';
     if (!/^\d+$/.test(rawPage) || !interaction.message?.id) {
         await interaction
             .reply(buildReply('warning', t(interaction, 'interaction.player_list.invalid_request'), true))
@@ -451,17 +468,17 @@ module.exports = {
             return;
         }
 
-        if (interaction.isButton() && interaction.customId?.startsWith(playerListPageButtonPrefix)) {
+        if (interaction.isButton() && getPlayerListPageButtonPrefix(interaction.customId)) {
             await handlePlayerListPageButton(interaction);
             return;
         }
 
-        if (interaction.isButton() && interaction.customId?.startsWith(ticketInteractionPrefix)) {
+        if (interaction.isButton() && getTicketInteractionPrefix(interaction.customId)) {
             await handleTicketButton(interaction);
             return;
         }
 
-        if (interaction.isUserSelectMenu() && interaction.customId?.startsWith(ticketInteractionPrefix)) {
+        if (interaction.isUserSelectMenu() && getTicketInteractionPrefix(interaction.customId)) {
             await handleTicketAssignSelect(interaction);
             return;
         }

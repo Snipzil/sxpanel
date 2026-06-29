@@ -24,6 +24,16 @@ export type FxChildNodeRuntimeResolution = {
 let memoized: FxChildNodeRuntimeResolution | undefined;
 let computed = false;
 
+export function getEnvValueWithLegacy(primaryName: string, legacyName: string): string | undefined {
+    const primaryValue = process.env[primaryName];
+    if (typeof primaryValue === 'string' && primaryValue.length) return primaryValue;
+
+    const legacyValue = process.env[legacyName];
+    if (typeof legacyValue === 'string' && legacyValue.length) return legacyValue;
+
+    return undefined;
+}
+
 export function isHostProcessExecPathNodeLike(): boolean {
     const execBase = path.basename(process.execPath).toLowerCase();
     return execBase === 'node' || execBase === 'node.exe' || execBase.startsWith('node');
@@ -79,7 +89,9 @@ export function formatFxChildNodeResolutionDiagnostics(r: FxChildNodeRuntimeReso
         return `Resolved Node child runtime: ${label}${via}`;
     }
 
-    const hint = r.suggestedBotNodePath ? ` Set SXPANEL_BOT_NODE_PATH=${r.suggestedBotNodePath}.` : '';
+    const hint = r.suggestedBotNodePath
+        ? ` Set SXPANEL_BOT_NODE_PATH=${r.suggestedBotNodePath}. Legacy FXPANEL_BOT_NODE_PATH is also accepted.`
+        : '';
     return (
         `No executable Node binary found (candidates=${r.candidateCount}, ` +
         `sample=[${r.candidateSample.join(', ')}], cfxRoot=${r.cfxRoot ?? 'unknown'}).${hint}`
@@ -208,8 +220,8 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
     };
 
     const envNodeExecPath = process.env.npm_node_execpath ?? process.env.NODE;
-    const explicitBot = process.env.SXPANEL_BOT_NODE_PATH;
-    const explicitAddon = process.env.SXPANEL_ADDON_NODE_PATH;
+    const explicitBot = getEnvValueWithLegacy('SXPANEL_BOT_NODE_PATH', 'FXPANEL_BOT_NODE_PATH');
+    const explicitAddon = getEnvValueWithLegacy('SXPANEL_ADDON_NODE_PATH', 'FXPANEL_ADDON_NODE_PATH');
     for (const p of [explicitBot, explicitAddon]) {
         if (typeof p === 'string' && p.length) {
             candidateSet.add(p);

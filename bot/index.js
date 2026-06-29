@@ -375,6 +375,7 @@ client.sxpanel = {
         await client.application.commands.set(commandPayload);
     },
 };
+client.fxpanel = client.sxpanel;
 
 const start = async () => {
     await client.sxpanel.loadCommands();

@@ -1,7 +1,20 @@
-import { expect, it, suite } from 'vitest';
-import { formatFxChildNodeResolutionDiagnostics } from './resolveFxChildNode';
+import { afterEach, expect, it, suite } from 'vitest';
+import { formatFxChildNodeResolutionDiagnostics, getEnvValueWithLegacy } from './resolveFxChildNode';
 
 suite('resolveFxChildNode', () => {
+    afterEach(() => {
+        delete process.env.TEST_SXPANEL_ENV;
+        delete process.env.TEST_FXPANEL_ENV;
+    });
+
+    it('prefers sxPanel env vars but accepts legacy fxPanel fallbacks', () => {
+        process.env.TEST_FXPANEL_ENV = 'legacy-value';
+        expect(getEnvValueWithLegacy('TEST_SXPANEL_ENV', 'TEST_FXPANEL_ENV')).toBe('legacy-value');
+
+        process.env.TEST_SXPANEL_ENV = 'current-value';
+        expect(getEnvValueWithLegacy('TEST_SXPANEL_ENV', 'TEST_FXPANEL_ENV')).toBe('current-value');
+    });
+
     it('formats a successful resolution', () => {
         const text = formatFxChildNodeResolutionDiagnostics({
             childExecPath: '/opt/cfx-server/ld-musl-x86_64.so.1',

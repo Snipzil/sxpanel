@@ -6,6 +6,7 @@ import { txDevEnv, txEnv } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import {
     formatFxChildNodeResolutionDiagnostics,
+    getEnvValueWithLegacy,
     getFxChildNodeRuntimeResolution,
     resolveFxChildNodeSpawn,
 } from '@lib/resolveFxChildNode';
@@ -26,7 +27,7 @@ const MAX_RESTART_DELAY_MS = 60_000;
 type BotRuntimePreference = 'node' | 'worker' | 'auto';
 
 function resolveBotRuntimePreference(): BotRuntimePreference {
-    const raw = String(process.env.SXPANEL_BOT_RUNTIME ?? '')
+    const raw = String(getEnvValueWithLegacy('SXPANEL_BOT_RUNTIME', 'FXPANEL_BOT_RUNTIME') ?? '')
         .trim()
         .toLowerCase();
     if (raw === 'node' || raw === 'worker' || raw === 'auto') {
@@ -304,13 +305,14 @@ export default class BotProcess {
             const diagnostics = formatFxChildNodeResolutionDiagnostics(resolution);
             const hint =
                 preference === 'node'
-                    ? ' Unset SXPANEL_BOT_RUNTIME=node to allow the worker-thread fallback.'
+                    ? ' Unset SXPANEL_BOT_RUNTIME=node (or legacy FXPANEL_BOT_RUNTIME=node) to allow the worker-thread fallback.'
                     : process.platform === 'linux'
-                      ? ' Set SXPANEL_BOT_RUNTIME=worker to force the worker-thread runtime (note: unsafe on cfx-server musl hosts).'
+                      ? ' Set SXPANEL_BOT_RUNTIME=worker to force the worker-thread runtime (note: unsafe on cfx-server musl hosts). Legacy FXPANEL_BOT_RUNTIME is also accepted.'
                       : '';
             const reason =
                 'Discord bot: no Node.js binary found for this FXServer environment. ' +
-                'Set SXPANEL_BOT_NODE_PATH or SXPANEL_ADDON_NODE_PATH to an absolute path to `node`, or install Node on PATH.' +
+                'Set SXPANEL_BOT_NODE_PATH or SXPANEL_ADDON_NODE_PATH to an absolute path to `node`, or install Node on PATH. ' +
+                'Legacy FXPANEL_BOT_NODE_PATH and FXPANEL_ADDON_NODE_PATH are also accepted.' +
                 hint;
             console.error(reason);
             console.error(`Discord bot Node resolution: ${diagnostics}`);
@@ -375,7 +377,7 @@ export default class BotProcess {
         const entryPath = path.join(botDir, 'index.js');
         console.warn(
             'Discord bot: no standalone Node binary found; running the bot in a worker thread of the host process. ' +
-                'Set SXPANEL_BOT_NODE_PATH (or install Node on PATH) to use a dedicated child process instead.',
+                'Set SXPANEL_BOT_NODE_PATH (or legacy FXPANEL_BOT_NODE_PATH, or install Node on PATH) to use a dedicated child process instead.',
         );
 
         let worker: Worker;
