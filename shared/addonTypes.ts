@@ -97,7 +97,7 @@ export const AddonDiscordBotSchema = z
         message: 'discordBot must declare at least one of commands or events',
     });
 
-export const AddonManifestSchema = z.object({
+const AddonManifestBaseSchema = z.object({
     // Identity
     id: z.string().regex(addonIdRegex, 'Addon ID must be 3-64 chars, lowercase alphanumeric + hyphens'),
     name: z.string().min(1).max(64),
@@ -190,6 +190,19 @@ export const AddonManifestSchema = z.object({
     /** Declares deferral scenarios and dynamic token keys for the shared Deferral Studio. */
     deferral: AddonDeferralManifestSchema.optional(),
 });
+
+export const AddonManifestSchema = z.preprocess((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+
+    const manifest = value as Record<string, unknown>;
+    if ('sxpanel' in manifest || !('fxpanel' in manifest)) return value;
+
+    // Legacy fxPanel addons used this key before the host was renamed.
+    return {
+        ...manifest,
+        sxpanel: manifest.fxpanel,
+    };
+}, AddonManifestBaseSchema);
 
 export type AddonManifest = z.infer<typeof AddonManifestSchema>;
 

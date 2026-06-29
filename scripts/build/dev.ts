@@ -3,7 +3,13 @@ import path from 'node:path';
 import chokidar from 'chokidar';
 import { debounce } from 'lodash-es';
 import esbuild, { BuildOptions } from 'esbuild';
-import { copyBotRuntimeDependencies, copyStaticFiles, getFxsPaths, getPublishVersion } from './utils';
+import {
+    copyBotRuntimeDependencies,
+    copyStaticFiles,
+    getDefaultAddonWatchPaths,
+    getFxsPaths,
+    getPublishVersion,
+} from './utils';
 import config from './config';
 import { parseTxDevEnv } from '../../shared/txDevEnv';
 import { TxAdminRunner } from './TxAdminRunner';
@@ -57,7 +63,8 @@ const debouncedCopier = debounce((eventName) => {
         console.error(`[COPIER] Unhandled error during sync: ${(error as Error).message}`);
     }
 }, config.debouncerInterval);
-const staticWatcher = chokidar.watch(config.copy, {
+const staticWatchPaths = [...config.copy, ...getDefaultAddonWatchPaths()];
+const staticWatcher = chokidar.watch(staticWatchPaths, {
     awaitWriteFinish: {
         stabilityThreshold: 150,
         pollInterval: 50,

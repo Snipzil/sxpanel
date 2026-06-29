@@ -1335,6 +1335,10 @@ export default class DiscordBot {
                 response = this.#handleTicketCommand(message);
                 break;
             }
+            case 'sxTicketsResolveReporterDiscord': {
+                response = this.#handleSxTicketsResolveReporterDiscord(message);
+                break;
+            }
             case 'moderationCommand': {
                 response = await handleModerationCommand(message, {
                     buildReply,
@@ -1653,6 +1657,36 @@ export default class DiscordBot {
         } catch (error) {
             console.error(`Failed to process ticket message for thread ${String(message.threadId)}: ${emsg(error)}`);
         }
+    }
+
+    #handleSxTicketsResolveReporterDiscord(message: BridgeMessage) {
+        const requestedTicketId =
+            typeof message.ticketId === 'string' ? normalizeTicketCommandTicketId(message.ticketId) : '';
+        const requestedThreadId = typeof message.threadId === 'string' ? message.threadId.trim() : '';
+
+        let ticket: DatabaseTicketType | null = null;
+        if (requestedTicketId) {
+            ticket = txCore.database.tickets.findOne(requestedTicketId);
+        }
+        if (!ticket && requestedThreadId) {
+            ticket = txCore.database.tickets.findByDiscordThread(requestedThreadId);
+        }
+        if (!ticket) {
+            return { ticketId: null, discordId: null };
+        }
+
+        let player: { ids: string[] } | null;
+        try {
+            player = txCore.database.players.findOne(ticket.reporter.license);
+        } catch {
+            player = null;
+        }
+
+        const discordIdentifier = player?.ids.find((id) => /^discord:\d{17,20}$/.test(id));
+        return {
+            ticketId: ticket.id,
+            discordId: discordIdentifier ? discordIdentifier.slice('discord:'.length) : null,
+        };
     }
 
     /**

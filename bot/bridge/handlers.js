@@ -1,4 +1,4 @@
-const { ActivityType, AttachmentBuilder, ChannelType } = require('discord.js');
+const { ActivityType, AttachmentBuilder, ChannelType, PermissionFlagsBits, PermissionsBitField } = require('discord.js');
 const { buildCardMessage, normalizeMessageEditPayload, normalizeMessagePayload } = require('../componentsV2');
 const { translateDiscord } = require('../discordLocale');
 
@@ -235,9 +235,59 @@ const normalizeTicketMessagePayload = (payload) => {
     });
 };
 
+const normalizeTicketChannelSegment = (value, fallback) => {
+    const normalized = String(value ?? '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+    return normalized.length ? normalized.slice(0, 28) : fallback;
+};
+
+const buildTicketChannelName = (ticket) => {
+    const category = normalizeTicketChannelSegment(ticket.category, 'ticket');
+    const reporter = normalizeTicketChannelSegment(ticket.reporter?.name, 'player');
+    const id = normalizeTicketChannelSegment(ticket.id, 'new');
+
+    return `${category}-${reporter}-${id}`.slice(0, 100);
+};
+
+const isTicketMessageTarget = (channel) => {
+    return (
+        channel?.isThread?.() ||
+        channel?.type === ChannelType.GuildText ||
+        channel?.type === ChannelType.GuildAnnouncement
+    );
+};
+
+const buildTicketChannelPermissionOverwrites = (category) => {
+    const overwrites = category.permissionOverwrites.cache.map((overwrite) => ({
+        id: overwrite.id,
+        type: overwrite.type,
+        allow: overwrite.allow,
+        deny: overwrite.deny,
+    }));
+    const everyoneRoleId = category.guild.roles.everyone.id;
+    const everyoneOverwrite = overwrites.find((overwrite) => overwrite.id === everyoneRoleId);
+
+    if (everyoneOverwrite) {
+        everyoneOverwrite.allow = new PermissionsBitField(everyoneOverwrite.allow).remove(
+            PermissionFlagsBits.ViewChannel,
+        );
+        everyoneOverwrite.deny = new PermissionsBitField(everyoneOverwrite.deny).add(PermissionFlagsBits.ViewChannel);
+    } else {
+        overwrites.push({
+            id: everyoneRoleId,
+            deny: [PermissionFlagsBits.ViewChannel],
+        });
+    }
+
+    return overwrites;
+};
+
 const createTicketThread = async (msg, client) => {
     const channel = await client.channels.fetch(msg.channelId);
-    if (!channel) throw new Error(`Ticket channel ${msg.channelId} not found.`);
+    if (!channel) throw new Error(`Ticket channel/category ${msg.channelId} not found.`);
 
     const ticket = msg.ticket;
     const priorityColorMap = {
@@ -270,27 +320,37 @@ const createTicketThread = async (msg, client) => {
             footer: `<t:${ticket.tsCreated}:F>`,
         });
 
-    let thread;
-    if (channel.type === ChannelType.GuildForum) {
-        thread = await channel.threads.create({
+    let target;
+    if (channel.type === ChannelType.GuildCategory) {
+        target = await channel.guild.channels.create({
+            name: buildTicketChannelName(ticket),
+            type: ChannelType.GuildText,
+            parent: channel.id,
+            topic: `fxPanel ticket ${ticket.id}`,
+            permissionOverwrites: buildTicketChannelPermissionOverwrites(channel),
+            reason: `fxPanel ticket ${ticket.id}`,
+        });
+        await target.send(messagePayload);
+    } else if (channel.type === ChannelType.GuildForum) {
+        target = await channel.threads.create({
             name: msg.threadName,
             message: messagePayload,
         });
     } else if (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement) {
         const entryMessage = await channel.send(messagePayload);
-        thread = await entryMessage.startThread({ name: msg.threadName });
+        target = await entryMessage.startThread({ name: msg.threadName });
     } else {
-        throw new Error(`Channel type ${channel.type} is not supported for ticket threads.`);
+        throw new Error(`Channel type ${channel.type} is not supported for ticket channels.`);
     }
 
     if (msg.screenshotBase64) {
         const attachment = new AttachmentBuilder(Buffer.from(msg.screenshotBase64, 'base64'), {
             name: 'screenshot.png',
         });
-        await thread.send({ content: translateBot(client, 'bridge.ticket.screenshot_attached'), files: [attachment] });
+        await target.send({ content: translateBot(client, 'bridge.ticket.screenshot_attached'), files: [attachment] });
     }
 
-    return { threadId: thread.id };
+    return { threadId: target.id };
 };
 
 const createWhitelistReviewThread = async (msg, client) => {
@@ -336,15 +396,15 @@ const createWhitelistReviewThread = async (msg, client) => {
 };
 
 const postTicketMessage = async (msg, client) => {
-    const thread = await client.channels.fetch(msg.threadId).catch(() => null);
-    if (!thread?.isThread?.()) return;
+    const target = await client.channels.fetch(msg.threadId).catch(() => null);
+    if (!isTicketMessageTarget(target) || !target.isTextBased?.()) return;
 
     let text = `**${msg.authorName}:** ${String(msg.content ?? '').slice(0, 1900)}`;
     if (Array.isArray(msg.imageUrls) && msg.imageUrls.length > 0) {
         text += `\n${msg.imageUrls.slice(0, 3).join('\n')}`;
     }
 
-    await thread.send(text.trim());
+    await target.send(text.trim());
 };
 
 const updateStatusEmbed = async (msg, client) => {

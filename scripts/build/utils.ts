@@ -289,6 +289,60 @@ export const copyDirectoryIfDifferent = (srcPath: string, destPath: string) => {
     return true;
 };
 
+export const getDefaultAddonWatchPaths = () => {
+    return (config.defaultAddons ?? [])
+        .map((addon) => addon.source)
+        .filter((sourcePath) => fs.existsSync(sourcePath));
+};
+
+export const copyDefaultAddons = (targetPath: string, eventName: string) => {
+    let failures = 0;
+
+    for (const addon of config.defaultAddons ?? []) {
+        if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(addon.id)) {
+            failures++;
+            console.error(`[COPIER] Invalid default addon id: ${addon.id}`);
+            continue;
+        }
+
+        const srcPath = path.normalize(addon.source);
+        if (!fs.existsSync(srcPath)) {
+            continue;
+        }
+
+        const destPath = path.join(targetPath, 'addons', addon.id);
+        const resolvedSource = resolveIfExists(srcPath) ?? path.resolve(srcPath);
+        const resolvedDestination = resolveIfExists(destPath);
+        if (resolvedDestination && resolvedSource === resolvedDestination) {
+            continue;
+        }
+
+        try {
+            if (!fs.statSync(srcPath).isDirectory()) {
+                throw new Error('source is not a directory');
+            }
+            if (!fs.existsSync(path.join(srcPath, 'addon.json'))) {
+                throw new Error('source is missing addon.json');
+            }
+
+            if (eventName === 'init' || eventName === 'publish') {
+                clearCopyDestination(srcPath, destPath);
+            } else {
+                fs.mkdirSync(destPath, { recursive: true });
+            }
+            fs.cpSync(srcPath, destPath, { recursive: true, force: true, filter: shouldCopyStaticEntry });
+            console.log(`[COPIER] Mirrored default addon ${addon.id} from ${srcPath}.`);
+        } catch (error) {
+            failures++;
+            console.error(
+                `[COPIER] Failed to copy default addon ${addon.id} ${srcPath} -> ${destPath}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+        }
+    }
+
+    return failures;
+};
+
 const readJsonFile = <T>(filePath: string): T => {
     return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
 };
@@ -423,6 +477,7 @@ export const copyStaticFiles = (targetPath: string, txVersion: string, eventName
             );
         }
     }
+    failures += copyDefaultAddons(targetPath, eventName);
     try {
         setupDistFxmanifest(targetPath, txVersion);
     } catch (error) {

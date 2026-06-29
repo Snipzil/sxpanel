@@ -90,6 +90,18 @@ suite('AddonManifestSchema validation', () => {
         expect(result.success).toBe(true);
     });
 
+    it('accepts legacy fxpanel compatibility metadata', () => {
+        const legacyManifest = Object.fromEntries(Object.entries(validManifest).filter(([key]) => key !== 'sxpanel'));
+        const result = AddonManifestSchema.safeParse({
+            ...legacyManifest,
+            fxpanel: { minVersion: '0.3.0-Beta' },
+        });
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.sxpanel.minVersion).toBe('0.3.0-Beta');
+        }
+    });
+
     it('defaults dependencies to empty array', () => {
         const result = AddonManifestSchema.parse(validManifest);
         expect(result.dependencies).toEqual([]);

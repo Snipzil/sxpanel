@@ -5,18 +5,22 @@ import { afterEach, expect, it, suite, vi } from 'vitest';
 import {
     clearCopyDestination,
     copyBotRuntimeDependencies,
+    copyDefaultAddons,
     copyDirectoryIfDifferent,
+    getDefaultAddonWatchPaths,
     getPublishVersion,
     replaceFxmanifestVersion,
     shouldCopyStaticEntry,
     shouldSyncStaticContents,
     shouldWipeCopyDestination,
 } from './utils';
+import config from './config';
 
 const tempDirs: string[] = [];
 const originalCwd = process.cwd();
 const originalGithubRef = process.env.GITHUB_REF;
 const originalTxNoExpiration = process.env.TX_NO_EXPIRATION;
+const originalDefaultAddons = config.defaultAddons.map((addon) => ({ ...addon }));
 
 const makeTempDir = () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sxpanel-copy-'));
@@ -37,6 +41,7 @@ afterEach(() => {
     } else {
         process.env.TX_NO_EXPIRATION = originalTxNoExpiration;
     }
+    config.defaultAddons = originalDefaultAddons.map((addon) => ({ ...addon }));
     for (const tempDir of tempDirs.splice(0)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -152,6 +157,28 @@ suite('copyDirectoryIfDifferent', () => {
 
         expect(result).toBe(false);
         expect(cpSpy).not.toHaveBeenCalled();
+    });
+});
+
+suite('copyDefaultAddons', () => {
+    it('mirrors configured default addons into monitor/addons and filters nested git directories', () => {
+        const tempDir = makeTempDir();
+        const sourceDir = path.join(tempDir, 'external', 'sx-tickets');
+        const monitorDir = path.join(tempDir, 'monitor');
+
+        fs.mkdirSync(path.join(sourceDir, 'panel'), { recursive: true });
+        fs.mkdirSync(path.join(sourceDir, '.git', 'objects'), { recursive: true });
+        fs.writeFileSync(path.join(sourceDir, 'addon.json'), JSON.stringify({ id: 'sx-tickets' }));
+        fs.writeFileSync(path.join(sourceDir, 'panel', 'index.js'), 'export default {};');
+        fs.writeFileSync(path.join(sourceDir, '.git', 'config'), '[core]');
+
+        config.defaultAddons = [{ id: 'sx-tickets', source: sourceDir }];
+
+        expect(getDefaultAddonWatchPaths()).toEqual([sourceDir]);
+        expect(copyDefaultAddons(monitorDir, 'init')).toBe(0);
+        expect(fs.existsSync(path.join(monitorDir, 'addons', 'sx-tickets', 'addon.json'))).toBe(true);
+        expect(fs.existsSync(path.join(monitorDir, 'addons', 'sx-tickets', 'panel', 'index.js'))).toBe(true);
+        expect(fs.existsSync(path.join(monitorDir, 'addons', 'sx-tickets', '.git'))).toBe(false);
     });
 });
 

@@ -3,4 +3,10 @@ export default {
     debouncerInterval: 250,
     preReleaseExpirationDays: 21,
     copy: ['docs/', 'fxmanifest.lua', 'entrypoint.js', 'resource/', 'locale/', 'addons/', 'bot/'],
+    defaultAddons: [
+        {
+            id: 'sx-tickets',
+            source: 'D:/coding/sx-tickets/addons/sx-tickets',
+        },
+    ],
 };
