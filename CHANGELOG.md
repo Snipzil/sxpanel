@@ -4,7 +4,7 @@
 
 Initial sxPanel-branded beta release.
 
-- Rebrands the project, package metadata, Discord commands, docs, and UI from fxPanel to sxPanel.
+- Rebrands the project, package metadata, Discord commands, docs, and UI from legacy branding to sxPanel.
 - Ships the 0.4.0 beta panel overhaul with queue, whitelist, deferral card, addon, and diagnostics updates.
 - Packages the FiveM/RedM `monitor/` resource with generated third-party license notices.
 
