@@ -55,6 +55,10 @@ export default class FxResources {
     private resourceStates: Map<string, string> = new Map();
     private resourcePerf: Map<string, ResourcePerfStats> = new Map();
 
+    private hasResourceListeners() {
+        return txCore.webServer?.webSocket?.hasRoomListeners('resources') ?? false;
+    }
+
     /**
      * Reset boot state on server close
      */
@@ -102,15 +106,29 @@ export default class FxResources {
     handlePerfData(payload: ResourcePerfEventType) {
         if (!Array.isArray(payload.resources)) return;
         const updates: ResourceStatusEvent[] = [];
+        const shouldPush = this.hasResourceListeners();
         for (const res of payload.resources) {
             const perf: ResourcePerfStats = {
                 cpu: Math.round(res.cpu * 100) / 100,
                 memory: Math.round(res.memory),
                 tickTime: Math.round(res.tickTime * 100) / 100,
             };
-            this.resourcePerf.set(res.name, perf);
             const status = this.resourceStates.get(res.name) ?? 'started';
-            updates.push({ name: res.name, status, perf });
+            const previousPerf = this.resourcePerf.get(res.name);
+            const perfChanged =
+                !previousPerf ||
+                previousPerf.cpu !== perf.cpu ||
+                previousPerf.memory !== perf.memory ||
+                previousPerf.tickTime !== perf.tickTime;
+
+            if (!this.resourceStates.has(res.name)) {
+                this.resourceStates.set(res.name, status);
+            }
+            this.resourcePerf.set(res.name, perf);
+
+            if (shouldPush && perfChanged) {
+                updates.push({ name: res.name, status, perf });
+            }
         }
         if (updates.length > 0) {
             txCore.webServer.webSocket.buffer('resources', {
@@ -124,6 +142,7 @@ export default class FxResources {
      * Push a single resource status change via WebSocket
      */
     private pushStatusUpdate(name: string, status: string) {
+        if (!this.hasResourceListeners()) return;
         const perf = this.resourcePerf.get(name);
         txCore.webServer.webSocket.buffer('resources', {
             type: 'update',
@@ -155,24 +174,34 @@ export default class FxResources {
             ts: new Date(),
             resources,
         };
-        // Sync internal state
+        const updates: ResourceStatusEvent[] = [];
+        const shouldPush = this.hasResourceListeners();
+
+        // Sync internal state and only push actual status changes. The HTTP caller
+        // already receives the full grouped list, so echoing another full snapshot
+        // over the websocket just duplicates large payloads.
         for (const res of resources) {
             if (res.name) {
-                this.resourceStates.set(res.name, res.status ?? 'stopped');
+                const status = res.status ?? 'stopped';
+                const previousStatus = this.resourceStates.get(res.name);
+                this.resourceStates.set(res.name, status);
+
+                if (shouldPush && previousStatus !== undefined && previousStatus !== status) {
+                    updates.push({
+                        name: res.name,
+                        status,
+                        perf: this.resourcePerf.get(res.name),
+                    });
+                }
             }
         }
-        // Push full snapshot
-        const fullList: ResourceStatusEvent[] = resources
-            .filter((r) => r.name)
-            .map((r) => ({
-                name: r.name,
-                status: r.status ?? 'stopped',
-                perf: this.resourcePerf.get(r.name),
-            }));
-        txCore.webServer.webSocket.buffer('resources', {
-            type: 'full',
-            resources: fullList,
-        });
+
+        if (updates.length > 0) {
+            txCore.webServer.webSocket.buffer('resources', {
+                type: 'update',
+                updates,
+            });
+        }
     }
 
     /**

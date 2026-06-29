@@ -212,6 +212,7 @@ const REPORT_POLL_INTERVAL_MS = 100;
 const REPORT_MAX_AGE_MS = 1000;
 /** Cached report TTL for downloads — avoids a full FXServer round-trip on every click. */
 export const DOWNLOAD_REPORT_MAX_AGE_MS = 5 * 60 * 1000;
+let pendingFreshResourceReport: Promise<FetchResourceReportResult> | null = null;
 
 const getResourceReportIfFresh = (maxAgeMs: number): RawResourceReportEntry[] | null => {
     const report = txCore.fxResources.resourceReport;
@@ -363,27 +364,47 @@ export const fetchFreshResourceReport = async (
         return { ok: false, error: 'The server is not running.' };
     }
 
+    const freshCachedReport = isFreshResourceReport();
+    if (freshCachedReport) {
+        return { ok: true, resources: freshCachedReport };
+    }
+
+    if (pendingFreshResourceReport) {
+        return pendingFreshResourceReport;
+    }
+
     const cmdSuccess = txCore.fxRunner.sendCommand('txaReportResources', [], SYM_SYSTEM_AUTHOR);
     if (!cmdSuccess) {
         return { ok: false, error: 'Failed to request resource list from the server.' };
     }
 
-    return new Promise<FetchResourceReportResult>((resolve) => {
+    let pendingReport: Promise<FetchResourceReportResult>;
+    pendingReport = new Promise<FetchResourceReportResult>((resolve) => {
+        const finish = (result: FetchResourceReportResult) => {
+            if (pendingFreshResourceReport === pendingReport) {
+                pendingFreshResourceReport = null;
+            }
+            resolve(result);
+        };
+
         const pollInterval = setInterval(() => {
             const resources = isFreshResourceReport();
             if (resources) {
                 clearInterval(pollInterval);
                 clearTimeout(timeout);
-                resolve({ ok: true, resources });
+                finish({ ok: true, resources });
             }
         }, REPORT_POLL_INTERVAL_MS);
 
         const timeout = setTimeout(() => {
             clearInterval(pollInterval);
-            resolve({
+            finish({
                 ok: false,
                 error: 'Timed out waiting for resource list. Make sure the server is online.',
             });
         }, timeoutMs);
     });
+    pendingFreshResourceReport = pendingReport;
+
+    return pendingReport;
 };

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     findResourceByName,
     findResourceDownloadPathOnDisk,
+    fetchFreshResourceReport,
     getCachedResourceReport,
     getResourceSubPath,
     isSystemResourcePath,
@@ -172,6 +173,42 @@ describe('resource shared helpers', () => {
                 expect(result.resourceRoot).toBe(path.resolve(resPath));
             }
             expect(txCore.fxRunner.sendCommand).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('fetchFreshResourceReport', () => {
+        it('uses a fresh cached report without sending another FXServer command', async () => {
+            const resources = [{ name: 'es_extended', path: '/x/es_extended' }];
+            txCore.fxResources.resourceReport = {
+                ts: new Date(),
+                resources,
+            };
+
+            await expect(fetchFreshResourceReport()).resolves.toEqual({ ok: true, resources });
+            expect(txCore.fxRunner.sendCommand).not.toHaveBeenCalled();
+        });
+
+        it('shares an in-flight resource report request', async () => {
+            vi.useFakeTimers();
+            try {
+                const resources = [{ name: 'es_extended', path: '/x/es_extended' }];
+
+                const firstRequest = fetchFreshResourceReport();
+                const secondRequest = fetchFreshResourceReport();
+
+                expect(txCore.fxRunner.sendCommand).toHaveBeenCalledTimes(1);
+
+                txCore.fxResources.resourceReport = {
+                    ts: new Date(),
+                    resources,
+                };
+                await vi.advanceTimersByTimeAsync(100);
+
+                await expect(firstRequest).resolves.toEqual({ ok: true, resources });
+                await expect(secondRequest).resolves.toEqual({ ok: true, resources });
+            } finally {
+                vi.useRealTimers();
+            }
         });
     });
 });
