@@ -20,7 +20,7 @@ import { PerfChartApiResp } from '@routes/perfChart';
 import got from '@lib/got';
 import { throttle } from 'throttle-debounce';
 import { TimeCounter } from '../statsUtils';
-import { isHttpHealthCheckDisabled } from '@lib/fxserver/httpHealthCheck';
+import { getDisplayPlayerCount, isHttpHealthCheckDisabled } from '@lib/fxserver/httpHealthCheck';
 import { FxMonitorHealth } from '@shared/enums';
 const console = consoleFactory(modulename);
 
@@ -242,8 +242,8 @@ export default class SvRuntimeMetrics {
         }
         if (!perfToSave) return;
 
-        //Get player count locally or from external source
-        let playerCount = txCore.fxPlayerlist.onlineCount;
+        // Use the same display-aware count as the dashboard/playerlist paths.
+        let playerCount = getDisplayPlayerCount();
         if (txDevEnv.EXT_STATS_HOST) {
             try {
                 const playerCountResp = await got(`http://${netEndpoint}/players.json`, getPromAuthOpts()).json<

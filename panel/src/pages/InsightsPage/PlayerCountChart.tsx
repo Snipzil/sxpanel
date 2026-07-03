@@ -85,7 +85,7 @@ function PlayerCountChart({ series }: Props) {
                         margin={{ top: 10, right: 20, bottom: 34, left: 46 }}
                         xScale={{ type: 'linear', min: 'auto', max: 'auto' }}
                         yScale={{ type: 'linear', min: 0, stacked: false }}
-                        curve="catmullRom"
+                        curve="monotoneX"
                         colors={isDarkMode ? ['#4cc9f0'] : ['#0284c7']}
                         lineWidth={3}
                         enablePoints={false}
@@ -122,7 +122,7 @@ function PlayerCountChart({ series }: Props) {
                             margin={{ top: 8, right: 20, bottom: 24, left: 52 }}
                             xScale={{ type: 'linear', min: 'auto', max: 'auto' }}
                             yScale={{ type: 'linear', min: 'auto', max: 'auto', stacked: false }}
-                            curve="catmullRom"
+                            curve="monotoneX"
                             colors={isDarkMode ? ['#f72585'] : ['#be185d']}
                             lineWidth={2.5}
                             enablePoints={false}

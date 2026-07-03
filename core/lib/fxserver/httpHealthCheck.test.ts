@@ -99,4 +99,17 @@ describe('HTTP playerlist cache', () => {
         expect(getCachedHttpPlayerCount()).toBe(1);
         expect(removeCachedHttpPlayer(99)).toBe(false);
     });
+
+    it('uses the HTTP-reported count for display when FD3 is briefly stale', async () => {
+        stubRuntime(0);
+        const { fetchAndCachePlayersJson, getDisplayPlayerCount } = await import('./httpHealthCheck');
+
+        mockPlayersJson([
+            { id: 12, name: 'Online Player A', identifiers: ['license:abc'] },
+            { id: 13, name: 'Online Player B', identifiers: ['license:def'] },
+        ]);
+        await fetchAndCachePlayersJson('127.0.0.1:30120');
+
+        expect(getDisplayPlayerCount()).toBe(2);
+    });
 });
