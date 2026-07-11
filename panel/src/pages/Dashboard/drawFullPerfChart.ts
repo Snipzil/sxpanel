@@ -4,7 +4,7 @@ import { color } from 'd3-color';
 import { scaleBand, scaleLinear, scaleSequential, scaleTime } from 'd3-scale';
 import { interpolateCool, interpolateViridis } from 'd3-scale-chromatic';
 import { pointer, select, type BaseType, type Selection } from 'd3-selection';
-import { curveNatural, line } from 'd3-shape';
+import { curveMonotoneX, curveNatural, line } from 'd3-shape';
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomTransform } from 'd3-zoom';
 import 'd3-transition';
 import { PerfLifeSpanType, PerfSnapType } from './chartingUtils';
@@ -302,7 +302,10 @@ export default function drawFullPerfChart({
             (d) => playersScale(d.players),
         );
         if (maxPlayers <= 20) {
-            playerLineGenerator.curve(curveNatural);
+            //NOTE: curveNatural (cubic spline) can overshoot past the actual data points
+            //to stay smooth, which made the line dip below 0 players around sharp spikes.
+            //curveMonotoneX stays smooth but never overshoots past neighboring points.
+            playerLineGenerator.curve(curveMonotoneX);
         }
         if (showPlayerCount) {
             lifespanGSel
