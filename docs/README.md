@@ -7,11 +7,11 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/Snipzil/sxpanel/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Snipzil/sxpanel?style=flat-square&color=blue" alt="License"></a>
+    <a href="https://github.com/Snipzil/sxpanel/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Snipzil/sxpanel?style=flat-square&color=blue&cacheSeconds=3600" alt="License"></a>
     <a href="https://github.com/Snipzil/sxpanel/releases"><img src="https://img.shields.io/github/v/release/Snipzil/sxpanel?style=flat-square&color=green" alt="Release"></a>
     <a href="https://github.com/Snipzil/sxpanel/stargazers"><img src="https://img.shields.io/github/stars/Snipzil/sxpanel?style=flat-square" alt="Stars"></a>
     <a href="https://discord.gg/hUM3pQeGFc"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
-    <a href="https://sxpanel.org"><img src="https://img.shields.io/badge/docs-sxpanel.org-orange?style=flat-square" alt="Docs"></a>
+    <img src="https://img.shields.io/badge/docs-coming%20soon-lightgrey?style=flat-square" alt="Docs">
 </p>
 
 <p align="center">
