@@ -91,7 +91,7 @@ function BrandPanel() {
             {/* Version bottom */}
             <div className="relative z-10">
                 <div className="text-muted-foreground/50 font-mono text-xs tracking-wide">
-                    fxP&nbsp;
+                    sxP&nbsp;
                     <span className="text-muted-foreground/80">v{window.txConsts?.txaVersion ?? 'unknown'}</span>
                     <span className="mx-2 opacity-40">/</span>
                     fxS&nbsp;
@@ -178,7 +178,7 @@ export default function AuthShell() {
 
                 {/* Mobile-only version info */}
                 <div className="text-muted-foreground/40 mt-10 text-center font-mono text-xs xl:hidden">
-                    fxP v{window?.txConsts?.txaVersion ?? 'unknown'}&nbsp;/&nbsp;fxS b
+                    sxP v{window?.txConsts?.txaVersion ?? 'unknown'}&nbsp;/&nbsp;fxS b
                     {window?.txConsts?.fxsVersion ?? 'unknown'}
                 </div>
             </div>

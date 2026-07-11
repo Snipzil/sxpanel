@@ -326,9 +326,9 @@ const createTicketThread = async (msg, client) => {
             name: buildTicketChannelName(ticket),
             type: ChannelType.GuildText,
             parent: channel.id,
-            topic: `fxPanel ticket ${ticket.id}`,
+            topic: `sxPanel ticket ${ticket.id}`,
             permissionOverwrites: buildTicketChannelPermissionOverwrites(channel),
-            reason: `fxPanel ticket ${ticket.id}`,
+            reason: `sxPanel ticket ${ticket.id}`,
         });
         await target.send(messagePayload);
     } else if (channel.type === ChannelType.GuildForum) {
