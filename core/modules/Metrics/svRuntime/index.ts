@@ -210,8 +210,15 @@ export default class SvRuntimeMetrics {
             this.lastPerfBoundaries = perfBoundaries;
             this.resetPerfState();
         } else if (JSON.stringify(perfBoundaries) !== JSON.stringify(this.lastPerfBoundaries)) {
-            console.warn('Performance boundaries changed. Resetting history.');
-            this.statsLog = [];
+            //NOTE: intentionally NOT wiping this.statsLog here. This used to reset the
+            //entire history (including boot/close markers and player counts) whenever the
+            //boundaries comparison failed, which can happen for reasons unrelated to an
+            //actual FXServer restart (eg txAdmin itself restarting and loading a stale
+            //cached value). That silently deleted days/weeks of uptime history while the
+            //dashboard uptime counter kept counting, making the perf chart look broken.
+            //Older 'data' entries logged under the previous boundaries may render with
+            //slightly skewed bucket colors, which is a much smaller cost than losing history.
+            console.warn('Performance boundaries changed.');
             this.lastPerfBoundaries = perfBoundaries;
             this.resetPerfState();
         }

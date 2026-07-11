@@ -55,6 +55,7 @@ const combineDataEntries = (entries: SvRtLogDataType[]): SvRtLogDataType => {
 
 /**
  * Gets the target resolution for a given timestamp based on its age.
+ * Returns null if the entry is older than the retention window and should be dropped.
  */
 const getTargetResolution = (ts: number, now: number) => {
     const age = now - ts;
@@ -63,7 +64,7 @@ const getTargetResolution = (ts: number, now: number) => {
             return tier.resolution;
         }
     }
-    return STATS_RESOLUTION_TABLE.at(-1)!.resolution;
+    return null;
 };
 
 /**
@@ -78,6 +79,7 @@ const alignToResolution = (ts: number, resolution: number) => {
  * - Entries within 0-12h are kept at 5min resolution (untouched).
  * - Entries within 12-24h are combined to 15min resolution.
  * - Entries within 24-96h are combined to 30min resolution.
+ * - Entries older than 96h are dropped.
  * - Boot/close events are always preserved.
  */
 export const optimizeSvRuntimeLog = async (statsLog: SvRtLogType) => {
@@ -121,6 +123,12 @@ export const optimizeSvRuntimeLog = async (statsLog: SvRtLogType) => {
         }
 
         const targetResolution = getTargetResolution(entry.ts, now);
+
+        // Older than the retention window - drop it instead of combining forever
+        if (targetResolution === null) {
+            flushPending();
+            continue;
+        }
 
         // Keep recent entries (initial resolution tier) as-is
         if (targetResolution <= initialResolution) {
