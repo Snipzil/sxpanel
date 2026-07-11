@@ -266,5 +266,5 @@ export const MENU_MAIN_CONTENT_WIDTH = 288;
  */
 export const MENU_MAIN_COLUMN_WIDTH = MENU_MAIN_CONTENT_WIDTH + 26;
 
-export const menuTheme = buildMenuTheme(fivemTokens, { name: 'fivem', logo: 'images/txadmin.png' });
-export const menuRedmTheme = buildMenuTheme(redmTokens, { name: 'redm', logo: 'images/txadmin-redm.png' });
+export const menuTheme = buildMenuTheme(fivemTokens, { name: 'fivem', logo: 'images/sxPanel.png' });
+export const menuRedmTheme = buildMenuTheme(redmTokens, { name: 'redm', logo: 'images/sxPanel.png' });

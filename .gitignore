@@ -3,7 +3,7 @@ db/*
 cache/*
 monitor/*
 monitor.zip
-
+media/*
 ## Local-only V1/V2 design experiment (do not commit)
 ##
 ## All redesign work — V2 pages, dev shells, the toggle, and helpers — lives
