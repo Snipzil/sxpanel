@@ -108,13 +108,11 @@ const verboseStream = new Writable({
     },
 });
 const defaultConsole = new Console({
-    //@ts-ignore some weird change from node v16 to v22, check after update
     stdout: defaultStream,
     stderr: defaultStream,
     colorMode: true,
 });
 const verboseConsole = new Console({
-    //@ts-ignore some weird change from node v16 to v22, check after update
     stdout: verboseStream,
     stderr: verboseStream,
     colorMode: true,

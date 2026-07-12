@@ -124,13 +124,9 @@ export const parseLaxIdsArrayInput = (fullInput: string) => {
  * Example: https://forum.cfx.re/internal/user/271816 -> fivem:271816
  */
 export const getIdFromOauthNameid = (nameid: string) => {
-    try {
-        const res = /\/user\/(\d{1,8})/.exec(nameid);
-        //@ts-expect-error
-        return `fivem:${res[1]}`;
-    } catch (error) {
-        return false;
-    }
+    const res = /\/user\/(\d{1,8})/.exec(nameid);
+    if (!res) return false;
+    return `fivem:${res[1]}`;
 };
 
 /**

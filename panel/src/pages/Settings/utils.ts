@@ -126,9 +126,7 @@ const getConfigAccessor = <T = any>(
     dispatch: React.Dispatch<PageConfigReducerAction>,
 ) => {
     const getApiValues = () => {
-        //@ts-ignore couldn't figure out how to make this work
         const storedValue = apiData?.storedConfigs?.[configData.scope]?.[configData.key] as T | undefined;
-        //@ts-ignore couldn't figure out how to make this work
         const defaultValue = apiData?.defaultConfigs?.[configData.scope]?.[configData.key] as T | undefined;
         const initialValue = storedValue !== undefined && storedValue !== null ? storedValue : defaultValue;
         return {

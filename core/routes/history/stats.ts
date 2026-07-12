@@ -13,7 +13,6 @@ export default async function HistoryStats(ctx: AuthedCtx) {
     try {
         const dbStats = txCore.database.stats.getActionStats();
         const dbAdmins = Object.keys(dbStats.groupedByAdmins);
-        // @ts-ignore i don't wanna type this
         const vaultAdmins = txCore.adminStore.getAdminsList().map((a) => a.name);
         const adminStats = union(dbAdmins, vaultAdmins)
             .sort((a, b) => a.localeCompare(b))

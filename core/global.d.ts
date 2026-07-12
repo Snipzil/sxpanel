@@ -58,3 +58,9 @@ declare function VerifyPasswordHash(password: string, hash: string): boolean;
 /**
  * MARK: Fixes
  */
+
+/**
+ * Injected at build time by esbuild (TX_PRERELEASE_EXPIRATION define).
+ * It is always a string literal, e.g. `'1714070400000'`.
+ */
+declare const TX_PRERELEASE_EXPIRATION: string;

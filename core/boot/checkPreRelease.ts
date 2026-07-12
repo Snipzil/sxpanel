@@ -3,7 +3,6 @@ import fatalError from '@lib/fatalError';
 import { chalkInversePad, msToDuration } from '@lib/misc';
 const console = consoleFactory('ATTENTION');
 
-//@ts-ignore esbuild will replace TX_PRERELEASE_EXPIRATION with a string
 const PRERELEASE_EXPIRATION = parseInt(TX_PRERELEASE_EXPIRATION);
 
 const expiredError = ['This pre-release version has expired, please update your sxPanel.', 'Bye bye 👋'];

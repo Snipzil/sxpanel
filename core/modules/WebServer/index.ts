@@ -80,7 +80,6 @@ export default class WebServer {
         }
 
         //Setting up app
-        //@ts-ignore: no clue what this error is, but i'd bet it's just bad koa types
         this.app.on('error', (error, ctx) => {
             if (
                 !(

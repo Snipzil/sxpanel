@@ -14,7 +14,9 @@ const console = consoleFactory(modulename);
 
 //Helpers
 const DEFAULT_LIMIT = 100; //cant override it for now
-const ALLOWED_SORTINGS = ['playTime', 'tsJoined', 'tsLastConnection'];
+const ALLOWED_SORTINGS = ['playTime', 'tsJoined', 'tsLastConnection'] as const;
+type PlayerSortingKey = (typeof ALLOWED_SORTINGS)[number];
+const isAllowedPlayerSorting = (k: string): k is PlayerSortingKey => (ALLOWED_SORTINGS as readonly string[]).includes(k);
 const SIMPLE_FILTERS = ['isAdmin', 'isOnline', 'isWhitelisted', 'hasNote'];
 const ACTION_FILTERS = ['isBanned', 'hasPreviousBan'];
 
@@ -36,11 +38,10 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
 
     //sort the players by the sortingKey/sortingDesc
     const parsedSortingDesc = sortingDesc === 'true';
-    if (typeof sortingKey !== 'string' || !ALLOWED_SORTINGS.includes(sortingKey)) {
+    if (typeof sortingKey !== 'string' || !isAllowedPlayerSorting(sortingKey)) {
         return sendTypedResp({ error: 'Invalid sorting key' });
     }
     chain = chain.sort((a, b) => {
-        // @ts-expect-error sortingKey is validated against ALLOWED_SORTINGS
         return parsedSortingDesc ? b[sortingKey] - a[sortingKey] : a[sortingKey] - b[sortingKey];
     });
 
@@ -76,8 +77,8 @@ export default async function PlayerSearch(ctx: AuthedCtx) {
         }
         chain = chain.takeRightWhile((p) => {
             return p.license !== offsetLicense && parsedSortingDesc
-                ? (p[sortingKey as keyof DatabasePlayerType] as number) <= parsedOffsetParam
-                : (p[sortingKey as keyof DatabasePlayerType] as number) >= parsedOffsetParam;
+                ? p[sortingKey] <= parsedOffsetParam
+                : p[sortingKey] >= parsedOffsetParam;
         });
     }
 

@@ -1,5 +1,4 @@
 const modulename = 'WebServer:HistorySearch';
-import { DatabaseActionType } from '@modules/Database/databaseTypes';
 import consoleFactory from '@lib/console';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import { chain as createChain } from 'lodash-es';
@@ -12,7 +11,9 @@ const console = consoleFactory(modulename);
 
 //Helpers
 const DEFAULT_LIMIT = 100; //cant override it for now
-const ALLOWED_SORTINGS = ['timestamp'];
+const ALLOWED_SORTINGS = ['timestamp'] as const;
+type HistorySortingKey = (typeof ALLOWED_SORTINGS)[number];
+const isAllowedHistorySorting = (k: string): k is HistorySortingKey => (ALLOWED_SORTINGS as readonly string[]).includes(k);
 
 /**
  * Returns the players stats for the Players page table
@@ -39,11 +40,10 @@ export default async function HistorySearch(ctx: AuthedCtx) {
 
     //sort the actions by the sortingKey/sortingDesc
     const parsedSortingDesc = sortingDesc === 'true';
-    if (typeof sortingKey !== 'string' || !ALLOWED_SORTINGS.includes(sortingKey)) {
+    if (typeof sortingKey !== 'string' || !isAllowedHistorySorting(sortingKey)) {
         return sendTypedResp({ error: 'Invalid sorting key' });
     }
     chain = chain.sort((a, b) => {
-        // @ts-expect-error sortingKey is validated against ALLOWED_SORTINGS
         return parsedSortingDesc ? b[sortingKey] - a[sortingKey] : a[sortingKey] - b[sortingKey];
     });
 
@@ -55,8 +55,8 @@ export default async function HistorySearch(ctx: AuthedCtx) {
         }
         chain = chain.takeRightWhile((a) => {
             return a.id !== offsetActionId && parsedSortingDesc
-                ? (a[sortingKey as keyof DatabaseActionType] as number) <= parsedOffsetParam
-                : (a[sortingKey as keyof DatabaseActionType] as number) >= parsedOffsetParam;
+                ? a[sortingKey] <= parsedOffsetParam
+                : a[sortingKey] >= parsedOffsetParam;
         });
     }
 
