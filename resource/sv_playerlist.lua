@@ -48,6 +48,31 @@ local TX_FD3_REPORTED = {}
 -- HTTP-reported players synced from sxPanel core (/players.json bypass mode)
 local TX_HTTP_PLAYERLIST = {}
 
+-- Netids FD3 just confirmed dropped, temporarily blocked from HTTP-bypass resurrection.
+-- A stale /players.json poll can still list a player for a few cycles after they
+-- actually disconnect; without this, that stale row gets merged back in as an
+-- isHttpReported ghost that the normal GetPlayers()-based reconciliation can never clear.
+local TX_HTTP_RESURRECTION_BLOCKLIST = {}
+local HTTP_RESURRECTION_COOLDOWN_MS = 20000
+
+local function blockHttpResurrection(key)
+    TX_HTTP_RESURRECTION_BLOCKLIST[key] = GetGameTimer() + HTTP_RESURRECTION_COOLDOWN_MS
+end
+
+local function isHttpResurrectionBlocked(key)
+    local blockedUntil = TX_HTTP_RESURRECTION_BLOCKLIST[key]
+    return blockedUntil ~= nil and blockedUntil > GetGameTimer()
+end
+
+local function sweepExpiredHttpResurrectionBlocks()
+    local now = GetGameTimer()
+    for key, blockedUntil in pairs(TX_HTTP_RESURRECTION_BLOCKLIST) do
+        if blockedUntil <= now then
+            TX_HTTP_RESURRECTION_BLOCKLIST[key] = nil
+        end
+    end
+end
+
 -- Reported player detail enrichment (admin map / playerlist telemetry)
 local REPORTED_DETAIL_GRID = 250
 -- Numeric boot nonce so spread-tier salts can use arithmetic (string + number throws in Lua).
@@ -471,6 +496,7 @@ local function emitFd3PlayerDropped(serverID, reason, resource, category)
     end
 
     TX_FD3_REPORTED[id] = nil
+    blockHttpResurrection(TxPlayerListKey(id))
 
     for adminID, _ in pairs(TX_ADMINS) do
         TriggerClientEvent('txcl:plist:updatePlayer', adminID, id, false)
@@ -484,6 +510,9 @@ local function mergeHttpPlayersIntoPlist(assignmentPlan)
     local added = 0
     for playerID, httpData in pairs(TX_HTTP_PLAYERLIST) do
         local key = TxPlayerListKey(playerID)
+        if isHttpResurrectionBlocked(key) then
+            goto continue_merge
+        end
         local existing = TX_PLAYERLIST[key]
         local isNew = type(existing) ~= 'table'
         local nameChanged = not isNew and existing.name ~= httpData.name
@@ -519,6 +548,8 @@ local function mergeHttpPlayersIntoPlist(assignmentPlan)
                 end
             end
         end
+
+        ::continue_merge::
     end
     return added
 end
@@ -526,6 +557,7 @@ end
 --[[ Wrapper to refresh player list data ]]
 local function refreshPlayerList()
     normalizeServerPlayerlist()
+    sweepExpiredHttpResurrectionBlocks()
 
     -- For each player
     local players = GetPlayers()
@@ -598,7 +630,11 @@ local function refreshPlayerList()
         if playerData.foundLastCheck == true then
             playersOnline = playersOnline + 1
             playerData.foundLastCheck = false
-        elseif playerData.isHttpReported == true and TX_HTTP_PLAYERLIST[playerID] ~= nil then
+        elseif
+            playerData.isHttpReported == true
+            and TX_HTTP_PLAYERLIST[playerID] ~= nil
+            and not isHttpResurrectionBlocked(TxPlayerListKey(playerID))
+        then
             playerData.name = TX_HTTP_PLAYERLIST[playerID].name
             refreshReportedPlayerDetail(playerID, playerData, TX_HTTP_PLAYERLIST[playerID], assignmentPlan)
             playersOnline = playersOnline + 1
