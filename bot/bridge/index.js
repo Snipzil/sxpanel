@@ -16,6 +16,28 @@ const parseMessage = (raw) => {
     }
 };
 
+const handleIncomingMessage = async (raw, discordClient = client) => {
+    const msg = parseMessage(raw);
+    if (!msg) {
+        return { parsed: false };
+    }
+
+    if (msg.requestId && pending.has(msg.requestId)) {
+        const resolve = pending.get(msg.requestId);
+        pending.delete(msg.requestId);
+        resolve(msg);
+        return { parsed: true, routed: 'request', requestId: msg.requestId };
+    }
+
+    try {
+        await handlers.handle(msg, discordClient);
+    } catch (error) {
+        console.error('[BotBridge] Failed to handle message:', error);
+    }
+
+    return { parsed: true, routed: 'event', type: msg.type };
+};
+
 const scheduleReconnect = () => {
     if (!client || reconnectTimer) return;
 
@@ -49,22 +71,8 @@ const connect = (discordClient) => {
         ws.send(JSON.stringify({ type: 'auth', secret: process.env.BOT_SECRET }));
         flushQueuedMessages();
     });
-    ws.on('message', async (raw) => {
-        const msg = parseMessage(raw);
-        if (!msg) return;
-
-        if (msg.requestId && pending.has(msg.requestId)) {
-            const resolve = pending.get(msg.requestId);
-            pending.delete(msg.requestId);
-            resolve(msg);
-            return;
-        }
-
-        try {
-            await handlers.handle(msg, client);
-        } catch (error) {
-            console.error('[BotBridge] Failed to handle message:', error);
-        }
+    ws.on('message', (raw) => {
+        void handleIncomingMessage(raw, client);
     });
     ws.on('close', () => {
         ws = undefined;
@@ -90,6 +98,7 @@ const request = (...args) => {
 
 module.exports = {
     connect,
+    handleIncomingMessage,
     send,
     request,
 };

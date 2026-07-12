@@ -5,10 +5,15 @@
     "type": "commonjs",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js"
+        "start": "node index.js",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "dependencies": {
         "discord.js": "^14.26.3",
         "ws": "^8.18.3"
+    },
+    "devDependencies": {
+        "vitest": "^4.1.5"
     }
 }
