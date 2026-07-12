@@ -4,8 +4,11 @@ import {
     isDeferralGifDataUri,
     pngDataUriToBuffer,
     isDeferralHttpImageDataUri,
+    deferralCustomImageHasPreview,
+    dataUriToSvgText,
     normalizeDeferralImageContent,
     normalizeDeferralSvgContent,
+    readDeferralGifFile,
     sanitizeSvgMarkup,
     svgTextToDataUri,
     renderDeferralInlineSvgMarkup,
@@ -57,5 +60,69 @@ describe('deferralCardSvg', () => {
         const buf = gifDataUriToBuffer(TINY_GIF_URI);
         expect(buf?.length).toBeGreaterThan(0);
         expect(buf?.subarray(0, 6).toString()).toBe('GIF89a');
+    });
+
+    it('strips event handlers from player-facing SVG markup', () => {
+        const raw =
+            '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" onload="alert(1)" onmouseover="x()" height="10"/></svg>';
+        const out = sanitizeSvgMarkup(raw);
+        expect(out).not.toContain('onload');
+        expect(out).not.toContain('onmouseover');
+        expect(out).toContain('<rect');
+    });
+
+    it('strips javascript: hrefs from player-facing SVG markup', () => {
+        const raw =
+            '<svg xmlns="http://www.w3.org/2000/svg"><a href="javascript:alert(1)"><rect/></a></svg>';
+        const out = sanitizeSvgMarkup(raw);
+        expect(out).not.toContain('javascript:');
+    });
+
+    it('rejects non-svg markup so nothing broken is embedded for the player', () => {
+        expect(sanitizeSvgMarkup('<div>hi</div>')).toBe('');
+        expect(sanitizeSvgMarkup('not markup at all')).toBe('');
+        expect(renderDeferralInlineSvgMarkup('not-a-data-uri', 'width:10px')).toBe('');
+    });
+
+    it('injects full-size svg styling inside the container for deferral HTML', () => {
+        const uri = svgTextToDataUri('<svg xmlns="http://www.w3.org/2000/svg"><circle r="4"/></svg>');
+        const html = renderDeferralInlineSvgMarkup(uri, 'width:48px;height:48px');
+        expect(html).toContain('<div style="width:48px;height:48px;line-height:0;overflow:hidden">');
+        expect(html).toContain('<svg style="width:100%;height:100%;display:block"');
+    });
+
+    it('round-trips SVG data uris (percent and base64) back to sanitized markup', () => {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>x</text></svg>';
+        expect(dataUriToSvgText(svgTextToDataUri(svg))).toContain('<text>');
+        const b64 = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+        expect(dataUriToSvgText(b64)).toContain('<text>');
+    });
+
+    it('recognizes previewable custom images for the player card', () => {
+        expect(deferralCustomImageHasPreview(TINY_PNG_URI)).toBe(true);
+        expect(deferralCustomImageHasPreview(TINY_GIF_URI)).toBe(true);
+        expect(deferralCustomImageHasPreview(svgTextToDataUri('<svg xmlns="http://www.w3.org/2000/svg"/>'))).toBe(true);
+        expect(deferralCustomImageHasPreview('https://example.com/logo.png')).toBe(false);
+    });
+
+    it('clamps oversized GIF frame delays so the in-game animation animates at a sane speed', async () => {
+        // Minimal GIF89a: header + LSD + 2-color GCT + one GCE (delay 200cs) + image desc + trailer.
+        const bytes = new Uint8Array([
+            0x47, 0x49, 0x46, 0x38, 0x39, 0x61, // GIF89a
+            0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, // LSD: 1x1, GCT(2 colors)
+            0x00, 0x00, 0x00, 0xff, 0xff, 0xff, // GCT
+            0x21, 0xf9, 0x04, 0x00, 0xc8, 0x00, 0x00, 0x00, // GCE: delayLo=200, delayHi=0
+            0x2c, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, // Image Descriptor
+            0x02, 0x02, 0x00, // minimal image data sub-blocks
+            0x3b, // trailer
+        ]);
+        const file = new File([bytes], 'slow.gif', { type: 'image/gif' });
+        const result = await readDeferralGifFile(file);
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        const normalized = new Uint8Array(Buffer.from(result.content.split(',')[1]!, 'base64'));
+        // delay lives at GCE offset 23 (Lo) / 24 (Hi): 200 -> clamped to 20.
+        expect(normalized[23]).toBe(20);
+        expect(normalized[24]).toBe(0);
     });
 });

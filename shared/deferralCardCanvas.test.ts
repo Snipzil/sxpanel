@@ -5,11 +5,24 @@ import {
     applyCanvasCenterSnap,
     defaultCanvasForScenario,
     ensureUniqueCanvasElementIds,
+    finalizeCanvasElementsForSave,
     loadStudioCanvasElements,
     resolveDeferralLogoPlacement,
+    sanitizeDeferralCardTemplate,
     splitMultilineElements,
     templateWithCanvas,
 } from './deferralCardCanvas';
+
+const withScenario = (
+    scenarioId: string,
+    template: (typeof DEFAULT_DEFERRAL_CARDS_CONFIG.scenarios)[keyof typeof DEFAULT_DEFERRAL_CARDS_CONFIG.scenarios],
+) => ({
+    ...DEFAULT_DEFERRAL_CARDS_CONFIG,
+    scenarios: {
+        ...DEFAULT_DEFERRAL_CARDS_CONFIG.scenarios,
+        [scenarioId]: template,
+    },
+});
 
 describe('deferralCardCanvas', () => {
     it('renders canvas-positioned HTML at default wide 640×220', () => {
@@ -112,5 +125,101 @@ describe('deferralCardCanvas', () => {
         ]);
         expect(duped[0].id).toBe('banT:status:f0l');
         expect(duped[1].id).toBe('banT:status:f0l_2');
+    });
+
+    it('renders a ban_temporary card with player-facing ban reason, expiry, and id', () => {
+        const canvas = defaultCanvasForScenario('ban_temporary');
+        const template = templateWithCanvas(DEFAULT_DEFERRAL_CARDS_CONFIG.scenarios.ban_temporary, canvas);
+        const config = withScenario('ban_temporary', template);
+        const html = renderDeferralCardPreview(config, {
+            scenario: 'ban_temporary',
+            body: '',
+            banReason: 'Repeated cheating',
+            banExpires: 'in 7 days',
+            banId: 'B9999',
+        });
+        expect(html).toContain('<strong>Ban Reason:</strong>');
+        expect(html).toContain('Repeated cheating');
+        expect(html).toContain('<strong>Your ban will expire in:</strong>');
+        expect(html).toContain('in 7 days');
+        expect(html).toContain('<strong>Ban ID:</strong>');
+        expect(html).toContain('B9999');
+    });
+
+    it('renders a ban_permanent card with player-facing ban details', () => {
+        const canvas = defaultCanvasForScenario('ban_permanent');
+        const template = templateWithCanvas(DEFAULT_DEFERRAL_CARDS_CONFIG.scenarios.ban_permanent, canvas);
+        const html = renderDeferralCardPreview(withScenario('ban_permanent', template), {
+            scenario: 'ban_permanent',
+            body: '',
+            banReason: 'Terms of Service violation',
+            banId: 'B4242',
+        });
+        expect(html).toContain('<strong>Ban Reason:</strong>');
+        expect(html).toContain('Terms of Service violation');
+        expect(html).toContain('<strong>Ban ID:</strong>');
+        expect(html).toContain('B4242');
+    });
+
+    it('round-trips heading and body into player-facing rendered HTML', () => {
+        const base = DEFAULT_DEFERRAL_CARDS_CONFIG.scenarios.whitelist_pending;
+        const template = templateWithCanvas(base, {
+            width: 640,
+            height: 220,
+            elements: [
+                { id: 'h', type: 'heading', content: 'Welcome Player', x: 0, y: 0, enabled: true },
+                { id: 't', type: 'text', content: 'Please wait to be verified', x: 0, y: 40, enabled: true },
+            ],
+        });
+        expect(template.title).toBe('Welcome Player');
+        expect(template.bodyTemplate).toContain('Please wait to be verified');
+        const html = renderDeferralCardPreview(withScenario('whitelist_pending', template), {
+            scenario: 'whitelist_pending',
+            body: '',
+        });
+        expect(html).toContain('Welcome Player');
+        expect(html).toContain('Please wait to be verified');
+    });
+
+    it('drops invalid block and canvas element types so the rendered card stays valid', () => {
+        const out = sanitizeDeferralCardTemplate({
+            id: 'x',
+            title: 'T',
+            bodyTemplate: 'B',
+            layout: {
+                version: 2,
+                blocks: [
+                    { id: 'b1', type: 'not_real', content: 'x', enabled: true },
+                    { id: 'b2', type: 'heading', content: 'OK', enabled: true },
+                ],
+                canvas: {
+                    width: 640,
+                    height: 220,
+                    elements: [
+                        { id: 'c1', type: 'bogus', x: 0, y: 0, enabled: true },
+                        { id: 'c2', type: 'heading', content: 'Hi', x: 0, y: 0, enabled: true },
+                    ],
+                },
+            },
+        } as never);
+        expect(out.layout?.blocks.map((b) => b.type)).toEqual(['heading']);
+        expect(out.layout?.canvas?.elements.map((e) => e.type)).toEqual(['heading']);
+    });
+
+    it('finalizes button content before saving so the player-facing label is consistent', () => {
+        const finalized = finalizeCanvasElementsForSave([
+            {
+                id: 'b',
+                type: 'button',
+                content: '{"label":"Join","url":"{discordInvite}","backgroundColor":"not-a-color","textColor":"#fff"}',
+                x: 0,
+                y: 0,
+                enabled: true,
+            },
+        ]);
+        const parsed = JSON.parse(finalized[0].content!);
+        expect(parsed.label).toBe('Join');
+        expect(parsed.backgroundColor).toBe('#5865F2');
+        expect(parsed.textColor).toBe('#fff');
     });
 });
