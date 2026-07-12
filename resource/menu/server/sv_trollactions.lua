@@ -8,6 +8,9 @@ if not TX_MENU_ENABLED then
 end
 
 RegisterNetEvent('txsv:req:troll:setDrunk', function(id)
+    if type(id) ~= 'number' then
+        return
+    end
     local src = source
     local allow = PlayerHasTxPermission(src, 'players.troll')
     if allow then
@@ -17,6 +20,9 @@ RegisterNetEvent('txsv:req:troll:setDrunk', function(id)
 end)
 
 RegisterNetEvent('txsv:req:troll:setOnFire', function(id)
+    if type(id) ~= 'number' then
+        return
+    end
     local src = source
     local allow = PlayerHasTxPermission(src, 'players.troll')
     if allow then
@@ -26,6 +32,9 @@ RegisterNetEvent('txsv:req:troll:setOnFire', function(id)
 end)
 
 RegisterNetEvent('txsv:req:troll:wildAttack', function(id)
+    if type(id) ~= 'number' then
+        return
+    end
     local src = source
     local allow = PlayerHasTxPermission(src, 'players.troll')
     if allow then

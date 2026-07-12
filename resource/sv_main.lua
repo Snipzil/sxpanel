@@ -906,7 +906,10 @@ local function txaEvent(source, args)
     if eventHandler == nil then
         return TxPrintError('[txaEvent] No event handler exists for "' .. eventName .. '" event')
     end
-    local eventData = json.decode(ReplaceSemicolon(args[2]))
+    local success, eventData = pcall(json.decode, ReplaceSemicolon(args[2]))
+    if not success then
+        return TxPrintError('[txaEvent] failed to decode eventData JSON')
+    end
     if type(eventData) ~= 'table' then
         return TxPrintError('[txaEvent] invalid eventData', type(eventData))
     end

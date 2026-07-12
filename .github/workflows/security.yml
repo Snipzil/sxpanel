@@ -1,0 +1,25 @@
+name: Security Scan
+
+on:
+    push:
+        branches: [main, dev]
+    pull_request:
+
+permissions:
+    contents: read
+
+jobs:
+    gitleaks:
+        name: gitleaks
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Run gitleaks
+              uses: gitleaks/gitleaks-action@v2
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITLEAKS_CONFIG: scripts/security/.gitleaks.toml
