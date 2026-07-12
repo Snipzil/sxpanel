@@ -14,6 +14,7 @@ import {
 } from '@lib/player/playerTags';
 import { emsg } from '@shared/emsg';
 import { SYM_SYSTEM_AUTHOR } from '@lib/symbols';
+import { PlayerlistEventSchema } from './playerlistEventSchemas';
 import {
     getCachedHttpPlayers,
     isHttpPlayerlistBypassEnabled,
@@ -430,34 +431,39 @@ export default class FxPlayerlist {
 
     /**
      * Handler for all txAdminPlayerlistEvent structured trace events
-     * TODO: use zod for type safety
      */
-    async handleServerEvents(payload: any, mutex: string) {
+    async handleServerEvents(payload: unknown, mutex: string) {
+        const parsed = PlayerlistEventSchema.safeParse(payload);
+        if (!parsed.success) {
+            console.warn(`Invalid playerlist event: ${JSON.stringify(payload)}`);
+            return;
+        }
+        const data = parsed.data;
         const currTs = Date.now();
-        if (payload.event === 'playerJoining') {
+
+        if (data.event === 'playerJoining') {
             try {
-                if (typeof payload.id !== 'number') throw new Error(`invalid player id`);
-                if (this.#playerlist[payload.id] !== undefined) throw new Error(`duplicated player id`);
+                if (this.#playerlist[data.id] !== undefined) throw new Error(`duplicated player id`);
 
                 //Detect netid uint16 rollover
-                if (this.#highestSeenNetid > 30000 && payload.id < this.#highestSeenNetid - 30000) {
+                if (this.#highestSeenNetid > 30000 && data.id < this.#highestSeenNetid - 30000) {
                     this.#rolloverCount++;
-                    this.#highestSeenNetid = payload.id;
-                } else if (payload.id > this.#highestSeenNetid) {
-                    this.#highestSeenNetid = payload.id;
+                    this.#highestSeenNetid = data.id;
+                } else if (data.id > this.#highestSeenNetid) {
+                    this.#highestSeenNetid = data.id;
                 }
 
-                const svPlayer = new ServerPlayer(payload.id, payload.player, this, mutex, this.#rolloverCount);
-                this.#playerlist[payload.id] = svPlayer;
-                this.dispatchInitialPlayerData(payload.id);
+                const svPlayer = new ServerPlayer(data.id, data.player, this, mutex, this.#rolloverCount);
+                this.#playerlist[data.id] = svPlayer;
+                this.dispatchInitialPlayerData(data.id);
                 this.joinLeaveLog.push([currTs, true]);
                 txCore.logger.server.write(
                     [
                         {
                             type: 'playerJoining',
-                            src: payload.id,
+                            src: data.id,
                             ts: currTs,
-                            data: { ids: this.#playerlist[payload.id]!.ids },
+                            data: { ids: this.#playerlist[data.id]!.ids },
                         },
                     ],
                     mutex,
@@ -490,17 +496,16 @@ export default class FxPlayerlist {
             } catch (error) {
                 console.verbose.warn(`playerJoining event error: ${emsg(error)}`);
             }
-        } else if (payload.event === 'playerDropped') {
+        } else if (data.event === 'playerDropped') {
             try {
-                if (typeof payload.id !== 'number') throw new Error(`invalid player id`);
-                if (!(this.#playerlist[payload.id] instanceof ServerPlayer)) throw new Error(`player id not found`);
-                const player = this.#playerlist[payload.id]!;
+                if (!(this.#playerlist[data.id] instanceof ServerPlayer)) throw new Error(`player id not found`);
+                const player = this.#playerlist[data.id]!;
                 const sessionTimeSeconds = Math.max(now() - player.tsConnected, 0);
                 player.disconnect();
-                removeCachedHttpPlayer(payload.id);
+                removeCachedHttpPlayer(data.id);
                 this.joinLeaveLog.push([currTs, false]);
                 const reasonCategory = txCore.metrics.playerDrop.handlePlayerDrop({
-                    ...payload,
+                    ...data,
                     sessionTimeSeconds,
                 });
                 if (reasonCategory !== false) {
@@ -508,9 +513,9 @@ export default class FxPlayerlist {
                         [
                             {
                                 type: 'playerDropped',
-                                src: payload.id,
+                                src: data.id,
                                 ts: currTs,
-                                data: { reason: payload.reason },
+                                data: { reason: data.reason },
                             },
                         ],
                         mutex,
@@ -519,18 +524,16 @@ export default class FxPlayerlist {
                 txCore.webServer.webSocket.buffer<PlayerDroppedEventType>('playerlist', {
                     mutex,
                     type: 'playerDropped',
-                    netid: this.#playerlist[payload.id]!.netid,
+                    netid: this.#playerlist[data.id]!.netid,
                     reasonCategory: reasonCategory ? reasonCategory : undefined,
                 });
                 txCore.addonManager?.broadcastEvent('playerDropped', {
-                    netid: this.#playerlist[payload.id]!.netid,
-                    reason: payload.reason,
+                    netid: this.#playerlist[data.id]!.netid,
+                    reason: data.reason,
                 });
             } catch (error) {
                 console.verbose.warn(`playerDropped event error: ${emsg(error)}`);
             }
-        } else {
-            console.warn(`Invalid event: ${payload?.event}`);
         }
     }
 }

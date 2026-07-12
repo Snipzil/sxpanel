@@ -1,7 +1,9 @@
 import { anyUndefined, calcExpirationFromDuration } from '@lib/misc';
 import { ServerPlayer } from '@lib/player/playerClasses';
 import { applyPlayerTagChange } from '@lib/player/playerTags';
+import { emsg } from '@shared/emsg';
 import consoleFactory from '@lib/console';
+import { CommandBridgeSchema, PlayerTagChangeSchema } from './fd3Schemas';
 const console = consoleFactory('FXProc:FD3');
 
 //Types
@@ -36,19 +38,18 @@ const resolveMonitorTracePayload = (payload: unknown) => {
 /**
  * Handles custom tag add/remove from resource exports (FD3 fallback).
  */
-const handlePlayerTagChange = (payload: any) => {
+const handlePlayerTagChange = (payload: unknown) => {
     try {
-        const { action, tagId } = payload;
-        const netId = typeof payload.netId === 'number' ? payload.netId : parseInt(payload.netId, 10);
-        if (typeof action !== 'string' || !Number.isFinite(netId) || typeof tagId !== 'string') {
+        const parsed = PlayerTagChangeSchema.safeParse(payload);
+        if (!parsed.success) {
             throw new Error('invalid payload');
         }
+        const { action, tagId, netId } = parsed.data;
+        const resolvedNetId = typeof netId === 'number' ? netId : parseInt(netId, 10);
         if (action === 'add') {
-            applyPlayerTagChange(netId, tagId, true);
+            applyPlayerTagChange(resolvedNetId, tagId, true);
         } else if (action === 'remove') {
-            applyPlayerTagChange(netId, tagId, false);
-        } else {
-            throw new Error(`invalid action: ${action}`);
+            applyPlayerTagChange(resolvedNetId, tagId, false);
         }
     } catch (error) {
         console.warn(`handlePlayerTagChange error: ${emsg(error)}`);
@@ -57,18 +58,22 @@ const handlePlayerTagChange = (payload: any) => {
 
 /**
  * Handles bridged commands from txResource.
- * TODO: use zod for type safety
  */
-const handleBridgedCommands = (payload: any) => {
-    if (payload.command === 'announcement') {
+const handleBridgedCommands = (payload: unknown) => {
+    const parsed = CommandBridgeSchema.safeParse(payload);
+    if (!parsed.success) {
+        console.warn(`Command bridge received invalid payload:`);
+        console.dir(payload);
+        return;
+    }
+    const data = parsed.data;
+
+    if (data.command === 'announcement') {
         try {
-            //Validate input
-            if (typeof payload.author !== 'string') throw new Error(`invalid author`);
-            if (typeof payload.message !== 'string') throw new Error(`invalid message`);
-            const message = (payload.message ?? '').trim();
+            const message = data.message.trim();
             if (!message.length) throw new Error(`empty message`);
 
-            const author = payload.author;
+            const author = data.author;
 
             txCore.fxRunner.sendEvent('announcement', { message, author });
 
@@ -76,7 +81,7 @@ const handleBridgedCommands = (payload: any) => {
                 actionId: 'announcement.send',
             });
 
-            const publicAuthor = txCore.adminStore.getAdminPublicName(payload.author, 'message');
+            const publicAuthor = txCore.adminStore.getAdminPublicName(author, 'message');
             txCore.discordBot.sendAnnouncement({
                 type: 'info',
                 title: {
@@ -89,29 +94,32 @@ const handleBridgedCommands = (payload: any) => {
             console.verbose.warn(`handleBridgedCommands handler error:`);
             console.verbose.dir(error);
         }
-    } else if (payload.command === 'kick') {
-        try {
-            if (typeof payload.author !== 'string') throw new Error(`invalid author`);
-            if (typeof payload.targetNetId !== 'number') throw new Error(`invalid targetNetId`);
-            const reason = (typeof payload.reason === 'string' ? payload.reason : '').trim() || 'no reason provided';
+        return;
+    }
 
-            const player = txCore.fxPlayerlist.getPlayerById(payload.targetNetId);
+    const author = data.author;
+    const targetNetId = data.targetNetId;
+    const reason = (data.reason ?? '').trim() || 'no reason provided';
+
+    if (data.command === 'kick') {
+        try {
+            const player = txCore.fxPlayerlist.getPlayerById(targetNetId);
             if (!(player instanceof ServerPlayer) || !player.isConnected) {
-                throw new Error(`player netid ${payload.targetNetId} not found or not connected`);
+                throw new Error(`player netid ${targetNetId} not found or not connected`);
             }
 
             const allIds = player.getAllIdentifiers();
-            if (!allIds.length) throw new Error(`no identifiers found for player netid ${payload.targetNetId}`);
+            if (!allIds.length) throw new Error(`no identifiers found for player netid ${targetNetId}`);
 
-            txCore.database.actions.registerKick(allIds, payload.author, reason, player.displayName);
-            txCore.logger.system.write(payload.author, `Kicked "${player.displayName}": ${reason}`, 'action', {
+            txCore.database.actions.registerKick(allIds, author, reason, player.displayName);
+            txCore.logger.system.write(author, `Kicked "${player.displayName}": ${reason}`, 'action', {
                 actionId: 'player.kick',
             });
 
             const dropMessage = txCore.translator.t('kick_messages.player', { reason });
             txCore.fxRunner.sendEvent('playerKicked', {
                 target: player.netid,
-                author: payload.author,
+                author,
                 reason,
                 dropMessage,
             });
@@ -119,16 +127,13 @@ const handleBridgedCommands = (payload: any) => {
             console.verbose.warn(`handleBridgedCommands kick error:`);
             console.verbose.dir(error);
         }
-    } else if (payload.command === 'ban') {
+    } else if (data.command === 'ban') {
         try {
-            if (typeof payload.author !== 'string') throw new Error(`invalid author`);
-            if (typeof payload.targetNetId !== 'number') throw new Error(`invalid targetNetId`);
-            const reason = (typeof payload.reason === 'string' ? payload.reason : '').trim() || 'no reason provided';
-            const durationInput = (typeof payload.duration === 'string' ? payload.duration : '').trim() || 'permanent';
+            const durationInput = (data.duration ?? '').trim() || 'permanent';
 
-            const player = txCore.fxPlayerlist.getPlayerById(payload.targetNetId);
+            const player = txCore.fxPlayerlist.getPlayerById(targetNetId);
             if (!(player instanceof ServerPlayer)) {
-                throw new Error(`player netid ${payload.targetNetId} not found`);
+                throw new Error(`player netid ${targetNetId} not found`);
             }
 
             const { expiration, duration } = calcExpirationFromDuration(durationInput);
@@ -139,20 +144,20 @@ const handleBridgedCommands = (payload: any) => {
 
             const actionId = txCore.database.actions.registerBan(
                 allIds,
-                payload.author,
+                author,
                 reason,
                 expiration,
                 player.displayName,
                 allHwids,
             );
 
-            txCore.logger.system.write(payload.author, `Banned "${player.displayName}": ${reason}`, 'action', {
+            txCore.logger.system.write(author, `Banned "${player.displayName}": ${reason}`, 'action', {
                 actionId: 'player.ban',
             });
 
             let kickMessage;
             let durationTranslated: string | null = null;
-            const publicAuthor = txCore.adminStore.getAdminPublicName(payload.author, 'punishment');
+            const publicAuthor = txCore.adminStore.getAdminPublicName(author, 'punishment');
             const tOptions: any = { author: publicAuthor, reason };
             if (expiration !== false && duration) {
                 durationTranslated = txCore.translator.tDuration(duration * 1000, { units: ['d', 'h'] as any });
@@ -163,7 +168,7 @@ const handleBridgedCommands = (payload: any) => {
             }
 
             txCore.fxRunner.sendEvent('playerBanned', {
-                author: payload.author,
+                author,
                 reason,
                 actionId,
                 expiration,
@@ -179,28 +184,24 @@ const handleBridgedCommands = (payload: any) => {
             console.verbose.warn(`handleBridgedCommands ban error:`);
             console.verbose.dir(error);
         }
-    } else if (payload.command === 'warn') {
+    } else if (data.command === 'warn') {
         try {
-            if (typeof payload.author !== 'string') throw new Error(`invalid author`);
-            if (typeof payload.targetNetId !== 'number') throw new Error(`invalid targetNetId`);
-            const reason = (typeof payload.reason === 'string' ? payload.reason : '').trim() || 'no reason provided';
-
-            const player = txCore.fxPlayerlist.getPlayerById(payload.targetNetId);
+            const player = txCore.fxPlayerlist.getPlayerById(targetNetId);
             if (!(player instanceof ServerPlayer)) {
-                throw new Error(`player netid ${payload.targetNetId} not found`);
+                throw new Error(`player netid ${targetNetId} not found`);
             }
 
             const allIds = player.getAllIdentifiers();
             if (!allIds.length) throw new Error(`player has no identifiers`);
 
-            const actionId = txCore.database.actions.registerWarn(allIds, payload.author, reason, player.displayName);
+            const actionId = txCore.database.actions.registerWarn(allIds, author, reason, player.displayName);
 
-            txCore.logger.system.write(payload.author, `Warned "${player.displayName}": ${reason}`, 'action', {
+            txCore.logger.system.write(author, `Warned "${player.displayName}": ${reason}`, 'action', {
                 actionId: 'player.warn',
             });
 
             txCore.fxRunner.sendEvent('playerWarned', {
-                author: payload.author,
+                author,
                 reason,
                 actionId,
                 targetNetId: player.isConnected ? player.netid : null,
@@ -211,9 +212,6 @@ const handleBridgedCommands = (payload: any) => {
             console.verbose.warn(`handleBridgedCommands warn error:`);
             console.verbose.dir(error);
         }
-    } else {
-        console.warn(`Command bridge received invalid command:`);
-        console.dir(payload);
     }
 };
 
