@@ -356,7 +356,7 @@ export class ServerPlayer extends BasePlayer {
      */
     disconnect() {
         this.isConnected = false;
-        // this.dbData = false;
+        this.dbData = false;
     }
 }
 

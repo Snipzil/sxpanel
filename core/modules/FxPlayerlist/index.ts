@@ -524,13 +524,14 @@ export default class FxPlayerlist {
                 txCore.webServer.webSocket.buffer<PlayerDroppedEventType>('playerlist', {
                     mutex,
                     type: 'playerDropped',
-                    netid: this.#playerlist[data.id]!.netid,
+                    netid: player.netid,
                     reasonCategory: reasonCategory ? reasonCategory : undefined,
                 });
                 txCore.addonManager?.broadcastEvent('playerDropped', {
-                    netid: this.#playerlist[data.id]!.netid,
+                    netid: player.netid,
                     reason: data.reason,
                 });
+                this.#playerlist[data.id] = undefined;
             } catch (error) {
                 console.verbose.warn(`playerDropped event error: ${emsg(error)}`);
             }
