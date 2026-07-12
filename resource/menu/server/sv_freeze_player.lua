@@ -18,10 +18,11 @@ local function setPlayerFrozenInMap(targetId, status)
 end
 
 RegisterNetEvent('txsv:req:freezePlayer', function(targetId)
-    if type(targetId) ~= 'number' then
+    local src = source
+    if type(targetId) ~= 'string' and type(targetId) ~= 'number' then
         return
     end
-    local src = source
+    targetId = tonumber(targetId)
     local allow = PlayerHasTxPermission(src, 'players.freeze')
     TriggerEvent('txsv:logger:menuEvent', src, 'freezePlayer', allow, targetId)
     if allow then
