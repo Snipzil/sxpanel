@@ -18,6 +18,12 @@ import useSWR from 'swr';
 import { navigate as setLocation } from 'wouter/use-browser-location';
 import { ApiTimeout } from '@/hooks/fetch';
 import { useLocale } from '@/hooks/locale';
+import {
+    fetchTxAdminRecipeIndex,
+    recipeAttributionLine,
+    recipeTagColor,
+    type TxAdminRecipeEntry,
+} from '@/pages/Deployer/txAdminRecipeIndex';
 
 // - -  Types - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 type SetupDataResp = {
@@ -30,16 +36,6 @@ type SetupDataResp = {
     dataPath: string;
     hasCustomDataPath: boolean;
     hostConfigSource: string;
-};
-
-type RecipeEntry = {
-    engine: string;
-    name: string;
-    author: string;
-    version: string;
-    description: string;
-    url: string;
-    tags: string[];
 };
 
 type DeploymentType = 'popular' | 'local' | 'remote' | 'custom';
@@ -62,7 +58,7 @@ type SetupPageState = {
     step: number;
     serverName: string;
     deployType: DeploymentType | null;
-    selectedRecipe: RecipeEntry | null;
+    selectedRecipe: TxAdminRecipeEntry | null;
     recipeURL: string;
     recipeName: string;
     dataFolder: string;
@@ -79,13 +75,6 @@ const reduceSetupPageState = (state: SetupPageState, action: Partial<SetupPageSt
         ...action,
     };
 };
-
-// - -  Helpers - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-function tagColor(tag: string) {
-    if (tag === 'fivem') return 'bg-orange-500 text-white';
-    if (tag === 'redm') return 'bg-red-600 text-white';
-    return 'bg-muted text-muted-foreground';
-}
 
 // - -  Step Components - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -188,7 +177,7 @@ function StepPopularTemplates({
 }: {
     engineVersion: string;
     forceGameName: string;
-    onSelect: (recipe: RecipeEntry) => void;
+    onSelect: (recipe: TxAdminRecipeEntry) => void;
     onBack: () => void;
 }) {
     const { t } = useLocale();
@@ -197,30 +186,14 @@ function StepPopularTemplates({
         data: recipes,
         error: recipesError,
         isLoading: isLoadingRecipes,
-    } = useSWR<RecipeEntry[]>(recipesKey, async () => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10_000);
-
+    } = useSWR<TxAdminRecipeEntry[]>(recipesKey, async () => {
         try {
-            const response = await fetch(
-                'https://raw.githubusercontent.com/citizenfx/txAdmin-recipes/main/indexv4.json',
-                {
-                    signal: controller.signal,
-                },
-            );
-            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-            const data = (await response.json()) as RecipeEntry[];
-            if (!forceGameName) return data;
-
-            return data.filter((recipe) => recipe.tags.includes(forceGameName));
+            return await fetchTxAdminRecipeIndex(forceGameName);
         } catch (error) {
-            if (error instanceof DOMException && error.name === 'AbortError') {
+            if (error instanceof Error && error.message === 'Request timed out while loading recipes.') {
                 throw new Error(t('panel.setup.popular.timeout'));
             }
             throw error;
-        } finally {
-            clearTimeout(timeout);
         }
     });
     const fetchError = recipesError
@@ -247,6 +220,7 @@ function StepPopularTemplates({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {recipes.map((r) => {
                         const incompatible = r.engine !== engineVersion;
+                        const attribution = recipeAttributionLine(r);
                         return (
                             <button
                                 key={r.url}
@@ -255,9 +229,9 @@ function StepPopularTemplates({
                                 className="border-border hover:border-primary hover:bg-accent flex flex-col gap-1 rounded-lg border p-4 text-left transition-colors disabled:opacity-50"
                             >
                                 <span className="font-semibold">{r.name}</span>
-                                <span className="text-muted-foreground text-xs">
-                                    {t('panel.setup.popular.by_author', { author: r.author, version: r.version })}
-                                </span>
+                                {attribution && (
+                                    <span className="text-muted-foreground text-xs">{attribution}</span>
+                                )}
                                 <span className="text-muted-foreground text-sm">{r.description}</span>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {incompatible && (
@@ -266,7 +240,7 @@ function StepPopularTemplates({
                                         </span>
                                     )}
                                     {r.tags.map((t) => (
-                                        <span key={t} className={`rounded px-2 py-0.5 text-xs ${tagColor(t)}`}>
+                                        <span key={t} className={`rounded px-2 py-0.5 text-xs ${recipeTagColor(t)}`}>
                                             {t}
                                         </span>
                                     ))}
@@ -615,7 +589,7 @@ type SetupStepContentProps = {
     deployType: DeploymentType | null;
     serverName: string;
     setServerName: (value: string) => void;
-    selectedRecipe: RecipeEntry | null;
+    selectedRecipe: TxAdminRecipeEntry | null;
     recipeName: string;
     dataFolder: string;
     detectedConfig?: string;
@@ -625,7 +599,7 @@ type SetupStepContentProps = {
     saving: boolean;
     onSetStep: (step: number) => void;
     onSelectDeployType: (deployType: DeploymentType) => void;
-    onSelectPopularRecipe: (recipe: RecipeEntry) => void;
+    onSelectPopularRecipe: (recipe: TxAdminRecipeEntry) => void;
     onValidateRemoteRecipe: (url: string, name: string) => void;
     onValidateLocalDataFolder: (folder: string, detected?: string) => void;
     onValidateCfg: (cfg: string) => void;

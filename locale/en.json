@@ -1245,7 +1245,6 @@
                 "loading": "Loading recipes…",
                 "timeout": "Request timed out while loading recipes.",
                 "fetch_failed": "Failed to load recipes index: %{error}",
-                "by_author": "by %{author} · v%{version}",
                 "incompatible": "INCOMPATIBLE"
             },
             "remote": {
