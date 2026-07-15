@@ -8,10 +8,12 @@ export {
     dashDataTsAtom,
     dashPerfCursorAtom,
     dashPlayerDropAtom,
+    dashPlayerHistoryAtom,
     dashServerStatsAtom,
     dashSvRuntimeAtom,
     usePushPlayerDropEvent,
 } from './dashboardAtoms';
+export type { PlayerHistoryPoint } from './dashboardAtoms';
 
 const dataMaxAge = 2.5 * 60 * 1000; //2.5 minutes
 

@@ -1,88 +1,29 @@
 import { useCallback, useEffect } from 'react';
 import ThreadPerfCard from './ThreadPerfCard';
-import PlayerDropCard from './PlayerDropCard';
 import FullPerfCard from './FullPerfCard';
+import DashboardPlayersCard from './DashboardPlayersCard';
+import DashboardServerControls from './DashboardServerControls';
+import DashboardMiniConsole from './DashboardMiniConsole';
+import DashboardRecentActions from './DashboardRecentActions';
+import DashboardOnlineNow from './DashboardOnlineNow';
 import { useSetDashboardData } from './dashboardHooks';
 import { getSocket, joinSocketRoom, leaveSocketRoom } from '@/lib/utils';
 import ServerStatsCard from './ServerStatsCard';
 import { useAtomValue } from 'jotai';
-import { txConfigStateAtom, globalStatusAtom } from '@/hooks/status';
+import { txConfigStateAtom } from '@/hooks/status';
 import { useLocation } from 'wouter';
-import { TxConfigState, FxMonitorHealth } from '@shared/enums';
+import { TxConfigState } from '@shared/enums';
 import ModalCentralMessage from '@/components/ModalCentralMessage';
 import GenericSpinner from '@/components/GenericSpinner';
 import { useAddonWidgets } from '@/hooks/addons';
 import { ErrorBoundary } from 'react-error-boundary';
-import { playerCountAtom } from '@/hooks/playerlist';
-import { cn } from '@/lib/utils';
-import { UsersIcon, ClockIcon, LayoutDashboardIcon } from 'lucide-react';
-import { msToShortDuration } from '@/lib/dateTime';
-import { PageHeader } from '@/components/page-header';
-import { useLocale } from '@/hooks/locale';
 import { createMockDashboardEvent } from './devMockData';
 import { isDevMockStatusOptInEnabled } from '@/lib/devFlags';
 
-function DashboardHeaderStats() {
-    const status = useAtomValue(globalStatusAtom);
-    const playerCount = useAtomValue(playerCountAtom);
-    if (!status) return null;
-
-    const isRunning = status.runner.isChildAlive;
-    const isHealthy = status.server.health === FxMonitorHealth.ONLINE;
-    const uptimeStr =
-        msToShortDuration(status.server.uptime, {
-            units: ['d', 'h', 'm'],
-            delimiter: ' ',
-        }) || '--';
-
-    return (
-        <>
-            <span
-                className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
-                    isRunning && isHealthy
-                        ? 'border-success/30 bg-success/10 text-success-inline'
-                        : isRunning
-                          ? 'border-warning/30 bg-warning/10 text-warning-inline'
-                          : 'border-destructive/30 bg-destructive/10 text-destructive-inline',
-                )}
-            >
-                <span
-                    className={cn(
-                        'size-1.5 rounded-full',
-                        isRunning && isHealthy
-                            ? 'bg-success animate-pulse'
-                            : isRunning
-                              ? 'bg-warning'
-                              : 'bg-destructive',
-                    )}
-                />
-                {isRunning ? (isHealthy ? 'Online' : 'Degraded') : 'Offline'}
-            </span>
-            {isRunning && (
-                <>
-                    <div className="border-border/50 bg-card flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs">
-                        <UsersIcon className="text-muted-foreground/70 size-3" />
-                        <span className="font-mono font-semibold">{playerCount}</span>
-                        <span className="text-muted-foreground/70">players</span>
-                    </div>
-                    <div className="border-border/50 bg-card flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs">
-                        <ClockIcon className="text-muted-foreground/70 size-3" />
-                        <span className="font-mono font-semibold">{uptimeStr}</span>
-                        <span className="text-muted-foreground/70">uptime</span>
-                    </div>
-                </>
-            )}
-        </>
-    );
-}
-
 function DashboardPageInner() {
-    const { t } = useLocale();
     const setDashboardData = useSetDashboardData();
     const dashboardWidgets = useAddonWidgets('dashboard.main');
     const sidebarWidgets = useAddonWidgets('dashboard.sidebar');
-    const status = useAtomValue(globalStatusAtom);
     const applyDashboardData = useCallback(
         (nextData: any) => {
             setDashboardData(nextData);
@@ -121,27 +62,32 @@ function DashboardPageInner() {
 
     return (
         <div className="flex min-h-full w-full min-w-0 flex-1 flex-col gap-4">
-            <PageHeader
-                icon={<LayoutDashboardIcon />}
-                title={status?.server.name || t('panel.routes.dashboard')}
-                description="Overview & real-time monitoring"
-            >
-                <DashboardHeaderStats />
-            </PageHeader>
-            <div className="flex w-full flex-col gap-4 lg:flex-row">
-                <div className="flex min-w-0 flex-col gap-4 sm:flex-row lg:flex-[5]">
-                    <div className="min-w-0 overflow-hidden sm:flex-[2]">
-                        <PlayerDropCard />
-                    </div>
-                    <div className="min-w-0 overflow-hidden sm:flex-1">
-                        <ServerStatsCard />
-                    </div>
+            {/* Server status & controls: health, players, and stats side-by-side with start/stop/restart + scheduling */}
+            <div className="flex w-full flex-col gap-4 items-stretch sm:flex-row">
+                <div className="min-w-0 overflow-hidden sm:flex-1">
+                    <DashboardServerControls />
                 </div>
-                <div className="min-w-0 overflow-hidden lg:flex-[3]">
-                    <ThreadPerfCard />
+                <div className="min-w-0 overflow-hidden sm:flex-1">
+                    <DashboardPlayersCard />
+                </div>
+                <div className="min-w-0 overflow-hidden sm:flex-1">
+                    <ServerStatsCard />
                 </div>
             </div>
-            <FullPerfCard />
+            <DashboardMiniConsole />
+            {/* Performance analytics: per-thread tick histogram beside the main timeline chart */}
+            <div className="flex w-full flex-col items-stretch gap-4 xl:flex-row">
+                <div className="min-w-0 overflow-hidden xl:w-96 xl:shrink-0">
+                    <ThreadPerfCard />
+                </div>
+                <div className="flex min-w-0 flex-1 overflow-hidden">
+                    <FullPerfCard />
+                </div>
+            </div>
+            <div className="flex w-full flex-col gap-4 lg:flex-row">
+                <DashboardRecentActions />
+                <DashboardOnlineNow />
+            </div>
             {dashboardWidgets.length > 0 && (
                 <div className="flex w-full flex-col gap-4 lg:flex-row lg:flex-wrap">
                     {dashboardWidgets.map((w) => (

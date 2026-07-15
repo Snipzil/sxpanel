@@ -1,8 +1,19 @@
-import type { SvRtLogFilteredType, SvRtPerfCountsThreadType } from '@shared/otherTypes';
+import type { SvRtLogFilteredType, SvRtPerfCountsThreadType, SvRtPerfThreadNamesType } from '@shared/otherTypes';
 import { quantile } from 'd3-array';
+import { interpolateRdYlGn } from 'd3-scale-chromatic';
 import type { PerfSnapType } from './dashboardTypes';
 
 export type { PerfSnapType } from './dashboardTypes';
+
+//NOTE: numbers from fivem/code/components/citizen-server-impl/src/GameServer.cpp
+export const PERF_MIN_TICK_TIME: Record<SvRtPerfThreadNamesType, number> = {
+    //svMain - 20fps, 50ms/tick
+    //svNetwork - 100fps, 10ms/tick
+    //svSync - 120fps, 8.3ms/tick
+    svMain: 1000 / 20 / 1000,
+    svNetwork: 1000 / 100 / 1000,
+    svSync: 1000 / 120 / 1000,
+};
 
 export type PerfChartApiSuccessShape = {
     boundaries: (string | number)[];
@@ -32,6 +43,35 @@ export const getMinTickIntervalMarker = (boundaries: (string | number)[], minTic
         }
     }
     return typeof found === 'number' ? found : undefined;
+};
+
+/**
+ * Builds a red(bad)->green(good) color-per-bucket-index function, anchored on the thread's
+ * "good" tick interval so the color transition lands where performance actually starts degrading.
+ * Shared between the histogram bar-list and the timeline streamgraph so both use the same colors.
+ */
+export const getBucketColorScale = (boundaries: (string | number)[], threadName: SvRtPerfThreadNamesType) => {
+    const minTickInterval = PERF_MIN_TICK_TIME[threadName];
+    const minTickIntervalMarker = getMinTickIntervalMarker(boundaries, minTickInterval);
+    const minTickIntervalIndex = boundaries.findIndex((b) => b === minTickIntervalMarker);
+
+    //RdYlGn: t=1 is green, t=0 is red. Fast ticks are good, so the scale runs
+    //green (fastest) -> yellow (at the thread's tick budget) -> red (past it).
+    let colorFunc: (bucketIndex: number) => string;
+    if (minTickIntervalIndex !== -1) {
+        colorFunc = (bucketIndex) => {
+            if (bucketIndex <= minTickIntervalIndex) {
+                return interpolateRdYlGn(1 - (bucketIndex / (minTickIntervalIndex + 1)) * 0.5);
+            } else {
+                const badCount = boundaries.length - minTickIntervalIndex - 1;
+                return interpolateRdYlGn(0.5 - ((bucketIndex - minTickIntervalIndex) / badCount) * 0.5);
+            }
+        };
+    } else {
+        colorFunc = (bucketIndex) => interpolateRdYlGn(1 - (bucketIndex + 1) / boundaries.length);
+    }
+
+    return { colorFunc, minTickIntervalMarker };
 };
 
 /**
@@ -263,4 +303,30 @@ export const getServerStatsData = (lifespans: PerfLifeSpanType[], windowHours: n
         uptimePct: apiDataAge ? Math.min(100, (uptime / windowMs) * 100) : undefined,
         medianPlayerCount: quantile(playerCounts, 0.5) ?? 0,
     };
+};
+
+/**
+ * Flattens lifespans into a chronological, downsampled {ts, players} series for simple line/sparkline charts.
+ */
+export const getPlayerHistoryPoints = (lifespans: PerfLifeSpanType[], windowHours: number, maxPoints: number) => {
+    const windowMs = windowHours * 60 * 60 * 1000;
+    const windowStart = Date.now() - windowMs;
+
+    const points: { ts: number; players: number }[] = [];
+    for (const lifespan of lifespans) {
+        for (const snap of lifespan.log) {
+            const ts = snap.end.getTime();
+            if (ts < windowStart) continue;
+            points.push({ ts, players: snap.players });
+        }
+    }
+    points.sort((a, b) => a.ts - b.ts);
+
+    if (points.length <= maxPoints) return points;
+    const step = points.length / maxPoints;
+    const downsampled: { ts: number; players: number }[] = [];
+    for (let i = 0; i < maxPoints; i++) {
+        downsampled.push(points[Math.floor(i * step)]);
+    }
+    return downsampled;
 };

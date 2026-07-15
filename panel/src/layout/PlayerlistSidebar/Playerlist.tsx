@@ -52,7 +52,9 @@ function TagColor({ color }: { color: string }) {
  * Builds a lookup map from tag definitions array, with auto-tag fallbacks.
  * Disabled tags are excluded.
  */
-const buildTagLookup = (defs: TagDefinition[]): Record<string, { label: string; color: string; priority: number }> => {
+export const buildTagLookup = (
+    defs: TagDefinition[],
+): Record<string, { label: string; color: string; priority: number }> => {
     const lookup: Record<string, { label: string; color: string; priority: number }> = {};
     for (const auto of AUTO_TAG_DEFINITIONS) {
         lookup[auto.id] = { label: auto.label, color: auto.color, priority: auto.priority };
@@ -114,7 +116,7 @@ function PlayerlistFilter({
             <div className="relative w-full">
                 <Input
                     ref={inputRef}
-                    className="h-8"
+                    className="h-8 pr-14"
                     placeholder={t('panel.playerlist.filter_placeholder')}
                     value={filterString}
                     onChange={(e) => setFilterString(e.target.value)}
@@ -143,10 +145,10 @@ function PlayerlistFilter({
                     className={cn(
                         'inline-flex size-8 shrink-0 items-center justify-center rounded-md',
                         'ring-offset-background focus-visible:ring-ring transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
-                        'bg-muted border shadow-xs',
-                        'hover:bg-primary hover:text-primary-foreground hover:border-primary',
+                        'bg-secondary/40 border-border/60 text-muted-foreground border',
+                        'hover:bg-secondary/70 hover:text-foreground',
                         filterString && 'pointer-events-none opacity-50',
-                        hasActiveFilters && 'border-primary',
+                        hasActiveFilters && 'border-accent text-accent',
                     )}
                 >
                     <SlidersHorizontalIcon className="h-5" />
@@ -211,13 +213,6 @@ function PlayerlistPlayer({ virtualItem, player, modalOpener, tagLookup }: Playe
     const topTag = getPrimaryPlayerTag(player.tags ?? [], tagLookup);
     const topTagData = topTag ? tagLookup[topTag] : undefined;
     const tagColor = topTagData?.color;
-    const tagStyles = tagColor
-        ? {
-              backgroundColor: `${tagColor}12`,
-              borderColor: `${tagColor}46`,
-              boxShadow: `inset 2px 0 0 ${tagColor}`,
-          }
-        : undefined;
 
     return (
         <div
@@ -225,8 +220,6 @@ function PlayerlistPlayer({ virtualItem, player, modalOpener, tagLookup }: Playe
             style={{
                 height: `${virtualItem.size}px`,
                 transform: `translateY(${virtualItem.start}px)`,
-                ...(tagStyles ?? {}),
-                backgroundImage: tagColor ? `linear-gradient(90deg, ${tagColor}12, transparent 60%)` : undefined,
             }}
             onClick={() => modalOpener(player.netid)}
             onKeyDown={(event) => {
@@ -238,6 +231,7 @@ function PlayerlistPlayer({ virtualItem, player, modalOpener, tagLookup }: Playe
             role="button"
             tabIndex={0}
         >
+            <span className="tag-stripe" style={{ backgroundColor: tagColor ?? 'transparent' }} />
             <div className="pid-block leading-[1.7]">
                 <span className="pid-badge">{player.netid}</span>
             </div>
@@ -247,8 +241,7 @@ function PlayerlistPlayer({ virtualItem, player, modalOpener, tagLookup }: Playe
                     className="player-tag"
                     style={{
                         color: topTagData.color,
-                        borderColor: `${topTagData.color}46`,
-                        backgroundColor: `${topTagData.color}1a`,
+                        backgroundColor: `${topTagData.color}14`,
                     }}
                 >
                     {topTagData.label}

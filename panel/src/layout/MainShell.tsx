@@ -17,7 +17,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useToggleTheme } from '@/hooks/theme';
 import { hotkeyEventListener } from '@/lib/hotkeyEventListener';
 import { actionModalUrlParam, useOpenActionModal } from '@/hooks/actionModal';
-import LeftSidebar from './LeftSidebar';
+import TopNav from './TopNav';
 import { useAtomValue } from 'jotai';
 import { pageHeaderAtom } from '@/hooks/pages';
 import { useDynamicScale } from '@/hooks/useDynamicScale';
@@ -154,45 +154,47 @@ export default function MainShell() {
     return (
         <>
             <TooltipProvider delayDuration={300} disableHoverableContent={true}>
-                {/* Full-height sidebar layout */}
-                <div className={cn('tx-shell-root flex overflow-hidden', isNuiEmbed ? 'h-full min-h-0' : 'h-screen')}>
-                    {!isImmersiveEditorRoute ? <LeftSidebar /> : null}
+                {/* Full-height column layout: top nav (desktop) / header (mobile), then scrollable content */}
+                <div
+                    className={cn(
+                        'tx-shell-root flex flex-col overflow-hidden',
+                        isNuiEmbed ? 'h-full min-h-0' : 'h-screen',
+                    )}
+                >
+                    {/* Desktop top nav (shown at >= lg, hidden on mobile where the header takes over) */}
+                    {!isImmersiveEditorRoute ? <TopNav /> : null}
+                    {/* Mobile top header (shown on < lg, hidden on desktop where the top nav takes over) */}
+                    {!isImmersiveEditorRoute ? <Header /> : null}
 
-                    {/* Right content column */}
-                    <div className="flex flex-1 flex-col overflow-hidden">
-                        {/* Mobile top header (shown on < lg, hidden on desktop where sidebar takes over) */}
-                        {!isImmersiveEditorRoute ? <Header /> : null}
-
-                        {/* Scrollable page area (auto-scaled to fit; scroll is a fallback if we hit the minimum zoom) */}
+                    {/* Scrollable page area (auto-scaled to fit; scroll is a fallback if we hit the minimum zoom) */}
+                    <div
+                        ref={containerRef}
+                        className={cn(
+                            'flex flex-1',
+                            isImmersiveEditorRoute ? 'min-h-0 overflow-hidden' : 'overflow-auto',
+                        )}
+                    >
                         <div
-                            ref={containerRef}
+                            ref={contentRef}
                             className={cn(
-                                'flex flex-1',
-                                isImmersiveEditorRoute ? 'min-h-0 overflow-hidden' : 'overflow-auto',
+                                'flex w-full flex-col',
+                                isImmersiveEditorRoute
+                                    ? 'max-h-contentvh h-full min-h-0 max-w-none px-3 py-2 md:px-4 md:py-3'
+                                    : cn(
+                                          'min-h-full w-full max-w-none px-3 pt-(--page-pt) pb-(--page-pb) md:px-5 2xl:px-8',
+                                      ),
                             )}
                         >
-                            <div
-                                ref={contentRef}
-                                className={cn(
-                                    'flex w-full flex-col',
-                                    isImmersiveEditorRoute
-                                        ? 'max-h-contentvh h-full min-h-0 max-w-none px-3 py-2 md:px-4 md:py-3'
-                                        : cn(
-                                              'min-h-full w-full max-w-none px-3 pt-(--page-pt) pb-(--page-pb) md:px-5 2xl:px-8',
-                                          ),
-                                )}
-                            >
-                                {pageHeader}
-                                <div className="flex min-h-0 w-full flex-1 flex-row gap-4">
-                                    <main className="flex min-h-0 min-w-0 flex-1">
-                                        <MainRouter />
-                                    </main>
-                                    {window.txConsts.isWebInterface && !isImmersiveEditorRoute ? (
-                                        <Suspense fallback={null}>
-                                            <PlayerlistSidebar />
-                                        </Suspense>
-                                    ) : null}
-                                </div>
+                            {pageHeader}
+                            <div className="flex min-h-0 w-full flex-1 flex-row gap-4">
+                                <main className="flex min-h-0 min-w-0 flex-1">
+                                    <MainRouter />
+                                </main>
+                                {window.txConsts.isWebInterface && !isImmersiveEditorRoute ? (
+                                    <Suspense fallback={null}>
+                                        <PlayerlistSidebar />
+                                    </Suspense>
+                                ) : null}
                             </div>
                         </div>
                     </div>

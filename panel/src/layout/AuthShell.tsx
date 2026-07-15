@@ -25,7 +25,7 @@ function BrandPanel() {
     return (
         <div className="border-border/40 relative hidden flex-col justify-between overflow-hidden border-r p-12 xl:flex xl:w-[42%]">
             {/* layered bg */}
-            <div className="absolute inset-0 bg-[#0c0e16]" />
+            <div className="bg-background absolute inset-0" />
             {/* grid */}
             <div
                 className="absolute inset-0 opacity-[0.035]"

@@ -1,4 +1,4 @@
-@import '@fontsource-variable/inter' layer(base);
+@import '@fontsource-variable/geist' layer(base);
 @import '@fontsource-variable/jetbrains-mono' layer(base);
 
 @import 'tailwindcss';
@@ -30,51 +30,47 @@
 
 @layer base {
     /*
-        cfx-ui inspired theme
-        Based on the FiveM/cfx-ui dark theme color palette:
-        - bg: #161923, bg-light: #1c202e, bg-dark: #11131c
-        - fg: #f1f1e4 (warm off-white), secondary: #9ea4bd
-        - accent: #f40552 (cfx pink/red)
-        - success: #01a370, warning: #ffae00, error: #e33131
+        Neutral near-black dark theme with a blue/indigo accent
+        (shadcn-style "zinc" surface scale, blue-500-ish accent).
     */
     :root,
     .dark {
-        /* Default background color of <body />...etc - cfx bg #161923 */
-        --background: 226 23% 11.2%;
-        --foreground: 60 32% 92%;
+        /* Default background color of <body />...etc */
+        --background: 240 6% 6%;
+        --foreground: 0 0% 98%;
 
-        /* Background color for <Card /> - cfx bg-light #1c202e */
-        --card: 227 24% 14.5%;
-        --card-foreground: 60 32% 92%;
+        /* Background color for <Card /> - slightly lighter than bg for depth */
+        --card: 240 5% 9%;
+        --card-foreground: 0 0% 98%;
 
         /* Background color for popovers - slightly lighter than bg */
-        --popover: 227 24% 14.5%;
-        --popover-foreground: 60 32% 92%;
+        --popover: 240 5% 10%;
+        --popover-foreground: 0 0% 98%;
 
-        /* Primary colors for <Button /> - warm off-white on dark */
-        --primary: 60 32% 92%;
-        --primary-foreground: 226 23% 11.2%;
+        /* Primary colors for <Button /> - near-white on dark */
+        --primary: 0 0% 98%;
+        --primary-foreground: 240 6% 6%;
 
         /* Secondary colors for <Button /> - slightly elevated surface */
-        --secondary: 226 20% 19%;
-        --secondary-foreground: 60 32% 92%;
+        --secondary: 240 4% 15%;
+        --secondary-foreground: 0 0% 98%;
 
         /* Muted backgrounds such as <TabsList />, <Skeleton /> and <Switch /> */
-        --muted: 227 24% 14.5%;
-        --muted-foreground: 228 19% 68%;
+        --muted: 240 4% 13%;
+        --muted-foreground: 240 5% 65%;
 
-        /* Used for accents - cfx pink #f40552 */
-        --accent: 341 96% 49%;
+        /* Used for accents - blue/indigo */
+        --accent: 217 91% 60%;
         --accent-foreground: 0 0% 100%;
 
-        /* Default border color - subtle blue-grey */
-        --border: 226 16% 20%;
+        /* Default border color - neutral grey */
+        --border: 240 4% 16%;
 
         /* Border color for inputs */
-        --input: 226 16% 22%;
+        --input: 240 4% 18%;
 
         /* Used for focus ring - accent color */
-        --ring: 341 96% 49%;
+        --ring: 217 91% 60%;
 
         /* Semantic colors - vivid for dark theme */
         --destructive: 0 76% 54%;
@@ -95,7 +91,7 @@
         --info-inline: 193 70% 50%;
 
         /* Other stuff */
-        --font-sans: 'Inter Variable';
+        --font-sans: 'Geist Variable';
         --font-mono: 'JetBrains Mono Variable';
         --radius: 0.5rem;
     }
@@ -106,7 +102,8 @@
         @apply border-border;
     }
     html {
-        --tx-shell-base-font-size: clamp(12px, calc(8px + 0.21vw), 20px);
+        /* ~13px at 1366w, ~14px at 1920w — modern dashboard density (txAdmin sat at ~12px) */
+        --tx-shell-base-font-size: clamp(13px, calc(9.5px + 0.24vw), 20px);
         --tx-shell-ui-scale: 1;
         --tx-shell-density-scale: 1;
         font-size: calc(var(--tx-shell-base-font-size) * var(--tx-shell-ui-scale) * var(--tx-shell-density-scale));
@@ -124,20 +121,14 @@
             --page-pt: 1rem;
             --page-pb: 1.5rem;
         }
-        --tx-sidebar-width: 15rem;
         --tx-playerlist-width: 16rem;
+        --tx-playerlist-collapsed-width: 3.25rem;
         --tx-page-max-width: min(100%, 160rem);
 
-        --navbar-vh: calc(3.5rem + 1px); /* h-14 + border (mobile header) */
+        /* Both the mobile header and the desktop top nav are h-14 + border tall */
+        --navbar-vh: calc(3.5rem + 1px);
         --content-offset: calc(var(--navbar-vh) + var(--page-pt)); /* navbar + pt */
         --content-vh: calc(100vh - var(--content-offset) - var(--page-pb)); /* navbar + pt + pb */
-
-        /* Desktop: LeftSidebar replaces top header (synced with data-tx-shell-lg via JS) */
-        &[data-tx-shell-lg] {
-            --navbar-vh: 0px;
-            --content-offset: var(--page-pt);
-            --content-vh: calc(100vh - var(--page-pt) - var(--page-pb));
-        }
 
         /* Full-width editors (deferral studio, discord embed): no shell chrome */
         &[data-tx-immersive-editor] {
@@ -161,9 +152,6 @@
     html[data-tx-nui-embed]::-webkit-scrollbar {
         display: none;
     }
-    html[data-tx-nui-embed][data-tx-shell-lg] {
-        --content-vh: calc(100% - var(--page-pt) - var(--page-pb));
-    }
     html[data-tx-nui-embed][data-tx-immersive-editor] {
         --content-vh: calc(100% - var(--page-pb));
     }
@@ -172,8 +160,7 @@
         height: 100%;
         overflow: hidden;
     }
-    html[data-tx-nui-embed] .tx-shell-root,
-    html[data-tx-nui-embed] .tx-shell-desktop-sidebar {
+    html[data-tx-nui-embed] .tx-shell-root {
         height: 100%;
         max-height: 100%;
     }
@@ -188,8 +175,7 @@
     }
 
     .tx-sidebar {
-        width: var(--tx-playerlist-width);
-        @apply top-contentoffset sticky z-0 shrink-0 self-start;
+        @apply top-contentoffset sticky z-0 shrink-0 self-start transition-[width] duration-200;
     }
 
     .tx-shell-mobile-header {
@@ -200,37 +186,40 @@
         @apply hidden;
     }
 
-    .tx-shell-desktop-sidebar {
+    .tx-shell-desktop-topnav {
         @apply hidden;
     }
 
-    html[data-tx-shell-lg] .tx-shell-desktop-sidebar {
-        @apply flex;
+    html[data-tx-shell-lg] .tx-shell-desktop-topnav {
+        @apply block;
     }
 
     /* Since this is going to be repeated a lot, better to externalize the style */
     .tx-playerlist {
         & > .player {
             @apply absolute top-0 left-0 flex w-full items-center gap-2 overflow-clip px-2 py-1;
-            @apply cursor-pointer rounded-md border border-transparent text-sm text-ellipsis whitespace-nowrap;
-            @apply hover:bg-secondary hover:text-secondary-foreground transition-colors duration-75;
+            @apply cursor-pointer rounded-md text-sm text-ellipsis whitespace-nowrap;
+            @apply hover:bg-secondary/50 transition-colors duration-75;
+
+            & > .tag-stripe {
+                @apply h-4 w-0.5 shrink-0 rounded-full;
+            }
 
             & > .pid-block {
                 @apply inline-block shrink-0 text-right;
 
                 & > .pid-badge {
-                    @apply ml-auto rounded-[0.35rem] border px-1 pt-0.5;
-                    @apply font-mono tracking-wider;
-                    @apply border-zinc-700 bg-zinc-800/50 text-zinc-400;
+                    @apply font-mono text-[11px] tabular-nums;
+                    @apply text-muted-foreground/60;
                 }
             }
 
             & > .pname {
-                @apply min-w-0 flex-1 truncate font-semibold;
+                @apply min-w-0 flex-1 truncate font-medium;
             }
 
             & > .player-tag {
-                @apply shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.04em];
+                @apply shrink-0 rounded px-1.5 py-px text-[9px] font-semibold tracking-[0.06em] uppercase;
             }
         }
     }

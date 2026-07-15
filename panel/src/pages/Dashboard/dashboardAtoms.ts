@@ -8,6 +8,10 @@ export const dashSvRuntimeAtom = atom<DashboardSvRuntimeDataType | undefined>(un
 export const dashPerfCursorAtom = atom<DashboardPerfCursorDataType | undefined>(undefined);
 export const dashDataTsAtom = atom<number>(0);
 
+export type PlayerHistoryPoint = { ts: number; players: number };
+/** Real player-count-over-time samples, populated by FullPerfCard from the perf log it already fetches. */
+export const dashPlayerHistoryAtom = atom<PlayerHistoryPoint[] | undefined>(undefined);
+
 export const usePushPlayerDropEvent = () => {
     const setPlayerDrop = useSetAtom(dashPlayerDropAtom);
     return (category: string) => {

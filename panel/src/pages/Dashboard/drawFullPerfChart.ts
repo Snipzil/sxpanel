@@ -1,15 +1,20 @@
 import { bisector, max, range } from 'd3-array';
 import { axisBottom, axisLeft, axisRight } from 'd3-axis';
-import { color } from 'd3-color';
-import { scaleBand, scaleLinear, scaleSequential, scaleTime } from 'd3-scale';
-import { interpolateCool, interpolateViridis } from 'd3-scale-chromatic';
+import { scaleLinear, scaleTime } from 'd3-scale';
 import { pointer, select, type BaseType, type Selection } from 'd3-selection';
-import { curveMonotoneX, curveNatural, line } from 'd3-shape';
+import { area, curveLinear, curveMonotoneX, curveNatural, line } from 'd3-shape';
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomTransform } from 'd3-zoom';
 import 'd3-transition';
-import { PerfLifeSpanType, PerfSnapType } from './chartingUtils';
-import { msToShortDuration } from '@/lib/dateTime';
+import type { SvRtPerfThreadNamesType } from '@shared/otherTypes';
+import { PerfLifeSpanType, PerfSnapType, PERF_MIN_TICK_TIME, getMinTickIntervalMarker } from './chartingUtils';
 import { throttle } from 'throttle-debounce';
+
+//Grafana-ish series colors, shared with the legend in FullPerfCard
+export const PERF_SERIES_COLORS = {
+    healthy: '#22c55e',
+    strained: '#eab308',
+    lagging: '#ef4444',
+} as const;
 
 //Helpers
 const translate = (x: number, y: number) => `translate(${x}, ${y})`;
@@ -22,7 +27,6 @@ type AugmentedLifespanType = PerfLifeSpanType & {
 
 type drawFullPerfChartProps = {
     svgRef: SVGElement;
-    canvasRef: HTMLCanvasElement;
     setRenderError: (error: string) => void;
     size: {
         width: number;
@@ -36,7 +40,8 @@ type drawFullPerfChartProps = {
         axis: number;
     };
     isDarkMode: boolean;
-    bucketLabels: string[];
+    threadName: SvRtPerfThreadNamesType;
+    boundaries: (string | number)[];
     dataStart: Date;
     dataEnd: Date;
     lifespans: PerfLifeSpanType[];
@@ -48,12 +53,12 @@ type drawFullPerfChartProps = {
 
 export default function drawFullPerfChart({
     svgRef,
-    canvasRef,
     setRenderError,
     size: { width, height },
     margins,
     isDarkMode,
-    bucketLabels,
+    threadName,
+    boundaries,
     dataStart,
     dataEnd,
     lifespans,
@@ -68,11 +73,6 @@ export default function drawFullPerfChart({
     //Setup selectors
     const svg = select<SVGElement, PerfLifeSpanType>(svgRef);
     if (svg.empty()) throw new Error('SVG selection failed.');
-    const canvas = select(canvasRef)!;
-    if (canvas.empty()) throw new Error('Canvas selection failed.');
-    if (!canvasRef?.getContext) {
-        throw new Error(`Canvas not supported.`);
-    }
 
     //closed by the end of file
 
@@ -88,6 +88,31 @@ export default function drawFullPerfChart({
         .attr('width', drawableAreaWidth)
         .attr('height', height);
 
+    //Gradient defs for the tick-duration series (Grafana/dashboard-style faded area fills)
+    const gradientDefs = svg.append('defs');
+    for (const [name, color] of Object.entries(PERF_SERIES_COLORS)) {
+        const gradient = gradientDefs
+            .append('linearGradient')
+            .attr('id', `perf-area-gradient-${name}`)
+            .attr('x1', '0')
+            .attr('x2', '0')
+            .attr('y1', '0')
+            .attr('y2', '1');
+        gradient.append('stop').attr('offset', '0%').attr('stop-color', color).attr('stop-opacity', 0.28);
+        gradient.append('stop').attr('offset', '100%').attr('stop-color', color).attr('stop-opacity', 0);
+    }
+
+    //Shared muted styling for all d3 axes (no domain line, no tick marks, small muted labels)
+    const axisTextColor = isDarkMode ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)';
+    const styleAxis = (g: Selection<SVGGElement, any, any, any>) => {
+        g.select('.domain').remove();
+        g.selectAll('.tick line').remove();
+        g.selectAll<SVGTextElement, unknown>('.tick text')
+            .attr('fill', axisTextColor)
+            .attr('font-size', 10)
+            .attr('font-family', 'inherit');
+    };
+
     const chartGroup = svg
         .append('g')
         .attr('clip-path', 'url(#fullPerfChartClipPath)')
@@ -96,11 +121,79 @@ export default function drawFullPerfChart({
     //Fixed Scales
     const timeScale = scaleTime().domain([dataStart, dataEnd]).range([0, drawableAreaWidth]);
 
-    const tickBucketsScale = scaleBand()
-        .domain(bucketLabels)
-        .range([height - margins.bottom, 0]);
+    // Series: % of time spent on ticks OVER the thread's budget. The healthy
+    // majority is intentionally not drawn — an always-full fill hides the spikes.
+    const tickBudget = PERF_MIN_TICK_TIME[threadName];
+    const budgetMarker = getMinTickIntervalMarker(boundaries, tickBudget);
+    const budget2xMarker = getMinTickIntervalMarker(boundaries, tickBudget * 2);
+    let budgetIdx = boundaries.findIndex((b) => b === budgetMarker);
+    let budget2xIdx = boundaries.findIndex((b) => b === budget2xMarker);
+    if (budgetIdx === -1) budgetIdx = Math.floor(boundaries.length * 0.5);
+    if (budget2xIdx === -1 || budget2xIdx < budgetIdx) {
+        budget2xIdx = Math.min(boundaries.length - 2, Math.floor(boundaries.length * 0.75));
+    }
 
-    const histColor = scaleSequential(isDarkMode ? interpolateViridis : interpolateCool).domain([0, 1]);
+    const sumBucketRange = (perf: number[], from: number, to: number) => {
+        let sum = 0;
+        for (let i = from; i <= to && i < perf.length; i++) {
+            sum += perf[i];
+        }
+        return Math.min(sum, 1);
+    };
+
+    //Strained is a superset of lagging (all over-budget time), so lagging draws on top of it
+    const seriesDefs = [
+        {
+            name: 'strained',
+            color: PERF_SERIES_COLORS.strained,
+            getValue: (snap: PerfSnapType) => sumBucketRange(snap.weightedPerf, budgetIdx + 1, boundaries.length - 1),
+        },
+        {
+            name: 'lagging',
+            color: PERF_SERIES_COLORS.lagging,
+            getValue: (snap: PerfSnapType) =>
+                sumBucketRange(snap.weightedPerf, budget2xIdx + 1, boundaries.length - 1),
+        },
+    ];
+
+    //Auto-scale the y axis to the worst spike (with a 2% floor so a healthy server isn't just noise)
+    let maxSeriesVal = 0;
+    for (const lspn of lifespans) {
+        for (const snap of lspn.log) {
+            const v = seriesDefs[0].getValue(snap); //strained is the superset
+            if (v > maxSeriesVal) maxSeriesVal = v;
+        }
+    }
+    const yMax = Math.min(Math.max(maxSeriesVal * 1.15, 0.02), 1);
+    const pctScale = scaleLinear([0, yMax], [height - margins.bottom, margins.top]);
+
+    //Grafana-style faint solid gridlines in both directions
+    const gridColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
+    chartGroup
+        .append('g')
+        .attr('class', 'h-grid')
+        .selectAll('line')
+        .data(pctScale.ticks(4))
+        .join('line')
+        .attr('x1', 0)
+        .attr('x2', drawableAreaWidth)
+        .attr('y1', (d) => pctScale(d))
+        .attr('y2', (d) => pctScale(d))
+        .attr('stroke', gridColor);
+
+    //Vertical gridlines follow the time axis ticks; redrawn on zoom/pan
+    const vGridGroup = chartGroup.append('g').attr('class', 'v-grid');
+    const drawVerticalGrid = (visibleScale: typeof timeScale) => {
+        vGridGroup
+            .selectAll('line')
+            .data(visibleScale.ticks(8).map((t) => visibleScale(t)))
+            .join('line')
+            .attr('x1', (x) => x)
+            .attr('x2', (x) => x)
+            .attr('y1', margins.top)
+            .attr('y2', height - margins.bottom)
+            .attr('stroke', gridColor);
+    };
 
     //Line Scales
     const maxPlayers = max(lifespans, (lspn) => max(lspn.log, (log) => log.players))!;
@@ -115,18 +208,22 @@ export default function drawFullPerfChart({
     //Axis
     const timeAxisTicksScale = scaleLinear([382, 1350], [7, 16]);
     const timeAxis = axisBottom(timeScale).ticks(timeAxisTicksScale(width));
-    // .tickFormat(d3.timeFormat('%H:%M'));
     const timeAxisGroup = svg
         .append('g')
         .attr('transform', translate(margins.left, height - margins.bottom))
         .attr('class', 'time-axis')
-        .call(timeAxis);
+        .call(timeAxis)
+        .call(styleAxis);
+    drawVerticalGrid(timeScale);
 
-    const bucketsAxis = axisRight(tickBucketsScale);
+    const pctAxis = axisRight(pctScale)
+        .tickFormat((t) => `${parseFloat((Number(t) * 100).toFixed(1))}%`)
+        .ticks(5);
     svg.append('g')
-        .attr('class', 'buckets-axis')
-        .attr('transform', translate(width - margins.right + margins.axis, margins.top))
-        .call(bucketsAxis);
+        .attr('class', 'pct-axis')
+        .attr('transform', translate(width - margins.right + margins.axis, 0))
+        .call(pctAxis)
+        .call(styleAxis);
 
     const playersAxisTickValues = maxPlayersDomain <= 7 ? range(maxPlayersDomain + 1) : null;
     const playersAxis = axisLeft(playersScale)
@@ -136,7 +233,8 @@ export default function drawFullPerfChart({
         svg.append('g')
             .attr('class', 'players-axis')
             .attr('transform', translate(margins.left - margins.axis, 0))
-            .call(playersAxis);
+            .call(playersAxis)
+            .call(styleAxis);
     }
 
     if (showFxsMemory && maxFxsMemory) {
@@ -144,7 +242,8 @@ export default function drawFullPerfChart({
         svg.append('g')
             .attr('class', 'fxsmem-axis')
             .attr('transform', translate(margins.left - margins.axis, 0))
-            .call(fxsMemoryAxis);
+            .call(fxsMemoryAxis)
+            .call(styleAxis);
     }
 
     if (showNodeMemory && maxNodeMemory) {
@@ -152,63 +251,79 @@ export default function drawFullPerfChart({
         svg.append('g')
             .attr('class', 'nodemem-axis')
             .attr('transform', translate(margins.left - margins.axis, 0))
-            .call(nodeMemoryAxis);
+            .call(nodeMemoryAxis)
+            .call(styleAxis);
     }
 
-    // Drawing the histogram
+    // Drawing the over-budget series (strained first, lagging on top of it)
     let snapshotsDrawn: PerfSnapType[] = [];
-    const bucketYCoords = bucketLabels.map((b) => Math.floor(tickBucketsScale(b)!));
-    const bucketHeight = Math.ceil(tickBucketsScale.bandwidth());
-    const emptyBucketColor = color(histColor(0))!.darker(1.15).formatHsl();
-    // const cssBgHslVar = getComputedStyle(document.documentElement)
-    //     .getPropertyValue('--background')
-    //     .split(' ').join(', ');
-    // const cssBgParsed = color(`hsl(${cssBgHslVar})`)!;
-    // // const cssBgParsed = color(`#F5F6FA`)!;
-    // // const canvasBgColor = cssBgParsed.formatHsl();
-    // const canvasBgColor = cssBgParsed.darker(1.05).formatHsl();
-    // // const canvasBgColor = cssBgParsed.brighter(1.05).formatHsl();
-    const drawCanvasHeatmap = () => {
-        //Context preconditions
-        const canvasNode = canvas.node();
-        if (!canvasNode) return setRenderError('Canvas node not found.');
-        const ctx = canvasNode.getContext('2d');
-        if (!ctx) return setRenderError('Canvas 2d context not found.');
 
-        //Setup
-        ctx.clearRect(0, 0, drawableAreaWidth, drawableAreaHeight);
-        ctx.fillStyle = isDarkMode ? '#281C2B' : '#E4D4FA';
-        ctx.fillRect(0, 0, drawableAreaWidth, drawableAreaHeight);
+    //Dedicated container created once so its DOM position (and therefore z-order) never shifts on redraw
+    const seriesContainer = chartGroup.append('g').attr('class', 'perf-series-container');
+
+    const drawPerfSeries = () => {
         snapshotsDrawn = [];
+        seriesContainer.selectAll('*').remove();
 
-        //Drawing
-        let lifespanCount = 0;
-        let rectCount = 0;
         for (const lifespan of lifespans) {
-            const { bootTime, closeTime, log } = lifespan;
-            const lifespanStartX = bootTime ? timeScale(bootTime) : timeScale(log[0].start);
-            const lifespanEndX = closeTime ? timeScale(closeTime) : timeScale(log.at(-1)!.end);
-            const lifespanWidth = lifespanEndX - lifespanStartX;
-            if (lifespanEndX < 0 || lifespanStartX > drawableAreaWidth) continue;
-            if (lifespanWidth < 5) continue;
-            lifespanCount++;
+            const { log } = lifespan;
+            if (log.length < 2) continue; //area needs at least 2 points to draw anything
 
-            for (const snap of lifespan.log) {
-                const histX1 = Math.floor(timeScale(snap.start));
-                const histX2 = Math.floor(timeScale(snap.end));
-                const histWidth = histX2 - histX1;
-                if (!histWidth) continue;
-                snapshotsDrawn.push(snap);
-                for (let i = 0; i < snap.weightedPerf.length; i++) {
-                    const perf = snap.weightedPerf[i];
-                    ctx.fillStyle = perf > 0.001 ? histColor(perf) : emptyBucketColor;
-                    ctx.fillRect(histX1, bucketYCoords[i]!, histWidth, bucketHeight);
-                    rectCount++;
+            const lifespanStartX = lifespan.bootTime ? timeScale(lifespan.bootTime) : timeScale(log[0].start);
+            const lifespanEndX = lifespan.closeTime ? timeScale(lifespan.closeTime) : timeScale(log.at(-1)!.end);
+            if (lifespanEndX < 0 || lifespanStartX > drawableAreaWidth) continue;
+            snapshotsDrawn.push(...log);
+
+            //Grafana-style: sharp linear segments, with point dots when spacing allows
+            const avgPointSpacing = (lifespanEndX - lifespanStartX) / Math.max(log.length - 1, 1);
+            const drawDots = avgPointSpacing >= 14;
+            const isPointVisible = (d: PerfSnapType) => {
+                const x = timeScale(d.end);
+                return x >= -10 && x <= drawableAreaWidth + 10;
+            };
+
+            const lifespanGroup = seriesContainer.append('g').attr('class', 'perf-series-lifespan');
+            for (const def of seriesDefs) {
+                const areaGenerator = area<PerfSnapType>()
+                    .x((d) => timeScale(d.end))
+                    .y0(pctScale(0))
+                    .y1((d) => pctScale(def.getValue(d)))
+                    .curve(curveLinear);
+                const lineGenerator = line<PerfSnapType>()
+                    .x((d) => timeScale(d.end))
+                    .y((d) => pctScale(def.getValue(d)))
+                    .curve(curveLinear);
+
+                lifespanGroup
+                    .append('path')
+                    .attr('class', `perf-area-${def.name}`)
+                    .attr('fill', `url(#perf-area-gradient-${def.name})`)
+                    .attr('d', areaGenerator(log));
+                lifespanGroup
+                    .append('path')
+                    .attr('class', `perf-line-${def.name}`)
+                    .attr('fill', 'none')
+                    .attr('stroke', def.color)
+                    .attr('stroke-width', 1.5)
+                    .attr('stroke-linejoin', 'round')
+                    .attr('stroke-linecap', 'round')
+                    .attr('d', lineGenerator(log));
+                if (drawDots) {
+                    lifespanGroup
+                        .append('g')
+                        .attr('class', `perf-dots-${def.name}`)
+                        .selectAll('circle')
+                        .data(log.filter(isPointVisible))
+                        .join('circle')
+                        .attr('cx', (d) => timeScale(d.end))
+                        .attr('cy', (d) => pctScale(def.getValue(d)))
+                        .attr('r', 2.5)
+                        .attr('fill', def.color);
                 }
             }
         }
     };
-    drawCanvasHeatmap();
+    drawPerfSeries();
 
     const prepareLifespanDataItem = (d: PerfLifeSpanType): AugmentedLifespanType[] => {
         const lifespanStartX = d.bootTime ? timeScale(d.bootTime) : timeScale(d.log[0].start);
@@ -265,7 +380,7 @@ export default function drawFullPerfChart({
                         .attr('stroke-dasharray', '4 6')
                         .attr('stroke-linejoin', 'round')
                         .attr('stroke-linecap', 'round')
-                        .attr('stroke', 'rgb(204, 42, 107)')
+                        .attr('stroke', '#a78bfa')
                         .attr('stroke-width', 1.5)
                         .attr('d', fxsMemoryLineGenerator(d.log));
                 });
@@ -290,7 +405,7 @@ export default function drawFullPerfChart({
                         .attr('stroke-dasharray', '4 6')
                         .attr('stroke-linejoin', 'round')
                         .attr('stroke-linecap', 'round')
-                        .attr('stroke', 'rgb(202, 204, 42)')
+                        .attr('stroke', '#22d3ee')
                         .attr('stroke-width', 1.5)
                         .attr('d', nodeMemoryLineGenerator(d.log));
                 });
@@ -318,8 +433,8 @@ export default function drawFullPerfChart({
                         .attr('fill', 'none')
                         .attr('stroke-linejoin', 'round')
                         .attr('stroke-linecap', 'round')
-                        .attr('stroke', 'black')
-                        .attr('stroke-width', 6)
+                        .attr('stroke', 'rgba(0, 0, 0, 0.6)')
+                        .attr('stroke-width', 4)
                         .attr('d', playerLineGenerator(d.log));
                 });
             lifespanGSel
@@ -337,91 +452,46 @@ export default function drawFullPerfChart({
                         .attr('d', playerLineGenerator(d.log));
                 });
         }
-
-        //DEBUG
-        // const totalSvgNodesRecursive = lifespanGSel.selectAll('*').size();
-        // console.log('Total SVG nodes:', totalSvgNodesRecursive);
     };
 
-    // Drawing the lifespans
+    // Drawing the lifespans (overlay lines, rendered on top of the stream container)
     chartGroup.selectAll('g.lifespan').data(lifespans).join('g').attr('class', 'lifespan').call(drawLifespan);
-
-    // // Drawing day/night reference lines
-    // //FIXME: correct groups and svg ordering
-    // const drawDayNightMarkers = () => {
-    //     const dayNightInterval = d3.timeDays(dataStart, dataEnd, 1);
-    //     timeAxisGroup.selectAll('rect.day-night')
-    //         .data(dayNightInterval)
-    //         .join('rect')
-    //         .attr('class', 'day-night')
-    //         .attr('x', d => timeScale(d))
-    //         .attr('y', 0)
-    //         .attr('width', (d, i) => {
-    //             const dayDrawEnd = dayNightInterval[i + 1] ?? dataEnd;
-    //             return timeScale(dayDrawEnd) - timeScale(d);
-    //         })
-    //         .attr('height', margins.bottom)
-    //         .attr('fill', (d, i) => (i % 2) ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.25)');
-
-    //     const timeMarkerInterval = d3.timeHour.every(12)!.range(dataStart, dataEnd);
-    //     chartGroup.selectAll('line.time-interval-markers')
-    //         .data(timeMarkerInterval)
-    //         .join('line')
-    //         .attr('class', 'time-interval-markers')
-    //         .attr('x1', d => Math.floor(timeScale(d)))
-    //         .attr('y1', margins.top)
-    //         .attr('x2', d => Math.floor(timeScale(d)))
-    //         .attr('y2', margins.top + drawableAreaHeight)
-    //         .attr('stroke', 'rgba(200, 200, 200, 0.75)')
-    //         .attr('stroke-width', 1)
-    //         .attr('stroke-dasharray', '3 3');
-    // }
-    // drawDayNightMarkers();
-
-    // let referenceX: Selection<SVGLineElement, PerfLifeSpanType, null, undefined>;
-    // const drawReferenceLines = () => {
-    //     if (referenceX) referenceX.remove();
-    //     const referenceLineX = timeScale(new Date(2024, 7, 25, 2, 0, 0, 0));
-    //     referenceX = chartGroup.append('line')
-    //         .attr('id', 'referenceLineVert')
-    //         .attr('x1', referenceLineX)
-    //         .attr('y1', margins.top)
-    //         .attr('x2', referenceLineX)
-    //         .attr('y2', margins.top + drawableAreaHeight)
-    //         .attr('stroke', 'red')
-    //         .attr('stroke-width', 2);
-    // }
-    // drawReferenceLines();
 
     /**
      * Cursor
      */
+    const crosshairColor = isDarkMode ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.35)';
     const cursorLineVert = chartGroup
         .append('line')
         .attr('class', 'cursorLineHorz')
-        .attr('stroke', 'rgba(216, 245, 19, 0.75)')
-        .attr('stroke-width', 1)
-        .attr('stroke-dasharray', '3 3');
+        .attr('stroke', crosshairColor)
+        .attr('stroke-width', 1);
     const cursorLineHorz = chartGroup
         .append('line')
         .attr('class', 'cursorLineHorz')
-        .attr('stroke', 'rgba(216, 245, 19, 0.75)')
+        .attr('stroke', crosshairColor)
         .attr('stroke-width', 1)
         .attr('stroke-dasharray', '3 3');
-    const cursorDot = chartGroup.append('circle').attr('class', 'cursorDot').attr('fill', 'red').attr('r', 4);
+    const cursorDot = chartGroup
+        .append('circle')
+        .attr('class', 'cursorDot')
+        .attr('fill', '#3b82f6')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 1.5)
+        .attr('r', 4);
     const cursorTextBg = chartGroup
         .append('rect')
         .attr('class', 'cursorTextBg')
-        .attr('fill', 'black')
+        .attr('fill', '#18181b')
         .attr('rx', 5)
         .attr('ry', 5)
-        .attr('stroke', 'rgba(216, 245, 19, 0.35)')
+        .attr('stroke', 'rgba(255, 255, 255, 0.15)')
         .attr('stroke-width', 1);
     const cursorText = chartGroup
         .append('text')
         .attr('class', 'cursorText font-mono')
-        .attr('fill', 'rgba(216, 245, 19)')
-        .attr('font-size', 16);
+        .attr('fill', 'rgba(255, 255, 255, 0.9)')
+        .attr('font-size', 13);
     const cursorTextNode = cursorText.node();
 
     const clearCursor = () => {
@@ -597,14 +667,16 @@ export default function drawFullPerfChart({
             parseFloat(transform.applyX(0).toFixed(6)),
             parseFloat(transform.applyX(drawableAreaWidth).toFixed(6)),
         ]);
-        timeAxis.scale(transform.rescaleX(timeScale).range([0, drawableAreaWidth]));
-        timeAxisGroup.call(timeAxis);
+        const visibleTimeScale = transform.rescaleX(timeScale).range([0, drawableAreaWidth]);
+        timeAxis.scale(visibleTimeScale);
+        timeAxisGroup.call(timeAxis).call(styleAxis);
+        drawVerticalGrid(visibleTimeScale);
 
+        drawPerfSeries();
         //@ts-ignore
         chartGroup.selectAll('g.lifespan').call(drawLifespan);
 
         clearCursor();
-        drawCanvasHeatmap();
         updatePanArrows(transform);
     };
     const debouncedZoomHandler = throttle(20, zoomedHandler, { noLeading: false, noTrailing: false });

@@ -248,7 +248,7 @@ export default function ResourcesPage() {
             <PageHeader title={t('panel.routes.resources')} icon={<PackageIcon />} />
             <div className="flex w-full flex-1 overflow-hidden">
                 {/* Sidebar - Folder tree */}
-                <aside className="bg-card shell-lg:flex hidden w-[var(--tx-sidebar-width)] shrink-0 flex-col border-r">
+                <aside className="bg-card shell-lg:flex hidden w-60 shrink-0 flex-col border-r">
                     <div className="border-b p-3">
                         <h3 className="text-sm font-semibold">Folders</h3>
                     </div>

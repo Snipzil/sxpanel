@@ -1,22 +1,20 @@
-import { Bar, BarTooltipProps } from '@nivo/bar';
 import { BarChartHorizontalIcon, Loader2Icon } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
-import { useIsDarkMode } from '@/hooks/theme';
 import {
     formatTickBoundary,
+    getBucketColorScale,
     getBucketTicketsEstimatedTime,
-    getMinTickIntervalMarker,
     getTimeWeightedHistogram,
 } from './chartingUtils';
 import DebouncedResizeContainer from '@/components/DebouncedResizeContainer';
 import { useAtomValue } from 'jotai';
 import { dashPerfCursorAtom, dashSvRuntimeAtom, useGetDashDataAge } from './dashboardHooks';
-import { interpolateRdYlGn } from 'd3-scale-chromatic';
 import { color } from 'd3-color';
 import { SvRtPerfThreadNamesType } from '@shared/otherTypes';
 import { cn } from '@/lib/utils';
 import { dateToLocaleDateString, dateToLocaleTimeString, isDateToday } from '@/lib/dateTime';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { dashboardCardClass, DashboardCardHeader } from './DashboardCard';
 
 /**
  * Types
@@ -30,150 +28,60 @@ type ThreadPerfChartDatum = {
 
 type ThreadPerfChartProps = {
     data: ThreadPerfChartDatum[];
-    minTickIntervalMarker: number | undefined;
     avgColor: string | undefined;
-    width: number;
-    height: number;
 };
 
 /**
- * Constants
+ * Formats a compact single-line bucket range label, e.g. "< 2 ms", "6–8 ms", "> 250 ms".
  */
-//NOTE: numbers from fivem/code/components/citizen-server-impl/src/GameServer.cpp
-const PERF_MIN_TICK_TIME = {
-    //svMain - 20fps, 50ms/tick
-    //svNetwork - 100fps, 10ms/tick
-    //svSync - 120fps, 8.3ms/tick
-    svMain: 1000 / 20 / 1000,
-    svNetwork: 1000 / 100 / 1000,
-    svSync: 1000 / 120 / 1000,
+const formatBucketLabel = (lower: string | number, upper: string | number, isFirst: boolean, isLast: boolean) => {
+    if (isFirst) return `< ${formatTickBoundary(upper)}`;
+    if (isLast || upper === '+Inf') return `> ${formatTickBoundary(lower)}`;
+    if (typeof lower === 'number' && typeof upper === 'number' && upper < 1) {
+        return `${Math.round(lower * 1000)}–${Math.round(upper * 1000)} ms`;
+    }
+    return `${formatTickBoundary(lower)}–${formatTickBoundary(upper)}`;
+};
+
+const formatPctLabel = (pct: number) => {
+    if (pct === 0) return '0%';
+    if (pct < 0.1) return '<0.1%';
+    return pct >= 10 ? `${pct.toFixed(0)}%` : `${pct.toFixed(1)}%`;
 };
 
 /**
- * Memoized nivo bar chart component
+ * A row per tick-duration bucket: label, a thin rounded proportional bar, and the % of time spent there.
+ * Rows distribute evenly over the card height so any bucket count fits without scroll or clipping.
  */
-const ThreadPerfChart = memo(({ data, minTickIntervalMarker, avgColor, width, height }: ThreadPerfChartProps) => {
-    const isDarkMode = useIsDarkMode();
-
-    const CustomToolbar = (datum: BarTooltipProps<ThreadPerfChartDatum>) => {
-        const lowerLimit = data.find((_, index) => index === datum.index - 1)?.bucket ?? 0;
-        const upperLimit = datum.data.bucket;
-        const pctString = (datum.value * 100).toFixed() + '%';
-        return (
-            <div className="text-card-foreground bg-card border-border rounded-md border p-3 shadow-md">
-                <div>
-                    Tick duration: <strong>{formatTickBoundary(lowerLimit)}</strong> ~{' '}
-                    <strong>{formatTickBoundary(upperLimit)}</strong>
-                </div>
-                <div>
-                    Time spent: <strong>~{pctString}</strong>
-                </div>
-                <div>Tick count: {datum.data.count}</div>
-            </div>
-        );
-    };
-
-    if (!width || !height) return null;
+const ThreadPerfBarList = memo(({ data, avgColor }: ThreadPerfChartProps) => {
     return (
-        <div style={{ backgroundColor: avgColor, width, height }}>
-            <Bar
-                height={height}
-                width={width}
-                data={data}
-                theme={{
-                    text: {
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        fill: 'inherit',
-                    },
-                    grid: {
-                        line: {
-                            strokeDasharray: '8 6',
-                            stroke: '#3F4146', //secondary
-                            strokeOpacity: isDarkMode ? 1 : 0.25,
-                            strokeWidth: 1,
-                        },
-                    },
-                }}
-                indexBy="bucket"
-                margin={{ top: 0, right: 25, bottom: 40, left: 60 }}
-                layout="horizontal"
-                valueFormat={'.1%'}
-                colors={{ datum: 'data.color' }}
-                colorBy="indexValue"
-                borderWidth={0.5}
-                borderColor={
-                    isDarkMode
-                        ? undefined
-                        : {
-                              from: 'color',
-                              modifiers: [['darker', 1]],
-                          }
-                }
-                axisBottom={{
-                    format: '.0%',
-                    legend: 'percent of total time',
-                    legendPosition: 'middle',
-                    legendOffset: 32,
-                }}
-                axisLeft={{ format: formatTickBoundary }}
-                enableGridX={true}
-                enableGridY={false}
-                labelSkipWidth={25}
-                labelSkipHeight={12}
-                labelTextColor={{
-                    from: 'color',
-                    modifiers: [['darker', 1.6]],
-                }}
-                tooltip={CustomToolbar}
-                markers={
-                    minTickIntervalMarker
-                        ? [
-                              {
-                                  axis: 'y',
-                                  value: minTickIntervalMarker,
-                                  lineStyle: {
-                                      stroke: isDarkMode ? 'black' : '#333',
-                                      opacity: 0.5,
-                                      strokeWidth: 4,
-                                      strokeDasharray: '6 2',
-                                      strokeDashoffset: 1,
-                                  },
-                                  legend: 'good',
-                                  legendPosition: 'bottom-right',
-                                  //@ts-ignore - types are wrong, it errors if I remove this
-                                  legendOffsetX: 10,
-                                  legendOffsetY: 12,
-                                  legendOrientation: 'horizontal',
-                                  textStyle: {
-                                      fontSize: '16px',
-                                      opacity: 0.5,
-                                  },
-                              },
-                              {
-                                  axis: 'y',
-                                  value: minTickIntervalMarker,
-                                  lineStyle: {
-                                      stroke: isDarkMode ? 'white' : '#666',
-                                      opacity: 0.55,
-                                      strokeWidth: 2,
-                                      strokeDasharray: '4 4',
-                                  },
-                                  legend: 'bad',
-                                  legendPosition: 'top-right',
-                                  //@ts-ignore - types are wrong, it errors if I remove this
-                                  legendOffsetX: 10,
-                                  legendOffsetY: 12,
-                                  legendOrientation: 'horizontal',
-                                  textStyle: {
-                                      fontSize: '16px',
-                                      opacity: 0.5,
-                                  },
-                              },
-                          ]
-                        : undefined
-                }
-            />
+        <div className="flex size-full flex-col justify-evenly rounded-lg" style={{ backgroundColor: avgColor }}>
+            {data.map((datum, index) => {
+                const lower = data[index - 1]?.bucket ?? 0;
+                const label = formatBucketLabel(lower, datum.bucket, index === 0, index === data.length - 1);
+                const pct = datum.value * 100;
+                const pctLabel = formatPctLabel(pct);
+                return (
+                    <div
+                        key={datum.bucket}
+                        className="flex min-h-0 items-center gap-2.5 px-1"
+                        title={`${label}: ${pctLabel} of time (${datum.count.toLocaleString()} ticks)`}
+                    >
+                        <span className="text-muted-foreground w-20 shrink-0 text-right font-mono text-[10px] whitespace-nowrap">
+                            {label}
+                        </span>
+                        <div className="bg-secondary/40 h-1.5 min-w-0 flex-1 overflow-hidden rounded-full">
+                            <div
+                                className="h-full rounded-full transition-[width] duration-300"
+                                style={{ width: `${Math.max(pct, pct > 0 ? 1.5 : 0)}%`, backgroundColor: datum.color }}
+                            />
+                        </div>
+                        <span className="text-foreground w-11 shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums">
+                            {pctLabel}
+                        </span>
+                    </div>
+                );
+            })}
         </div>
     );
 });
@@ -197,24 +105,7 @@ export default function ThreadPerfCard() {
         const threadName = (perfCursorData ? perfCursorData.threadName : selectedThread) as SvRtPerfThreadNamesType;
 
         const { perfBoundaries, perfBucketCounts } = svRuntimeData;
-        const minTickInterval = PERF_MIN_TICK_TIME[threadName];
-        const minTickIntervalMarker = getMinTickIntervalMarker(perfBoundaries, minTickInterval);
-        const minTickIntervalIndex = perfBoundaries.findIndex((b) => b === minTickIntervalMarker);
-        let colorFunc: (bucketIndex: number) => string;
-        if (minTickIntervalIndex !== -1) {
-            colorFunc = (bucketIndex) => {
-                if (bucketIndex <= minTickIntervalIndex) {
-                    // Use interpolateRdYlGn instead of interpolateYlGn
-                    return interpolateRdYlGn(bucketIndex / (minTickIntervalIndex + 1));
-                } else {
-                    const badCount = perfBoundaries.length - minTickIntervalIndex - 1;
-                    // Red for bad performance (reversed RdYlGn)
-                    return interpolateRdYlGn(1 - (bucketIndex - minTickIntervalIndex) / badCount);
-                }
-            };
-        } else {
-            colorFunc = (bucketIndex) => interpolateRdYlGn(1 - (bucketIndex + 1) / perfBoundaries.length);
-        }
+        const { colorFunc } = getBucketColorScale(perfBoundaries, threadName);
 
         const threadBucketCounts = perfBucketCounts[threadName];
         if (!Array.isArray(threadBucketCounts)) return 'incomplete';
@@ -254,7 +145,7 @@ export default function ThreadPerfCard() {
                 }
             }
         }
-        return { threadName, data, minTickIntervalMarker, perfBoundaries, avgColor };
+        return { threadName, data, avgColor };
     }, [svRuntimeData, perfCursorData, selectedThread]);
 
     const titleTimeIndicator = useMemo(() => {
@@ -286,7 +177,9 @@ export default function ThreadPerfCard() {
     let contentNode: React.ReactNode = null;
     if (typeof chartData === 'object' && chartData !== null) {
         cursorThreadLabel = chartData.threadName;
-        contentNode = <ThreadPerfChart {...chartData} width={chartSize.width} height={chartSize.height} />;
+        if (chartSize.width && chartSize.height) {
+            contentNode = <ThreadPerfBarList data={chartData.data} avgColor={chartData.avgColor} />;
+        }
     } else if (typeof chartData === 'string') {
         contentNode = (
             <div className="text-muted-foreground absolute inset-0 flex flex-col items-center justify-center text-center">
@@ -305,38 +198,35 @@ export default function ThreadPerfCard() {
     }
 
     return (
-        <div className="bg-card fill-primary border-border/60 flex h-80 max-h-80 flex-col rounded-xl border py-2 shadow-sm">
-            <div className="flex flex-row items-center justify-between space-y-0 px-4 pb-2">
-                <h3 className="text-muted-foreground/50 text-[10px] font-semibold tracking-widest uppercase">
-                    {cursorThreadLabel ?? selectedThread} Performance {titleTimeIndicator}
-                </h3>
-                <div className="flex gap-4">
-                    <Select
-                        defaultValue={selectedThread}
-                        onValueChange={(value) => setSelectedThread(value as SvRtPerfThreadNamesType)}
-                        disabled={!!perfCursorData}
+        <div className={cn(dashboardCardClass, 'flex h-full min-h-80 flex-col')}>
+            <DashboardCardHeader icon={BarChartHorizontalIcon} title={`${cursorThreadLabel ?? selectedThread} Performance`}>
+                {titleTimeIndicator && <span className="text-muted-foreground text-xs">{titleTimeIndicator}</span>}
+                <Select
+                    defaultValue={selectedThread}
+                    onValueChange={(value) => setSelectedThread(value as SvRtPerfThreadNamesType)}
+                    disabled={!!perfCursorData}
+                >
+                    <SelectTrigger
+                        className={cn('h-7 w-32 grow px-3 py-1 text-sm md:grow-0', !!perfCursorData && 'hidden')}
                     >
-                        <SelectTrigger
-                            className={cn('h-6 w-32 grow px-3 py-1 text-sm md:grow-0', !!perfCursorData && 'hidden')}
-                        >
-                            <SelectValue placeholder="Filter by admin" />
-                        </SelectTrigger>
-                        <SelectContent className="px-0">
-                            <SelectItem value={'svMain'} className="cursor-pointer">
-                                svMain
-                            </SelectItem>
-                            <SelectItem value={'svSync'} className="cursor-pointer">
-                                svSync
-                            </SelectItem>
-                            <SelectItem value={'svNetwork'} className="cursor-pointer">
-                                svNetwork
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <BarChartHorizontalIcon className="text-muted-foreground/30 size-3.5" />
-                </div>
+                        <SelectValue placeholder="Filter by admin" />
+                    </SelectTrigger>
+                    <SelectContent className="px-0">
+                        <SelectItem value={'svMain'} className="cursor-pointer">
+                            svMain
+                        </SelectItem>
+                        <SelectItem value={'svSync'} className="cursor-pointer">
+                            svSync
+                        </SelectItem>
+                        <SelectItem value={'svNetwork'} className="cursor-pointer">
+                            svNetwork
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+            </DashboardCardHeader>
+            <div className="min-h-0 flex-1 px-5 pb-4">
+                <DebouncedResizeContainer onDebouncedResize={setChartSize}>{contentNode}</DebouncedResizeContainer>
             </div>
-            <DebouncedResizeContainer onDebouncedResize={setChartSize}>{contentNode}</DebouncedResizeContainer>
         </div>
     );
 }

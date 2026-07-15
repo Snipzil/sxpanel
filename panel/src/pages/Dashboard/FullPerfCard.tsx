@@ -8,19 +8,22 @@ import type { PerfChartApiSuccessShape } from './chartingUtils';
 import useSWR from 'swr';
 import {
     PerfSnapType,
-    formatTickBoundary,
+    PERF_MIN_TICK_TIME,
     getBucketTicketsEstimatedTime,
+    getPlayerHistoryPoints,
     getServerStatsData,
     getTimeWeightedHistogram,
     isPerfChartApiSuccess,
     processPerfLog,
 } from './chartingUtils';
-import { dashServerStatsAtom, useThrottledSetCursor } from './dashboardHooks';
+import { PERF_SERIES_COLORS } from './drawFullPerfChart';
+import { dashPlayerHistoryAtom, dashServerStatsAtom, useThrottledSetCursor } from './dashboardHooks';
 import { useIsDarkMode } from '@/hooks/theme';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useSetAtom } from 'jotai';
 import { cn } from '@/lib/utils';
+import { dashboardCardClass, DashboardCardHeader } from './DashboardCard';
 import { emsg } from '@shared/emsg';
 import { createMockPerfChartApiData } from './devMockData';
 import { isDevMockStatusOptInEnabled } from '@/lib/devFlags';
@@ -126,8 +129,8 @@ const FullPerfChart = memo(
         showNodeMemory,
     }: FullPerfChartProps) => {
         const setServerStats = useSetAtom(dashServerStatsAtom);
+        const setPlayerHistory = useSetAtom(dashPlayerHistoryAtom);
         const svgRef = useRef<SVGSVGElement>(null);
-        const canvasRef = useRef<HTMLCanvasElement>(null);
         const [renderState, dispatchRender] = useReducer(reduceFullPerfChartRenderState, {
             renderError: '',
             errorRetry: 0,
@@ -153,7 +156,6 @@ const FullPerfChart = memo(
 
             return {
                 ...parsed,
-                bucketLabels: apiData.boundaries.map(formatTickBoundary),
                 cursorSetter: (snap: PerfSnapType | undefined) => {
                     if (!snap) return setCursor(undefined);
                     setCursor({
@@ -168,26 +170,29 @@ const FullPerfChart = memo(
         useEffect(() => {
             if (!processedData) {
                 setServerStats(undefined);
+                setPlayerHistory(undefined);
             } else {
                 const serverStatsData = getServerStatsData(processedData.lifespans, 24, apiDataAge);
                 setServerStats(serverStatsData);
+                setPlayerHistory(getPlayerHistoryPoints(processedData.lifespans, 24, 120));
             }
         }, [processedData, apiDataAge]);
 
         //Redraw chart when data or size changes
         useEffect(() => {
-            if (!processedData || !svgRef.current || !canvasRef.current || !width || !height) return;
+            if (!processedData || !svgRef.current || !width || !height) return;
             if (!processedData.lifespans.length) return; //only in case somehow the api returned, but no data found
             try {
                 console.groupCollapsed('Drawing full performance chart:');
                 console.time('drawFullPerfChart');
                 drawFullPerfChart({
                     svgRef: svgRef.current,
-                    canvasRef: canvasRef.current,
                     setRenderError: (error) => dispatchRender({ type: 'drawError', error }),
                     size: { width, height },
                     margins,
                     isDarkMode,
+                    threadName,
+                    boundaries: apiData.boundaries,
                     showPlayerCount,
                     showFxsMemory,
                     showNodeMemory,
@@ -205,7 +210,6 @@ const FullPerfChart = memo(
             width,
             height,
             svgRef,
-            canvasRef,
             renderError,
             showPlayerCount,
             showFxsMemory,
@@ -230,32 +234,7 @@ const FullPerfChart = memo(
                 </div>
             );
         }
-        return (
-            <>
-                <svg
-                    ref={svgRef}
-                    width={width}
-                    height={height}
-                    style={{
-                        zIndex: 1,
-                        position: 'absolute',
-                        top: '0px',
-                        left: '0px',
-                    }}
-                />
-                <canvas
-                    ref={canvasRef}
-                    width={width - margins.left - margins.right}
-                    height={height - margins.top - margins.bottom}
-                    style={{
-                        zIndex: 0,
-                        position: 'absolute',
-                        top: `${margins.top}px`,
-                        left: `${margins.left}px`,
-                    }}
-                />
-            </>
-        );
+        return <svg ref={svgRef} width={width} height={height} />;
     },
 );
 
@@ -288,6 +267,34 @@ function ChartErrorMessage({ error }: { error: Error | string }) {
             </div>
         );
     }
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+    return (
+        <span className="flex items-center gap-1.5">
+            <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+            {label}
+        </span>
+    );
+}
+
+/** Grafana-style bottom legend; thresholds follow the selected thread's tick budget. */
+function PerfSeriesLegend({
+    threadName,
+    showPlayerCount,
+}: {
+    threadName: SvRtPerfThreadNamesType;
+    showPlayerCount: boolean;
+}) {
+    const budgetMs = Math.round(PERF_MIN_TICK_TIME[threadName] * 1000);
+    return (
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pt-1 pb-3 text-[11px]">
+            <span className="text-muted-foreground/60">Time spent on slow ticks:</span>
+            <LegendDot color={PERF_SERIES_COLORS.strained} label={`> ${budgetMs}ms (strained)`} />
+            <LegendDot color={PERF_SERIES_COLORS.lagging} label={`> ${budgetMs * 2}ms (severe)`} />
+            {showPlayerCount && <LegendDot color="rgb(204, 203, 203)" label="Players" />}
+        </div>
+    );
 }
 
 export default function FullPerfCard() {
@@ -343,98 +350,97 @@ export default function FullPerfCard() {
     );
 
     return (
-        <div className="bg-card fill-primary border-border/60 flex min-h-112 w-full flex-1 flex-col rounded-xl border pt-2 shadow-sm">
-            <div className="flex flex-row items-center justify-between gap-y-0 px-4 pb-2">
-                <h3 className="text-muted-foreground/50 text-[10px] font-semibold tracking-widest uppercase">
-                    Server Performance
-                </h3>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="xs"
-                        className={cn(
-                            'h-6 gap-1 px-2 text-xs',
-                            showPlayerCount ? 'text-foreground' : 'text-muted-foreground opacity-50',
-                        )}
-                        onClick={() => dispatch({ type: 'togglePlayerCount' })}
-                        title="Toggle player count"
-                    >
-                        <UsersIcon className="size-3" />
-                        Players
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="xs"
-                        className={cn(
-                            'h-6 gap-1 px-2 text-xs',
-                            showFxsMemory ? 'text-foreground' : 'text-muted-foreground opacity-50',
-                        )}
-                        onClick={() => dispatch({ type: 'toggleFxsMemory' })}
-                        title="Toggle FXServer memory"
-                    >
-                        <CpuIcon className="size-3" />
-                        FXS Mem
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="xs"
-                        className={cn(
-                            'h-6 gap-1 px-2 text-xs',
-                            showNodeMemory ? 'text-foreground' : 'text-muted-foreground opacity-50',
-                        )}
-                        onClick={() => dispatch({ type: 'toggleNodeMemory' })}
-                        title="Toggle Node.js memory"
-                    >
-                        <MemoryStickIcon className="size-3" />
-                        Node Mem
-                    </Button>
-                    <Select
-                        value={selectedThread}
-                        onValueChange={(value) =>
-                            dispatch({ type: 'patch', patch: { selectedThread: value as SvRtPerfThreadNamesType } })
-                        }
-                    >
-                        <SelectTrigger className="h-6 w-32 grow px-3 py-1 text-sm md:grow-0">
-                            <SelectValue placeholder="Select thread" />
-                        </SelectTrigger>
-                        <SelectContent className="px-0">
-                            <SelectItem value={'svMain'} className="cursor-pointer">
-                                svMain
-                            </SelectItem>
-                            <SelectItem value={'svSync'} className="cursor-pointer">
-                                svSync
-                            </SelectItem>
-                            <SelectItem value={'svNetwork'} className="cursor-pointer">
-                                svNetwork
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <LineChartIcon className="text-muted-foreground/30 size-3.5" />
-                </div>
+        <div className={cn(dashboardCardClass, 'fill-primary flex min-h-144 w-full flex-1 flex-col')}>
+            <DashboardCardHeader icon={LineChartIcon} title="Server Performance">
+                <Button
+                    variant="ghost"
+                    size="xs"
+                    className={cn(
+                        'h-7 gap-1 px-2 text-xs',
+                        showPlayerCount ? 'text-foreground' : 'text-muted-foreground opacity-50',
+                    )}
+                    onClick={() => dispatch({ type: 'togglePlayerCount' })}
+                    title="Toggle player count"
+                >
+                    <UsersIcon className="size-3" />
+                    Players
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="xs"
+                    className={cn(
+                        'h-7 gap-1 px-2 text-xs',
+                        showFxsMemory ? 'text-foreground' : 'text-muted-foreground opacity-50',
+                    )}
+                    onClick={() => dispatch({ type: 'toggleFxsMemory' })}
+                    title="Toggle FXServer memory"
+                >
+                    <CpuIcon className="size-3" />
+                    FXS Mem
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="xs"
+                    className={cn(
+                        'h-7 gap-1 px-2 text-xs',
+                        showNodeMemory ? 'text-foreground' : 'text-muted-foreground opacity-50',
+                    )}
+                    onClick={() => dispatch({ type: 'toggleNodeMemory' })}
+                    title="Toggle Node.js memory"
+                >
+                    <MemoryStickIcon className="size-3" />
+                    Node Mem
+                </Button>
+                <Select
+                    value={selectedThread}
+                    onValueChange={(value) =>
+                        dispatch({ type: 'patch', patch: { selectedThread: value as SvRtPerfThreadNamesType } })
+                    }
+                >
+                    <SelectTrigger className="h-7 w-32 grow px-3 py-1 text-sm md:grow-0">
+                        <SelectValue placeholder="Select thread" />
+                    </SelectTrigger>
+                    <SelectContent className="px-0">
+                        <SelectItem value={'svMain'} className="cursor-pointer">
+                            svMain
+                        </SelectItem>
+                        <SelectItem value={'svSync'} className="cursor-pointer">
+                            svSync
+                        </SelectItem>
+                        <SelectItem value={'svNetwork'} className="cursor-pointer">
+                            svNetwork
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+            </DashboardCardHeader>
+            <div className="min-h-0 flex-1">
+                <DebouncedResizeContainer
+                    onDebouncedResize={(nextChartSize) =>
+                        dispatch({ type: 'patch', patch: { chartSize: nextChartSize } })
+                    }
+                >
+                    {isPerfChartApiSuccess(swrChartApiResp.data) ? (
+                        <FullPerfChart
+                            threadName={selectedThread}
+                            apiData={swrChartApiResp.data}
+                            apiDataAge={apiDataAge}
+                            width={chartSize.width}
+                            height={chartSize.height}
+                            isDarkMode={isDarkMode}
+                            showPlayerCount={showPlayerCount}
+                            showFxsMemory={showFxsMemory}
+                            showNodeMemory={showNodeMemory}
+                        />
+                    ) : swrChartApiResp.isLoading ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <Loader2Icon className="text-muted-foreground size-16 animate-spin" />
+                        </div>
+                    ) : apiFailReason || swrChartApiResp.error ? (
+                        <ChartErrorMessage error={apiFailReason || swrChartApiResp.error} />
+                    ) : null}
+                </DebouncedResizeContainer>
             </div>
-            <DebouncedResizeContainer
-                onDebouncedResize={(nextChartSize) => dispatch({ type: 'patch', patch: { chartSize: nextChartSize } })}
-            >
-                {isPerfChartApiSuccess(swrChartApiResp.data) ? (
-                    <FullPerfChart
-                        threadName={selectedThread}
-                        apiData={swrChartApiResp.data}
-                        apiDataAge={apiDataAge}
-                        width={chartSize.width}
-                        height={chartSize.height}
-                        isDarkMode={isDarkMode}
-                        showPlayerCount={showPlayerCount}
-                        showFxsMemory={showFxsMemory}
-                        showNodeMemory={showNodeMemory}
-                    />
-                ) : swrChartApiResp.isLoading ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <Loader2Icon className="text-muted-foreground size-16 animate-spin" />
-                    </div>
-                ) : apiFailReason || swrChartApiResp.error ? (
-                    <ChartErrorMessage error={apiFailReason || swrChartApiResp.error} />
-                ) : null}
-            </DebouncedResizeContainer>
+            <PerfSeriesLegend threadName={selectedThread} showPlayerCount={showPlayerCount} />
         </div>
     );
 }

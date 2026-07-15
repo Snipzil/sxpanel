@@ -15,16 +15,12 @@ import {
     KeyRoundIcon,
     LogOutIcon,
     ChevronDownIcon,
-    ChevronLeftIcon,
     ChevronUpIcon,
     MegaphoneIcon,
     BlocksIcon,
     WrenchIcon,
     XCircleIcon,
 } from 'lucide-react';
-import { LogoFullSquareGreen } from '@/components/Logos';
-import { resolvePanelAssetUrl } from '@/lib/nuiEmbed';
-import { NavLink } from '@/components/MainPageLink';
 import { TxConfigState } from '@shared/enums';
 import { useOpenConfirmDialog, useOpenPromptDialog, useAccountModal } from '@/hooks/dialogs';
 import { ApiTimeout, useBackendApi } from '@/hooks/fetch';
@@ -171,14 +167,13 @@ const validateSidebarScheduleInput = (input: string) => {
     return true;
 };
 
-// ─── Sidebar server controls (labeled buttons) ───────────────────────────────
-function SidebarServerControls() {
+// ─── Server control actions (shared by the mobile sheet and the TopNav) ──────
+export function useServerControls() {
     const txConfigState = useAtomValue(txConfigStateAtom);
     const fxRunnerState = useAtomValue(fxRunnerStateAtom);
     const openConfirmDialog = useOpenConfirmDialog();
     const closeAllSheets = useCloseAllSheets();
     const { hasPerm } = useAdminPerms();
-    const collapsed = useCollapsed();
     const { t } = useLocale();
     const fxsControlApi = useBackendApi({
         method: 'POST',
@@ -206,17 +201,27 @@ function SidebarServerControls() {
         }
     };
 
-    const hasControlPerm = hasPerm('control.server');
+    return {
+        isConfigured: txConfigState === TxConfigState.Ready,
+        isRunning: !fxRunnerState.isIdle,
+        isAlive: fxRunnerState.isChildAlive,
+        hasControlPerm: hasPerm('control.server'),
+        handleControl,
+    };
+}
 
-    if (txConfigState !== TxConfigState.Ready) {
+// ─── Sidebar server controls (labeled buttons) ───────────────────────────────
+function SidebarServerControls() {
+    const { isConfigured, isRunning, isAlive, hasControlPerm, handleControl } = useServerControls();
+    const collapsed = useCollapsed();
+    const { t } = useLocale();
+
+    if (!isConfigured) {
         if (collapsed) return null;
         return (
             <p className="text-muted-foreground/50 text-center text-xs">{t('panel.sidebar.server_not_configured')}</p>
         );
     }
-
-    const isRunning = !fxRunnerState.isIdle;
-    const isAlive = fxRunnerState.isChildAlive;
 
     if (collapsed) {
         return (
@@ -284,7 +289,8 @@ function SidebarServerControls() {
     );
 }
 
-function SidebarServerExtraActions() {
+// ─── Announce/kick-all/schedule/cancel actions (shared by the sidebar and TopNav/Dashboard) ──
+export function useServerExtraActions() {
     const fxRunnerState = useAtomValue(fxRunnerStateAtom);
     const status = useGlobalStatus();
     const { hasPerm } = useAdminPerms();
@@ -410,11 +416,47 @@ function SidebarServerExtraActions() {
         : isRestartSkipped
           ? t('panel.shell.sidebar.restart_already_cancelled')
           : t('panel.shell.sidebar.cancel_next_restart');
-    const iconBtnClass =
-        'flex size-8 items-center justify-center rounded-md border border-border/50 bg-background/35 text-muted-foreground transition-colors hover:bg-secondary/55 hover:text-foreground disabled:pointer-events-none disabled:opacity-40';
     const adjustLabel = hasScheduledRestart
         ? t('panel.shell.sidebar.adjust_restart_time')
         : t('panel.shell.sidebar.set_restart_time');
+
+    return {
+        isChildAlive: fxRunnerState.isChildAlive,
+        nextScheduledText,
+        nextScheduledClasses,
+        hasAnnouncementPerm,
+        hasControlPerm,
+        canAdjustRestart,
+        canCancelRestart,
+        cancelLabel,
+        adjustLabel,
+        handleAnnounce,
+        handleKickAll,
+        handleSchedule,
+        handleCancelRestart,
+    };
+}
+
+// ─── Sidebar quick-actions (compact icon grid) ───────────────────────────────
+function SidebarServerExtraActions() {
+    const {
+        isChildAlive,
+        nextScheduledText,
+        nextScheduledClasses,
+        hasAnnouncementPerm,
+        hasControlPerm,
+        canAdjustRestart,
+        canCancelRestart,
+        cancelLabel,
+        adjustLabel,
+        handleAnnounce,
+        handleKickAll,
+        handleSchedule,
+        handleCancelRestart,
+    } = useServerExtraActions();
+    const { t } = useLocale();
+    const iconBtnClass =
+        'flex size-8 items-center justify-center rounded-md border border-border/50 bg-background/35 text-muted-foreground transition-colors hover:bg-secondary/55 hover:text-foreground disabled:pointer-events-none disabled:opacity-40';
 
     return (
         <div className="border-border/40 mt-2 rounded-lg border bg-black/10 p-2.5">
@@ -437,7 +479,7 @@ function SidebarServerExtraActions() {
                         type="button"
                         onClick={handleAnnounce}
                         className={cn(iconBtnClass, 'border-primary/35 text-primary')}
-                        disabled={!hasAnnouncementPerm || !fxRunnerState.isChildAlive}
+                        disabled={!hasAnnouncementPerm || !isChildAlive}
                         aria-label={t('panel.shell.sidebar.send_announcement')}
                     >
                         <MegaphoneIcon className="size-3.5" />
@@ -450,7 +492,7 @@ function SidebarServerExtraActions() {
                         type="button"
                         onClick={handleKickAll}
                         className={cn(iconBtnClass, 'border-warning/35 text-warning-inline')}
-                        disabled={!hasControlPerm || !fxRunnerState.isChildAlive}
+                        disabled={!hasControlPerm || !isChildAlive}
                         aria-label={t('panel.shell.sidebar.kick_all_players')}
                     >
                         <KickAllIcon style={{ height: '0.9rem', width: '0.9rem', fill: 'currentcolor' }} />
@@ -617,86 +659,7 @@ function SidebarUserButton() {
     );
 }
 
-// ─── Main export ──────────────────────────────────────────────────────────────
-export default function LeftSidebar() {
-    const { t } = useLocale();
-    const [collapsed, setCollapsed] = useState(() => {
-        try {
-            return localStorage.getItem('sidebar-collapsed') === 'true';
-        } catch {
-            return false;
-        }
-    });
-
-    const toggle = () => {
-        const next = !collapsed;
-        setCollapsed(next);
-        try {
-            localStorage.setItem('sidebar-collapsed', String(next));
-        } catch {}
-    };
-
-    return (
-        <SidebarCollapsedCtx.Provider value={collapsed}>
-            <aside
-                className={cn(
-                    'tx-shell-desktop-sidebar border-border/40 h-full shrink-0 flex-col overflow-hidden border-r bg-[#0c0e16] transition-[width] duration-200',
-                    collapsed ? 'w-14' : 'w-[var(--tx-sidebar-width)]',
-                )}
-            >
-                {/* Logo + collapse toggle */}
-                <div
-                    className={cn(
-                        'border-border/40 flex h-14 shrink-0 items-center border-b',
-                        collapsed ? 'justify-center' : 'justify-between px-4',
-                    )}
-                >
-                    {collapsed ? (
-                        <button
-                            onClick={toggle}
-                            className="flex size-8 items-center justify-center rounded-md opacity-90 transition-opacity hover:opacity-100"
-                            title={t('panel.shell.sidebar.expand_sidebar')}
-                        >
-                            <img src={resolvePanelAssetUrl('/logo2.svg')} alt="sxPanel" className="size-8 rounded-lg" />
-                        </button>
-                    ) : (
-                        <>
-                            <NavLink
-                                href="/"
-                                className="flex flex-1 items-center justify-center opacity-90 transition-opacity hover:opacity-100"
-                            >
-                                <LogoFullSquareGreen className="h-8" />
-                            </NavLink>
-                            <button
-                                onClick={toggle}
-                                className="text-muted-foreground/50 hover:bg-secondary/40 hover:text-foreground flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
-                                title={t('panel.shell.sidebar.collapse_sidebar')}
-                            >
-                                <ChevronLeftIcon className="size-4" />
-                            </button>
-                        </>
-                    )}
-                </div>
-
-                {/* Navigation */}
-                <SidebarNavContent />
-
-                {/* Bottom: server status + user */}
-                <div
-                    className={cn(
-                        'border-border/40 flex shrink-0 flex-col gap-2 border-t',
-                        collapsed ? 'items-center p-2' : 'p-3',
-                    )}
-                >
-                    <ServerStatusCard />
-                    <SidebarUserButton />
-                </div>
-            </aside>
-        </SidebarCollapsedCtx.Provider>
-    );
-}
-
-// ─── Reusable navigation body (used by desktop sidebar + mobile sheet) ────────
+// ─── Reusable navigation body (used by the mobile nav sheet, see MainSheets.tsx) ────────
 export function SidebarNavContent() {
     const { hasPerm } = useAdminPerms();
     const { pages: addonPages } = useAddonLoader();
@@ -747,5 +710,13 @@ export function SidebarNavContent() {
     );
 }
 
-// Re-export so the mobile sheet can use the same bottom controls.
-export { ServerStatusCard, SidebarUserButton, SidebarCollapsedCtx };
+// Re-export so the mobile sheet (and TopNav) can use the same bottom controls.
+// SidebarServerExtraActions is also re-exported so the Dashboard page can surface the same
+// quick schedule/announce/kick-all actions without duplicating the logic.
+export {
+    ServerStatusCard,
+    SidebarServerControls,
+    SidebarServerExtraActions,
+    SidebarUserButton,
+    SidebarCollapsedCtx,
+};

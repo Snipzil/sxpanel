@@ -32,10 +32,10 @@ import { useAddonWidgets } from '@/hooks/addons';
 
 import { useLocale } from '@/hooks/locale';
 
-const headerIconButtonClassName =
+export const headerIconButtonClassName =
     'text-muted-foreground hover:text-foreground hover:bg-secondary/60 border-border/50 bg-secondary/30 focus-visible:ring-ring ring-offset-background relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden [&>svg]:size-4';
 
-function ServerIdentity() {
+export function ServerIdentity() {
     const { t } = useLocale();
 
     const serverName = useAtomValue(serverNameAtom);
@@ -79,7 +79,7 @@ type IconButtonProps = {
     onClick: () => void;
 };
 
-function IconButton({ label, icon, badge, onClick }: IconButtonProps) {
+export function IconButton({ label, icon, badge, onClick }: IconButtonProps) {
     return (
         <button type="button" title={label} aria-label={label} onClick={onClick} className={headerIconButtonClassName}>
             {icon}
@@ -93,7 +93,7 @@ function IconButton({ label, icon, badge, onClick }: IconButtonProps) {
     );
 }
 
-function AuthedHeaderFragment() {
+export function AuthedHeaderFragment() {
     const { t } = useLocale();
 
     const { authData, logout } = useAuth();
@@ -176,7 +176,7 @@ export function Header() {
     const playerCount = useAtomValue(playerCountAtom);
 
     return (
-        <header className="tx-shell-mobile-header border-border/40 sticky top-0 z-20 shrink-0 border-b bg-[#0c0e16]">
+        <header className="tx-shell-mobile-header border-border/40 bg-background sticky top-0 z-20 shrink-0 border-b">
             <div className="flex h-14 w-full items-center gap-1.5 px-2.5 sm:gap-2 sm:px-3">
                 <IconButton
                     label={t('panel.shell.header.open_menu')}

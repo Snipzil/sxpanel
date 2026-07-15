@@ -1,20 +1,56 @@
 import { playerCountAtom } from '@/hooks/playerlist';
 import { useAtomValue } from 'jotai';
-import { UsersIcon } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, UsersIcon } from 'lucide-react';
+import { usePlayerlistCollapsed } from './PlayerlistSidebar';
 
-export default function PlayerlistSummary() {
+type PlayerlistSummaryProps = {
+    /** Omitted for the mobile sheet, which is always fully expanded. */
+    onToggleCollapsed?: () => void;
+};
+
+export default function PlayerlistSummary({ onToggleCollapsed }: PlayerlistSummaryProps) {
     const playerCount = useAtomValue(playerCountAtom);
     const playerCountFormatted = playerCount.toLocaleString('en-US');
+    const collapsed = usePlayerlistCollapsed();
+
+    if (collapsed) {
+        return (
+            <div className="flex w-full flex-col items-center gap-2 py-1">
+                <button
+                    type="button"
+                    onClick={onToggleCollapsed}
+                    className="text-muted-foreground/60 hover:bg-secondary/40 hover:text-foreground flex size-7 items-center justify-center rounded-md transition-colors"
+                    title="Expand player list"
+                >
+                    <ChevronLeftIcon className="size-4" />
+                </button>
+                <div className="bg-accent/10 text-accent flex size-7 items-center justify-center rounded-lg">
+                    <UsersIcon className="size-3.5" />
+                </div>
+                <div className="font-mono text-sm font-semibold tabular-nums">{playerCountFormatted}</div>
+            </div>
+        );
+    }
 
     return (
-        <div className="flex w-full items-center justify-between">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-600/50">
-                <UsersIcon className="text-opacity-80 size-10 stroke-1 text-zinc-400" />
+        <div className="flex w-full items-center gap-2.5">
+            <div className="bg-accent/10 text-accent flex size-7 shrink-0 items-center justify-center rounded-lg">
+                <UsersIcon className="size-3.5" />
             </div>
-            <div className="flex flex-col items-end">
-                <div className="font-mono text-4xl font-extralight">{playerCountFormatted}</div>
-                <div className="text-lg font-light tracking-wider opacity-80">Players</div>
-            </div>
+            <span className="text-sm font-semibold">Players</span>
+            <span className="bg-secondary/60 text-foreground ml-auto rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold tabular-nums">
+                {playerCountFormatted}
+            </span>
+            {onToggleCollapsed && (
+                <button
+                    type="button"
+                    onClick={onToggleCollapsed}
+                    className="text-muted-foreground/50 hover:bg-secondary/40 hover:text-foreground flex size-7 shrink-0 items-center justify-center rounded-md transition-colors"
+                    title="Collapse player list"
+                >
+                    <ChevronRightIcon className="size-4" />
+                </button>
+            )}
         </div>
     );
 }
