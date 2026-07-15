@@ -66,7 +66,12 @@ export function useDynamicScale<C extends HTMLElement, E extends HTMLElement>(op
                 resetScale();
 
                 const naturalW = content.scrollWidth;
-                const availW = container.clientWidth;
+                // offsetWidth (not clientWidth): clientWidth shrinks when a vertical
+                // scrollbar appears, and since `zoom` scales height too, a shrink can
+                // remove that scrollbar, growing clientWidth, growing the scale back —
+                // an infinite resize/zoom oscillation that crashes components (e.g.
+                // ScrollArea) sensitive to layout thrash.
+                const availW = container.offsetWidth;
                 if (naturalW <= 0 || availW <= 0) {
                     return;
                 }
