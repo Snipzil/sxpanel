@@ -101,7 +101,7 @@ function InnerWarningBar({
                         </Button>
 
                         <Button size="xs" variant="outline" asChild className="border-current hover:bg-white/10">
-                            <a href="https://discord.gg/6FcqBYwxH5" target="_blank">
+                            <a href="https://discord.gg/hUM3pQeGFc" target="_blank">
                                 <DiscordIcon className="mr-1 inline size-3.5" /> {t('panel.shell.header.support')}
                             </a>
                         </Button>

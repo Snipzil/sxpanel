@@ -1,6 +1,6 @@
 -- Modifying or rewriting this resource for local use only is strongly discouraged.
 -- Feel free to open an issue or pull request in our GitHub.
--- Official discord server: https://discord.gg/6FcqBYwxH5
+-- Official discord server: https://discord.gg/hUM3pQeGFc
 
 author('snipz')
 description('sxPanel - A Replacement for txAdmin built on its source code.')

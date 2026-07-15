@@ -13,7 +13,7 @@ const printExpirationBanner = (timeUntilExpiration: number) => {
     console.error('This build is meant to be used by sxPanel beta testers.');
     console.error('sxPanel will automatically shut down when this pre-release expires.');
     console.error(`Time until expiration: ${chalkInversePad(timeLeft)}.`);
-    console.error('For more information: https://discord.gg/6FcqBYwxH5.');
+    console.error('For more information: https://discord.gg/hUM3pQeGFc.');
 };
 
 const cronCheckExpiration = () => {

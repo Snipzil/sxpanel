@@ -598,7 +598,7 @@ function SidebarUserButton() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     className="cursor-pointer"
-                    onClick={() => openExternalLink('https://discord.gg/6FcqBYwxH5')}
+                    onClick={() => openExternalLink('https://discord.gg/hUM3pQeGFc')}
                 >
                     <DiscordIcon className="mr-2 size-3.5" />
                     Support
