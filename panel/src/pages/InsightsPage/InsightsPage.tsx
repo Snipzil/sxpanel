@@ -356,6 +356,7 @@ function RetentionCard() {
     );
     return (
         <InsightsCard
+            className="col-span-full"
             icon={<TrendingUpIcon />}
             title={t('panel.insights.cards.retention.title')}
             subtitle={t('panel.insights.cards.retention.subtitle')}
@@ -375,7 +376,7 @@ function RetentionCard() {
             ) : hasError ? (
                 <CardError message={errorMsg} />
             ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                         <h4 className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
                             {t('panel.insights.retention.return_rate_heading')}
@@ -636,12 +637,7 @@ export default function InsightsPage() {
                 description={t('panel.insights.page_description')}
             />
 
-            {/* Population section */}
-            <SectionHeading
-                icon={<UsersIcon />}
-                title={t('panel.insights.sections.population.title')}
-                description={t('panel.insights.sections.population.description')}
-            />
+            {/* Population section (no heading: this is the first section, right under the page header) */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <PlayerCountCard />
                 <DailyPlayersCard />

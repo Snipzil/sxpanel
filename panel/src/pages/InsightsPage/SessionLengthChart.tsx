@@ -35,7 +35,7 @@ function SessionLengthChart({ buckets }: Props) {
     }));
 
     return (
-        <div style={{ height: 220 }}>
+        <div style={{ height: 260 }}>
             <ResponsiveBar
                 data={data}
                 keys={['count']}

@@ -37,12 +37,12 @@ function PeakHoursHeatmap({ cells, maxAvg }: Props) {
     }
 
     return (
-        <div className="overflow-x-auto">
-            <div className="inline-grid gap-[2px]" style={{ gridTemplateColumns: `auto repeat(24, 1fr)` }}>
+        <div style={{ height: 260 }} className="flex flex-col items-center justify-center overflow-x-auto">
+            <div className="inline-grid gap-[3px]" style={{ gridTemplateColumns: `auto repeat(24, 1fr)` }}>
                 {/* Hour header row */}
                 <div />
                 {Array.from({ length: 24 }, (_, hour) => hour).map((hour) => (
-                    <div key={hour} className="text-muted-foreground w-6 text-center text-[10px] select-none">
+                    <div key={hour} className="text-muted-foreground w-7 text-center text-[10px] select-none">
                         {hour}
                     </div>
                 ))}
@@ -58,7 +58,7 @@ function PeakHoursHeatmap({ cells, maxAvg }: Props) {
                             return (
                                 <div
                                     key={`${label}-${hour}`}
-                                    className="group relative h-5 w-6 cursor-default rounded-sm"
+                                    className="group relative h-6 w-7 cursor-default rounded-sm"
                                     style={{ backgroundColor: getHeatColor(value, maxAvg) }}
                                 >
                                     <div className="bg-card text-card-foreground border-border absolute bottom-full left-1/2 z-50 mb-1 hidden -translate-x-1/2 rounded border px-2 py-1 text-xs whitespace-nowrap shadow-md group-hover:block">
@@ -72,7 +72,7 @@ function PeakHoursHeatmap({ cells, maxAvg }: Props) {
             </div>
 
             {/* Legend */}
-            <div className="text-muted-foreground mt-2 flex items-center justify-end gap-1 text-[10px]">
+            <div className="text-muted-foreground mt-3 flex items-center justify-end gap-1 self-end text-[10px]">
                 <span>0</span>
                 <div className="flex h-3 overflow-hidden rounded">
                     {Array.from({ length: 6 }, (_, step) => step / 5).map((ratio) => (
