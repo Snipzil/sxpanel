@@ -57,7 +57,7 @@ export const queryChangelogApi = async () => {
     //Checking sxPanel version against sxpanel.org API
     let txaUpdateData: DetailedUpdateDataType | undefined;
     try {
-        const sxpanelResp = await got('https://fxapi.sxpanel.org/api/version').json();
+        const sxpanelResp = await got('https://sxpanel.org/api/version').json();
         const sxpanelData = sxpanelVersionSchema.parse(sxpanelResp);
         const isOutdated = semver.lt(txEnv.txaVersion, sxpanelData.latest);
         if (isOutdated) {

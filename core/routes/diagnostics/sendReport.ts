@@ -286,7 +286,7 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     try {
         type ResponseType = { reportId: string } | { error: string; message?: string };
         const apiResp = (await got
-            .post('https://fxapi.sxpanel.org/api/diagnostics', requestOptions)
+            .post('https://sxpanel.org/api/diagnostics', requestOptions)
             .json()) as ResponseType;
         if ('reportId' in apiResp) {
             reportIdCache.set(apiResp.reportId);
