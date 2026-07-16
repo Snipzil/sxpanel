@@ -114,3 +114,5 @@ scripts/security/GITLEAKS_REPORT.json
 
 # next.js build output
 .next
+panel/DESIGN.md
+panel/PRODUCT.md
