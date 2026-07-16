@@ -639,12 +639,12 @@ export default function InsightsPage() {
 
             {/* Population section (no heading: this is the first section, right under the page header) */}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <RetentionCard />
                 <PlayerCountCard />
                 <DailyPlayersCard />
                 <NewPlayersCard />
                 <PlayerGrowthCard />
                 <PeakHoursCard />
-                <RetentionCard />
             </div>
 
             {/* Sessions & engagement */}
