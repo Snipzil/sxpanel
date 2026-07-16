@@ -3773,8 +3773,8 @@
             "login_discord": {
                 "label": "Discord Login"
             },
-            "login_discourse": {
-                "label": "Discourse Login"
+            "login_cfxre": {
+                "label": "Cfx.re Login"
             },
             "login_password": {
                 "label": "Password Login"

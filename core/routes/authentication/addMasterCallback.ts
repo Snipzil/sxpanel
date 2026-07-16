@@ -3,11 +3,12 @@ import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { ApiAddMasterCallbackResp } from '@shared/authApiTypes';
 import { addMasterCallbackBodySchema as bodySchema } from '@shared/authApiSchemas';
-import { decryptPayload, getDiscourseUserInfo } from '@modules/AdminStore/providers/DiscourseUser';
+import { getIdFromOauthNameid } from '@lib/player/idUtils';
+import { handleOauthCallback } from './oauthMethods';
 const console = consoleFactory(modulename);
 
 /**
- * Handles the Add Master Discourse callback
+ * Handles the Add Master CitizenFX (Cfx.re) OAuth callback
  */
 export default async function AuthAddMasterCallback(ctx: InitializedCtx) {
     const schemaRes = bodySchema.safeParse(ctx.request.body);
@@ -17,7 +18,7 @@ export default async function AuthAddMasterCallback(ctx: InitializedCtx) {
             errorMessage: schemaRes.error.message,
         });
     }
-    const { payload } = schemaRes.data;
+    const { redirectUri } = schemaRes.data;
 
     //Check if there are already admins set up
     if (txCore.adminStore.hasAdmins()) {
@@ -27,57 +28,38 @@ export default async function AuthAddMasterCallback(ctx: InitializedCtx) {
         });
     }
 
-    //Checking session for stored private key and nonce
-    const inboundSession = ctx.sessTools.get();
-    if (!inboundSession?.tmpDiscourseNonce || !inboundSession?.tmpDiscoursePrivateKey) {
-        return ctx.send<ApiAddMasterCallbackResp>({
-            errorCode: 'invalid_session',
-        });
+    //Handling the callback
+    const callbackResp = await handleOauthCallback(ctx, redirectUri);
+    if ('errorCode' in callbackResp || 'errorTitle' in callbackResp) {
+        return ctx.send<ApiAddMasterCallbackResp>(callbackResp);
     }
+    const userInfo = callbackResp;
 
-    //Decrypt the Discourse payload
-    let apiKey: string;
-    try {
-        const decrypted = decryptPayload(payload, inboundSession.tmpDiscoursePrivateKey);
-        if (decrypted.nonce !== inboundSession.tmpDiscourseNonce) {
-            return ctx.send<ApiAddMasterCallbackResp>({
-                errorCode: 'invalid_state',
-            });
-        }
-        apiKey = decrypted.key;
-    } catch (error) {
-        console.warn(`Payload decryption error: ${emsg(error)}`);
+    //Getting identifier
+    const fivemIdentifier = getIdFromOauthNameid(userInfo.nameid);
+    if (!fivemIdentifier) {
         return ctx.send<ApiAddMasterCallbackResp>({
-            errorTitle: 'Payload decryption error:',
-            errorMessage: emsg(error),
-        });
-    }
-
-    //Fetch user info from Discourse
-    let fivemIdentifier: string;
-    let discourseName: string;
-    try {
-        const userInfo = await getDiscourseUserInfo(apiKey);
-        fivemIdentifier = userInfo.identifier;
-        discourseName = userInfo.username;
-    } catch (error) {
-        console.verbose.error(`Discourse user info error: ${emsg(error)}`);
-        return ctx.send<ApiAddMasterCallbackResp>({
-            errorTitle: 'Failed to get Discourse user info:',
-            errorMessage: emsg(error),
+            errorTitle: 'Invalid nameid identifier.',
+            errorMessage: `Could not extract the user identifier from the URL below. Please report this to the sxPanel dev team.\n${userInfo.nameid}`,
         });
     }
 
     //Setting session
     ctx.sessTools.set({
         tmpAddMasterUserInfo: {
-            name: discourseName,
+            name: userInfo.name,
             identifier: fivemIdentifier,
         },
     });
 
+    //Cache the profile picture, if any, for AuthedAdmin.profilePicture once the admin is created
+    if (userInfo.picture) {
+        txCore.cacheStore.set(`admin:picture:${userInfo.name}`, userInfo.picture);
+    }
+
     return ctx.send<ApiAddMasterCallbackResp>({
-        fivemName: discourseName,
+        fivemName: userInfo.name,
         fivemId: fivemIdentifier,
+        profilePicture: userInfo.picture,
     });
 }

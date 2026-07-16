@@ -16,8 +16,8 @@ export { downloadFxserverLog, downloadServerLog, downloadSystemLog } from './dow
 export { default as auth_addMasterPin } from './authentication/addMasterPin.js';
 export { default as auth_addMasterCallback } from './authentication/addMasterCallback.js';
 export { default as auth_addMasterSave } from './authentication/addMasterSave.js';
-export { default as auth_discourseRedirect } from './authentication/discourseRedirect';
-export { default as auth_discourseCallback } from './authentication/discourseCallback';
+export { default as auth_cfxreRedirect } from './authentication/cfxreRedirect';
+export { default as auth_cfxreCallback } from './authentication/cfxreCallback';
 export { default as auth_discordRedirect } from './authentication/discordRedirect';
 export { default as auth_discordCallback } from './authentication/discordCallback';
 export { default as auth_verifyPassword } from './authentication/verifyPassword';

@@ -114,8 +114,8 @@ export default () => {
     router.post('/auth/addMaster/pin', authLimiter, wrapRoute('AddMasterPin', routes.auth_addMasterPin));
     router.post('/auth/addMaster/callback', authLimiter, routes.auth_addMasterCallback);
     router.post('/auth/addMaster/save', authLimiter, routes.auth_addMasterSave);
-    router.get('/auth/discourse/redirect', authLimiter, wrapRoute('DiscourseRedirect', routes.auth_discourseRedirect));
-    router.post('/auth/discourse/callback', authLimiter, routes.auth_discourseCallback);
+    router.get('/auth/cfxre/redirect', authLimiter, wrapRoute('CfxreRedirect', routes.auth_cfxreRedirect));
+    router.post('/auth/cfxre/callback', authLimiter, routes.auth_cfxreCallback);
     router.get('/auth/discord/redirect', authLimiter, wrapRoute('DiscordRedirect', routes.auth_discordRedirect));
     router.post('/auth/discord/callback', authLimiter, routes.auth_discordCallback);
     router.post('/auth/changePassword', apiAuthMw, routes.auth_changePassword);

@@ -24,21 +24,23 @@ export default function PlayerlistSummary({ onToggleCollapsed }: PlayerlistSumma
                 >
                     <ChevronLeftIcon className="size-4" />
                 </button>
-                <div className="bg-accent/10 text-accent flex size-7 items-center justify-center rounded-lg">
+                <div className="bg-secondary/50 text-muted-foreground flex size-7 items-center justify-center rounded-lg">
                     <UsersIcon className="size-3.5" />
                 </div>
-                <div className="font-mono text-sm font-semibold tabular-nums">{playerCountFormatted}</div>
+                <div className="text-foreground font-mono text-sm font-semibold tabular-nums">
+                    {playerCountFormatted}
+                </div>
             </div>
         );
     }
 
     return (
         <div className="flex w-full items-center gap-2.5">
-            <div className="bg-accent/10 text-accent flex size-7 shrink-0 items-center justify-center rounded-lg">
+            <div className="bg-secondary/50 text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-lg">
                 <UsersIcon className="size-3.5" />
             </div>
-            <span className="text-sm font-semibold">Players</span>
-            <span className="bg-secondary/60 text-foreground ml-auto rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold tabular-nums">
+            <span className="text-foreground text-sm font-semibold">Players</span>
+            <span className="bg-secondary/50 text-foreground ml-auto rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold tabular-nums">
                 {playerCountFormatted}
             </span>
             {onToggleCollapsed && (

@@ -615,10 +615,10 @@ export const systemLogActionDefinitions = [
         description: 'Sign in through Discord OAuth.',
     },
     {
-        id: 'login.discourse',
+        id: 'login.cfxre',
         category: 'login',
-        label: 'Discourse Login',
-        description: 'Sign in through Discourse / Cfx.re OAuth.',
+        label: 'Cfx.re Login',
+        description: 'Sign in through Cfx.re / FiveM account OAuth.',
     },
     {
         id: 'login.password',

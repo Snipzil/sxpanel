@@ -6,6 +6,7 @@ import type {
     ApiAddMasterSaveReqSchema,
     ApiChangePasswordReqSchema,
     ApiChangeIdentifiersReqSchema,
+    ApiOauthCallbackReqSchema,
 } from './authApiSchemas';
 
 export type ReactAuthDataType = {
@@ -64,6 +65,7 @@ export type ApiOauthCallbackErrorResp =
           errorMessage: string;
       };
 export type ApiOauthCallbackResp = ApiOauthCallbackErrorResp | ReactAuthDataType;
+export type ApiOauthCallbackReq = ApiOauthCallbackReqSchema;
 
 export type ApiAddMasterPinReq = ApiAddMasterPinReqSchema;
 export type ApiAddMasterPinResp = ApiOauthRedirectResp;

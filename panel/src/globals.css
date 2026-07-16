@@ -194,36 +194,6 @@
         @apply block;
     }
 
-    /* Since this is going to be repeated a lot, better to externalize the style */
-    .tx-playerlist {
-        & > .player {
-            @apply absolute top-0 left-0 flex w-full items-center gap-2 overflow-clip px-2 py-1;
-            @apply cursor-pointer rounded-md text-sm text-ellipsis whitespace-nowrap;
-            @apply hover:bg-secondary/50 transition-colors duration-75;
-
-            & > .tag-stripe {
-                @apply h-4 w-0.5 shrink-0 rounded-full;
-            }
-
-            & > .pid-block {
-                @apply inline-block shrink-0 text-right;
-
-                & > .pid-badge {
-                    @apply font-mono text-[11px] tabular-nums;
-                    @apply text-muted-foreground/60;
-                }
-            }
-
-            & > .pname {
-                @apply min-w-0 flex-1 truncate font-medium;
-            }
-
-            & > .player-tag {
-                @apply shrink-0 rounded px-1.5 py-px text-[9px] font-semibold tracking-[0.06em] uppercase;
-            }
-        }
-    }
-
     /* Blurs the text input when filled and not focused */
     .blur-input:not(:focus):not(:placeholder-shown) {
         color: transparent !important;

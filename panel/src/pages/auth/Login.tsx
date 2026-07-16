@@ -78,7 +78,7 @@ export default function Login() {
     const [credentials, setCredentials] = useState(readStoredCredentials);
     const [errorMessage, setErrorMessage] = useState<string | undefined>(() => readHashErrorMessage(t));
     const [isFetching, setIsFetching] = useState(false);
-    const [fetchingAction, setFetchingAction] = useState<'' | 'login' | 'discourse' | 'discord'>('');
+    const [fetchingAction, setFetchingAction] = useState<'' | 'login' | 'cfxre' | 'discord'>('');
     const setLocation = useLocation()[1];
     const { username, password } = credentials;
 
@@ -130,12 +130,12 @@ export default function Login() {
         }
     };
 
-    const handleDiscourseRedirect = async () => {
+    const handleCfxreRedirect = async () => {
         try {
             setIsFetching(true);
-            setFetchingAction('discourse');
+            setFetchingAction('cfxre');
             const data = await fetchWithTimeout<ApiOauthRedirectResp>(
-                `/auth/discourse/redirect?origin=${encodeURIComponent(window.location.origin)}`,
+                `/auth/cfxre/redirect?origin=${encodeURIComponent(window.location.origin)}`,
             );
             if ('error' in data) {
                 onErrorResponse(data.error);
@@ -265,9 +265,9 @@ export default function Login() {
                     variant="outline"
                     type="button"
                     disabled={isFetching}
-                    onClick={handleDiscourseRedirect}
+                    onClick={handleCfxreRedirect}
                 >
-                    {fetchingAction === 'discourse' ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+                    {fetchingAction === 'cfxre' ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
                     <span className="mr-2 font-bold text-[#F40552]">cfx</span>
                     {t('panel.auth.login.cfx_account')}
                 </Button>

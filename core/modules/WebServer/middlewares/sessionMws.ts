@@ -26,8 +26,8 @@ export type AddMasterUserInfoType = {
 export type ValidSessionType = {
     auth?: PassSessAuthType | CfxreSessAuthType | DiscordSessAuthType | Pending2faSessAuthType;
     tmpAddMasterUserInfo?: AddMasterUserInfoType;
-    tmpDiscourseNonce?: string; //uuid v4
-    tmpDiscoursePrivateKey?: string; //PEM-encoded RSA private key
+    tmpOauthLoginState?: string; //uuid v4, CitizenFX (Cfx.re) OIDC state
+    tmpOauthLoginCallbackUri?: string; //redirect URI bound at authorize time
     tmpDiscordOAuthState?: string; //uuid v4
     tmpDiscordRedirectUri?: string; //redirect URI bound at authorize time
     tmpTotpSecret?: string; //pending TOTP secret during 2FA setup

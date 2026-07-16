@@ -42,7 +42,7 @@ export function PlayerlistSidebar({ isSheet }: PlayerSidebarProps) {
                         ? 'flex h-screen w-full'
                         : cn(
                               'tx-sidebar h-contentvh shell-lg:flex hidden',
-                              'bg-card text-card-foreground border-border/60 rounded-2xl border shadow-sm',
+                              'bg-background border-border/80 rounded-xl border',
                               isCollapsed ? 'w-(--tx-playerlist-collapsed-width)' : 'w-(--tx-playerlist-width)',
                           ),
                 )}

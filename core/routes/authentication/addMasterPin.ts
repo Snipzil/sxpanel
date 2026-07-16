@@ -3,8 +3,7 @@ import { InitializedCtx } from '@modules/WebServer/ctxTypes';
 import consoleFactory from '@lib/console';
 import { ApiOauthRedirectResp } from '@shared/authApiTypes';
 import { addMasterPinBodySchema as bodySchema } from '@shared/authApiSchemas';
-import { randomUUID } from 'node:crypto';
-import { generateKeyPair, getDiscourseAuthUrl } from '@modules/AdminStore/providers/DiscourseUser';
+import { getOauthRedirectUrl } from './oauthMethods';
 const console = consoleFactory(modulename);
 
 /**
@@ -13,7 +12,7 @@ const console = consoleFactory(modulename);
 export default async function AuthAddMasterPin(ctx: InitializedCtx) {
     const body = ctx.getBody(bodySchema);
     if (!body) return;
-    const { pin } = body;
+    const { pin, origin } = body;
 
     //Check if there are already admins set up
     if (txCore.adminStore.hasAdmins()) {
@@ -29,19 +28,8 @@ export default async function AuthAddMasterPin(ctx: InitializedCtx) {
         });
     }
 
-    //Generate keypair and nonce
-    const { publicKey, privateKey } = generateKeyPair();
-    const nonce = randomUUID();
-    const callbackUrl = `${ctx.origin}/addMaster/callback`;
-
-    //Store in session for later decryption
-    ctx.sessTools.set({
-        tmpDiscourseNonce: nonce,
-        tmpDiscoursePrivateKey: privateKey,
-    });
-
-    //Generate Discourse auth URL
-    const authUrl = getDiscourseAuthUrl(publicKey, nonce, callbackUrl);
+    const callbackUrl = origin + '/addMaster/callback';
+    const authUrl = getOauthRedirectUrl(ctx, callbackUrl);
 
     return ctx.send<ApiOauthRedirectResp>({
         authUrl,

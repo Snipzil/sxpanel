@@ -28,7 +28,7 @@ function reduceAddMasterPinState(state: AddMasterPinState, action: Partial<AddMa
 const isAllowedMasterOAuthRedirect = (value: string) => {
     try {
         const parsed = new URL(value);
-        return parsed.protocol === 'https:' && parsed.hostname === 'forum.cfx.re';
+        return parsed.protocol === 'https:' && parsed.hostname === 'idms.fivem.net';
     } catch {
         return false;
     }

@@ -28,7 +28,7 @@ export const addMasterPinBodySchema = z.object({
 export type ApiAddMasterPinReqSchema = z.infer<typeof addMasterPinBodySchema>;
 
 export const addMasterCallbackBodySchema = z.object({
-    payload: z.string().min(1),
+    redirectUri: z.string(),
 });
 export type ApiAddMasterCallbackReqSchema = z.infer<typeof addMasterCallbackBodySchema>;
 
@@ -65,14 +65,15 @@ export const totpDisableBodySchema = z.object({
     code: z.string().trim().min(1),
 });
 
-// Discourse OAuth
-export const discourseRedirectQuerySchema = z.object({
+// Cfx.re (CitizenFX) OAuth
+export const cfxreRedirectQuerySchema = z.object({
     origin: z.string(),
 });
 
-export const discourseCallbackBodySchema = z.object({
-    payload: z.string().min(1),
+export const cfxreCallbackBodySchema = z.object({
+    redirectUri: z.string(),
 });
+export type ApiOauthCallbackReqSchema = z.infer<typeof cfxreCallbackBodySchema>;
 
 // Discord OAuth
 export const discordRedirectQuerySchema = z.object({

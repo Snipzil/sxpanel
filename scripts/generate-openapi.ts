@@ -29,8 +29,8 @@ import {
     totpConfirmBodySchema,
     totpVerifyBodySchema,
     totpDisableBodySchema,
-    discourseRedirectQuerySchema,
-    discourseCallbackBodySchema,
+    cfxreRedirectQuerySchema,
+    cfxreCallbackBodySchema,
 } from '../shared/authApiSchemas.js';
 
 import {
@@ -65,10 +65,10 @@ registry.registerPath({
 registry.registerPath({
     method: 'post',
     path: '/auth/addMaster/callback',
-    summary: 'Handle Discourse OAuth callback for master setup',
+    summary: 'Handle CitizenFX (Cfx.re) OAuth callback for master setup',
     tags: ['Authentication'],
     request: { body: { content: { 'application/json': { schema: addMasterCallbackBodySchema } } } },
-    responses: { 200: { description: 'Discourse user data or error' } },
+    responses: { 200: { description: 'CitizenFX user data or error' } },
 });
 
 registry.registerPath({
@@ -100,19 +100,19 @@ registry.registerPath({
 
 registry.registerPath({
     method: 'get',
-    path: '/auth/discourse/redirect',
-    summary: 'Get Discourse OAuth redirect URL',
+    path: '/auth/cfxre/redirect',
+    summary: 'Get CitizenFX (Cfx.re) OAuth redirect URL',
     tags: ['Authentication'],
-    request: { query: discourseRedirectQuerySchema },
+    request: { query: cfxreRedirectQuerySchema },
     responses: { 200: { description: 'OAuth redirect URL or error' } },
 });
 
 registry.registerPath({
     method: 'post',
-    path: '/auth/discourse/callback',
-    summary: 'Handle Discourse OAuth callback',
+    path: '/auth/cfxre/callback',
+    summary: 'Handle CitizenFX (Cfx.re) OAuth callback',
     tags: ['Authentication'],
-    request: { body: { content: { 'application/json': { schema: discourseCallbackBodySchema } } } },
+    request: { body: { content: { 'application/json': { schema: cfxreCallbackBodySchema } } } },
     responses: { 200: { description: 'Auth data or error' } },
 });
 

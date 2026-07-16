@@ -15,7 +15,7 @@ import {
 } from '@shared/authApiTypes';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { AuthError, processFetchError, type AuthErrorData } from './errors';
+import { AuthError, getCommonOauthCallbackError, processFetchError, type AuthErrorData } from './errors';
 import GenericSpinner from '@/components/GenericSpinner';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import consts from '@shared/consts';
@@ -298,18 +298,9 @@ export default function AddMasterCallback() {
     const submitCallback = async () => {
         try {
             setIsFetching(true);
-            const params = new URLSearchParams(window.location.search);
-            const payload = params.get('payload');
-            if (!payload) {
-                setErrorData({
-                    errorTitle: t('panel.auth.add_master.callback.missing_payload_title'),
-                    errorMessage: t('panel.auth.add_master.callback.missing_payload_message'),
-                });
-                return;
-            }
             const data = await fetchWithTimeout<ApiAddMasterCallbackResp>(`/auth/addMaster/callback`, {
                 method: 'POST',
-                body: { payload },
+                body: { redirectUri: window.location.href },
             });
             if ('errorCode' in data || 'errorTitle' in data) {
                 setErrorData(data);
@@ -326,6 +317,11 @@ export default function AddMasterCallback() {
     useEffect(() => {
         if (fivemData || hasPendingMutation.current) return;
         hasPendingMutation.current = true;
+        const oauthError = getCommonOauthCallbackError();
+        if (oauthError) {
+            setErrorData(oauthError);
+            return;
+        }
         submitCallback();
     }, []);
 

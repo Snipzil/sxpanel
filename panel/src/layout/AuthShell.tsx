@@ -1,7 +1,7 @@
 import { Route, Switch, useLocation } from 'wouter';
 import Login from '../pages/auth/Login';
 import TotpVerify from '../pages/auth/TotpVerify';
-import DiscourseCallback from '../pages/auth/DiscourseCallback';
+import CfxreCallback from '../pages/auth/CfxreCallback';
 import DiscordCallback from '../pages/auth/DiscordCallback';
 import AddMasterPin from '../pages/auth/AddMasterPin';
 import AddMasterCallback from '../pages/auth/AddMasterCallback';
@@ -143,9 +143,9 @@ export default function AuthShell() {
                         <Route path="/login/totp">
                             <TotpVerify />
                         </Route>
-                        <Route path="/login/discourse/callback">
+                        <Route path="/login/callback">
                             <AuthContentWrapper>
-                                <DiscourseCallback />
+                                <CfxreCallback />
                             </AuthContentWrapper>
                         </Route>
                         <Route path="/login/discord/callback">
