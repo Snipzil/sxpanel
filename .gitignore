@@ -3,6 +3,7 @@ db/*
 cache/*
 monitor/*
 monitor.zip
+monitor.zip.sha256
 
 ## Local-only V1/V2 design experiment (do not commit)
 ##
