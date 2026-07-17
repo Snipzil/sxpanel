@@ -43,7 +43,7 @@ export function PlayerDropsHeaderBand({
     const pill = (label: string, value: number | undefined, Icon: typeof DoorOpenIcon) => (
         <div
             className={cn(
-                'border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
+                'border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
                 value === undefined && 'opacity-60',
             )}
         >
@@ -56,12 +56,12 @@ export function PlayerDropsHeaderBand({
     );
 
     return (
-        <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background rounded-xl border">
             {/* Title + stats row */}
             <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <TrendingDownIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <TrendingDownIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
@@ -89,7 +89,7 @@ export function PlayerDropsHeaderBand({
                     <div
                         role="radiogroup"
                         aria-label="Timeline resolution"
-                        className="border-border/60 bg-muted/40 inline-flex items-center rounded-full border p-0.5"
+                        className="border-border/60 bg-secondary/30 inline-flex items-center rounded-full border p-0.5"
                     >
                         <LensSegment active={displayLod === 'hour'} onClick={() => setDisplayLod('hour')}>
                             Hours
@@ -101,7 +101,7 @@ export function PlayerDropsHeaderBand({
 
                     {/* Drilldown interval buttons */}
                     <div
-                        className="border-border/60 bg-muted/40 inline-flex items-center gap-0.5 rounded-full border p-0.5"
+                        className="border-border/60 bg-secondary/30 inline-flex items-center gap-0.5 rounded-full border p-0.5"
                         role="group"
                         aria-label="Drilldown range"
                     >

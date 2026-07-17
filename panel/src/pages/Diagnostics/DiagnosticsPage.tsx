@@ -76,10 +76,10 @@ function DiagnosticsCard({
     className?: string;
 }) {
     return (
-        <div className={cn('border-border/60 bg-card rounded-xl border shadow-sm', className)}>
+        <div className={cn('border-border/60 bg-background rounded-xl border', className)}>
             <div className="border-border/40 flex flex-wrap items-start gap-3 border-b p-4">
-                <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-lg">
-                    <Icon className="text-foreground size-4" />
+                <div className="bg-secondary/50 text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+                    <Icon className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                     <h2 className="text-foreground text-sm font-semibold">{title}</h2>
@@ -103,7 +103,7 @@ function DiagnosticsMetricCard({
     tone?: string;
 }) {
     return (
-        <div className="bg-muted/25 border-border/50 rounded-lg border p-3">
+        <div className="bg-secondary/40 border-border/50 rounded-lg border p-3">
             <p className="text-muted-foreground/60 text-[11px] font-semibold tracking-widest uppercase">{label}</p>
             <p className={cn('mt-2 text-2xl font-semibold tabular-nums', tone ?? 'text-foreground')}>{value}</p>
             {detail ? <p className="text-muted-foreground mt-1 text-xs">{detail}</p> : null}
@@ -113,7 +113,7 @@ function DiagnosticsMetricCard({
 
 function DiagnosticsMiniCard({ title, children }: { title: string; children: ReactNode }) {
     return (
-        <div className="bg-muted/20 border-border/50 rounded-lg border p-3">
+        <div className="bg-secondary/40 border-border/50 rounded-lg border p-3">
             <h3 className="text-muted-foreground/60 mb-2 text-[11px] font-semibold tracking-widest uppercase">
                 {title}
             </h3>
@@ -466,7 +466,7 @@ export default function DiagnosticsPage() {
                         onResync={() => handleBotAction('resync')}
                     />
 
-                    <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+                    <div className="border-border/60 bg-background rounded-xl border p-4">
                         <div className="grid gap-3 xl:grid-cols-2">
                             <DiagnosticsMiniCard title="Bridge health">
                                 <KeyValueRow label="Connected" value={discordBot.bridge.isConnected ? 'Yes' : 'No'} />
@@ -669,10 +669,10 @@ export default function DiagnosticsPage() {
                 </TabsContent>
 
                 <TabsContent value="commandAnalytics" className="mt-0 space-y-4">
-                    <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+                    <div className="border-border/60 bg-background rounded-xl border p-4">
                         <div className="mb-4 flex flex-wrap items-start gap-3">
-                            <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-lg">
-                                <BarChart3Icon className="text-foreground size-4" />
+                            <div className="bg-secondary/50 text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+                                <BarChart3Icon className="size-4" />
                             </div>
                             <div>
                                 <h2 className="text-foreground text-sm font-semibold">Discord command analytics</h2>
@@ -720,7 +720,7 @@ export default function DiagnosticsPage() {
                     </div>
 
                     <div className="grid gap-4 xl:grid-cols-2">
-                        <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+                        <div className="border-border/60 bg-background rounded-xl border p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <SectionLabel>Outcome breakdown</SectionLabel>
                                 <span className="text-muted-foreground text-xs">{commandOverview.total} recorded</span>
@@ -759,7 +759,7 @@ export default function DiagnosticsPage() {
                             </div>
                         </div>
 
-                        <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+                        <div className="border-border/60 bg-background rounded-xl border p-4">
                             <SectionLabel>Rollups</SectionLabel>
                             <div className="mt-3 grid gap-3 md:grid-cols-2">
                                 <DiagnosticsMiniCard title="Last 7 days">
@@ -805,7 +805,7 @@ export default function DiagnosticsPage() {
                     </div>
 
                     <div className="grid gap-4 xl:grid-cols-2">
-                        <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+                        <div className="border-border/60 bg-background rounded-xl border p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <SectionLabel>Denial reasons</SectionLabel>
                                 <span className="text-muted-foreground text-xs">{commandOverview.denied} denied</span>
@@ -844,7 +844,7 @@ export default function DiagnosticsPage() {
                             )}
                         </div>
 
-                        <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+                        <div className="border-border/60 bg-background rounded-xl border p-4">
                             <SectionLabel>Daily outcomes</SectionLabel>
                             <div className="border-border/60 mt-3 overflow-x-auto rounded-lg border">
                                 <table className="w-full text-sm">
@@ -888,7 +888,7 @@ export default function DiagnosticsPage() {
                         </div>
                     </div>
 
-                    <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+                    <div className="border-border/60 bg-background rounded-xl border p-4">
                         <div className="mb-3 flex items-center justify-between gap-3">
                             <SectionLabel>Command breakdown</SectionLabel>
                             <span className="text-muted-foreground text-xs">

@@ -47,8 +47,8 @@ function StatCard({
     iconClass?: string;
 }) {
     return (
-        <div className="border-border/60 bg-card flex items-center gap-3 rounded-xl border p-4 shadow-sm">
-            <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-lg">
+        <div className="border-border/60 bg-background flex items-center gap-3 rounded-xl border p-4">
+            <div className="bg-secondary/50 flex size-10 shrink-0 items-center justify-center rounded-lg">
                 <Icon className={cn('size-5', iconClass ?? 'text-muted-foreground')} />
             </div>
             <div className="min-w-0">
@@ -63,7 +63,7 @@ function StatCard({
 
 function MetricTile({ label, value }: { label: string; value: string | number }) {
     return (
-        <div className="border-border/50 bg-muted/15 rounded-lg border p-3">
+        <div className="border-border/50 bg-secondary/40 rounded-lg border p-3">
             <p className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">{label}</p>
             <p className="text-foreground mt-0.5 text-xl font-semibold tabular-nums">{value}</p>
         </div>
@@ -120,7 +120,7 @@ function StaffLeaderboard({ leaderboard }: { leaderboard: TicketAnalyticsSummary
     if (leaderboard.length === 0) return null;
 
     return (
-        <Card className="border-border/60 rounded-xl shadow-sm">
+        <Card className="border-border/60 bg-background rounded-xl shadow-none">
             <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                     <TrophyIcon className="text-warning-inline size-4" />
@@ -195,7 +195,7 @@ function RollupCard({
 }) {
     const { t } = useLocale();
     return (
-        <Card className="border-border/60 rounded-xl shadow-sm">
+        <Card className="border-border/60 bg-background rounded-xl shadow-none">
             <CardHeader className="pb-2">
                 <CardTitle className="text-base">{title}</CardTitle>
             </CardHeader>
@@ -232,11 +232,11 @@ export default function AnalyticsPage() {
     return (
         <div className="h-contentvh flex w-full flex-col">
             {/* Header band */}
-            <div className="border-border/60 bg-card mb-4 shrink-0 rounded-xl border shadow-sm">
+            <div className="border-border/60 bg-background mb-4 shrink-0 rounded-xl border">
                 <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
-                        <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                            <BarChart3Icon className="text-foreground size-5" />
+                        <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                            <BarChart3Icon className="size-5" />
                         </div>
                         <div className="min-w-0">
                             <h1 className="text-foreground text-lg font-semibold tracking-tight">
@@ -248,7 +248,7 @@ export default function AnalyticsPage() {
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        <div className="border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+                        <div className="border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
                             <InboxIcon className="text-muted-foreground size-3.5 shrink-0" />
                             <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">
                                 {t('panel.reports.analytics.total_tickets')}
@@ -262,7 +262,7 @@ export default function AnalyticsPage() {
                                 'inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
                                 summary && resolutionRate >= 50
                                     ? 'border-success/40 bg-success/10'
-                                    : 'border-border/50 bg-muted/15',
+                                    : 'border-border/50 bg-secondary/40',
                             )}
                         >
                             <TrendingUpIcon
@@ -302,7 +302,7 @@ export default function AnalyticsPage() {
 
             <div className="min-h-0 flex-1 overflow-auto pb-4">
                 {isLoading ? (
-                    <div className="border-border/60 bg-card flex h-64 flex-col items-center justify-center gap-3 rounded-xl border shadow-sm">
+                    <div className="border-border/60 bg-background flex h-64 flex-col items-center justify-center gap-3 rounded-xl border">
                         <Loader2Icon className="text-muted-foreground size-6 animate-spin" />
                         <p className="text-muted-foreground text-sm">Loading analytics…</p>
                     </div>
@@ -318,14 +318,23 @@ export default function AnalyticsPage() {
                         </Button>
                     </div>
                 ) : (
-                    <AnalyticsContent summary={summary} resolutionRate={resolutionRate} />
+                    <AnalyticsContent summary={summary} />
                 )}
             </div>
         </div>
     );
 }
 
-function AnalyticsContent({ summary, resolutionRate }: { summary: TicketAnalyticsSummary; resolutionRate: number }) {
+function SectionHeading({ title, desc }: { title: string; desc: string }) {
+    return (
+        <div>
+            <h2 className="text-foreground text-base font-semibold tracking-tight">{title}</h2>
+            <p className="text-muted-foreground text-sm">{desc}</p>
+        </div>
+    );
+}
+
+function AnalyticsContent({ summary }: { summary: TicketAnalyticsSummary }) {
     const { t } = useLocale();
     const { overview, byCategory, byPriority, timelineDays, leaderboard, staffMetrics, rollups } = summary;
 
@@ -356,22 +365,16 @@ function AnalyticsContent({ summary, resolutionRate }: { summary: TicketAnalytic
         },
     ];
 
-    return (
-        <div className="space-y-4">
-            <section aria-label={t('panel.reports.analytics.ticket_queue_title')} className="space-y-3">
-                <div>
-                    <h2 className="text-foreground text-base font-semibold tracking-tight">
-                        {t('panel.reports.analytics.ticket_queue_title')}
-                    </h2>
-                    <p className="text-muted-foreground text-sm">{t('panel.reports.analytics.ticket_queue_desc')}</p>
-                </div>
+    const hasBreakdown = byCategory.length > 0 || byPriority.length > 0;
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    <StatCard
-                        icon={InboxIcon}
-                        label={t('panel.reports.analytics.total_tickets')}
-                        value={overview.total}
-                    />
+    return (
+        <div className="space-y-8">
+            <section aria-label={t('panel.reports.analytics.ticket_queue_title')} className="space-y-3">
+                <SectionHeading
+                    title={t('panel.reports.analytics.ticket_queue_title')}
+                    desc={t('panel.reports.analytics.ticket_queue_desc')}
+                />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <StatCard
                         icon={ClockIcon}
                         label={t('panel.reports.status.open')}
@@ -396,19 +399,82 @@ function AnalyticsContent({ summary, resolutionRate }: { summary: TicketAnalytic
                         value={overview.closed}
                         iconClass="text-muted-foreground"
                     />
-                    <StatCard
-                        icon={TrendingUpIcon}
-                        label={t('panel.reports.analytics.resolution_rate')}
-                        value={`${resolutionRate}%`}
-                        iconClass="text-success-inline"
-                    />
                 </div>
+            </section>
 
+            <section aria-label={t('panel.reports.analytics.recent_activity_title')} className="space-y-3">
+                <SectionHeading
+                    title={t('panel.reports.analytics.recent_activity_title')}
+                    desc={t('panel.reports.analytics.recent_activity_desc')}
+                />
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <RollupCard title={t('panel.reports.analytics.rollup_7d')} rollup={rollups['7d']} />
                     <RollupCard title={t('panel.reports.analytics.rollup_30d')} rollup={rollups['30d']} />
                 </div>
 
+                <Card className="border-border/60 bg-background rounded-xl shadow-none">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{t('panel.reports.analytics.daily_activity')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="border-border/60 overflow-hidden rounded-lg border">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/30">
+                                        <th
+                                            scope="col"
+                                            className="text-muted-foreground px-3 py-2 text-left text-xs font-semibold tracking-wider uppercase"
+                                        >
+                                            {t('panel.reports.analytics.col_date')}
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="text-muted-foreground px-3 py-2 text-right text-xs font-semibold tracking-wider uppercase"
+                                        >
+                                            {t('panel.reports.analytics.col_created')}
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="text-muted-foreground px-3 py-2 text-right text-xs font-semibold tracking-wider uppercase"
+                                        >
+                                            {t('panel.reports.analytics.col_resolved')}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {timelineDays.slice(-14).map((day, i) => (
+                                        <tr
+                                            key={day.date}
+                                            className={cn('border-border/40 border-t', i % 2 === 1 && 'bg-muted/10')}
+                                        >
+                                            <td className="text-muted-foreground px-3 py-1.5 tabular-nums">
+                                                {day.date}
+                                            </td>
+                                            <td className="px-3 py-1.5 text-right tabular-nums">{day.created}</td>
+                                            <td className="text-success-inline px-3 py-1.5 text-right tabular-nums">
+                                                {day.resolved}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {timelineDays.length === 0 && (
+                                        <tr>
+                                            <td colSpan={3} className="text-muted-foreground px-3 py-4 text-center">
+                                                {t('panel.reports.analytics.no_data')}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            </section>
+
+            <section aria-label={t('panel.reports.analytics.staff_performance_title')} className="space-y-3">
+                <SectionHeading
+                    title={t('panel.reports.analytics.staff_performance_title')}
+                    desc={t('panel.reports.analytics.staff_performance_desc')}
+                />
                 <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                     <StatCard
                         icon={ClockIcon}
@@ -435,130 +501,8 @@ function AnalyticsContent({ summary, resolutionRate }: { summary: TicketAnalytic
                     />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <Card className="border-border/60 rounded-xl shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base">{t('panel.reports.analytics.daily_activity')}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="border-border/60 overflow-hidden rounded-lg border">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="bg-muted/30">
-                                            <th
-                                                scope="col"
-                                                className="text-muted-foreground px-3 py-2 text-left text-xs font-semibold tracking-wider uppercase"
-                                            >
-                                                {t('panel.reports.analytics.col_date')}
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="text-muted-foreground px-3 py-2 text-right text-xs font-semibold tracking-wider uppercase"
-                                            >
-                                                {t('panel.reports.analytics.col_created')}
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="text-muted-foreground px-3 py-2 text-right text-xs font-semibold tracking-wider uppercase"
-                                            >
-                                                {t('panel.reports.analytics.col_resolved')}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {timelineDays.slice(-14).map((day, i) => (
-                                            <tr
-                                                key={day.date}
-                                                className={cn(
-                                                    'border-border/40 border-t',
-                                                    i % 2 === 1 && 'bg-muted/10',
-                                                )}
-                                            >
-                                                <td className="text-muted-foreground px-3 py-1.5 tabular-nums">
-                                                    {day.date}
-                                                </td>
-                                                <td className="px-3 py-1.5 text-right tabular-nums">{day.created}</td>
-                                                <td className="text-success-inline px-3 py-1.5 text-right tabular-nums">
-                                                    {day.resolved}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {timelineDays.length === 0 && (
-                                            <tr>
-                                                <td colSpan={3} className="text-muted-foreground px-3 py-4 text-center">
-                                                    {t('panel.reports.analytics.no_data')}
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <div className="space-y-4">
-                        {byCategory.length > 0 && (
-                            <Card className="border-border/60 rounded-xl shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="flex items-center gap-2 text-base">
-                                        <TagIcon className="text-muted-foreground size-4" />
-                                        {t('panel.reports.analytics.by_category')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-2.5">
-                                        {byCategory.map((row) => {
-                                            const pct =
-                                                staffMetrics.ticketsCreated > 0
-                                                    ? Math.round((row.count / staffMetrics.ticketsCreated) * 100)
-                                                    : 0;
-                                            return (
-                                                <div key={row.category}>
-                                                    <div className="mb-1 flex justify-between text-sm">
-                                                        <span className="text-foreground truncate">{row.category}</span>
-                                                        <span className="text-muted-foreground shrink-0 tabular-nums">
-                                                            {row.count} ({pct}%)
-                                                        </span>
-                                                    </div>
-                                                    <ProgressBar
-                                                        pct={pct}
-                                                        label={`${row.category}: ${pct}%`}
-                                                        barClass="bg-primary"
-                                                    />
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                        {byPriority.length > 0 && (
-                            <Card className="border-border/60 rounded-xl shadow-sm">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-base">
-                                        {t('panel.reports.analytics.by_priority')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-wrap gap-2">
-                                    {byPriority.map((row) => (
-                                        <div
-                                            key={row.priority}
-                                            className="border-border/50 bg-muted/15 flex flex-1 flex-col items-center rounded-lg border p-3"
-                                        >
-                                            <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">
-                                                {row.priority}
-                                            </span>
-                                            <span className="text-foreground text-lg font-bold tabular-nums">
-                                                {row.count}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-
-                    <Card className="border-border/60 rounded-xl shadow-sm">
+                <div className={cn('grid grid-cols-1 gap-4', leaderboard.length > 0 && 'lg:grid-cols-2')}>
+                    <Card className="border-border/60 bg-background rounded-xl shadow-none">
                         <CardHeader className="pb-2">
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <TrendingUpIcon className="text-muted-foreground size-4" />
@@ -614,10 +558,85 @@ function AnalyticsContent({ summary, resolutionRate }: { summary: TicketAnalytic
                             </div>
                         </CardContent>
                     </Card>
-                </div>
 
-                <StaffLeaderboard leaderboard={leaderboard} />
+                    <StaffLeaderboard leaderboard={leaderboard} />
+                </div>
             </section>
+
+            {hasBreakdown && (
+                <section aria-label={t('panel.reports.analytics.ticket_breakdown_title')} className="space-y-3">
+                    <SectionHeading
+                        title={t('panel.reports.analytics.ticket_breakdown_title')}
+                        desc={t('panel.reports.analytics.ticket_breakdown_desc')}
+                    />
+                    <div
+                        className={cn(
+                            'grid grid-cols-1 gap-4',
+                            byCategory.length > 0 && byPriority.length > 0 && 'lg:grid-cols-2',
+                        )}
+                    >
+                        {byCategory.length > 0 && (
+                            <Card className="border-border/60 bg-background rounded-xl shadow-none">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <TagIcon className="text-muted-foreground size-4" />
+                                        {t('panel.reports.analytics.by_category')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-2.5">
+                                        {byCategory.map((row) => {
+                                            const pct =
+                                                staffMetrics.ticketsCreated > 0
+                                                    ? Math.round((row.count / staffMetrics.ticketsCreated) * 100)
+                                                    : 0;
+                                            return (
+                                                <div key={row.category}>
+                                                    <div className="mb-1 flex justify-between text-sm">
+                                                        <span className="text-foreground truncate">{row.category}</span>
+                                                        <span className="text-muted-foreground shrink-0 tabular-nums">
+                                                            {row.count} ({pct}%)
+                                                        </span>
+                                                    </div>
+                                                    <ProgressBar
+                                                        pct={pct}
+                                                        label={`${row.category}: ${pct}%`}
+                                                        barClass="bg-primary"
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {byPriority.length > 0 && (
+                            <Card className="border-border/60 bg-background rounded-xl shadow-none">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-base">
+                                        {t('panel.reports.analytics.by_priority')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-wrap gap-2">
+                                    {byPriority.map((row) => (
+                                        <div
+                                            key={row.priority}
+                                            className="border-border/50 bg-secondary/40 flex flex-1 flex-col items-center rounded-lg border p-3"
+                                        >
+                                            <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">
+                                                {row.priority}
+                                            </span>
+                                            <span className="text-foreground text-lg font-bold tabular-nums">
+                                                {row.count}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

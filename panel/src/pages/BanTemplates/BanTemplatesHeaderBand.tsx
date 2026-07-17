@@ -29,7 +29,7 @@ export function BanTemplatesHeaderBand({
     const pill = (label: string, value: number | undefined, Icon: typeof ListIcon) => (
         <div
             className={cn(
-                'border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
+                'border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
                 value === undefined && 'opacity-60',
             )}
         >
@@ -42,11 +42,11 @@ export function BanTemplatesHeaderBand({
     );
 
     return (
-        <div className="border-border/60 bg-card mb-4 rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background mb-4 rounded-xl border">
             <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <Settings2Icon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <Settings2Icon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-baseline gap-1.5">
@@ -82,7 +82,7 @@ function SaveStatusPill({ status }: { status: BanTemplatesSaveStatus }) {
     if (status === 'saving' || status === 'loading') {
         return (
             <div
-                className="border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
+                className="border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5"
                 role="status"
             >
                 <Loader2Icon className="text-muted-foreground size-3.5 animate-spin" />

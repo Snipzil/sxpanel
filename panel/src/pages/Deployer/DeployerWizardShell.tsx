@@ -26,11 +26,11 @@ export function DeployerWizardShell({
     return (
         <div className="mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col gap-3">
             {/* Header band with integrated stepper */}
-            <div className="border-border/60 bg-card shrink-0 rounded-xl border shadow-sm">
+            <div className="border-border/60 bg-background shrink-0 rounded-xl border">
                 <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
-                        <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                            <RocketIcon className="text-foreground size-5" />
+                        <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                            <RocketIcon className="size-5" />
                         </div>
                         <div className="min-w-0">
                             <h1 className="text-foreground truncate text-lg font-semibold tracking-tight">
@@ -53,7 +53,7 @@ export function DeployerWizardShell({
             </div>
 
             {/* Step content card */}
-            <div className="border-border/60 bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border p-4 shadow-sm">
+            <div className="border-border/60 bg-background flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border p-4">
                 {children}
             </div>
         </div>

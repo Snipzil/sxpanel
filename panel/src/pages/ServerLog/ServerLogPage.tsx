@@ -96,7 +96,7 @@ export default function ServerLogPage() {
             />
 
             <TooltipProvider delayDuration={300}>
-                <div className="bg-card border-border/60 relative flex w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+                <div className="bg-background border-border/60 relative flex w-full flex-1 flex-col overflow-hidden rounded-xl border">
                     <ServerLogToolbar
                         isLive={log.isLive}
                         isConnected={log.isConnected}

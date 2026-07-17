@@ -333,7 +333,7 @@ export function HistoryList({ search, filterByType, filterByAdmin }: HistoryList
 
     return (
         <div
-            className="border-border/60 bg-card flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm"
+            className="border-border/60 bg-background flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border"
             style={{ overflowAnchor: 'none' }}
             ref={rootRef}
         >

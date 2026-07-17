@@ -173,7 +173,7 @@ function AdminsTab({
     return (
         <TabsContent value="admins" className="mt-0 flex flex-col gap-4">
             {canManage && (
-                <div className="bg-card border-border/60 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 shadow-sm">
+                <div className="bg-background border-border/60 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3">
                     {selectMode ? (
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <span className="bg-primary/10 text-primary inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-xs font-semibold">
@@ -224,7 +224,7 @@ function AdminsTab({
             )}
 
             {isLoading ? (
-                <div className="bg-card border-border/60 flex items-center justify-center rounded-xl border py-16 shadow-sm">
+                <div className="bg-background border-border/60 flex items-center justify-center rounded-xl border py-16">
                     <Loader2Icon className="text-muted-foreground size-8 animate-spin" />
                 </div>
             ) : adminsError ? (
@@ -232,7 +232,7 @@ function AdminsTab({
                     Failed to load admin list.
                 </div>
             ) : !admins || admins.length === 0 ? (
-                <div className="bg-card border-border/60 text-muted-foreground flex flex-col items-center justify-center gap-2 rounded-xl border py-16 text-sm shadow-sm">
+                <div className="bg-background border-border/60 text-muted-foreground flex flex-col items-center justify-center gap-2 rounded-xl border py-16 text-sm">
                     <CircleIcon className="size-8 opacity-20" />
                     No staff configured yet.
                 </div>

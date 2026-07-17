@@ -259,7 +259,7 @@ export default function CfgEditorPage() {
             )}
 
             {/* Monaco Editor */}
-            <div className="border-border/60 relative min-h-0 flex-1 overflow-hidden rounded-xl border shadow-sm">
+            <div className="border-border/60 bg-background relative min-h-0 flex-1 overflow-hidden rounded-xl border">
                 <div className="absolute inset-0">
                     <LazyMonacoEditor
                         height="100%"
@@ -285,11 +285,11 @@ export default function CfgEditorPage() {
 
 function HeaderBand({ title, hint, children }: { title: string; hint: string | null; children?: React.ReactNode }) {
     return (
-        <div className="border-border/60 bg-card shrink-0 rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background shrink-0 rounded-xl border">
             <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <FileCogIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <FileCogIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>

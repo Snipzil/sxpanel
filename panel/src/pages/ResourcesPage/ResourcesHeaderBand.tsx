@@ -35,7 +35,7 @@ export function ResourcesHeaderBand({
                     'inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
                     accented && accent === 'success' && 'border-success/30 bg-success/10',
                     accented && accent === 'warning' && 'border-warning/40 bg-warning/10',
-                    !accented && 'border-border/50 bg-muted/15',
+                    !accented && 'border-border/50 bg-secondary/40',
                     !show && 'opacity-60',
                 )}
             >
@@ -58,10 +58,10 @@ export function ResourcesHeaderBand({
     };
 
     return (
-        <div className="border-border/60 bg-card mb-4 rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background mb-4 rounded-xl border">
             <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-secondary/40 border-border/50 text-accent/80 flex size-10 shrink-0 items-center justify-center rounded-xl border">
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
                         <PackageIcon className="size-5" />
                     </div>
                     <div className="min-w-0">

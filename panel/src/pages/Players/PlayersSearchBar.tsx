@@ -117,7 +117,7 @@ export function PlayersSearchBar({ doSearch, initialState }: PlayersSearchBarPro
         : 'No filters';
 
     return (
-        <div className="border-border/60 bg-card text-card-foreground mb-4 rounded-xl border p-4 shadow-sm">
+        <div className="border-border/60 bg-background text-card-foreground mb-4 rounded-xl border p-4">
             <div className="flex flex-wrap-reverse gap-2">
                 <div className="relative min-w-44 grow">
                     <Input
