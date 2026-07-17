@@ -220,6 +220,21 @@ export function createAddon() {
         },
     };
 
+    // ============================================
+    // Tickets API (requires the `tickets.read` permission)
+    // ============================================
+    const tickets = {
+        findOne(ticketId) {
+            return apiCall('tickets.findOne', [ticketId]);
+        },
+        findByDiscordThread(threadId) {
+            return apiCall('tickets.findByDiscordThread', [threadId]);
+        },
+        resolveReporterDiscord(query) {
+            return apiCall('tickets.resolveReporterDiscord', [query]);
+        },
+    };
+
     function registerDeferralScenario({ id, label, description, group }) {
         const scenarioKey = String(id ?? '').trim();
         if (!scenarioKey) throw new Error('registerDeferralScenario: id is required');
@@ -565,6 +580,7 @@ export function createAddon() {
         },
         storage,
         players,
+        tickets,
         registerRoute,
         registerPublicRoute,
         ws,

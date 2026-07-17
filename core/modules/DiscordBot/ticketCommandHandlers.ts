@@ -1,4 +1,5 @@
 import { now } from '@lib/misc';
+import { broadcastTicketAddonEvent } from '@lib/addonEvents';
 import type { DatabaseTicketType } from '@shared/ticketApiTypes';
 import { emsg } from '@shared/emsg';
 import {
@@ -102,6 +103,11 @@ export const handleTicketThreadMessage = (message: BridgeMessage) => {
         };
         txCore.database.tickets.addMessage(ticket.id, ticketMessage);
         txCore.fxRunner.sendEvent('ticketNewMessage', {
+            ticketId: ticket.id,
+            reporterLicense: ticket.reporter.license,
+            message: ticketMessage,
+        });
+        broadcastTicketAddonEvent('ticketNewMessage', {
             ticketId: ticket.id,
             reporterLicense: ticket.reporter.license,
             message: ticketMessage,
@@ -212,6 +218,11 @@ export const handleTicketCommand = (message: BridgeMessage, deps: TicketCommandD
             nextClaimer ? `Claimed ticket ${ticket.id}.` : `Unclaimed ticket ${ticket.id}.`,
             nextClaimer ? 'ticket.claim' : 'ticket.unclaim',
         );
+        broadcastTicketAddonEvent('ticketClaimChanged', {
+            ticketId: ticket.id,
+            claimedBy: nextClaimer,
+            adminName,
+        });
 
         const updatedTicket = txCore.database.tickets.findOne(ticket.id) ?? {
             ...ticket,
@@ -260,6 +271,11 @@ export const handleTicketCommand = (message: BridgeMessage, deps: TicketCommandD
             details: assignee.name,
         });
         logDiscordAdminAction(adminName, `Assigned ticket ${ticket.id} to ${assignee.name}.`, 'ticket.assign');
+        broadcastTicketAddonEvent('ticketClaimChanged', {
+            ticketId: ticket.id,
+            claimedBy: assignee.name,
+            adminName,
+        });
 
         const updatedTicket = txCore.database.tickets.findOne(ticket.id) ?? {
             ...ticket,
@@ -306,6 +322,12 @@ export const handleTicketCommand = (message: BridgeMessage, deps: TicketCommandD
             action: 'resolved',
         });
         logDiscordAdminAction(adminName, `Resolved ticket ${ticket.id}.`, 'ticket.resolve');
+        broadcastTicketAddonEvent('ticketStatusChanged', {
+            ticketId: ticket.id,
+            status: 'resolved',
+            previousStatus: ticket.status,
+            adminName,
+        });
 
         const updatedTicket = txCore.database.tickets.findOne(ticket.id) ?? {
             ...ticket,
@@ -352,6 +374,12 @@ export const handleTicketCommand = (message: BridgeMessage, deps: TicketCommandD
             action: 'reopened',
         });
         logDiscordAdminAction(adminName, `Reopened ticket ${ticket.id}.`, 'ticket.reopen');
+        broadcastTicketAddonEvent('ticketStatusChanged', {
+            ticketId: ticket.id,
+            status: 'open',
+            previousStatus: ticket.status,
+            adminName,
+        });
 
         const updatedTicket = txCore.database.tickets.findOne(ticket.id) ?? {
             ...ticket,

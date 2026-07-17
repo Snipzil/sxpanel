@@ -2,6 +2,7 @@ const modulename = 'DiscordBot';
 import { randomUUID } from 'node:crypto';
 import { UpdateConfigKeySet } from '@modules/ConfigStore/utils';
 import consoleFactory from '@lib/console';
+import { broadcastTicketAddonEvent } from '@lib/addonEvents';
 import { DiscordBotStatus } from '@shared/enums';
 import type { DiscordGuildRoleOption } from '@shared/discordGuildRoles';
 import type { SystemLogEntry } from '@shared/systemLogTypes';
@@ -591,6 +592,11 @@ export default class DiscordBot {
         }
 
         txCore.database.tickets.setDiscordThread(ticket.id, response.threadId);
+        broadcastTicketAddonEvent('ticketDiscordLinked', {
+            ticketId: ticket.id,
+            discordThreadId: response.threadId,
+            channelId,
+        });
     }
 
     async postTicketThreadMessage(

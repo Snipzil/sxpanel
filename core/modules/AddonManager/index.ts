@@ -1047,12 +1047,13 @@ export default class AddonManager {
 
     /**
      * Broadcast an event to all running addon processes.
+     * When `requiredPermission` is given, only addons granted that permission receive the event.
      */
-    broadcastEvent(event: string, data: unknown): void {
+    broadcastEvent(event: string, data: unknown, requiredPermission?: string): void {
         for (const addon of this.addons.values()) {
-            if (addon.state === 'running' && addon.process) {
-                addon.process.sendEvent(event, data);
-            }
+            if (addon.state !== 'running' || !addon.process) continue;
+            if (requiredPermission && !addon.grantedPermissions.includes(requiredPermission)) continue;
+            addon.process.sendEvent(event, data);
         }
     }
 

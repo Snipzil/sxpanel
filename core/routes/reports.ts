@@ -6,6 +6,7 @@ import consoleFactory from '@lib/console';
 import { txEnv } from '@core/globalData';
 import { AuthedCtx, InitializedCtx } from '@modules/WebServer/ctxTypes';
 import { now } from '@lib/misc';
+import { broadcastTicketAddonEvent } from '@lib/addonEvents';
 import type {
     ApiGetTicketListResp,
     ApiGetTicketDetailResp,
@@ -571,6 +572,16 @@ export const ticketCreate = async (data: IntercomTicketCreateReq): Promise<ApiCr
             reporterName: data.reporter.name,
             description: data.description.trim(),
         });
+        broadcastTicketAddonEvent('ticketCreated', {
+            ticketId,
+            category: categoryLabel,
+            reporterName: data.reporter.name,
+            reporterLicense: data.reporter.license,
+            description: data.description.trim(),
+            targets: (data.targets ?? [])
+                .filter((t) => typeof t?.name === 'string')
+                .map((t) => ({ name: t.name, netid: t.netid ?? 0 })),
+        });
 
         txCore.logger.system.write(data.reporter.name, `Created ticket ${ticketId}.`, 'action', {
             actionId: 'ticket.create',
@@ -669,13 +680,14 @@ export const ticketPlayerMessage = (
         }
 
         const sanitizedImageUrls = sanitizeMessageImageUrls(imageUrls);
-        const success = txCore.database.tickets.addMessage(ticketId, {
+        const playerMessage = {
             author: ticket.reporter.name,
-            authorType: 'player',
+            authorType: 'player' as const,
             content: content.trim(),
             imageUrls: sanitizedImageUrls,
             ts: now(),
-        });
+        };
+        const success = txCore.database.tickets.addMessage(ticketId, playerMessage);
 
         if (!success) {
             return { error: 'Failed to add message.' };
@@ -684,6 +696,11 @@ export const ticketPlayerMessage = (
         txCore.discordBot
             .postTicketThreadMessage(ticketId, ticket.reporter.name, content.trim(), sanitizedImageUrls)
             .catch(() => {});
+        broadcastTicketAddonEvent('ticketNewMessage', {
+            ticketId: ticket.id,
+            reporterLicense: ticket.reporter.license,
+            message: playerMessage,
+        });
 
         return { success: true };
     } catch (error) {
@@ -782,6 +799,12 @@ function addTicketMessage(
         txCore.logger.system.write(adminName, `Marked ticket ${ticketId} in review.`, 'action', {
             actionId: 'ticket.in_review',
         });
+        broadcastTicketAddonEvent('ticketStatusChanged', {
+            ticketId,
+            status: 'inReview',
+            previousStatus: 'open',
+            adminName,
+        });
     }
 
     txCore.logger.system.write(adminName, `Replied to ticket ${ticketId}.`, 'action', {
@@ -797,6 +820,11 @@ function addTicketMessage(
     };
     txCore.discordBot.postTicketThreadMessage(ticketId, adminName, trimmed, sanitizedImageUrls).catch(() => {});
     notifyPlayerNewMessage(ticketId, adminMsgPayload);
+    broadcastTicketAddonEvent('ticketNewMessage', {
+        ticketId,
+        reporterLicense: ticket.reporter.license,
+        message: adminMsgPayload,
+    });
 
     return { success: true };
 }
@@ -860,6 +888,12 @@ function setTicketStatus(
             });
         }
     }
+    broadcastTicketAddonEvent('ticketStatusChanged', {
+        ticketId,
+        status,
+        previousStatus: ticketBeforeUpdate.status,
+        adminName,
+    });
     return { success: true };
 }
 
@@ -912,6 +946,11 @@ function toggleClaim(
         'action',
         { actionId: newClaimer ? 'ticket.claim' : 'ticket.unclaim' },
     );
+    broadcastTicketAddonEvent('ticketClaimChanged', {
+        ticketId,
+        claimedBy: newClaimer,
+        adminName,
+    });
 
     return { success: true, claimedBy: newClaimer };
 }

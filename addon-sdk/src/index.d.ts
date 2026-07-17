@@ -50,6 +50,42 @@ export interface AddonPlayers {
     removeTag(netid: number, tagId: string): Promise<true>;
 }
 
+export interface AddonTicketMessage {
+    author: string;
+    authorType: 'player' | 'admin' | 'discord' | 'system';
+    content: string;
+    imageUrls?: string[];
+    ts: number;
+}
+
+export interface AddonTicket {
+    id: string;
+    status: 'open' | 'inReview' | 'resolved' | 'closed';
+    category: string;
+    description: string;
+    reporter: { license: string; name: string; netid?: number };
+    targets: { license?: string; name: string; netid?: number }[];
+    messages: AddonTicketMessage[];
+    claimedBy?: string;
+    resolvedBy?: string;
+    discordThreadId?: string;
+    tsCreated: number;
+    tsLastActivity: number;
+    tsResolved?: number;
+    [key: string]: unknown;
+}
+
+/** Read access to sxPanel tickets. Requires the `tickets.read` addon permission. */
+export interface AddonTickets {
+    findOne(ticketId: string): Promise<AddonTicket | null>;
+    findByDiscordThread(threadId: string): Promise<AddonTicket | null>;
+    /** Resolve a ticket reporter's linked Discord ID from a ticket ID or Discord link ID. */
+    resolveReporterDiscord(query: {
+        ticketId?: string;
+        threadId?: string;
+    }): Promise<{ ticketId: string | null; discordId: string | null }>;
+}
+
 export interface AddonWebSocket {
     push(event: string, data: unknown): void;
     onSubscribe(handler: (sessionId: string) => void): void;
@@ -87,6 +123,7 @@ export interface Addon {
     readonly permissions: string[];
     storage: AddonStorage;
     players: AddonPlayers;
+    tickets: AddonTickets;
     registerRoute(method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', path: string, handler: RouteHandler): void;
     registerPublicRoute(
         method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'ALL',
@@ -94,6 +131,13 @@ export interface Addon {
         handler: PublicRouteHandler,
     ): void;
     ws: AddonWebSocket;
+    /**
+     * Subscribe to core events. Known events:
+     * - Player (requires `players.read` grant to be meaningful): `playerJoining`, `playerDropped`,
+     *   `playerKicked`, `playerBanned`, `playerWarned`
+     * - Tickets (requires `tickets.read`): `ticketCreated`, `ticketNewMessage`, `ticketStatusChanged`,
+     *   `ticketClaimChanged`, `ticketDiscordLinked`
+     */
     on(event: string, handler: (data: unknown) => void | Promise<void>): void;
     /** Remove an event handler. If no handler is given, removes all handlers for the event. */
     off(event: string, handler?: (data: unknown) => void | Promise<void>): void;

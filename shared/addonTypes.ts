@@ -17,13 +17,23 @@ import { AddonDeferralManifestSchema } from './deferralAddonTypes';
  * - `storage`       — gates the addon's KV storage IPC ops
  * - `players.read`  — gates read access to player data and player events
  * - `players.write` — gates the players.addTag / removeTag API calls
+ * - `tickets.read`  — gates the tickets.* API calls and ticket lifecycle events
+ *                     (ticketCreated, ticketNewMessage, ticketStatusChanged,
+ *                     ticketClaimChanged, ticketDiscordLinked)
  * - `ws.push`       — gates server → client WebSocket push events
  * - `deferral`      — gates dynamic deferral token resolution and deferral-present IPC
  *
  * Approval of an addon still implies full trust: an approved addon is equivalent to code
  * running inside the txAdmin host process for purposes that are not on an IPC boundary.
  */
-export const ADDON_PERMISSIONS = ['storage', 'players.read', 'players.write', 'ws.push', 'deferral'] as const;
+export const ADDON_PERMISSIONS = [
+    'storage',
+    'players.read',
+    'players.write',
+    'tickets.read',
+    'ws.push',
+    'deferral',
+] as const;
 
 export type AddonPermission = (typeof ADDON_PERMISSIONS)[number];
 const AddonPermissionSchema = z.enum(ADDON_PERMISSIONS);

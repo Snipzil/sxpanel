@@ -11,6 +11,7 @@ import { txEnv } from '@core/globalData';
 import { AddonStorageScope } from './addonStorage';
 import { isPathInside } from './addonUtils';
 import { applyPlayerTagChange } from '@lib/player/playerTags';
+import { handleSxTicketsResolveReporterDiscord } from '@modules/DiscordBot/ticketCommandHandlers';
 import type {
     AddonDeferralReadyDescriptor,
     AddonState,
@@ -998,6 +999,44 @@ export default class AddonProcess {
                     `${isAddTagAction ? 'Added' : 'Removed'} tag '${tagId}' via addon API (addonId: ${this.addonId}, player: ${parsedNetid})`,
                 );
                 respond(true);
+            } else if (method.startsWith('tickets.')) {
+                if (!this.permissions.includes('tickets.read')) {
+                    respond(null, 'tickets.read permission not granted');
+                    return;
+                }
+
+                if (method === 'tickets.findOne') {
+                    const [ticketId] = args;
+                    if (typeof ticketId !== 'string' || !ticketId.length) {
+                        respond(null, 'invalid arguments: ticketId must be a non-empty string');
+                        return;
+                    }
+                    respond(txCore.database.tickets.findOne(ticketId));
+                } else if (method === 'tickets.findByDiscordThread') {
+                    const [threadId] = args;
+                    if (typeof threadId !== 'string' || !threadId.length) {
+                        respond(null, 'invalid arguments: threadId must be a non-empty string');
+                        return;
+                    }
+                    respond(txCore.database.tickets.findByDiscordThread(threadId));
+                } else if (method === 'tickets.resolveReporterDiscord') {
+                    const query = (args[0] ?? {}) as { ticketId?: unknown; threadId?: unknown };
+                    const ticketId = typeof query.ticketId === 'string' ? query.ticketId : undefined;
+                    const threadId = typeof query.threadId === 'string' ? query.threadId : undefined;
+                    if (!ticketId && !threadId) {
+                        respond(null, 'invalid arguments: ticketId or threadId is required');
+                        return;
+                    }
+                    respond(
+                        handleSxTicketsResolveReporterDiscord({
+                            type: 'sxTicketsResolveReporterDiscord',
+                            ticketId,
+                            threadId,
+                        }),
+                    );
+                } else {
+                    respond(null, `unknown API method: ${method}`);
+                }
             } else {
                 respond(null, `unknown API method: ${method}`);
             }

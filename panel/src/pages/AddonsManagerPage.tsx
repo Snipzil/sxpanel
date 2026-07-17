@@ -109,6 +109,7 @@ const permissionDescriptions: Record<string, string> = {
     storage: "Read/write to addon's own scoped key-value store",
     'players.read': 'Read player data such as custom tags and metadata',
     'players.write': 'Modify player custom tags via the players.addTag / players.removeTag APIs',
+    'tickets.read': 'Read ticket/report data and receive ticket lifecycle events',
     'ws.push': 'Push real-time data to panel clients via WebSocket',
 };
 
