@@ -89,6 +89,36 @@ const baseConfig = {
     server: {
         origin: undefined, //placeholder
     },
+    optimizeDeps: {
+        // Deps only reached through lazy-loaded pages must be pre-bundled at startup,
+        // otherwise Vite discovers them mid-session and re-optimizes, which invalidates
+        // in-flight dynamic imports ("Failed to fetch dynamically imported module").
+        include: [
+            '@xterm/xterm',
+            '@xterm/addon-fit',
+            '@xterm/addon-search',
+            '@xterm/addon-web-links',
+            '@xterm/addon-webgl',
+            '@monaco-editor/react',
+            '@nivo/bar',
+            '@nivo/line',
+            '@nivo/pie',
+            'fuse.js',
+            'qrcode',
+            'react-markdown',
+            'socket.io-client',
+            'throttle-debounce',
+            'd3-array',
+            'd3-axis',
+            'd3-color',
+            'd3-scale',
+            'd3-scale-chromatic',
+            'd3-selection',
+            'd3-shape',
+            'd3-transition',
+            'd3-zoom',
+        ],
+    },
     base: '',
     clearScreen: false,
     plugins: [
