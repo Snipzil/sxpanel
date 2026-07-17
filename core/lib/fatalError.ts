@@ -42,7 +42,7 @@ function fatalError(code: number, msg: ErrorMsgType, err?: any): never {
         console.dir(err, { multilineError: true });
     }
     console.error(console.DIVIDER);
-    console.error(chalk.inverse(padStartEnd('For support: https://discord.gg/6FcqBYwxH5')));
+    console.error(chalk.inverse(padStartEnd('For support: https://discord.gg/hUM3pQeGFc')));
     console.error(console.DIVIDER);
     quitProcess(code);
 }

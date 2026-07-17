@@ -120,12 +120,12 @@ export const CustomToast = ({ t, type, data }: CustomToastProps) => {
                     <small className="text-muted-foreground block text-xs tracking-wide">
                         For support, visit&nbsp;
                         <a
-                            href="https://discord.gg/6FcqBYwxH5"
+                            href="https://discord.gg/hUM3pQeGFc"
                             target="_blank"
                             onClick={handleExternalLinkClick}
                             className="m-0 font-semibold no-underline hover:underline"
                         >
-                            https://discord.gg/6FcqBYwxH5
+                            https://discord.gg/hUM3pQeGFc
                         </a>
                         .
                     </small>

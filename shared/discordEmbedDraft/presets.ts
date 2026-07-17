@@ -60,7 +60,7 @@ export const STATUS_EMBED_CONFIG_PRESET = JSON.stringify({
         {
             emoji: '1062339910654246964',
             label: '{{communityButtonLabel}}',
-            url: 'https://discord.gg/6FcqBYwxH5',
+            url: 'https://discord.gg/hUM3pQeGFc',
         },
     ],
 });

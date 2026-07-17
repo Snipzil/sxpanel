@@ -169,7 +169,7 @@ function LastRow({ playersCount, hasReachedEnd, isFetching, loadError, retryFetc
             <div className="text-muted-foreground py-6 text-center text-sm">
                 <p>
                     Unexpected end of list.{' '}
-                    <TxAnchor href="https://discord.gg/6FcqBYwxH5" target="_blank" rel="noopener noreferrer">
+                    <TxAnchor href="https://discord.gg/hUM3pQeGFc" target="_blank" rel="noopener noreferrer">
                         Report this
                     </TxAnchor>
                 </p>
