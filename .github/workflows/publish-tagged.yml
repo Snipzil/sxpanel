@@ -62,12 +62,7 @@ jobs:
                   grep -F "version '${tag_version}'" monitor/fxmanifest.lua
 
             - name: Package monitor.zip
-              shell: bash
-              run: |
-                  cd monitor
-                  zip -r ../monitor.zip .
-                  cd ..
-                  sha256sum monitor.zip > monitor.zip.sha256
+              run: npm run package:zip
 
             - name: Publish GitHub release
               shell: bash
