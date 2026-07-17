@@ -13,5 +13,5 @@ export default async function ResourcesList(ctx: AuthedCtx) {
         return sendTypedResp({ error: reportResult.error });
     }
 
-    return sendTypedResp(processResources(reportResult.resources));
+    return sendTypedResp(processResources(reportResult.resources, txCore.fxResources.getUpdateNotices()));
 }

@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import {
     FolderIcon,
-    FolderOpenIcon,
     SearchIcon,
     RefreshCwIcon,
     PlayIcon,
@@ -13,24 +12,27 @@ import {
     AlertCircleIcon,
     ChevronDownIcon,
     ChevronRightIcon,
+    ChevronsDownUpIcon,
+    ChevronsUpDownIcon,
     CpuIcon,
     MemoryStickIcon,
     TimerIcon,
     DownloadIcon,
+    XIcon,
+    FilterXIcon,
+    ArrowUpCircleIcon,
 } from 'lucide-react';
 import { useBackendApi, ApiTimeout } from '@/hooks/fetch';
 import { txToast } from '@/components/TxToaster';
-import { PageHeader } from '@/components/page-header';
 import { useLocale } from '@/hooks/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -45,13 +47,14 @@ import {
 } from '@shared/resourcesApiTypes';
 import { ApiToastResp } from '@shared/genericApiTypes';
 import { getSocket, joinSocketRoom, leaveSocketRoom, submitAuthedDownload, cn } from '@/lib/utils';
+import { ResourcesHeaderBand } from './ResourcesHeaderBand';
 
-type StatusFilter = 'all' | 'started' | 'stopped';
+type StatusFilter = 'all' | 'started' | 'stopped' | 'updates';
 
 type ResourcesViewState = {
     searchQuery: string;
     statusFilter: StatusFilter;
-    expandedFolders: Set<string>;
+    collapsedFolders: Set<string>;
     selectedFolder: string | null;
 };
 
@@ -67,7 +70,9 @@ function mergeWsUpdate(
         ...group,
         resources: group.resources.map((res) => {
             const ws = wsData.get(res.name);
-            const updated = ws ? { ...res, status: ws.status, perf: ws.perf } : res;
+            const updated = ws
+                ? { ...res, status: ws.status, perf: ws.perf, updateNotice: ws.updateNotice ?? res.updateNotice }
+                : res;
             if (updated.status === 'started') startedCount++;
             else stoppedCount++;
             return updated;
@@ -76,18 +81,29 @@ function mergeWsUpdate(
     return { groups, totalResources: startedCount + stoppedCount, startedCount, stoppedCount };
 }
 
+/**
+ * Resources V2 — redesign goals over V1:
+ * - V2 header band (icon tile + live count pills) replacing PageHeader,
+ *   matching the Players/Action Log bands.
+ * - Content in a rounded card with a sticky toolbar instead of the
+ *   full-bleed folder sidebar; folder filtering moved to a Select that
+ *   works at every viewport size.
+ * - Folders start expanded, with an expand/collapse-all toggle.
+ * - Inline action buttons on every row (no dropdown), with tooltips.
+ * - Richer empty/error states matching the other V2 pages.
+ */
 export default function ResourcesPage() {
     const { t } = useLocale();
     const [viewState, setViewState] = useState<ResourcesViewState>({
         searchQuery: '',
         statusFilter: 'all',
-        expandedFolders: new Set(),
+        collapsedFolders: new Set(),
         selectedFolder: null,
     });
     const wsDataRef = useRef<Map<string, ResourceStatusEvent>>(new Map());
     const [wsRevision, setWsRevision] = useState(0);
     const [isReloading, setIsReloading] = useState(false);
-    const { searchQuery, statusFilter, expandedFolders, selectedFolder } = viewState;
+    const { searchQuery, statusFilter, collapsedFolders, selectedFolder } = viewState;
     const { hasPerm } = useAdminPerms();
     const canControl = hasPerm('commands.resources');
     const canDownload = hasPerm('commands.resources.download');
@@ -195,13 +211,13 @@ export default function ResourcesPage() {
 
     const toggleFolder = useCallback((folderPath: string) => {
         setViewState((prev) => {
-            const nextExpandedFolders = new Set(prev.expandedFolders);
-            if (nextExpandedFolders.has(folderPath)) {
-                nextExpandedFolders.delete(folderPath);
+            const nextCollapsed = new Set(prev.collapsedFolders);
+            if (nextCollapsed.has(folderPath)) {
+                nextCollapsed.delete(folderPath);
             } else {
-                nextExpandedFolders.add(folderPath);
+                nextCollapsed.add(folderPath);
             }
-            return { ...prev, expandedFolders: nextExpandedFolders };
+            return { ...prev, collapsedFolders: nextCollapsed };
         });
     }, []);
 
@@ -217,7 +233,9 @@ export default function ResourcesPage() {
         return groups.flatMap((group) => {
             let resources = group.resources;
 
-            if (statusFilter !== 'all') {
+            if (statusFilter === 'updates') {
+                resources = resources.filter((r) => !!r.updateNotice);
+            } else if (statusFilter !== 'all') {
                 resources = resources.filter((r) => r.status === statusFilter);
             }
 
@@ -235,143 +253,227 @@ export default function ResourcesPage() {
         });
     }, [liveData, searchQuery, statusFilter, selectedFolder]);
 
-    // Expand all folders that have matching resources when searching
-    const effectiveFolders = useMemo(() => {
-        if (searchQuery.trim()) {
-            return new Set(filteredGroups.map((g) => g.subPath));
-        }
-        return expandedFolders;
-    }, [searchQuery, filteredGroups, expandedFolders]);
+    const isFiltering = Boolean(searchQuery.trim()) || statusFilter !== 'all' || selectedFolder !== null;
+    // While searching, force-expand every group with matches
+    const effectiveCollapsed = searchQuery.trim() ? new Set<string>() : collapsedFolders;
+    const allCollapsed =
+        filteredGroups.length > 0 && filteredGroups.every((g) => effectiveCollapsed.has(g.subPath));
+
+    const toggleAllFolders = useCallback(() => {
+        setViewState((prev) => {
+            if (!liveData) return prev;
+            const anyExpanded = liveData.groups.some((g) => !prev.collapsedFolders.has(g.subPath));
+            return {
+                ...prev,
+                collapsedFolders: anyExpanded ? new Set(liveData.groups.map((g) => g.subPath)) : new Set(),
+            };
+        });
+    }, [liveData]);
+
+    const handleClearFilters = useCallback(() => {
+        setViewState((prev) => ({
+            ...prev,
+            searchQuery: '',
+            statusFilter: 'all',
+            selectedFolder: null,
+        }));
+    }, []);
+
+    const updatesCount = useMemo(() => {
+        if (!liveData) return undefined;
+        return liveData.groups.reduce(
+            (acc, group) => acc + group.resources.filter((r) => !!r.updateNotice).length,
+            0,
+        );
+    }, [liveData]);
+
+    const statusChips: { key: StatusFilter; label: string; count?: number }[] = [
+        { key: 'all', label: 'All', count: liveData?.totalResources },
+        { key: 'started', label: 'Started', count: liveData?.startedCount },
+        { key: 'stopped', label: 'Stopped', count: liveData?.stoppedCount },
+        { key: 'updates', label: 'Updates', count: updatesCount },
+    ];
 
     return (
-        <div className="h-contentvh flex w-full flex-col">
-            <PageHeader title={t('panel.routes.resources')} icon={<PackageIcon />} />
-            <div className="flex w-full flex-1 overflow-hidden">
-                {/* Sidebar - Folder tree */}
-                <aside className="bg-card shell-lg:flex hidden w-60 shrink-0 flex-col border-r">
-                    <div className="border-b p-3">
-                        <h3 className="text-sm font-semibold">Folders</h3>
-                    </div>
-                    <ScrollArea className="flex-1">
-                        <div className="p-2">
-                            <button
-                                onClick={() => setViewField('selectedFolder', null)}
-                                className={`text-muted-foreground hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
-                                    selectedFolder === null ? 'bg-accent text-accent-foreground font-medium' : ''
-                                }`}
-                            >
-                                <FolderOpenIcon className="size-4" />
-                                All Folders
-                                {liveData && (
-                                    <span className="text-muted-foreground ml-auto text-xs">
-                                        {liveData.totalResources}
-                                    </span>
-                                )}
-                            </button>
-                            {liveData?.groups.map((group) => (
-                                <button
-                                    key={group.subPath}
-                                    onClick={() =>
-                                        setViewField(
-                                            'selectedFolder',
-                                            selectedFolder === group.subPath ? null : group.subPath,
-                                        )
-                                    }
-                                    className={`text-muted-foreground hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
-                                        selectedFolder === group.subPath
-                                            ? 'bg-accent text-accent-foreground font-medium'
-                                            : ''
-                                    }`}
-                                >
-                                    <FolderIcon className="size-4" />
-                                    <span className="truncate">{group.subPath}</span>
-                                    <span className="text-muted-foreground ml-auto text-xs">
-                                        {group.resources.length}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </aside>
+        <div className="h-contentvh mx-auto flex w-full max-w-(--tx-page-max-width) flex-col px-2 md:px-0">
+            <ResourcesHeaderBand
+                title={t('panel.routes.resources')}
+                total={liveData?.totalResources}
+                started={liveData?.startedCount}
+                stopped={liveData?.stoppedCount}
+                folders={liveData?.groups.length}
+                updates={updatesCount}
+                isLoading={swr.isLoading}
+            />
 
-                {/* Main content */}
-                <div className="flex min-w-0 flex-1 flex-col">
+            <TooltipProvider delayDuration={300}>
+                <div className="bg-card border-border/60 flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
                     {/* Toolbar */}
-                    <div className="flex flex-wrap items-center gap-2 border-b p-3">
+                    <div className="bg-card sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b px-4 py-2">
+                        {/* Search */}
+                        <div className="relative max-w-xs min-w-40 flex-1 basis-48">
+                            <SearchIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                            <Input
+                                placeholder="Search resources..."
+                                value={searchQuery}
+                                onChange={(e) => setViewField('searchQuery', e.target.value)}
+                                className="h-7 pr-7 pl-8 text-sm"
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                                    onClick={() => setViewField('searchQuery', '')}
+                                >
+                                    <XIcon className="size-3.5" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Folder filter */}
                         <Select
                             value={selectedFolder ?? '__all__'}
                             onValueChange={(value) =>
                                 setViewField('selectedFolder', value === '__all__' ? null : value)
                             }
                         >
-                            <SelectTrigger className="shell-lg:hidden w-full min-w-0 sm:max-w-xs">
+                            <SelectTrigger className="h-7 w-auto min-w-36 gap-1 text-xs">
+                                <FolderIcon className="size-3.5 shrink-0" />
                                 <SelectValue placeholder="Folder" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="__all__">All Folders</SelectItem>
                                 {liveData?.groups.map((group) => (
                                     <SelectItem key={group.subPath} value={group.subPath}>
-                                        {group.subPath}
+                                        <span>{group.subPath}</span>
+                                        <span className="text-muted-foreground ml-1.5">
+                                            ({group.resources.length})
+                                        </span>
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                        <div className="relative min-w-0 flex-1 basis-full sm:basis-[12rem]">
-                            <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                            <Input
-                                placeholder="Search resources..."
-                                value={searchQuery}
-                                onChange={(e) => setViewField('searchQuery', e.target.value)}
-                                className="pl-9"
-                            />
+
+                        {/* Status filter chips */}
+                        <div className="flex items-center gap-1.5">
+                            {statusChips.map((chip) => {
+                                const isActive = statusFilter === chip.key;
+                                const isUpdatesAlert = chip.key === 'updates' && (chip.count ?? 0) > 0;
+                                return (
+                                    <button
+                                        key={chip.key}
+                                        type="button"
+                                        onClick={() => setViewField('statusFilter', chip.key)}
+                                        className={cn(
+                                            'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors',
+                                            isActive
+                                                ? 'bg-secondary text-secondary-foreground border-border'
+                                                : isUpdatesAlert
+                                                  ? 'text-warning border-warning/40 bg-warning/10 hover:bg-warning/15'
+                                                  : 'text-muted-foreground/50 hover:border-border border-transparent bg-transparent',
+                                        )}
+                                    >
+                                        <span>{chip.label}</span>
+                                        <span
+                                            className={cn(
+                                                'ml-0.5 text-[10px] tabular-nums',
+                                                isActive
+                                                    ? 'text-muted-foreground'
+                                                    : isUpdatesAlert
+                                                      ? 'text-warning'
+                                                      : 'text-muted-foreground/40',
+                                            )}
+                                        >
+                                            {chip.count ?? '—'}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
-                        <div className="flex items-center gap-2">
-                            <FilterButtons
-                                statusFilter={statusFilter}
-                                onFilterChange={(value) => setViewField('statusFilter', value)}
-                                data={liveData}
-                            />
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleReloadResources}
-                                disabled={swr.isLoading || isReloading}
-                                title={canControl ? 'Refresh and reload resources' : 'Reload resources'}
-                            >
-                                {swr.isLoading || isReloading ? (
-                                    <Loader2Icon className="size-4 animate-spin" />
-                                ) : (
-                                    <RefreshCwIcon className="size-4" />
-                                )}
-                            </Button>
-                        </div>
+
+                        {/* Spacer */}
+                        <div className="flex-1" />
+
+                        {/* Expand/collapse all */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="xs" onClick={toggleAllFolders}>
+                                    {allCollapsed ? (
+                                        <ChevronsUpDownIcon className="size-3.5" />
+                                    ) : (
+                                        <ChevronsDownUpIcon className="size-3.5" />
+                                    )}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{allCollapsed ? 'Expand all folders' : 'Collapse all folders'}</TooltipContent>
+                        </Tooltip>
+
+                        {/* Refresh */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={handleReloadResources}
+                                    disabled={swr.isLoading || isReloading}
+                                >
+                                    {swr.isLoading || isReloading ? (
+                                        <Loader2Icon className="size-3.5 animate-spin" />
+                                    ) : (
+                                        <RefreshCwIcon className="size-3.5" />
+                                    )}
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {canControl ? 'Refresh and reload resources' : 'Reload resources'}
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
 
                     {/* Resource list */}
-                    <ScrollArea className="flex-1">
+                    <div className="flex-1 overflow-y-auto">
                         {swr.isLoading ? (
-                            <div className="flex items-center justify-center p-12">
+                            <div className="flex items-center justify-center py-16">
                                 <Loader2Icon className="text-muted-foreground size-8 animate-spin" />
                             </div>
                         ) : swr.error ? (
-                            <div className="flex flex-col items-center justify-center gap-2 p-12">
-                                <AlertCircleIcon className="text-destructive size-8" />
-                                <p className="text-muted-foreground text-sm">{swr.error.message}</p>
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                                <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                    <AlertCircleIcon className="text-destructive size-6" />
+                                </div>
+                                <p className="text-sm font-medium">Failed to load resources</p>
+                                <p className="text-muted-foreground/70 max-w-xs text-center text-xs">
+                                    {swr.error.message}
+                                </p>
                                 <Button variant="outline" size="sm" onClick={handleReloadResources}>
                                     Retry
                                 </Button>
                             </div>
                         ) : filteredGroups.length === 0 ? (
-                            <div className="text-muted-foreground flex items-center justify-center p-12 text-sm">
-                                {searchQuery ? 'No resources match your search.' : 'No resources found.'}
+                            <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16">
+                                <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                                    {isFiltering ? (
+                                        <FilterXIcon className="size-6" />
+                                    ) : (
+                                        <PackageIcon className="size-6" />
+                                    )}
+                                </div>
+                                <p className="text-sm font-medium">
+                                    {isFiltering ? 'No resources match your filters' : 'No resources found'}
+                                </p>
+                                {isFiltering && (
+                                    <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                                        Clear all filters
+                                    </Button>
+                                )}
                             </div>
                         ) : (
-                            <div className="p-3">
+                            <div className="p-2">
                                 {filteredGroups.map((group) => (
                                     <ResourceGroupSection
                                         key={group.subPath}
                                         group={group}
-                                        expanded={effectiveFolders.has(group.subPath)}
+                                        expanded={!effectiveCollapsed.has(group.subPath)}
                                         onToggle={() => toggleFolder(group.subPath)}
                                         canControl={canControl}
                                         canDownload={canDownload}
@@ -380,54 +482,9 @@ export default function ResourcesPage() {
                                 ))}
                             </div>
                         )}
-                    </ScrollArea>
+                    </div>
                 </div>
-            </div>
-        </div>
-    );
-}
-
-function FilterButtons({
-    statusFilter,
-    onFilterChange,
-    data,
-}: {
-    statusFilter: StatusFilter;
-    onFilterChange: (f: StatusFilter) => void;
-    data?: { startedCount: number; stoppedCount: number; totalResources: number };
-}) {
-    return (
-        <div className="flex rounded-md border">
-            <button
-                onClick={() => onFilterChange('all')}
-                className={`px-2.5 py-1 text-xs font-medium transition-colors ${
-                    statusFilter === 'all'
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-accent/50'
-                }`}
-            >
-                All{data ? ` (${data.totalResources})` : ''}
-            </button>
-            <button
-                onClick={() => onFilterChange('started')}
-                className={`border-l px-2.5 py-1 text-xs font-medium transition-colors ${
-                    statusFilter === 'started'
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-accent/50'
-                }`}
-            >
-                Started{data ? ` (${data.startedCount})` : ''}
-            </button>
-            <button
-                onClick={() => onFilterChange('stopped')}
-                className={`border-l px-2.5 py-1 text-xs font-medium transition-colors ${
-                    statusFilter === 'stopped'
-                        ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-accent/50'
-                }`}
-            >
-                Stopped{data ? ` (${data.stoppedCount})` : ''}
-            </button>
+            </TooltipProvider>
         </div>
     );
 }
@@ -448,26 +505,46 @@ function ResourceGroupSection({
     onAction: (action: string, name: string) => void;
 }) {
     const startedCount = group.resources.filter((r) => r.status === 'started').length;
+    const updateCount = group.resources.filter((r) => !!r.updateNotice).length;
 
     return (
-        <div className="mb-2">
+        <div className="mb-1.5">
             <button
                 onClick={onToggle}
-                className="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left"
+                className="hover:bg-accent/60 group flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors"
             >
                 {expanded ? (
-                    <ChevronDownIcon className="text-muted-foreground size-4" />
+                    <ChevronDownIcon className="text-muted-foreground size-4 shrink-0" />
                 ) : (
-                    <ChevronRightIcon className="text-muted-foreground size-4" />
+                    <ChevronRightIcon className="text-muted-foreground size-4 shrink-0" />
                 )}
-                <FolderIcon className="size-4 text-amber-500" />
-                <span className="text-sm font-medium">{group.subPath}</span>
-                <span className="text-muted-foreground ml-1 text-xs">
-                    {startedCount}/{group.resources.length}
-                </span>
+                {/* Folder name and pills centered in the row */}
+                <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+                    <div className="bg-secondary/40 border-border/50 text-accent/80 flex size-7 shrink-0 items-center justify-center rounded-md border">
+                        <FolderIcon className="size-3.5" />
+                    </div>
+                    <span className="truncate text-sm font-semibold tracking-tight">{group.subPath}</span>
+                    <span
+                        className={cn(
+                            'shrink-0 rounded-full border px-2 py-px text-[10px] font-semibold tabular-nums',
+                            startedCount === group.resources.length
+                                ? 'border-success/30 bg-success/10 text-success-inline'
+                                : 'border-border/50 bg-muted/15 text-muted-foreground',
+                        )}
+                    >
+                        {startedCount}/{group.resources.length}
+                    </span>
+                    {updateCount > 0 && (
+                        <span className="border-warning/40 bg-warning/10 text-warning shrink-0 rounded-full border px-2 py-px text-[10px] font-semibold tabular-nums">
+                            {updateCount} update{updateCount > 1 ? 's' : ''}
+                        </span>
+                    )}
+                </div>
+                {/* Invisible spacer mirroring the chevron so the center is the true row middle */}
+                <div className="size-4 shrink-0" aria-hidden="true" />
             </button>
             {expanded && (
-                <div className="mt-1 ml-6 space-y-1">
+                <div className="border-border/60 divide-border/40 ml-[1.4rem] divide-y border-l pl-2.5">
                     {group.resources.map((resource) => (
                         <ResourceRow
                             key={resource.name}
@@ -488,141 +565,178 @@ function PerfDisplay({ resource, className }: { resource: ResourceItemData; clas
     const { cpu, memory, tickTime } = resource.perf;
 
     return (
-        <TooltipProvider delayDuration={200}>
-            <div className={cn('flex items-center gap-3 text-xs', className)}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span
-                            className={`flex items-center gap-1 ${cpu > 5 ? 'text-warning' : 'text-muted-foreground'}`}
-                        >
-                            <CpuIcon className="size-3" />
-                            {cpu.toFixed(1)}ms
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent>CPU time per frame</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span
-                            className={`flex items-center gap-1 ${memory > 128000 ? 'text-warning' : 'text-muted-foreground'}`}
-                        >
-                            <MemoryStickIcon className="size-3" />
-                            {memory > 1024 ? `${(memory / 1024).toFixed(1)}MB` : `${memory}KB`}
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Memory usage</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <span
-                            className={`flex items-center gap-1 ${tickTime > 5 ? 'text-warning' : 'text-muted-foreground'}`}
-                        >
-                            <TimerIcon className="size-3" />
-                            {tickTime.toFixed(2)}ms
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent>Average tick time</TooltipContent>
-                </Tooltip>
-            </div>
-        </TooltipProvider>
+        <div className={cn('flex items-center gap-3 text-xs', className)}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span className={`flex items-center gap-1 ${cpu > 5 ? 'text-warning' : 'text-muted-foreground'}`}>
+                        <CpuIcon className="size-3" />
+                        {cpu.toFixed(1)}ms
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent>CPU time per frame</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span
+                        className={`flex items-center gap-1 ${memory > 128000 ? 'text-warning' : 'text-muted-foreground'}`}
+                    >
+                        <MemoryStickIcon className="size-3" />
+                        {memory > 1024 ? `${(memory / 1024).toFixed(1)}MB` : `${memory}KB`}
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent>Memory usage</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span
+                        className={`flex items-center gap-1 ${tickTime > 5 ? 'text-warning' : 'text-muted-foreground'}`}
+                    >
+                        <TimerIcon className="size-3" />
+                        {tickTime.toFixed(2)}ms
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent>Average tick time</TooltipContent>
+            </Tooltip>
+        </div>
     );
 }
 
-function ResourceRowActions({
+function ResourceRow({
     resource,
     canControl,
     canDownload,
-    csrfToken,
     onAction,
-    onDownload,
-    variant,
 }: {
     resource: ResourceItemData;
     canControl: boolean;
     canDownload: boolean;
-    csrfToken: string | undefined;
     onAction: (action: string, name: string) => void;
-    onDownload: () => void;
-    variant: 'inline' | 'menu';
 }) {
+    const csrfToken = useCsrfToken();
+    const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+
+    const handleDownload = () => {
+        if (!csrfToken) return;
+        txToast.info('Preparing download…');
+        submitAuthedDownload('/resources/download', csrfToken, {
+            name: resource.name,
+            path: resource.path,
+        });
+    };
     const isStarted = resource.status === 'started';
+    const isStarting = resource.status === 'starting';
+    const statusLabel = isStarted ? 'Started' : isStarting ? 'Starting' : 'Stopped';
+    const hasActions = canControl || canDownload;
 
-    if (variant === 'inline') {
-        if (!canControl && !canDownload) return null;
+    const rowContent = (
+        <>
+            <div className="flex items-center gap-3">
+                {/* Status indicator */}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div
+                            className={cn(
+                                'size-2 shrink-0 rounded-full ring-2',
+                                isStarted
+                                    ? 'bg-success ring-success/20'
+                                    : isStarting
+                                      ? 'bg-warning ring-warning/20 animate-pulse'
+                                      : 'bg-destructive ring-destructive/20',
+                            )}
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent>{statusLabel}</TooltipContent>
+                </Tooltip>
 
-        return (
-            <div className="flex shrink-0 items-center gap-0.5">
-                {canDownload && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="size-8 p-0"
-                        disabled={!csrfToken}
-                        onClick={onDownload}
-                        title="Download"
-                        aria-label={`Download ${resource.name}`}
-                    >
-                        <DownloadIcon className="size-4" />
-                    </Button>
-                )}
-                {canControl && (
-                    <>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="size-8 p-0"
-                            onClick={() => onAction('restart_res', resource.name)}
-                            title="Restart"
-                            aria-label={`Restart ${resource.name}`}
-                        >
-                            <RotateCwIcon className="size-4" />
-                        </Button>
-                        {isStarted ? (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="size-8 p-0"
-                                onClick={() => onAction('stop_res', resource.name)}
-                                title="Stop"
-                                aria-label={`Stop ${resource.name}`}
-                            >
-                                <SquareIcon className="size-4" />
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="size-8 p-0"
-                                onClick={() => onAction('start_res', resource.name)}
-                                title="Start"
-                                aria-label={`Start ${resource.name}`}
-                            >
-                                <PlayIcon className="size-4" />
-                            </Button>
+                {/* Name and metadata */}
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium">{resource.name}</span>
+                        {resource.version && (
+                            <span className="text-muted-foreground bg-muted/40 border-border/40 shrink-0 rounded border px-1 py-px font-mono text-[10px]">
+                                {resource.version}
+                            </span>
                         )}
-                    </>
-                )}
+                        {!isStarted && (
+                            <span
+                                className={cn(
+                                    'shrink-0 text-[10px] font-semibold tracking-wider uppercase',
+                                    isStarting ? 'text-warning' : 'text-destructive',
+                                )}
+                            >
+                                {statusLabel}
+                            </span>
+                        )}
+                        {resource.updateNotice && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span className="border-warning/40 bg-warning/10 text-warning inline-flex shrink-0 cursor-help items-center gap-1 rounded-full border px-2 py-px text-[10px] font-semibold">
+                                        <ArrowUpCircleIcon className="size-3" />
+                                        Update available
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-sm">
+                                    <p className="font-mono text-xs wrap-break-word">{resource.updateNotice}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
+                    {(resource.description || resource.author) && (
+                        <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-xs">
+                            {resource.description && <span className="truncate">{resource.description}</span>}
+                            {resource.author && <span className="shrink-0">by {resource.author}</span>}
+                        </div>
+                    )}
+                </div>
+
+                {/* Performance stats (desktop) */}
+                {isStarted && <PerfDisplay resource={resource} className="hidden md:flex" />}
             </div>
-        );
+
+            {/* Performance stats (compact viewports) */}
+            {isStarted && <PerfDisplay resource={resource} className="mt-1 pl-5 md:hidden" />}
+        </>
+    );
+
+    if (!hasActions) {
+        return <div className="hover:bg-accent/40 px-2 py-2 transition-colors">{rowContent}</div>;
     }
 
-    if (!canControl && !canDownload) return null;
-
+    // Clicking anywhere on the row opens the actions menu at the cursor position,
+    // via a zero-size virtual anchor placed at the click coordinates.
     return (
-        <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="size-7 p-0" aria-label={`Actions for ${resource.name}`}>
-                    <ChevronDownIcon className="size-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                {canDownload && (
-                    <DropdownMenuItem disabled={!csrfToken} onClick={onDownload}>
-                        <DownloadIcon className="mr-2 size-4" />
-                        Download
-                    </DropdownMenuItem>
+        <>
+            <div
+                role="button"
+                tabIndex={0}
+                aria-label={`Actions for ${resource.name}`}
+                onClick={(e) => setMenuPos({ x: e.clientX, y: e.clientY })}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setMenuPos({ x: rect.left + 24, y: rect.bottom });
+                    }
+                }}
+                className={cn(
+                    'hover:bg-accent/40 focus-visible:bg-accent/40 cursor-pointer px-2 py-2 transition-colors focus-visible:outline-hidden',
+                    menuPos && 'bg-accent/60',
                 )}
-                {canControl && canDownload && <DropdownMenuSeparator />}
+            >
+                {rowContent}
+            </div>
+            {menuPos && (
+                <DropdownMenu open modal={false} onOpenChange={(open) => !open && setMenuPos(null)}>
+                    <DropdownMenuTrigger asChild>
+                        <span
+                            aria-hidden="true"
+                            className="fixed size-0"
+                            style={{ left: menuPos.x, top: menuPos.y }}
+                        />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuLabel className="truncate">{resource.name}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 {canControl && (
                     <>
                         <DropdownMenuItem onClick={() => onAction('restart_res', resource.name)}>
@@ -642,106 +756,16 @@ function ResourceRowActions({
                         )}
                     </>
                 )}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
-
-function ResourceRow({
-    resource,
-    canControl,
-    canDownload,
-    onAction,
-}: {
-    resource: ResourceItemData;
-    canControl: boolean;
-    canDownload: boolean;
-    onAction: (action: string, name: string) => void;
-}) {
-    const csrfToken = useCsrfToken();
-
-    const handleDownload = () => {
-        if (!csrfToken) return;
-        txToast.info('Preparing download…');
-        submitAuthedDownload('/resources/download', csrfToken, {
-            name: resource.name,
-            path: resource.path,
-        });
-    };
-    const isStarted = resource.status === 'started';
-    const isStarting = resource.status === 'starting';
-    const hasActions = canControl || canDownload;
-
-    return (
-        <div className="hover:bg-accent/50 rounded-md px-3 py-2 transition-colors">
-            <div className="flex items-center gap-3">
-                {/* Status indicator */}
-                <div
-                    className={`size-2 flex-shrink-0 rounded-full ${
-                        isStarted ? 'bg-green-500' : isStarting ? 'animate-pulse bg-yellow-500' : 'bg-red-500'
-                    }`}
-                />
-
-                {/* Name and metadata */}
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium">{resource.name}</span>
-                        {resource.version && <span className="text-muted-foreground text-xs">{resource.version}</span>}
-                    </div>
-                    {(resource.description || resource.author) && (
-                        <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                            {resource.description && <span className="truncate">{resource.description}</span>}
-                            {resource.author && <span className="flex-shrink-0">by {resource.author}</span>}
-                        </div>
-                    )}
-                </div>
-
-                {/* Desktop: performance stats, status badge, and menu actions */}
-                {isStarted && <PerfDisplay resource={resource} className="shell-lg:flex hidden" />}
-                <Badge
-                    variant={isStarted ? 'default' : isStarting ? 'secondary' : 'destructive'}
-                    className="shell-lg:inline-flex hidden flex-shrink-0 text-xs"
-                >
-                    {resource.status}
-                </Badge>
-                {hasActions && (
-                    <div className="shell-lg:block hidden">
-                        <ResourceRowActions
-                            resource={resource}
-                            canControl={canControl}
-                            canDownload={canDownload}
-                            csrfToken={csrfToken}
-                            onAction={onAction}
-                            onDownload={handleDownload}
-                            variant="menu"
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Mobile / compact scaled viewport: inline actions avoid zoom + portaled dropdown misalignment */}
-            {hasActions && (
-                <div className="shell-lg:hidden mt-1.5 flex items-center justify-between gap-2 pl-5">
-                    <div className="flex min-w-0 items-center gap-2">
-                        <Badge
-                            variant={isStarted ? 'default' : isStarting ? 'secondary' : 'destructive'}
-                            className="flex-shrink-0 text-xs"
-                        >
-                            {resource.status}
-                        </Badge>
-                        {isStarted && <PerfDisplay resource={resource} />}
-                    </div>
-                    <ResourceRowActions
-                        resource={resource}
-                        canControl={canControl}
-                        canDownload={canDownload}
-                        csrfToken={csrfToken}
-                        onAction={onAction}
-                        onDownload={handleDownload}
-                        variant="inline"
-                    />
-                </div>
+                        {canControl && canDownload && <DropdownMenuSeparator />}
+                        {canDownload && (
+                            <DropdownMenuItem disabled={!csrfToken} onClick={handleDownload}>
+                                <DownloadIcon className="mr-2 size-4" />
+                                Download
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             )}
-        </div>
+        </>
     );
 }

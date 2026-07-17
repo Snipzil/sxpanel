@@ -175,6 +175,7 @@ export default class FXServerLogger extends LoggerBase {
         if (typeof data !== 'string') {
             data = data.toString();
         }
+        txCore.fxResources?.handleConsoleOutput(data);
         this.ingest(source, data.replace(regexControls, ''));
     }
 

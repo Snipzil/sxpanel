@@ -12,6 +12,7 @@ export type ResourceItemData = {
     author: string;
     description: string;
     perf?: ResourcePerfStats;
+    updateNotice?: string; // console message indicating an update is available
 };
 
 export type ResourceGroup = {
@@ -33,6 +34,7 @@ export type ResourceStatusEvent = {
     name: string;
     status: string;
     perf?: ResourcePerfStats;
+    updateNotice?: string;
 };
 
 export type ResourcesWsEventType = {

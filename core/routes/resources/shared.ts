@@ -147,7 +147,10 @@ export const findResourceByName = (
     return null;
 };
 
-export function processResources(resList: RawResourceReportEntry[]): ResourcesListResp {
+export function processResources(
+    resList: RawResourceReportEntry[],
+    updateNotices?: ReadonlyMap<string, string>,
+): ResourcesListResp {
     const resGroupMap: Record<string, ResourceItemData[]> = {};
     let startedCount = 0;
     let stoppedCount = 0;
@@ -169,6 +172,7 @@ export function processResources(resList: RawResourceReportEntry[]): ResourcesLi
             version: resource.version ? resource.version.trim() : '',
             author: resource.author ? resource.author.trim() : '',
             description: resource.description ? resource.description.trim() : '',
+            updateNotice: updateNotices?.get(resource.name),
         };
 
         if (resource.status === 'started') {

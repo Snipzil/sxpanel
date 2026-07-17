@@ -42,6 +42,15 @@ type ResBootLogEntry = {
     duration: number;
 };
 
+//Update notice detection constants
+const regexConsoleColors = /\x1B[^m]*?m/g;
+const regexScriptPrefix = /^\[\s*(?:script|c-scripting-core):([a-zA-Z0-9_.-]{1,64})\]\s*(.+)$/;
+const regexUpdateNotice =
+    /\b(?:(?:an? )?(?:new )?update (?:is )?(?:now )?available|new(?:er)? version (?:is )?(?:available|released|found|out)|outdated|out[ -]of[ -]date|please update|update (?:is )?required|needs? (?:an )?update)\b/i;
+const UPDATE_NOTICE_MAX_LENGTH = 300;
+const UPDATE_NOTICE_MAX_RESOURCES = 250;
+const CONSOLE_LINE_BUFFER_MAX = 4096;
+
 /**
  * Module responsible to track FXServer resource states.
  * Also tracks real-time resource status and perf stats.
@@ -54,6 +63,8 @@ export default class FxResources {
     // Real-time resource state tracking
     private resourceStates: Map<string, string> = new Map();
     private resourcePerf: Map<string, ResourcePerfStats> = new Map();
+    private resourceUpdateNotices: Map<string, string> = new Map();
+    private consoleLineBuffer = '';
 
     private hasResourceListeners() {
         return txCore.webServer?.webSocket?.hasRoomListeners('resources') ?? false;
@@ -67,6 +78,8 @@ export default class FxResources {
         this.resBootLog = [];
         this.resourceStates.clear();
         this.resourcePerf.clear();
+        this.resourceUpdateNotices.clear();
+        this.consoleLineBuffer = '';
     }
 
     /**
@@ -96,6 +109,8 @@ export default class FxResources {
         } else if (event === 'onResourceStop' || event === 'onServerResourceStop') {
             this.resourceStates.set(resource, 'stopped');
             this.resourcePerf.delete(resource);
+            //Clear the notice so a restart of an updated resource doesn't show a stale warning
+            this.resourceUpdateNotices.delete(resource);
             this.pushStatusUpdate(resource, 'stopped');
         }
     }
@@ -127,7 +142,7 @@ export default class FxResources {
             this.resourcePerf.set(res.name, perf);
 
             if (shouldPush && perfChanged) {
-                updates.push({ name: res.name, status, perf });
+                updates.push({ name: res.name, status, perf, updateNotice: this.resourceUpdateNotices.get(res.name) });
             }
         }
         if (updates.length > 0) {
@@ -139,6 +154,40 @@ export default class FxResources {
     }
 
     /**
+     * Scans FXServer console output for per-resource update notices.
+     * FXServer prefixes resource prints with `[script:resname]`, so we can attribute
+     * "update available" style messages to the resource that printed them.
+     */
+    handleConsoleOutput(data: string) {
+        const text = this.consoleLineBuffer + data;
+        const lines = text.split('\n');
+        //Last element is either '' (data ended in \n) or a partial line to buffer
+        this.consoleLineBuffer = (lines.pop() ?? '').slice(-CONSOLE_LINE_BUFFER_MAX);
+
+        for (const rawLine of lines) {
+            const line = rawLine.replace(regexConsoleColors, '').trim();
+            const prefixMatch = line.match(regexScriptPrefix);
+            if (!prefixMatch) continue;
+            const [, resource, message] = prefixMatch;
+            if (this.resourceUpdateNotices.has(resource)) continue;
+            if (!regexUpdateNotice.test(message)) continue;
+            if (this.resourceUpdateNotices.size >= UPDATE_NOTICE_MAX_RESOURCES) return;
+
+            const notice = message.trim().slice(0, UPDATE_NOTICE_MAX_LENGTH);
+            this.resourceUpdateNotices.set(resource, notice);
+            console.verbose.log(`Update notice detected for resource '${resource}'.`);
+            this.pushStatusUpdate(resource, this.resourceStates.get(resource) ?? 'started');
+        }
+    }
+
+    /**
+     * Returns the detected update notices map
+     */
+    getUpdateNotices(): ReadonlyMap<string, string> {
+        return this.resourceUpdateNotices;
+    }
+
+    /**
      * Push a single resource status change via WebSocket
      */
     private pushStatusUpdate(name: string, status: string) {
@@ -146,7 +195,7 @@ export default class FxResources {
         const perf = this.resourcePerf.get(name);
         txCore.webServer.webSocket.buffer('resources', {
             type: 'update',
-            updates: [{ name, status, perf }],
+            updates: [{ name, status, perf, updateNotice: this.resourceUpdateNotices.get(name) }],
         });
     }
 
@@ -191,6 +240,7 @@ export default class FxResources {
                         name: res.name,
                         status,
                         perf: this.resourcePerf.get(res.name),
+                        updateNotice: this.resourceUpdateNotices.get(res.name),
                     });
                 }
             }
@@ -214,6 +264,7 @@ export default class FxResources {
                 name,
                 status,
                 perf: this.resourcePerf.get(name),
+                updateNotice: this.resourceUpdateNotices.get(name),
             });
         }
         return result;
