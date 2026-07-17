@@ -51,11 +51,11 @@ function HeaderBand({
     onRefresh: () => void;
 }) {
     return (
-        <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background rounded-xl border">
             <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <PackageIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <PackageIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
@@ -65,7 +65,7 @@ function HeaderBand({
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+                    <div className="border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
                         <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">
                             Current
                         </span>
@@ -123,7 +123,7 @@ function StatusSection({
     const statusLabel = PHASE_LABELS[updateStatus.phase] || 'Update failed';
 
     return (
-        <Card className="border-border/60 rounded-xl shadow-sm">
+        <Card className="border-border/60 bg-background rounded-xl shadow-none">
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Update Progress</CardTitle>
                 <CardDescription className="flex items-center gap-2">
@@ -227,7 +227,7 @@ function CurrentBuildSection({
 
     return (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Card className="border-border/60 rounded-xl shadow-sm lg:col-span-2">
+            <Card className="border-border/60 bg-background rounded-xl shadow-none lg:col-span-2">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Current Build</CardTitle>
                     <CardDescription>Installed artifact version on this host</CardDescription>
@@ -247,13 +247,13 @@ function CurrentBuildSection({
                 </CardContent>
             </Card>
 
-            <Card className="border-border/60 rounded-xl shadow-sm">
+            <Card className="border-border/60 bg-background rounded-xl shadow-none">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-lg">Update State</CardTitle>
                     <CardDescription>Live status from updater daemon</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="border-border/50 bg-muted/15 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+                    <div className="border-border/50 bg-secondary/40 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
                         <span
                             className={cn(
                                 'inline-flex size-2 rounded-full',
@@ -286,7 +286,9 @@ function AvailableBuildsCard({
     fullWidth?: boolean;
 }) {
     return (
-        <Card className={cn('border-border/60 rounded-xl shadow-sm', fullWidth ? 'xl:col-span-3' : 'xl:col-span-2')}>
+        <Card
+            className={cn('border-border/60 bg-background rounded-xl shadow-none', fullWidth ? 'xl:col-span-3' : 'xl:col-span-2')}
+        >
             <CardHeader>
                 <CardTitle className="text-lg">Available Builds</CardTitle>
                 <CardDescription>Select an artifact tier and download the matching build</CardDescription>
@@ -294,7 +296,7 @@ function AvailableBuildsCard({
             <CardContent>
                 {tiers.length === 0 ? (
                     <div className="text-muted-foreground flex flex-col items-center gap-3 py-8">
-                        <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                        <div className="bg-secondary/50 flex size-12 items-center justify-center rounded-xl">
                             <PackageIcon className="size-6" />
                         </div>
                         <p className="text-sm font-medium">Could not fetch available builds</p>
@@ -309,7 +311,7 @@ function AvailableBuildsCard({
                                 <div
                                     key={tier.tier}
                                     className={cn(
-                                        'bg-card rounded-xl border p-3 sm:p-4',
+                                        'bg-background rounded-xl border p-3 sm:p-4',
                                         isCurrent ? 'border-success/40 bg-success/5' : 'border-border/60',
                                     )}
                                 >
@@ -359,7 +361,7 @@ function CustomDownloadCard({
     onDownload: () => void;
 }) {
     return (
-        <Card className="border-border/60 rounded-xl shadow-sm">
+        <Card className="border-border/60 bg-background rounded-xl shadow-none">
             <CardHeader>
                 <CardTitle className="text-lg">Custom URL</CardTitle>
                 <CardDescription>Paste a direct runtime link to download any supported artifact build.</CardDescription>
@@ -406,8 +408,8 @@ function CustomDownloadCard({
  *   replacing PageHeader; V1 had no way to refresh without reloading.
  * - Structured loading and error states (card-styled with retry) instead
  *   of a bare spinner / Alert.
- * - Cards normalized to the V2 `rounded-xl border-border/60 shadow-sm`
- *   language, with token-based hint surfaces.
+ * - Cards normalized to the flat `rounded-xl border-border/60 bg-background`
+ *   language (matching the player sidebar), with token-based hint surfaces.
  */
 export default function FxUpdaterPage() {
     const { t } = useLocale();
@@ -534,7 +536,7 @@ export default function FxUpdaterPage() {
                     onRefresh={handleManualRefresh}
                 />
                 {isLoading ? (
-                    <div className="border-border/60 bg-card flex h-48 flex-col items-center justify-center gap-3 rounded-xl border shadow-sm">
+                    <div className="border-border/60 bg-background flex h-48 flex-col items-center justify-center gap-3 rounded-xl border">
                         <Loader2Icon className="text-muted-foreground size-6 animate-spin" />
                         <p className="text-muted-foreground text-sm">Loading artifact data…</p>
                     </div>
@@ -569,7 +571,7 @@ export default function FxUpdaterPage() {
             />
 
             {!customDownloadEnabled ? (
-                <div className="border-border/50 bg-muted/15 text-muted-foreground rounded-lg border px-3 py-2 text-sm">
+                <div className="border-border/50 bg-secondary/40 text-muted-foreground rounded-lg border px-3 py-2 text-sm">
                     {window.txConsts.hostConfigSource}: Custom artifact URLs are disabled by the host.
                 </div>
             ) : null}

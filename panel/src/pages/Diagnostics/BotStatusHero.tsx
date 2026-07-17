@@ -43,11 +43,11 @@ export function BotStatusHero({
     const statusTone = discordBotStatusTone[discordBot.status] ?? discordBotStatusTone[DiscordBotStatus.Disabled];
 
     return (
-        <div className="border-border/60 bg-card rounded-xl border p-4 shadow-sm">
+        <div className="border-border/60 bg-background rounded-xl border p-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 flex-1 gap-3">
-                    <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-lg">
-                        <BotIcon className="text-foreground size-4" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+                        <BotIcon className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1 space-y-2">
                         <div>

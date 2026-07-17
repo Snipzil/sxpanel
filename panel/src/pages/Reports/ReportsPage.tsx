@@ -142,7 +142,7 @@ export default function ReportsPage() {
                 analyticsLabel={t('panel.reports.page.analytics_button')}
             />
 
-            <div className="bg-card border-border/60 flex w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+            <div className="bg-background border-border/60 flex w-full flex-1 flex-col overflow-hidden rounded-xl border">
                 {/* Filters */}
                 <PageToolbar className="border-border/40 shrink-0 border-b p-3">
                     <div className="relative min-w-0 flex-1 basis-full sm:basis-[12rem]">

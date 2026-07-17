@@ -216,7 +216,7 @@ export default function BanTemplatesPage() {
             )}
 
             {/* Permission / usage hint */}
-            <div className="border-border/50 bg-muted/15 mb-4 flex gap-3 rounded-xl border p-3">
+            <div className="border-border/50 bg-secondary/40 mb-4 flex gap-3 rounded-xl border p-3">
                 <InfoIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
                 <p className="text-muted-foreground text-xs leading-relaxed">
                     These reasons appear as dropdown options when banning a player — useful for frequent cases like rule
@@ -233,7 +233,7 @@ export default function BanTemplatesPage() {
             </div>
 
             {/* List card */}
-            <div className="border-border/60 bg-card rounded-xl border p-3 shadow-sm">
+            <div className="border-border/60 bg-background rounded-xl border p-3">
                 {!swr.data && !saveError ? (
                     <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12">
                         <Loader2Icon className="size-6 animate-spin" />

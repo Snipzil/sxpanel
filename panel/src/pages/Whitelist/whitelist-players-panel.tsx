@@ -233,7 +233,7 @@ export function WhitelistPlayersPanel({ onCountChange }: WhitelistPlayersPanelPr
 
             <div
                 className={cn(
-                    'border-border/60 bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm',
+                    'border-border/60 bg-background flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border',
                 )}
             >
                 {swr.isLoading ? (

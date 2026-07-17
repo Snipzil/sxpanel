@@ -106,7 +106,7 @@ export default function AdvancedPage() {
                 description="Experimental tools and low-level runtime controls."
             />
 
-            <div className="border-warning/30 bg-warning-hint rounded-xl border p-4 text-center text-sm shadow-sm">
+            <div className="border-warning/30 bg-warning-hint rounded-xl border p-4 text-center text-sm">
                 <strong>
                     This is a page exclusively for advanced users.
                     <br />
@@ -118,7 +118,7 @@ export default function AdvancedPage() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-                <div className="bg-card border-border/60 rounded-xl border p-4 shadow-sm">
+                <div className="bg-background border-border/60 rounded-xl border p-4">
                     <div className="mb-4 space-y-1">
                         <h2 className="text-muted-foreground/60 text-sm font-medium tracking-wider uppercase">
                             Runtime Controls
@@ -130,7 +130,7 @@ export default function AdvancedPage() {
 
                     <div className="space-y-4 text-center">
                         {/* Dev mock status toggle */}
-                        <div className="bg-muted/30 rounded-lg border p-4">
+                        <div className="bg-secondary/30 rounded-lg border p-4">
                             <p className="text-muted-foreground text-sm">
                                 Use mock Socket status data on the panel (development only).
                                 <br />
@@ -149,7 +149,7 @@ export default function AdvancedPage() {
                         </div>
 
                         {/* Verbosity toggle */}
-                        <div className="bg-muted/30 rounded-lg border p-4">
+                        <div className="bg-secondary/30 rounded-lg border p-4">
                             <p className="text-muted-foreground text-sm">
                                 With verbosity enabled, you will see more detailed information on the terminal.
                                 <br />
@@ -179,7 +179,7 @@ export default function AdvancedPage() {
                         </div>
 
                         {/* Profile Monitor */}
-                        <div className="bg-muted/30 rounded-lg border p-4">
+                        <div className="bg-secondary/30 rounded-lg border p-4">
                             <p className="text-muted-foreground text-sm">
                                 This will execute the profiler in the Monitor for 5 seconds.
                                 <br />
@@ -198,7 +198,7 @@ export default function AdvancedPage() {
                     </div>
                 </div>
 
-                <div className="bg-card border-border/60 rounded-xl border p-4 shadow-sm">
+                <div className="bg-background border-border/60 rounded-xl border p-4">
                     <div className="mb-4 space-y-1">
                         <h2 className="text-muted-foreground/60 text-sm font-medium tracking-wider uppercase">
                             Action Console

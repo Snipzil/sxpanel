@@ -18,10 +18,10 @@ export default function NotFound({ params }: NotFoundProps) {
     return (
         <div className="flex w-full items-center justify-center pt-[7.5vh]">
             <div
-                className="border-border/60 bg-card flex w-full max-w-md flex-col items-center gap-4 rounded-xl border p-8 text-center shadow-sm"
+                className="border-border/60 bg-background flex w-full max-w-md flex-col items-center gap-4 rounded-xl border p-8 text-center"
                 role="status"
             >
-                <div className="bg-muted flex size-14 items-center justify-center rounded-xl">
+                <div className="bg-secondary/50 flex size-14 items-center justify-center rounded-xl">
                     <CompassIcon className="text-muted-foreground size-7" />
                 </div>
                 <div className="space-y-1">

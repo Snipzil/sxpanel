@@ -40,7 +40,7 @@ export function ReportsHeaderBand({
                     ? 'border-destructive/40 bg-destructive/10'
                     : accent === 'info' && value
                       ? 'border-info/40 bg-info/10'
-                      : 'border-border/50 bg-muted/15',
+                      : 'border-border/50 bg-secondary/40',
                 value === undefined && 'opacity-60',
             )}
         >
@@ -62,11 +62,11 @@ export function ReportsHeaderBand({
     );
 
     return (
-        <div className="border-border/60 bg-card mb-4 rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background mb-4 rounded-xl border">
             <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <FlagIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <FlagIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>

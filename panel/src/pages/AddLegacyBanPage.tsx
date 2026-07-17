@@ -85,10 +85,10 @@ export default function AddLegacyBanPage() {
     return (
         <div className="mx-auto flex w-full max-w-(--breakpoint-lg) min-w-96 flex-col gap-4 px-2 md:px-0">
             {/* Header band */}
-            <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+            <div className="border-border/60 bg-background rounded-xl border">
                 <div className="flex min-w-0 items-center gap-3 p-4">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <GavelIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <GavelIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">Ban Identifiers</h1>
@@ -100,7 +100,7 @@ export default function AddLegacyBanPage() {
             </div>
 
             {/* Info / permission hint */}
-            <div className="border-border/50 bg-muted/15 flex gap-3 rounded-xl border p-3">
+            <div className="border-border/50 bg-secondary/40 flex gap-3 rounded-xl border p-3">
                 <InfoIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
                 <p className="text-muted-foreground text-xs leading-relaxed">
                     You can ban identifiers like <InlineCode>license</InlineCode> and <InlineCode>discord</InlineCode>{' '}
@@ -116,7 +116,7 @@ export default function AddLegacyBanPage() {
             </div>
 
             {/* Form card */}
-            <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+            <div className="border-border/60 bg-background rounded-xl border">
                 <div className="grid gap-4 p-4 lg:grid-cols-2">
                     <div className="flex flex-col gap-3">
                         <Label htmlFor="banIdentifiers">Identifiers</Label>
