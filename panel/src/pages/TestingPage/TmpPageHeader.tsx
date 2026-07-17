@@ -25,7 +25,7 @@ export default function TmpPageHeader() {
                         topLabel="Documentation"
                         topLink="https://sxpanel.org/docs/"
                         bottomLabel="Support"
-                        bottomLink="https://discord.gg/6FcqBYwxH5"
+                        bottomLink="https://discord.gg/hUM3pQeGFc"
                     />
                 </PageHeader>
             </Wrapper>

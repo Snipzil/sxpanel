@@ -112,12 +112,12 @@ export default class UpdateChecker {
                 if (updates.txa.isImportant) {
                     console.error('This version of sxPanel is outdated.');
                     console.error('Please update as soon as possible.');
-                    console.error('For more information: https://discord.gg/6FcqBYwxH5');
+                    console.error('For more information: https://discord.gg/hUM3pQeGFc');
                 } else {
                     console.warn('This version of sxPanel is outdated.');
                     console.warn('A patch (bug fix) update is available for sxPanel.');
                     console.warn('If you are experiencing any kind of issue, please update now.');
-                    console.warn('For more information: https://discord.gg/6FcqBYwxH5');
+                    console.warn('For more information: https://discord.gg/hUM3pQeGFc');
                 }
             }
         }

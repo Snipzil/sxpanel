@@ -2,7 +2,7 @@
 
 Thanks for your interest in contributing! This guide covers everything you need to get started.
 
-> **Before starting any significant PR**, please join the [Discord](https://discord.gg/6FcqBYwxH5) and discuss your idea first.
+> **Before starting any significant PR**, please join the [Discord](https://discord.gg/hUM3pQeGFc) and discuss your idea first.
 
 ## Getting Started
 

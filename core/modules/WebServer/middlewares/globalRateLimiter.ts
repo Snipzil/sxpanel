@@ -37,7 +37,7 @@ setInterval(() => {
             `sxPanel got ${numberFormatter.format(httpRequestsCounter)} HTTP requests in the last minute.`,
             `The attacker IP addresses have been blocked until ${DDOS_COOLDOWN_MINUTES} mins after the attack stops.`,
             'Make sure you have a proper firewall setup and/or a reverse proxy with rate limiting.',
-            'You can join https://discord.gg/6FcqBYwxH5 for support.',
+            'You can join https://discord.gg/hUM3pQeGFc for support.',
         ]);
     } else {
         minutesSinceLastAttack++;
