@@ -30,19 +30,20 @@ RegisterNetEvent('txsv:req:tpToPlayer', function(tgtId)
 
     -- More OneSync dependent code
     if allow then
-        -- Check for routing bucket diff
-        local tgtBucket = GetPlayerRoutingBucket(tgtId)
-        local srcBucket = GetPlayerRoutingBucket(src)
-
-        -- This isn't stored anywhere for reversion,
-        -- as TP to player is typically a one sided operation
-        if tgtBucket ~= srcBucket then
-            SetPlayerRoutingBucket(src, tgtBucket)
-        end
-
-        -- ensure the player ped exists
+        -- ensure the player ped exists before touching routing buckets
+        -- NOTE: GetPlayerPed returns 0 (truthy in Lua) for invalid/offline players
         local ped = GetPlayerPed(tgtId)
-        if ped then
+        if ped and ped > 0 then
+            -- Check for routing bucket diff
+            local tgtBucket = GetPlayerRoutingBucket(tgtId)
+            local srcBucket = GetPlayerRoutingBucket(src)
+
+            -- This isn't stored anywhere for reversion,
+            -- as TP to player is typically a one sided operation
+            if tgtBucket ~= srcBucket then
+                SetPlayerRoutingBucket(src, tgtBucket)
+            end
+
             local coords = GetEntityCoords(ped)
             data.x = coords[1]
             data.y = coords[2]
@@ -61,10 +62,11 @@ RegisterNetEvent('txsv:req:bringPlayer', function(id)
     end
     local allow = PlayerHasTxPermission(src, 'players.teleport')
     if allow then
-        -- ensure the target player ped exists
+        -- ensure both peds exist (GetPlayerPed returns 0, truthy in Lua, when invalid)
         local ped = GetPlayerPed(id)
-        if ped then
-            local coords = GetEntityCoords(GetPlayerPed(src))
+        local srcPed = GetPlayerPed(src)
+        if ped and ped > 0 and srcPed and srcPed > 0 then
+            local coords = GetEntityCoords(srcPed)
             TriggerClientEvent('txcl:tpToCoords', id, coords[1], coords[2], coords[3])
         end
     end

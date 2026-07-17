@@ -144,10 +144,37 @@ end)
 --- @param vehNetId number
 RegisterNetEvent('txsv:req:vehicle:delete', function(vehNetId)
     local src = source
+    if type(vehNetId) ~= 'number' then
+        return
+    end
     local allow = PlayerHasTxPermission(src, 'menu.vehicle.delete')
     TriggerEvent('txsv:logger:menuEvent', src, 'deleteVehicle', allow)
     if allow then
         local vehicle = NetworkGetEntityFromNetworkId(vehNetId)
+        if not vehicle or vehicle <= 0 or not DoesEntityExist(vehicle) then
+            return
+        end
+        -- The client only requests deletion of the vehicle/mount the admin is in,
+        -- so reject net ids pointing at unrelated entities (e.g. other players' peds)
+        local srcPed = GetPlayerPed(src)
+        if not srcPed or srcPed <= 0 then
+            return
+        end
+        if GetVehiclePedIsIn(srcPed, false) ~= vehicle then
+            local entType = GetEntityType(vehicle)
+            local dist = #(GetEntityCoords(srcPed) - GetEntityCoords(vehicle))
+            if entType == 2 then --vehicle
+                if dist > 15.0 then
+                    return
+                end
+            elseif entType == 1 then --ped (RedM mounts), must be right under the admin
+                if IsPedAPlayer(vehicle) or dist > 5.0 then
+                    return
+                end
+            else
+                return
+            end
+        end
         DeleteEntity(vehicle)
     end
 end)

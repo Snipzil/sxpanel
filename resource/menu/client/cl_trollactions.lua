@@ -91,6 +91,7 @@ else
 end
 local animalGroupHash = GetHashKey('Animal')
 local playerGroupHash = GetHashKey('PLAYER')
+local spawnedAnimals = {}
 
 local function startWildAttack()
     -- Consts
@@ -121,6 +122,17 @@ local function startWildAttack()
         animalPed =
             ---@diagnostic disable-next-line: missing-parameter, param-type-mismatch
             CreatePed(animalHash, spawnCoords.x, spawnCoords.y, groundZ, playerHeading, true, false)
+    end
+
+    -- CreatePed can fail (invalid coords, entity limits, etc)
+    if not animalPed or animalPed <= 0 or not DoesEntityExist(animalPed) then
+        DebugPrint('^1Failed to create wild attack animal ped')
+        SetModelAsNoLongerNeeded(animalHash)
+        return
+    end
+    spawnedAnimals[#spawnedAnimals + 1] = animalPed
+
+    if IS_REDM then
         Citizen.InvokeNative(0x77FF8D35EEC6BBC4, animalPed, 1, 0) --EquipMetaPedOutfitPreset
     end
 
@@ -139,6 +151,19 @@ local function startWildAttack()
     SetModelAsNoLongerNeeded(animalHash)
 end
 -- RegisterCommand('atk', startWildAttack)
+
+-- Delete any spawned animals so they don't become orphaned network objects
+AddEventHandler('onResourceStop', function(resourceName)
+    if resourceName ~= GetCurrentResourceName() then
+        return
+    end
+    for _, animalPed in ipairs(spawnedAnimals) do
+        if DoesEntityExist(animalPed) then
+            DeleteEntity(animalPed)
+        end
+    end
+    spawnedAnimals = {}
+end)
 
 --[[ Net Events ]]
 RegisterNetEvent('txcl:setDrunk', function()

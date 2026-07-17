@@ -3944,7 +3944,8 @@
             "invalid_message_data": "Invalid message data",
             "invalid_input": "Invalid input",
             "invalid_content": "Invalid content",
-            "invalid_status": "Invalid status"
+            "invalid_status": "Invalid status",
+            "rate_limited": "You are submitting too fast. Please wait a moment and try again."
         },
         "server": {
             "tickets_disabled": "Support tickets are disabled on this server.",

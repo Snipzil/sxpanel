@@ -7,12 +7,26 @@ if not TX_MENU_ENABLED then
     return
 end
 
-RegisterNetEvent('txsv:req:troll:setDrunk', function(id)
-    local src = source
+--- Resolves and validates a troll action target id, returns nil if invalid/offline
+---@param id string|number|nil
+---@return number|nil
+local function resolveTrollTarget(id)
     if type(id) ~= 'string' and type(id) ~= 'number' then
-        return
+        return nil
     end
     id = tonumber(id)
+    if not id or not DoesPlayerExist(tostring(id)) then
+        return nil
+    end
+    return id
+end
+
+RegisterNetEvent('txsv:req:troll:setDrunk', function(id)
+    local src = source
+    id = resolveTrollTarget(id)
+    if not id then
+        return
+    end
     local allow = PlayerHasTxPermission(src, 'players.troll')
     if allow then
         TriggerClientEvent('txcl:setDrunk', id)
@@ -22,10 +36,10 @@ end)
 
 RegisterNetEvent('txsv:req:troll:setOnFire', function(id)
     local src = source
-    if type(id) ~= 'string' and type(id) ~= 'number' then
+    id = resolveTrollTarget(id)
+    if not id then
         return
     end
-    id = tonumber(id)
     local allow = PlayerHasTxPermission(src, 'players.troll')
     if allow then
         TriggerClientEvent('txcl:setOnFire', id)
@@ -35,10 +49,10 @@ end)
 
 RegisterNetEvent('txsv:req:troll:wildAttack', function(id)
     local src = source
-    if type(id) ~= 'string' and type(id) ~= 'number' then
+    id = resolveTrollTarget(id)
+    if not id then
         return
     end
-    id = tonumber(id)
     local allow = PlayerHasTxPermission(src, 'players.troll')
     if allow then
         TriggerClientEvent('txcl:wildAttack', id)

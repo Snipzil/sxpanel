@@ -28,9 +28,13 @@ RegisterNetEvent('txsv:req:changePlayerMode', function(mode, nearbyPlayers)
         Player(src).state:set('txAdminPlayerMode', mode, true)
         TriggerClientEvent('txcl:setPlayerMode', src, mode, IS_PTFX_ENABLED)
 
-        if IS_PTFX_ENABLED then
+        if IS_PTFX_ENABLED and type(nearbyPlayers) == 'table' then
+            -- nearbyPlayers comes from the client; only relay to valid connected players
             for _, v in ipairs(nearbyPlayers) do
-                TriggerClientEvent('txcl:showPtfx', v, src)
+                local targetId = tonumber(v)
+                if targetId and DoesPlayerExist(tostring(targetId)) then
+                    TriggerClientEvent('txcl:showPtfx', targetId, src)
+                end
             end
         end
     end

@@ -23,6 +23,9 @@ RegisterNetEvent('txsv:req:freezePlayer', function(targetId)
         return
     end
     targetId = tonumber(targetId)
+    if not targetId or not DoesPlayerExist(tostring(targetId)) then
+        return
+    end
     local allow = PlayerHasTxPermission(src, 'players.freeze')
     TriggerEvent('txsv:logger:menuEvent', src, 'freezePlayer', allow, targetId)
     if allow then
@@ -31,5 +34,14 @@ RegisterNetEvent('txsv:req:freezePlayer', function(targetId)
 
         TriggerClientEvent('txcl:freezePlayerOk', src, newFrozenStatus)
         TriggerClientEvent('txcl:setFrozen', targetId, newFrozenStatus)
+    end
+end)
+
+-- Clear frozen state when a player leaves, so a reused net id
+-- doesn't inherit the previous player's frozen status
+AddEventHandler('playerDropped', function()
+    local droppedId = tonumber(source)
+    if droppedId then
+        frozenPlayers[droppedId] = nil
     end
 end)

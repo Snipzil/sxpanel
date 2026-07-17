@@ -16,13 +16,17 @@ local function handleSpectatePlayer(targetId)
         return
     end
     targetId = tonumber(targetId)
+    if not targetId then
+        return
+    end
 
     local allow = PlayerHasTxPermission(src, 'players.spectate')
 
     if allow then
-        local targetPed = GetPlayerPed(targetId)
         -- Lets exit if the target doesn't exist
-        if not targetPed then
+        -- NOTE: GetPlayerPed returns 0 (truthy in Lua) for invalid/offline players
+        local targetPed = GetPlayerPed(targetId)
+        if not targetPed or targetPed <= 0 then
             return
         end
         -- checking if spectator and target are on the same routing bucket

@@ -383,8 +383,9 @@ RegisterNetEvent('txcl:vehicle:spawn:redm', function(model)
     end
 
     -- model loaded successfully, now delete the old vehicle
+    -- NOTE: GetVehiclePedIsIn returns 0 (truthy in Lua) when not in a vehicle
     local currentVehVelocity
-    if currentVeh then
+    if currentVeh and currentVeh > 0 and DoesEntityExist(currentVeh) then
         currentVehVelocity = GetEntityVelocity(currentVeh)
         DeleteEntity(currentVeh)
     end
@@ -394,11 +395,21 @@ RegisterNetEvent('txcl:vehicle:spawn:redm', function(model)
     if isVehicle then
         ---@diagnostic disable-next-line: missing-parameter, param-type-mismatch
         newVeh = CreateVehicle(modelHash, playerCoords, playerHeading, true, false, false)
+        if not newVeh or newVeh <= 0 or not DoesEntityExist(newVeh) then
+            DebugPrint('^1Failed to create vehicle: ' .. model)
+            SetModelAsNoLongerNeeded(modelHash)
+            return SendSnackbarMessage('error', 'nui_menu.page_main.vehicle.spawn.load_failed', true, { modelName = model })
+        end
         SetPedIntoVehicle(playerPed, newVeh, -1)
         SetVehicleOnGroundProperly(newVeh)
     else
         ---@diagnostic disable-next-line: missing-parameter, param-type-mismatch
         newVeh = CreatePed(modelHash, playerCoords, playerHeading, true, false)
+        if not newVeh or newVeh <= 0 or not DoesEntityExist(newVeh) then
+            DebugPrint('^1Failed to create mount: ' .. model)
+            SetModelAsNoLongerNeeded(modelHash)
+            return SendSnackbarMessage('error', 'nui_menu.page_main.vehicle.spawn.load_failed', true, { modelName = model })
+        end
         -- Citizen.InvokeNative(0x77FF8D35EEC6BBC4, newVeh, 1, 0) --EquipMetaPedOutfitPreset
         Citizen.InvokeNative(0x283978A15512B2FE, newVeh, true) --SetRandomOutfitVariation
         Citizen.InvokeNative(0x028F76B6E78246EB, playerPed, newVeh, -1) --SetPedOntoMount

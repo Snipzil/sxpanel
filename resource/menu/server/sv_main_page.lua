@@ -123,10 +123,14 @@ RegisterNetEvent('txsv:req:healPlayer', function(id)
         return
     end
     id = tonumber(id)
+    if not id then
+        return
+    end
     local allow = PlayerHasTxPermission(src, 'players.heal')
     if allow then
+        -- GetPlayerPed returns 0 (truthy in Lua) for invalid/offline players
         local ped = GetPlayerPed(id)
-        if ped then
+        if ped and ped > 0 then
             TriggerClientEvent('txcl:heal', id)
             -- For use with third party resources that handle players
             -- 'revive state' standalone from health (esx-ambulancejob, qb-ambulancejob, etc)

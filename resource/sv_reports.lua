@@ -43,6 +43,29 @@ local function getPlayerLicense(src)
     return nil
 end
 
+-- Rate limit for report submissions (per player, cleared on disconnect)
+local REPORT_CREATE_COOLDOWN_MS = 15000
+local lastReportCreate = {}
+
+---@param src number
+---@return boolean true if the player is still on cooldown
+local function isReportCreateRateLimited(src)
+    local now = GetGameTimer()
+    local last = lastReportCreate[src]
+    if last and now - last < REPORT_CREATE_COOLDOWN_MS then
+        return true
+    end
+    lastReportCreate[src] = now
+    return false
+end
+
+AddEventHandler('playerDropped', function()
+    local droppedId = tonumber(source)
+    if droppedId then
+        lastReportCreate[droppedId] = nil
+    end
+end)
+
 -- =============================================
 -- MARK: NUI Callback Handlers (called from client)
 -- =============================================
@@ -105,6 +128,9 @@ RegisterNetEvent('txsv:reportCreate', function(data)
     end
     if type(data) ~= 'table' or type(data.type) ~= 'string' or type(data.reason) ~= 'string' then
         return TriggerClientEvent('txcl:reportResult', src, { error = 'Invalid report data.' })
+    end
+    if isReportCreateRateLimited(src) then
+        return TriggerClientEvent('txcl:reportResult', src, { error = 'You are submitting too fast. Please wait a moment and try again.' })
     end
 
     local license = getPlayerLicense(src)

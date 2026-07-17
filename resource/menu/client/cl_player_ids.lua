@@ -367,6 +367,18 @@ RegisterNetEvent('txcl:showPlayerIDs', function(enabled)
     toggleShowPlayerIDs(enabled, true)
 end)
 
+-- Remove all gamer tags when the resource stops, since the display
+-- thread won't get a chance to run its own cleanup
+AddEventHandler('onResourceStop', function(resourceName)
+    if resourceName ~= GetCurrentResourceName() then
+        return
+    end
+    if isPlayerIdsEnabled then
+        isPlayerIdsEnabled = false
+        cleanAllGamerTags()
+    end
+end)
+
 RegisterNetEvent('txcl:setServerCtx', function()
     rebuildTagConfig()
     refreshOverheadConvars()

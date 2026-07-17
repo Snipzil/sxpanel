@@ -44,6 +44,29 @@ local function getPlayerLicense(src)
     return nil
 end
 
+-- Rate limit for ticket submissions (per player, cleared on disconnect)
+local TICKET_CREATE_COOLDOWN_MS = 15000
+local lastTicketCreate = {}
+
+---@param src number
+---@return boolean true if the player is still on cooldown
+local function isTicketCreateRateLimited(src)
+    local now = GetGameTimer()
+    local last = lastTicketCreate[src]
+    if last and now - last < TICKET_CREATE_COOLDOWN_MS then
+        return true
+    end
+    lastTicketCreate[src] = now
+    return false
+end
+
+AddEventHandler('playerDropped', function()
+    local droppedId = tonumber(source)
+    if droppedId then
+        lastTicketCreate[droppedId] = nil
+    end
+end)
+
 --- Check if admin has players.reports permission
 ---@param admin table
 ---@return boolean
@@ -140,6 +163,9 @@ RegisterNetEvent('txsv:ticketCreate', function(data)
         or #data.description == 0
     then
         return TriggerClientEvent('txcl:ticketResult', src, { error = 'nui_reports.errors.invalid_ticket_data' })
+    end
+    if isTicketCreateRateLimited(src) then
+        return TriggerClientEvent('txcl:ticketResult', src, { error = 'nui_reports.errors.rate_limited' })
     end
 
     local license = getPlayerLicense(src)
