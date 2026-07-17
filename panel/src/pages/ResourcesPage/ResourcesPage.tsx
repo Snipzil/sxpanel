@@ -307,7 +307,7 @@ export default function ResourcesPage() {
             />
 
             <TooltipProvider delayDuration={300}>
-                <div className="bg-card border-border/60 flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+                <div className="bg-background border-border/60 flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border">
                     {/* Toolbar */}
                     <div className="bg-card sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b px-4 py-2">
                         {/* Search */}

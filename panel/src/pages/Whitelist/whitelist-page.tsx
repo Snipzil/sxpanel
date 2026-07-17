@@ -61,7 +61,7 @@ export default function WhitelistPageContent() {
         <div className="h-contentvh flex w-full min-w-0 flex-col">
             <WhitelistHeaderBand counts={counts} activeTab={activeTab} analytics={analyticsSwr.data} />
 
-            <div className="border-border/60 bg-muted/25 mb-4 inline-flex w-full flex-wrap gap-1 rounded-xl border p-1 shadow-sm sm:w-auto">
+            <div className="border-border/60 bg-secondary/25 mb-4 inline-flex w-full flex-wrap gap-1 rounded-xl border p-1 sm:w-auto">
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;

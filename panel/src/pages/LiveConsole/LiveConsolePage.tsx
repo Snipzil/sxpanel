@@ -614,7 +614,7 @@ export default function LiveConsolePage() {
     const controller = useLiveConsoleController();
 
     return (
-        <div className="dark text-primary h-contentvh bg-card border-border/60 flex w-full flex-col overflow-clip border shadow-sm md:rounded-xl">
+        <div className="dark text-primary h-contentvh bg-background border-border/60 flex w-full flex-col overflow-clip border md:rounded-xl">
             <LiveConsoleHeader
                 isConnected={controller.isConnected}
                 hasSpawnLines={controller.hasSpawnLines}

@@ -29,7 +29,7 @@ export function ActionLogHeaderBand({
     changelogData,
 }: ActionLogHeaderBandProps) {
     const pill = (label: string, value: number, Icon: typeof ZapIcon) => (
-        <div className="border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+        <div className="border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
             <Icon className="text-muted-foreground size-3.5 shrink-0" />
             <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">{label}</span>
             <span className="text-foreground text-sm font-semibold tabular-nums">{value.toLocaleString()}</span>
@@ -40,11 +40,11 @@ export function ActionLogHeaderBand({
     const connectionLabel = activeSession ? 'Session' : isLive ? (isConnected ? 'Live' : 'Connecting') : 'Paused';
 
     return (
-        <div className="border-border/60 bg-card mb-4 rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background mb-4 rounded-xl border">
             <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <ShieldIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <ShieldIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
@@ -57,7 +57,7 @@ export function ActionLogHeaderBand({
                     <div
                         className={cn(
                             'inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
-                            isStreaming ? 'border-success/30 bg-success/10' : 'border-border/50 bg-muted/15',
+                            isStreaming ? 'border-success/30 bg-success/10' : 'border-border/50 bg-secondary/40',
                         )}
                     >
                         <span className="relative flex size-2" aria-hidden="true">

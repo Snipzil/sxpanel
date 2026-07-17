@@ -37,7 +37,7 @@ export function WhitelistToolbar({
     const countLabel = formatCount(countFiltered, countTotal, countNoun);
 
     return (
-        <div className={cn('border-border/60 bg-card rounded-xl border shadow-sm', className)}>
+        <div className={cn('border-border/60 bg-background rounded-xl border', className)}>
             <div className="border-border/40 flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
                 <p className="text-muted-foreground/60 text-[11px] font-semibold tracking-widest uppercase">
                     {t('panel.whitelist.search_label')}

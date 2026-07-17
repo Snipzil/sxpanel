@@ -260,11 +260,11 @@ export default function SystemLogPage({ pageName }: SystemLogPageProps) {
     return (
         <div className="h-contentvh mx-auto flex w-full max-w-(--tx-page-max-width) flex-col px-2 md:px-0">
             {/* Header band */}
-            <div className="border-border/60 bg-card mb-4 shrink-0 rounded-xl border shadow-sm">
+            <div className="border-border/60 bg-background mb-4 shrink-0 rounded-xl border">
                 <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
-                        <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                            <ScrollTextIcon className="text-foreground size-5" />
+                        <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                            <ScrollTextIcon className="size-5" />
                         </div>
                         <div className="min-w-0">
                             <h1 className="text-foreground truncate text-lg font-semibold tracking-tight">
@@ -279,7 +279,7 @@ export default function SystemLogPage({ pageName }: SystemLogPageProps) {
                             loadError
                                 ? 'border-destructive/40 bg-destructive/10'
                                 : isLoading
-                                  ? 'border-border/50 bg-muted/15'
+                                  ? 'border-border/50 bg-secondary/40'
                                   : 'border-success/40 bg-success/10',
                         )}
                     >
@@ -298,7 +298,7 @@ export default function SystemLogPage({ pageName }: SystemLogPageProps) {
             </div>
 
             {/* Terminal card */}
-            <div className="dark text-primary bg-card border-border/60 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+            <div className="dark text-primary bg-background border-border/60 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border">
                 <div className="bg-secondary/20 border-border/60 flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5">
                     <p className="text-foreground/90 text-sm font-medium">{t('panel.system_log_page.stream_title')}</p>
                     <Button

@@ -432,11 +432,11 @@ function AddonsHeaderBand({
     onScan: () => void;
 }) {
     return (
-        <div className="border-border/60 bg-card rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background rounded-xl border">
             <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <BlocksIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <BlocksIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
@@ -446,7 +446,7 @@ function AddonsHeaderBand({
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+                    <div className="border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
                         <PackageIcon className="text-muted-foreground size-3.5 shrink-0" />
                         <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">
                             Addons
@@ -512,9 +512,9 @@ function AddonsEmptyStates({
 
     if (data?.config && !data.config.enabled) {
         return (
-            <Card className="border-border/60 rounded-xl shadow-sm">
+            <Card className="border-border/60 bg-background rounded-xl shadow-none">
                 <CardContent className="flex flex-col items-center gap-3 py-12">
-                    <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                    <div className="bg-secondary/50 flex size-12 items-center justify-center rounded-xl">
                         <PowerOffIcon className="text-muted-foreground size-6" />
                     </div>
                     <p className="text-foreground text-sm font-medium">Addon system is disabled</p>
@@ -528,9 +528,9 @@ function AddonsEmptyStates({
 
     if (data?.config?.enabled && addonCount === 0) {
         return (
-            <Card className="border-border/60 rounded-xl shadow-sm">
+            <Card className="border-border/60 bg-background rounded-xl shadow-none">
                 <CardContent className="flex flex-col items-center gap-3 py-12">
-                    <div className="bg-muted flex size-12 items-center justify-center rounded-xl">
+                    <div className="bg-secondary/50 flex size-12 items-center justify-center rounded-xl">
                         <PackageIcon className="text-muted-foreground size-6" />
                     </div>
                     <p className="text-foreground text-sm font-medium">No addons installed</p>

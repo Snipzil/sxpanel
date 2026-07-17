@@ -111,7 +111,7 @@ export default function ActionLogPage() {
             />
 
             <TooltipProvider delayDuration={300}>
-                <div className="bg-card border-border/60 relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+                <div className="bg-background border-border/60 relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl border">
                     <ActionLogToolbar
                         isLive={log.isLive}
                         isConnected={log.isConnected}

@@ -128,7 +128,7 @@ export function WhitelistRequestsPanel({ onCountChange }: WhitelistRequestsPanel
                 }
             />
 
-            <div className="border-border/60 bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+            <div className="border-border/60 bg-background flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border">
                 {swr.isLoading ? (
                     <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 py-16">
                         <Loader2Icon className="text-primary size-8 animate-spin" />

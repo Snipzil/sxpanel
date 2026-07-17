@@ -26,7 +26,7 @@ export function ServerLogHeaderBand({
     activeSession,
 }: ServerLogHeaderBandProps) {
     const pill = (label: string, value: number, Icon: typeof ScrollTextIcon) => (
-        <div className="border-border/50 bg-muted/15 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+        <div className="border-border/50 bg-secondary/40 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
             <Icon className="text-muted-foreground size-3.5 shrink-0" />
             <span className="text-muted-foreground/70 text-[11px] font-semibold tracking-wider uppercase">{label}</span>
             <span className="text-foreground text-sm font-semibold tabular-nums">{value.toLocaleString()}</span>
@@ -36,11 +36,11 @@ export function ServerLogHeaderBand({
     const connectionLabel = activeSession ? 'Session' : isLive ? (isConnected ? 'Live' : 'Connecting') : 'Paused';
 
     return (
-        <div className="border-border/60 bg-card mb-4 rounded-xl border shadow-sm">
+        <div className="border-border/60 bg-background mb-4 rounded-xl border">
             <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-xl">
-                        <ScrollTextIcon className="text-foreground size-5" />
+                    <div className="bg-secondary/50 text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+                        <ScrollTextIcon className="size-5" />
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-foreground text-lg font-semibold tracking-tight">{title}</h1>
@@ -55,7 +55,7 @@ export function ServerLogHeaderBand({
                             'inline-flex items-center gap-2 rounded-full border px-3 py-1.5',
                             isLive && isConnected && !activeSession
                                 ? 'border-success/30 bg-success/10'
-                                : 'border-border/50 bg-muted/15',
+                                : 'border-border/50 bg-secondary/40',
                         )}
                     >
                         <span className="relative flex size-2" aria-hidden="true">

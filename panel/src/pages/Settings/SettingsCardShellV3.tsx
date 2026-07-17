@@ -21,7 +21,7 @@ export default function SettingsCardShellV3({
         <article
             id={`tab-${cardCtx.cardId}`}
             data-show-advanced={advancedVisible}
-            className="group/card border-border/60 bg-card relative rounded-2xl border shadow-sm"
+            className="group/card border-border/60 bg-background relative rounded-2xl border"
         >
             {isMultiCardTab ? (
                 <header className="border-border/40 flex flex-wrap items-center justify-between gap-3 border-b px-8 py-4 lg:px-10 lg:py-5">
