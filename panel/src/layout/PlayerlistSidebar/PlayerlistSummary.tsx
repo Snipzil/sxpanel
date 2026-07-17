@@ -1,7 +1,7 @@
 import { playerCountAtom } from '@/hooks/playerlist';
 import { useAtomValue } from 'jotai';
 import { ChevronLeftIcon, ChevronRightIcon, UsersIcon } from 'lucide-react';
-import { usePlayerlistCollapsed } from './PlayerlistSidebar';
+import { usePlayerlistCollapsed } from './PlayerlistCollapsedContext';
 
 type PlayerlistSummaryProps = {
     /** Omitted for the mobile sheet, which is always fully expanded. */

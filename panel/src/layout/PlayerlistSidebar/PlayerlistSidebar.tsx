@@ -1,12 +1,10 @@
-import { createContext, use, useState } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import PlayerlistSummary from './PlayerlistSummary';
 import Playerlist from './Playerlist';
+import { PlayerlistCollapsedCtx } from './PlayerlistCollapsedContext';
 
 const LOCALSTORAGE_KEY = 'playerlist-collapsed';
-
-const PlayerlistCollapsedCtx = createContext(false);
-export const usePlayerlistCollapsed = () => use(PlayerlistCollapsedCtx);
 
 type PlayerSidebarProps = {
     isSheet?: boolean;
