@@ -89,7 +89,8 @@ const nativeVars = getNativeVars();
 //8495 = changed prometheus::Histogram::BucketBoundaries
 //9423 = feat(server): add more infos to playerDropped event
 //9655 = Fixed ScanResourceRoot + latent events
-const minFxsVersion = 5894;
+//25943 = node 22 sandboxed runtime, required by deps using the RegExp 'v' flag (got@15 -> @sindresorhus/is@8)
+const minFxsVersion = 25770;
 const fxsVerParsed = parseFxserverVersion(nativeVars.fxsVersion);
 const fxsVersion = fxsVerParsed.valid ? fxsVerParsed.build : 99999;
 if (!fxsVerParsed.valid) {
@@ -108,6 +109,21 @@ if (!fxsVerParsed.valid) {
     ]);
 } else if (fxsVerParsed.branch !== 'master') {
     console.warn(`You are running a custom branch of FXServer: ${fxsVerParsed.branch}`);
+}
+
+//Custom/unparseable builds bypass the check above, so also verify the actual runtime capability
+//that our dependencies require (RegExp 'v' flag, V8 11+/node 20+), otherwise the boot dies with
+//a raw SyntaxError the moment anything transitively imports got/@sindresorhus/is.
+try {
+    new RegExp('', 'v');
+} catch (error) {
+    fatalError.GlobalData(9, [
+        'This FXServer build ships a JS runtime too old to run sxPanel.',
+        ['Current FXServer version', String(fxsVerParsed.build ?? nativeVars.fxsVersion)],
+        ['Node version', process.versions.node],
+        ['Minimum required build', minFxsVersion.toString()],
+        'Please update your FXServer to a newer version.',
+    ]);
 }
 
 //Getting sxPanel version
@@ -323,6 +339,7 @@ export const txEnv = Object.freeze({
     //Natives
     fxsVersionTag,
     fxsVersion,
+    minFxsVersion,
     txaVersion,
     txaPath,
     fxsPath,

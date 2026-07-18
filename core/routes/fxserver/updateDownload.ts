@@ -1,6 +1,6 @@
 const modulename = 'WebServer:FxArtifactDownload';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
-import { txHostConfig } from '@core/globalData';
+import { txEnv, txHostConfig } from '@core/globalData';
 import consoleFactory from '@lib/console';
 import { ApiToastResp } from '@shared/genericApiTypes';
 const console = consoleFactory(modulename);
@@ -43,6 +43,13 @@ export default async function FxArtifactDownload(ctx: AuthedCtx) {
         return ctx.send<ApiToastResp>({
             type: 'error',
             msg: 'A version identifier is required.',
+        });
+    }
+    const versionNum = parseInt(version);
+    if (!isNaN(versionNum) && versionNum < txEnv.minFxsVersion) {
+        return ctx.send<ApiToastResp>({
+            type: 'error',
+            msg: `Build ${versionNum} is not compatible with sxPanel (minimum: ${txEnv.minFxsVersion}). Downgrading below it would prevent sxPanel from booting.`,
         });
     }
     if (!txHostConfig.artifactCustomDownloadEnabled && version === 'custom') {

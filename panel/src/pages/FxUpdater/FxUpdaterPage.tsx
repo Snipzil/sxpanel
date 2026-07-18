@@ -275,12 +275,14 @@ function CurrentBuildSection({
 function AvailableBuildsCard({
     tiers,
     currentVersion,
+    minCompatibleVersion,
     isBusy,
     onDownload,
     fullWidth,
 }: {
     tiers: ArtifactTierInfo[];
     currentVersion: ArtifactListResp['currentVersion'];
+    minCompatibleVersion: ArtifactListResp['minCompatibleVersion'];
     isBusy: boolean;
     onDownload: (url: string, version: string) => void;
     fullWidth?: boolean;
@@ -307,12 +309,14 @@ function AvailableBuildsCard({
                         {tiers.map((tier) => {
                             const info = tierLabels[tier.tier] ?? { label: tier.tier, desc: 'Unknown tier' };
                             const isCurrent = tier.version === currentVersion;
+                            const isIncompatible = tier.version < minCompatibleVersion;
                             return (
                                 <div
                                     key={tier.tier}
                                     className={cn(
                                         'bg-background rounded-xl border p-3 sm:p-4',
                                         isCurrent ? 'border-success/40 bg-success/5' : 'border-border/60',
+                                        isIncompatible && 'opacity-60',
                                     )}
                                 >
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -327,13 +331,22 @@ function AvailableBuildsCard({
                                                         Current
                                                     </Badge>
                                                 ) : null}
+                                                {isIncompatible ? (
+                                                    <Badge variant="destructive" className="text-xs">
+                                                        Incompatible
+                                                    </Badge>
+                                                ) : null}
                                             </div>
-                                            <p className="text-muted-foreground text-xs sm:text-sm">{info.desc}</p>
+                                            <p className="text-muted-foreground text-xs sm:text-sm">
+                                                {isIncompatible
+                                                    ? `Below the minimum build supported by sxPanel (#${minCompatibleVersion})`
+                                                    : info.desc}
+                                            </p>
                                         </div>
                                         <Button
                                             size="sm"
                                             variant={isCurrent ? 'muted' : 'default'}
-                                            disabled={isBusy}
+                                            disabled={isBusy || isIncompatible}
                                             onClick={() => onDownload(tier.downloadUrl, tier.version.toString())}
                                             className="w-full sm:w-auto"
                                         >
@@ -555,7 +568,8 @@ export default function FxUpdaterPage() {
         );
     }
 
-    const { currentVersion, currentVersionTag, tiers, updateStatus, customDownloadEnabled } = data;
+    const { currentVersion, currentVersionTag, minCompatibleVersion, tiers, updateStatus, customDownloadEnabled } =
+        data;
     const isBusy =
         updateStatus.phase !== 'idle' && updateStatus.phase !== 'error' && updateStatus.phase !== 'extracted';
     const selectedTier = tiers.find((t) => t.version === currentVersion);
@@ -590,6 +604,7 @@ export default function FxUpdaterPage() {
                 <AvailableBuildsCard
                     tiers={tiers}
                     currentVersion={currentVersion}
+                    minCompatibleVersion={minCompatibleVersion}
                     isBusy={isBusy}
                     onDownload={handleDownload}
                     fullWidth={!customDownloadEnabled}

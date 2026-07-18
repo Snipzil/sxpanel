@@ -51,6 +51,7 @@ export default async function FxArtifactList(ctx: AuthedCtx) {
     const resp: ArtifactListResp = {
         currentVersion: txEnv.fxsVersion,
         currentVersionTag: txEnv.fxsVersionTag,
+        minCompatibleVersion: txEnv.minFxsVersion,
         tiers,
         updateStatus: txCore.fxUpdater.status,
         customDownloadEnabled: txHostConfig.artifactCustomDownloadEnabled,

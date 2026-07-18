@@ -63,6 +63,7 @@ export type ArtifactTierInfo = {
 export type ArtifactListResp = {
     currentVersion: number;
     currentVersionTag: string;
+    minCompatibleVersion: number;
     tiers: ArtifactTierInfo[];
     updateStatus: FxUpdateStatus;
     customDownloadEnabled: boolean;
