@@ -560,6 +560,19 @@ export default class DiscordBot {
                 return await waitForReady;
             } catch (error) {
                 this.#ignoreNextBridgeDisconnect = false;
+
+                //A slow startup (cold disk, AV scanning, Discord rate limits) is not fatal:
+                //keep the process alive and let the eventual 'ready' status flip it to Ready.
+                const isStartupTimeout = (error as Error & { code?: unknown })?.code === 'StartupTimeout';
+                if (isStartupTimeout && this.#botProcess.isRunning) {
+                    this.refreshWsStatus();
+                    throw this.#buildError(
+                        'Discord bot startup is taking longer than 60 seconds. ' +
+                            'The bot process is still running and will keep starting in the background — check its status shortly.',
+                        'StartupTimeout',
+                    );
+                }
+
                 this.#lastExplicitStatus = DiscordBotStatus.Error;
                 this.refreshWsStatus();
                 this.#botProcess.stop();
@@ -919,8 +932,8 @@ export default class DiscordBot {
         const waitForReady = new Promise<string>((resolve, reject) => {
             const timer = setTimeout(() => {
                 this.#pendingStart = undefined;
-                reject(new Error('Discord bot startup timed out.'));
-            }, 20_000);
+                reject(this.#buildError('Discord bot startup timed out.', 'StartupTimeout'));
+            }, 60_000);
             this.#pendingStart = { resolve, reject, timer };
         });
 

@@ -19,12 +19,12 @@ module.exports = {
     name: 'clientReady',
     once: true,
     async execute(_readyClient, client, bridge) {
-        let guildName;
+        let guildId;
         try {
             const snapshot = await request('configSnapshot');
             client.sxpanel.latestConfigSnapshot = snapshot;
 
-            const guildId = snapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? undefined;
+            guildId = snapshot?.discordBot?.guild ?? process.env.BOT_GUILD_ID ?? undefined;
             const guild = guildId
                 ? (client.guilds.cache.get(guildId) ?? (await client.guilds.fetch(guildId).catch(() => null)))
                 : null;
@@ -48,9 +48,15 @@ module.exports = {
                 return;
             }
 
-            guildName = guild?.name;
-            await client.sxpanel.reloadAddonModules({ clearAddonCache: true });
-            await client.sxpanel.registerCommands(guildId);
+            //Report ready before registering slash commands: registration can take a long
+            //time (Discord rate limits repeated registrations) or fail outright (bot invited
+            //without the applications.commands scope), and neither should kill the bot or
+            //make the panel-side startup wait time out.
+            sendStatus(bridge, {
+                status: 'ready',
+                tag: client.user?.tag,
+                guildName: guild?.name,
+            });
         } catch (error) {
             console.error('[Bot] Failed to hydrate config snapshot:', error);
             sendFatalStatus(bridge, {
@@ -59,10 +65,15 @@ module.exports = {
             return;
         }
 
-        sendStatus(bridge, {
-            status: 'ready',
-            tag: client.user?.tag,
-            guildName,
-        });
+        try {
+            await client.sxpanel.reloadAddonModules({ clearAddonCache: true });
+            await client.sxpanel.registerCommands(guildId);
+        } catch (error) {
+            console.error(
+                '[Bot] Failed to register slash commands (the bot stays online, but commands may be missing or stale). ' +
+                    'If this persists, re-invite the bot with the applications.commands scope:',
+                error,
+            );
+        }
     },
 };
