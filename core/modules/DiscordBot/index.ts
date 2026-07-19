@@ -176,10 +176,11 @@ export default class DiscordBot {
             },
         });
 
-        this.#logNodeRuntimePreflight();
-
+        //NOTE: the preflight may trigger a sync fs scan for the child Node runtime,
+        //so it must stay off the boot-critical path and only run if the bot will start.
         setImmediate(() => {
             if (txConfig.discordBot.enabled) {
+                this.#logNodeRuntimePreflight();
                 this.startBot().catch((error) => {
                     console.error(`Initial Discord bot startup failed: ${emsg(error)}`);
                 });

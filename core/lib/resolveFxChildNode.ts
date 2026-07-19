@@ -9,6 +9,17 @@ import path from 'node:path';
 
 const EMBEDDED_NODE_DIR_NAMES = ['node22', 'node20', 'node16', 'node'] as const;
 
+//The directory scans below run synchronously, potentially during boot with the event
+//loop blocked. If they escape the artifact tree (eg into a drive root or a dev folder
+//full of repos) they can take many minutes on an HDD, freezing boot with no output.
+const SCAN_IGNORED_DIR_NAMES = new Set(['node_modules', '.git', 'txdata', 'cache', 'server-data', 'resources']);
+const SCAN_MAX_READDIRS = 3000;
+
+const isFilesystemRoot = (dirPath: string): boolean => {
+    const resolved = path.resolve(dirPath);
+    return path.parse(resolved).root === resolved;
+};
+
 export type FxChildNodeRuntimeResolution = {
     childExecPath?: string;
     childExecArgvPrefix: string[];
@@ -149,12 +160,17 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
     const cfxLibPaths = [...cfxLibPathSet];
     const nodeNameRegex = /^node(?:\d+)?(?:\.exe)?$/i;
 
+    //Shared across all scans so the total sync fs work per resolution is bounded.
+    let remainingReaddirs = SCAN_MAX_READDIRS;
+    const shouldDescendInto = (dirName: string) => !SCAN_IGNORED_DIR_NAMES.has(dirName.toLowerCase());
+
     const collectNodeBins = (root: string, maxDepth: number): string[] => {
-        if (!fs.existsSync(root)) return [];
+        if (isFilesystemRoot(root) || !fs.existsSync(root)) return [];
         const out: string[] = [];
         const queue: Array<[string, number]> = [[root, 0]];
 
-        while (queue.length) {
+        while (queue.length && remainingReaddirs > 0) {
+            remainingReaddirs--;
             const [dir, depth] = queue.shift()!;
             let entries: fs.Dirent[];
             try {
@@ -166,7 +182,7 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
             for (const entry of entries) {
                 const fullPath = path.join(dir, entry.name);
                 if (entry.isDirectory()) {
-                    if (depth < maxDepth) queue.push([fullPath, depth + 1]);
+                    if (depth < maxDepth && shouldDescendInto(entry.name)) queue.push([fullPath, depth + 1]);
                     continue;
                 }
 
@@ -181,11 +197,12 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
     };
 
     const collectExecutableBins = (root: string, maxDepth: number, maxFiles: number): string[] => {
-        if (!fs.existsSync(root)) return [];
+        if (isFilesystemRoot(root) || !fs.existsSync(root)) return [];
         const out: string[] = [];
         const queue: Array<[string, number]> = [[root, 0]];
 
-        while (queue.length && out.length < maxFiles) {
+        while (queue.length && out.length < maxFiles && remainingReaddirs > 0) {
+            remainingReaddirs--;
             const [dir, depth] = queue.shift()!;
             let entries: fs.Dirent[];
             try {
@@ -199,7 +216,7 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
                 const fullPath = path.join(dir, entry.name);
 
                 if (entry.isDirectory()) {
-                    if (depth < maxDepth) queue.push([fullPath, depth + 1]);
+                    if (depth < maxDepth && shouldDescendInto(entry.name)) queue.push([fullPath, depth + 1]);
                     continue;
                 }
 
@@ -247,12 +264,19 @@ function computeFxChildNodeRuntimeResolution(): FxChildNodeRuntimeResolution {
         }
     }
 
-    const cfxNodeSearchRoots = cfxRoots.flatMap((root) => [
-        path.join(root, 'usr', 'lib', 'v8'),
-        path.join(root, 'citizen', 'scripting', 'v8'),
-        path.join(root, 'opt', 'cfx-server', 'citizen', 'scripting', 'v8'),
-        root,
-    ]);
+    //Deep-scanning the bare roots is a Linux-artifact concern (embedded alpine tree with
+    //node at unpredictable paths). Windows artifacts never ship a standalone node binary,
+    //and the bare roots may be ancestors of the artifact dir (eg a folder full of repos),
+    //so scanning them on Windows is all cost and no benefit.
+    const bareRootScanTargets = process.platform === 'win32' ? [] : cfxRoots;
+    const cfxNodeSearchRoots = [
+        ...cfxRoots.flatMap((root) => [
+            path.join(root, 'usr', 'lib', 'v8'),
+            path.join(root, 'citizen', 'scripting', 'v8'),
+            path.join(root, 'opt', 'cfx-server', 'citizen', 'scripting', 'v8'),
+        ]),
+        ...bareRootScanTargets,
+    ];
     for (const root of cfxNodeSearchRoots) {
         for (const candidate of collectNodeBins(root, 7)) {
             candidateSet.add(candidate);
