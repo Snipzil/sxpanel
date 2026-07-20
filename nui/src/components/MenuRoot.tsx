@@ -26,7 +26,6 @@ const MenuRoot: React.FC = () => {
                     flexShrink: 0,
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 10,
                     alignSelf: serverCtx.alignRight ? 'flex-end' : 'auto',
                 }}
             >

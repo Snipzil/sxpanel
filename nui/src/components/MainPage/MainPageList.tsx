@@ -14,33 +14,28 @@ import { useMiscActions } from './actions/useMiscActions';
 const fadeHeight = 16;
 const listHeight = 300;
 
-const ListWrapper = styled(Box)({
-    position: 'relative',
-    maxHeight: listHeight,
-    overflow: 'hidden',
+interface ListWrapperProps {
+    fadeTop: boolean;
+    fadeBottom: boolean;
+}
+
+//The card is translucent glass, so overflow is hinted by masking the list
+//content itself (overlay gradients would stack on the surface and read as
+//dark bands over the blur).
+const ListWrapper = styled(Box, {
+    shouldForwardProp: (prop) => prop !== 'fadeTop' && prop !== 'fadeBottom',
+})<ListWrapperProps>(({ fadeTop, fadeBottom }) => {
+    const top = fadeTop ? `transparent 0, black ${fadeHeight}px` : 'black 0';
+    const bottom = fadeBottom ? `black calc(100% - ${fadeHeight}px), transparent 100%` : 'black 100%';
+    const mask = `linear-gradient(to bottom, ${top}, ${bottom})`;
+    return {
+        position: 'relative',
+        maxHeight: listHeight,
+        overflow: 'hidden',
+        maskImage: mask,
+        WebkitMaskImage: mask,
+    };
 });
-
-const FadeTop = styled(Box)(({ theme }) => ({
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: fadeHeight,
-    pointerEvents: 'none',
-    zIndex: 2,
-    backgroundImage: `linear-gradient(to bottom, ${theme.palette.background.default}, transparent)`,
-}));
-
-const FadeBottom = styled(Box)(({ theme }) => ({
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: fadeHeight,
-    pointerEvents: 'none',
-    zIndex: 2,
-    backgroundImage: `linear-gradient(to top, ${theme.palette.background.default}, transparent)`,
-}));
 
 const BoxIcon = styled(Box)(({ theme }) => ({
     color: theme.palette.text.secondary,
@@ -103,7 +98,7 @@ export const MainPageList: React.FC = () => {
 
     return (
         <Box sx={{ pointerEvents: 'none' }}>
-            <ListWrapper>
+            <ListWrapper fadeTop={showTopFade} fadeBottom={showBottomFade}>
                 <StyledList sx={{ pointerEvents: 'auto' }}>
                     {menuListItems.map((item, index) =>
                         'isMultiAction' in item && item.isMultiAction ? (
@@ -115,8 +110,6 @@ export const MainPageList: React.FC = () => {
                         ),
                     )}
                 </StyledList>
-                <FadeTop style={{ opacity: showTopFade ? 1 : 0 }} />
-                <FadeBottom style={{ opacity: showBottomFade ? 1 : 0 }} />
             </ListWrapper>
             <BoxIcon display="flex" justifyContent="center">
                 <ExpandMore />

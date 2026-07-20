@@ -70,7 +70,7 @@ client_scripts({
 
 -- Cache-bust query prevents FiveM's CEF from serving stale NUI files.
 -- Bump the version whenever dist/nui content changes.
-ui_page 'nui/index.html?v=6'
+ui_page 'nui/index.html?v=7'
 
 files {
     'locale/*.json',

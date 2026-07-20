@@ -23,20 +23,27 @@ const classes = {
     sectionTitle: `${PREFIX}-sectionTitle`,
 };
 
-const StyledDialogContent = styled(DialogContent)({
+const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
     [`& .${classes.actionGrid}`]: {
         display: 'flex',
-        columnGap: 10,
-        rowGap: 10,
-        paddingBottom: 15,
+        flexWrap: 'wrap',
+        columnGap: 8,
+        rowGap: 8,
+        paddingBottom: 18,
     },
     [`& .${classes.tooltipOverride}`]: {
         fontSize: 12,
     },
+    //Group labels read as quiet overlines so the buttons carry the emphasis
     [`& .${classes.sectionTitle}`]: {
-        paddingBottom: 5,
+        paddingBottom: 6,
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: theme.tokens.textMuted,
     },
-});
+}));
 
 export type TxAdminActionRespType = 'success' | 'warning' | 'danger';
 
@@ -201,7 +208,7 @@ const DialogActionView: React.FC = () => {
         }
 
         closeMenu();
-        fetchNui('tpToPlayer', { id: assocPlayer.id });
+        fetchNui('tpToPlayer', { id: assocPlayer.id }).catch(() => {});
         enqueueSnackbar(t('nui_menu.player_modal.actions.interaction.notifications.tp_player'), { variant: 'success' });
     };
 
@@ -216,7 +223,7 @@ const DialogActionView: React.FC = () => {
         }
 
         closeMenu();
-        fetchNui('summonPlayer', { id: assocPlayer.id });
+        fetchNui('summonPlayer', { id: assocPlayer.id }).catch(() => {});
         enqueueSnackbar(t('nui_menu.player_modal.actions.interaction.notifications.bring_player'), {
             variant: 'success',
         });
@@ -226,30 +233,30 @@ const DialogActionView: React.FC = () => {
         if (!userHasPerm('players.spectate', playerPerms)) return showNoPerms('Spectate');
 
         closeMenu();
-        fetchNui('spectatePlayer', { id: assocPlayer.id });
+        fetchNui('spectatePlayer', { id: assocPlayer.id }).catch(() => {});
     };
 
     const handleFreeze = () => {
         if (!userHasPerm('players.freeze', playerPerms)) return showNoPerms('Freeze');
-        fetchNui('togglePlayerFreeze', { id: assocPlayer.id });
+        fetchNui('togglePlayerFreeze', { id: assocPlayer.id }).catch(() => {});
     };
 
     //Troll
     const handleDrunk = () => {
         if (!userHasPerm('players.troll', playerPerms)) return showNoPerms('Troll');
-        fetchNui('drunkEffectPlayer', { id: assocPlayer.id });
+        fetchNui('drunkEffectPlayer', { id: assocPlayer.id }).catch(() => {});
         enqueueSnackbar(t('nui_menu.player_modal.actions.command_sent'));
     };
 
     const handleSetOnFire = () => {
         if (!userHasPerm('players.troll', playerPerms)) return showNoPerms('Troll');
-        fetchNui('setOnFire', { id: assocPlayer.id });
+        fetchNui('setOnFire', { id: assocPlayer.id }).catch(() => {});
         enqueueSnackbar(t('nui_menu.player_modal.actions.command_sent'));
     };
 
     const handleWildAttack = () => {
         if (!userHasPerm('players.troll', playerPerms)) return showNoPerms('Troll');
-        fetchNui('wildAttack', { id: assocPlayer.id });
+        fetchNui('wildAttack', { id: assocPlayer.id }).catch(() => {});
         enqueueSnackbar(t('nui_menu.player_modal.actions.command_sent'));
     };
 

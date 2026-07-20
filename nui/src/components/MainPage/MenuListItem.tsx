@@ -7,11 +7,10 @@ import {
     ListItemIcon,
     ListItemSecondaryAction,
     ListItemText,
-    Typography,
     styled,
 } from '@mui/material';
 import { useKeyboardNavigation } from '../../hooks/useKeyboardNavigation';
-import { Code } from '@mui/icons-material';
+import { ChevronLeftOutlined, ChevronRightOutlined } from '@mui/icons-material';
 import { fetchNui } from '../../utils/fetchNui';
 import { useTranslate } from 'react-polyglot';
 import { ResolvablePermission, usePermissionsValue } from '../../state/permissions.state';
@@ -29,8 +28,8 @@ const classes = {
 };
 
 const Root = styled('div')(({ theme }) => ({
-    //Rows are individual raised panels (surface/border/selection styling comes
-    //from the MuiListItemButton theme override); this adds the row spacing.
+    //Flat rows: no per-row surface/border (only the selected row is highlighted
+    //via the MuiListItemButton theme override); this just adds the row spacing.
     marginBottom: 3,
     '&:last-of-type': {
         marginBottom: 0,
@@ -73,6 +72,46 @@ const Root = styled('div')(({ theme }) => ({
     },
 }));
 
+//Small colored icon chip — muted at rest, solid accent fill when the row is
+//selected. Mirrors the icon-badge language used across the web dashboard.
+const IconBadge = styled(Box, {
+    shouldForwardProp: (prop) => prop !== 'selected',
+})<{ selected?: boolean }>(({ theme, selected }) => ({
+    width: 28,
+    height: 28,
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    background: selected ? theme.tokens.accentGradient : theme.tokens.surfaceRaised,
+    color: selected ? theme.tokens.accentContrast : theme.tokens.textMuted,
+    boxShadow: selected ? theme.tokens.accentGlow : 'none',
+    transition: 'background 120ms ease, color 120ms ease, box-shadow 120ms ease',
+}));
+
+//Current-value pill for cyclable rows — replaces the literal "Title: Value"
+//text convention with a title + a distinct value chip, so rows read as
+//settings controls rather than txAdmin's plain colon-joined label text.
+const ValuePill = styled(Box, {
+    shouldForwardProp: (prop) => prop !== 'selected' && prop !== 'allowed',
+})<{ selected?: boolean; allowed?: boolean }>(({ theme, selected, allowed }) => ({
+    fontSize: 11,
+    fontWeight: 600,
+    lineHeight: 1,
+    padding: '4px 8px',
+    borderRadius: theme.tokens.radiusPill,
+    maxWidth: 104,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    backgroundColor: selected ? theme.tokens.accentTint : theme.tokens.surfaceRaised,
+    border: `1px solid ${selected ? theme.tokens.accentBorder : theme.tokens.border}`,
+    color: selected ? theme.tokens.textPrimary : theme.tokens.textMuted,
+    opacity: allowed ? 1 : 0.4,
+    transition: 'background-color 120ms ease, border-color 120ms ease, color 120ms ease',
+}));
+
 export interface MenuListItemProps {
     title: string;
     label: string;
@@ -105,7 +144,7 @@ export const MenuListItem: React.FC<MenuListItemProps> = memo(
                 return;
             }
 
-            fetchNui('playSound', 'enter');
+            fetchNui('playSound', 'enter').catch(() => {});
             onSelect();
         };
 
@@ -138,7 +177,9 @@ export const MenuListItem: React.FC<MenuListItemProps> = memo(
                     dense
                     selected={selected}
                 >
-                    <ListItemIcon className={classes.icon}>{icon}</ListItemIcon>
+                    <ListItemIcon>
+                        <IconBadge selected={selected}>{icon}</IconBadge>
+                    </ListItemIcon>
                     <ListItemText
                         primary={title}
                         sx={{ minWidth: 0 }}
@@ -251,7 +292,7 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
         const handleRightArrow = () => {
             if (!selected) return;
 
-            fetchNui('playSound', 'move');
+            fetchNui('playSound', 'move').catch(() => {});
             const nextEstimatedItem = curState + 1;
             const nextItem = nextEstimatedItem >= actions.length ? 0 : nextEstimatedItem;
             setCurState(nextItem);
@@ -278,36 +319,26 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
                     className={isRowAllowed ? classes.root : classes.rootDisabled}
                     dense
                     selected={selected}
+                    sx={{ paddingRight: '138px' }}
                 >
-                    <ListItemIcon className={classes.icon}>{actions[curState]?.icon ?? icon}</ListItemIcon>
+                    <ListItemIcon>
+                        <IconBadge selected={selected}>{actions[curState]?.icon ?? icon}</IconBadge>
+                    </ListItemIcon>
                     <ListItemText
-                        primary={
-                            <>
-                                {title}:&nbsp;
-                                <Typography
-                                    component="span"
-                                    color={selected ? 'text.primary' : 'text.secondary'}
-                                    sx={{
-                                        fontSize: 13,
-                                        fontWeight: selected ? 600 : 400,
-                                        opacity: isCurrentActionAllowed ? 1 : 0.4,
-                                        minWidth: 0,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                    }}
-                                >
-                                    {actions[curState]?.name ?? '???'}
-                                </Typography>
-                            </>
-                        }
+                        primary={title}
                         classes={{
                             primary: classes.overrideText,
                         }}
                         sx={{ minWidth: 0 }}
                     />
-                    <ListItemSecondaryAction>
-                        <Code className={classes.icon} />
+                    <ListItemSecondaryAction sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <ValuePill selected={selected} allowed={isCurrentActionAllowed}>
+                            {actions[curState]?.name ?? '???'}
+                        </ValuePill>
+                        <Box className={classes.icon} sx={{ display: 'flex', alignItems: 'center' }}>
+                            <ChevronLeftOutlined sx={{ fontSize: 14, marginRight: '-5px' }} />
+                            <ChevronRightOutlined sx={{ fontSize: 14 }} />
+                        </Box>
                     </ListItemSecondaryAction>
                 </ListItemButton>
             </Root>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Announcement, CenterFocusWeak, Groups, Map } from '@mui/icons-material';
+import { AnnouncementOutlined, CenterFocusWeakOutlined, GroupsOutlined, MapOutlined } from '@mui/icons-material';
 import { useDialogContext } from '../../../provider/DialogProvider';
 import { fetchNui } from '../../../utils/fetchNui';
 import { useTranslate } from 'react-polyglot';
@@ -24,7 +24,7 @@ export function useMiscActions() {
                 enqueueSnackbar(t('nui_menu.page_main.announcement.dialog_success'), {
                     variant: 'success',
                 });
-                fetchNui('sendAnnouncement', { message });
+                fetchNui('sendAnnouncement', { message }).catch(() => {});
             },
         });
     };
@@ -45,7 +45,7 @@ export function useMiscActions() {
                     return enqueueSnackbar(t('nui_menu.page_main.clear_area.dialog_error'), { variant: 'error' });
                 }
 
-                fetchNui('clearArea', parsedRadius);
+                fetchNui('clearArea', parsedRadius).catch(() => {});
                 if (autoClose) {
                     closeMenu();
                 }
@@ -57,11 +57,11 @@ export function useMiscActions() {
     });
 
     const handleTogglePlayerIds = () => {
-        fetchNui('togglePlayerIDs');
+        fetchNui('togglePlayerIDs').catch(() => {});
     };
 
     const handleToggleMapBlips = () => {
-        fetchNui('toggleMapBlips');
+        fetchNui('toggleMapBlips').catch(() => {});
     };
 
     return {
@@ -70,26 +70,26 @@ export function useMiscActions() {
                 title: t('nui_menu.page_main.announcement.title'),
                 label: t('nui_menu.page_main.announcement.label'),
                 requiredPermission: 'announcement',
-                icon: <Announcement />,
+                icon: <AnnouncementOutlined />,
                 onSelect: handleAnnounceMessage,
             },
             {
                 title: t('nui_menu.page_main.clear_area.title'),
                 label: t('nui_menu.page_main.clear_area.label'),
                 requiredPermission: 'menu.clear_area',
-                icon: <CenterFocusWeak />,
+                icon: <CenterFocusWeakOutlined />,
                 onSelect: handleClearArea,
             },
             {
                 title: t('nui_menu.page_main.toggles.title'),
                 isMultiAction: true,
-                icon: <Groups />,
+                icon: <GroupsOutlined />,
                 actions: [
                     {
                         name: t('nui_menu.page_main.toggles.player_ids'),
                         label: t('nui_menu.page_main.player_ids.label'),
                         value: 'playerIds',
-                        icon: <Groups />,
+                        icon: <GroupsOutlined />,
                         requiredPermission: 'menu.viewids',
                         onSelect: handleTogglePlayerIds,
                     },
@@ -97,7 +97,7 @@ export function useMiscActions() {
                         name: t('nui_menu.page_main.toggles.map_blips'),
                         label: t('nui_menu.page_main.map_blips.label'),
                         value: 'mapBlips',
-                        icon: <Map />,
+                        icon: <MapOutlined />,
                         requiredPermission: 'menu.mapblips',
                         onSelect: handleToggleMapBlips,
                     },

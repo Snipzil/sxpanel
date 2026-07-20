@@ -8,26 +8,32 @@ import { useDebounce } from '@nui/src/hooks/useDebouce';
 const StyledRoot = styled(Box)(({ theme }) => ({
     height: 'fit-content',
     backgroundColor: theme.tokens.surface,
+    boxShadow: theme.tokens.shadowCard,
     width: '100%',
     boxSizing: 'border-box',
-    borderRadius: theme.tokens.radiusCard,
+    //Flat top edge — this card sits flush under PageTabs (see MenuRoot), the
+    //two share one continuous silhouette instead of stacking as separate
+    //floating pieces.
+    borderRadius: `0 0 ${theme.tokens.radiusCard}px ${theme.tokens.radiusCard}px`,
     border: `1px solid ${theme.tokens.border}`,
+    borderTop: 'none',
     display: 'flex',
     flexDirection: 'column',
     userSelect: 'none',
 }));
 
-const HeaderRow = styled(Box)({
+const HeaderRow = styled(Box)(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 24,
-});
+    borderBottom: `1px solid ${theme.tokens.border}`,
+}));
 
 /**
- * The menu card: slim wordmark header + Main page list. The page tab bar
- * lives outside this card as a detached pill bar (see MenuRoot). The whole
- * card is only shown on the Main page.
+ * The menu card: slim wordmark header + Main page list. Fuses flush under
+ * PageTabs (see MenuRoot) into one continuous panel. Only shown on the Main
+ * page.
  */
 export const MenuRootContent: React.FC = React.memo(() => {
     const serverCtx = useServerCtxValue();
@@ -42,8 +48,8 @@ export const MenuRootContent: React.FC = React.memo(() => {
 
     return (
         <Collapse in={debouncedCurPage === txAdminMenuPage.Main} mountOnEnter>
-            <StyledRoot px={1.5} pt={1.25} pb={1}>
-                <HeaderRow mb={0.25}>
+            <StyledRoot px={1.75} pt={1.5} pb={1.25}>
+                <HeaderRow mb={1} pb={1}>
                     <img
                         src="images/sxPanel.png"
                         alt="sxPanel"
@@ -51,9 +57,14 @@ export const MenuRootContent: React.FC = React.memo(() => {
                     />
                     <Typography
                         style={{
-                            fontWeight: 500,
-                            fontSize: 11,
+                            fontWeight: 600,
+                            fontSize: 10,
+                            lineHeight: 1,
                             color: theme.tokens.textMuted,
+                            backgroundColor: theme.tokens.surfaceRaised,
+                            border: `1px solid ${theme.tokens.border}`,
+                            borderRadius: theme.tokens.radiusPill,
+                            padding: '3px 8px',
                         }}
                     >
                         v{serverCtx.sxPanelVersion}

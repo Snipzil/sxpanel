@@ -1,21 +1,32 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { Box, ButtonBase, styled } from '@mui/material';
-import { FlagRounded, GroupsRounded, HomeRounded } from '@mui/icons-material';
+import { FlagOutlined, GroupsOutlined, HomeOutlined } from '@mui/icons-material';
 import { getMaxMenuPage, getNextMenuPage, txAdminMenuPage, usePage } from '../../state/page.state';
 import { useKey } from '../../hooks/useKey';
 import { useTabDisabledValue } from '../../state/keys.state';
 import { useIsMenuVisibleValue } from '../../state/visibility.state';
 import { useServerCtxValue } from '../../state/server.state';
 
-const BarRoot = styled(Box)(({ theme }) => ({
+interface BarRootProps {
+    //When the Main card is showing directly below, the tab strip fuses into
+    //it as one continuous panel (flat shared edge, no gap/second shadow) —
+    //deliberately not the classic "floating pill above a separate card" shape.
+    fused: boolean;
+}
+
+const BarRoot = styled(Box, {
+    shouldForwardProp: (prop) => prop !== 'fused',
+})<BarRootProps>(({ theme, fused }) => ({
     display: 'flex',
     gap: 4,
     padding: 4,
     width: '100%',
     boxSizing: 'border-box',
     backgroundColor: theme.tokens.surface,
+    boxShadow: theme.tokens.shadowCard,
     border: `1px solid ${theme.tokens.border}`,
-    borderRadius: theme.tokens.radiusPill,
+    borderBottom: fused ? 'none' : `1px solid ${theme.tokens.border}`,
+    borderRadius: fused ? `${theme.tokens.radiusRow + 2}px ${theme.tokens.radiusRow + 2}px 0 0` : theme.tokens.radiusRow + 2,
     userSelect: 'none',
 }));
 
@@ -28,16 +39,18 @@ const Segment = styled(ButtonBase, {
 })<SegmentProps>(({ theme, active }) => ({
     flex: 1,
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    padding: '5px 0 4px',
-    borderRadius: theme.tokens.radiusPill,
+    justifyContent: 'center',
+    gap: 6,
+    padding: '7px 0',
+    borderRadius: theme.tokens.radiusRow,
     color: active ? theme.tokens.accentContrast : theme.tokens.textMuted,
-    backgroundColor: active ? theme.tokens.accent : 'transparent',
-    transition: 'background-color 120ms ease, color 120ms ease',
+    background: active ? theme.tokens.accentGradient : 'transparent',
+    boxShadow: active ? theme.tokens.accentGlow : 'none',
+    transition: 'color 120ms ease, background 120ms ease, box-shadow 120ms ease',
     '&:hover': {
-        backgroundColor: active ? theme.tokens.accent : theme.tokens.surfaceHover,
+        background: active ? theme.tokens.accentGradient : theme.tokens.surfaceHover,
         color: active ? theme.tokens.accentContrast : theme.tokens.textPrimary,
     },
     '& svg': {
@@ -46,10 +59,9 @@ const Segment = styled(ButtonBase, {
 }));
 
 const SegmentLabel = styled('span')({
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 700,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
     lineHeight: 1,
 });
 
@@ -60,8 +72,10 @@ interface PageSegmentDef {
 }
 
 /**
- * Detached segmented pill tab bar floating above the menu card. Replaces the
- * old MUI Tabs strip; keeps the same page value semantics and Tab-key cycle.
+ * Segmented tab strip above the menu card. Fuses flush with the Main card
+ * (shared border, no gap) so the two read as one panel; on Players/Reports
+ * it stands alone above the wider page. Keeps the same page value semantics
+ * and Tab-key cycle as the old MUI Tabs strip it replaced.
  */
 export const PageTabs: React.FC = () => {
     const [page, setPage] = usePage();
@@ -86,11 +100,11 @@ export const PageTabs: React.FC = () => {
     useKey(serverCtx.switchPageKey, handleTabPress);
 
     const segments: PageSegmentDef[] = [
-        { page: txAdminMenuPage.Main, label: 'Main', icon: <HomeRounded /> },
-        { page: txAdminMenuPage.Players, label: 'Players', icon: <GroupsRounded /> },
+        { page: txAdminMenuPage.Main, label: 'Main', icon: <HomeOutlined /> },
+        { page: txAdminMenuPage.Players, label: 'Players', icon: <GroupsOutlined /> },
     ];
     if (serverCtx.reportsEnabled) {
-        segments.push({ page: txAdminMenuPage.Reports, label: 'Reports', icon: <FlagRounded /> });
+        segments.push({ page: txAdminMenuPage.Reports, label: 'Reports', icon: <FlagOutlined /> });
     }
     const barRef = useRef<HTMLDivElement>(null);
 
@@ -111,7 +125,7 @@ export const PageTabs: React.FC = () => {
     }, [segments.length]);
 
     return (
-        <BarRoot ref={barRef}>
+        <BarRoot ref={barRef} fused={activePage === txAdminMenuPage.Main}>
             {segments.map((segment) => (
                 <Segment
                     key={segment.page}
