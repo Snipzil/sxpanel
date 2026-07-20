@@ -1,4 +1,5 @@
 import type { AuthedCtx } from '@modules/WebServer/ctxTypes';
+import { redactSystemLogEntriesIp } from '@modules/Logger/SystemLogger';
 
 /**
  * Returns the list of available historical system log session files.
@@ -32,7 +33,8 @@ export const systemLogSessionFile = async (ctx: AuthedCtx) => {
 
     try {
         const events = await txCore.logger.system.readSessionFile(fileName);
-        return ctx.send({ events });
+        const canViewIps = ctx.admin.hasPermission('txadmin.log.view_ips');
+        return ctx.send({ events: canViewIps ? events : redactSystemLogEntriesIp(events) });
     } catch (error) {
         return ctx.send({ error: emsg(error) || 'Failed to read session file.' });
     }

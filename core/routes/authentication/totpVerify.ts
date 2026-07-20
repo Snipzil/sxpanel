@@ -75,8 +75,9 @@ export default async function TotpVerify(ctx: InitializedCtx) {
         } satisfies PassSessAuthType;
         ctx.sessTools.regenerate({ auth: sessData });
 
-        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via password+2FA`, 'login', {
+        txCore.logger.system.write(vaultAdmin.name, `logged in via password+2FA`, 'login', {
             actionId: 'login.password_2fa',
+            ip: ctx.ip,
         });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('password');

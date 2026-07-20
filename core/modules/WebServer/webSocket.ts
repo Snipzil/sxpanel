@@ -27,6 +27,8 @@ export type RoomType = {
     outBuffer: any;
     commands?: Record<string, RoomCommandHandlerType>;
     initialData: (adminName?: string) => any;
+    //Optional per-admin redaction, applied to both the initial data and buffered live updates
+    redact?: (data: any, admin: AuthedAdminType) => any;
 };
 
 //NOTE: quen adding multiserver, create dynamic rooms like playerlist#<svname>
@@ -135,6 +137,7 @@ export default class WebSocket {
 
             //Sending auth data update - even if nothing changed
             const authedAdmin = await resolveEffectiveAuthedAdmin(authResult.admin);
+            socket.data.admin = authedAdmin;
             socket.emit('updateAuthData', authedAdmin.getAuthData());
 
             //Checking permission of all joined rooms
@@ -171,6 +174,7 @@ export default class WebSocket {
                 return terminateSession(socket, `invalid session (${detail})`, true);
             }
             const authedAdmin = await resolveEffectiveAuthedAdmin(authResult.admin);
+            socket.data.admin = authedAdmin;
 
             // Temp-password / 2FA gates are enforced on HTTP routes via accessDenied responses.
             // Do not drop the socket here — that surfaces as "Session expired" right after login
@@ -224,7 +228,8 @@ export default class WebSocket {
 
                 //Sending initial data
                 socket.join(roomName);
-                socket.emit(room.eventName, room.initialData(authedAdmin.name));
+                const initialData = room.initialData(authedAdmin.name);
+                socket.emit(room.eventName, room.redact ? room.redact(initialData, authedAdmin) : initialData);
             };
 
             //Helper to leave a room
@@ -323,6 +328,26 @@ export default class WebSocket {
     }
 
     /**
+     * Emits room data, applying per-admin redaction if the room defines one.
+     * Rooms without a redact function are broadcast to the whole room in one shot;
+     * redacted rooms are emitted individually per socket using their cached admin.
+     */
+    #emitToRoom(roomName: RoomNames, room: RoomType, payload: any) {
+        if (!room.redact) {
+            this.#io.to(roomName).emit(room.eventName, payload);
+            return;
+        }
+        const socketIds = this.#io.sockets.adapter.rooms.get(roomName);
+        if (!socketIds) return;
+        for (const socketId of socketIds) {
+            const socket = this.#io.sockets.sockets.get(socketId);
+            const admin = socket?.data?.admin as AuthedAdminType | undefined;
+            if (!socket || !admin) continue;
+            socket.emit(room.eventName, room.redact(payload, admin));
+        }
+    }
+
+    /**
      * Flushes the data buffers
      * NOTE: this will also send data to users that no longer have permissions
      */
@@ -345,7 +370,7 @@ export default class WebSocket {
         //Sending room data
         for (const [roomName, room] of Object.entries(this.#rooms)) {
             if (room.cumulativeBuffer && room.outBuffer.length) {
-                this.#io.to(roomName).emit(room.eventName, room.outBuffer);
+                this.#emitToRoom(roomName as RoomNames, room, room.outBuffer);
                 if (Array.isArray(room.outBuffer)) {
                     room.outBuffer = [];
                 } else if (typeof room.outBuffer === 'string') {
@@ -354,7 +379,7 @@ export default class WebSocket {
                     throw new Error(`cumulative buffers can only be arrays or strings`);
                 }
             } else if (!room.cumulativeBuffer && room.outBuffer !== null) {
-                this.#io.to(roomName).emit(room.eventName, room.outBuffer);
+                this.#emitToRoom(roomName as RoomNames, room, room.outBuffer);
                 room.outBuffer = null;
             }
         }

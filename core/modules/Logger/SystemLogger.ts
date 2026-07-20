@@ -10,6 +10,19 @@ const console = consoleFactory(modulename);
 
 type SystemLogWriteOptions = {
     actionId?: SystemLogActionId;
+    ip?: string;
+};
+
+/**
+ * Strips the ip field from system log entries.
+ * Used to gate visibility of admin login IPs behind the txadmin.log.view_ips permission.
+ */
+export const redactSystemLogEntriesIp = (entries: SystemLogEntry[]): SystemLogEntry[] => {
+    return entries.map((entry) => {
+        if (!entry.ip) return entry;
+        const { ip, ...rest } = entry;
+        return rest;
+    });
 };
 
 //Consts
@@ -193,6 +206,7 @@ export default class SystemLogger {
             category,
             action,
             ...(options.actionId ? { actionId: options.actionId } : {}),
+            ...(options.ip ? { ip: options.ip } : {}),
         };
 
         //Push to in-memory buffer
