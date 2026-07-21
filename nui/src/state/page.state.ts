@@ -3,16 +3,18 @@ import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
 export enum txAdminMenuPage {
     Main,
     Players,
+    Stats,
     Reports,
     PlayerModalOnly,
 }
 
 /**
  * Returns the highest cycleable page given the enabled optional tabs.
+ * Stats is always enabled (unlike Reports, which is gated by serverCtx).
  */
 export const getMaxMenuPage = (reportsEnabled: boolean): txAdminMenuPage => {
     if (reportsEnabled) return txAdminMenuPage.Reports;
-    return txAdminMenuPage.Players;
+    return txAdminMenuPage.Stats;
 };
 
 /**

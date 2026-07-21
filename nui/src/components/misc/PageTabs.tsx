@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { Box, ButtonBase, styled } from '@mui/material';
-import { FlagOutlined, GroupsOutlined, HomeOutlined } from '@mui/icons-material';
+import { FlagOutlined, GroupsOutlined, HomeOutlined, QueryStatsOutlined } from '@mui/icons-material';
 import { getMaxMenuPage, getNextMenuPage, txAdminMenuPage, usePage } from '../../state/page.state';
 import { useKey } from '../../hooks/useKey';
 import { useTabDisabledValue } from '../../state/keys.state';
@@ -102,6 +102,7 @@ export const PageTabs: React.FC = () => {
     const segments: PageSegmentDef[] = [
         { page: txAdminMenuPage.Main, label: 'Main', icon: <HomeOutlined /> },
         { page: txAdminMenuPage.Players, label: 'Players', icon: <GroupsOutlined /> },
+        { page: txAdminMenuPage.Stats, label: 'Stats', icon: <QueryStatsOutlined /> },
     ];
     if (serverCtx.reportsEnabled) {
         segments.push({ page: txAdminMenuPage.Reports, label: 'Reports', icon: <FlagOutlined /> });

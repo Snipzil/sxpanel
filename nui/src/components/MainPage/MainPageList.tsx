@@ -55,6 +55,25 @@ const StyledList = styled(List)({
     },
 });
 
+interface SectionLabelProps {
+    first: boolean;
+}
+
+//Non-interactive group heading — deliberately not part of menuListItems, so
+//arrow-key navigation and curSelected indexing skip straight over it.
+const SectionLabel = styled(Box, {
+    shouldForwardProp: (prop) => prop !== 'first',
+})<SectionLabelProps>(({ theme, first }) => ({
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    color: theme.tokens.textMuted,
+    padding: first ? '2px 4px 6px' : '10px 4px 6px',
+    marginTop: first ? 0 : 4,
+    borderTop: first ? 'none' : `1px solid ${theme.tokens.border}`,
+}));
+
 export const MainPageList: React.FC = () => {
     const [curSelected, setCurSelected] = useState(0);
     const menuVisible = useIsMenuVisibleValue();
@@ -65,14 +84,23 @@ export const MainPageList: React.FC = () => {
     const { healMode, menuItem: healItem } = useHealActions();
     const { menuItems: miscItems } = useMiscActions();
 
+    //useMiscActions returns [announcement, clearArea, toggles] in that order
+    const [announcementItem, clearAreaItem, toggleMultiItem] = miscItems;
+
     useEffect(() => {
         if (!menuVisible) setCurSelected(0);
     }, [menuVisible]);
 
-    const menuListItems = useMemo(
-        () => [playerModeItem, teleportItem, vehicleItem, healItem, ...miscItems],
-        [playerModeItem, teleportItem, vehicleItem, healItem, miscItems],
+    const groups: { label: string; items: any[] }[] = useMemo(
+        () => [
+            { label: 'Player', items: [playerModeItem, healItem] },
+            { label: 'World', items: [teleportItem, vehicleItem, clearAreaItem] },
+            { label: 'Server', items: [announcementItem, toggleMultiItem] },
+        ],
+        [playerModeItem, healItem, teleportItem, vehicleItem, clearAreaItem, announcementItem, toggleMultiItem],
     );
+
+    const menuListItems = useMemo(() => groups.flatMap((group) => group.items), [groups]);
 
     //=============================================
     const handleArrowDown = useCallback(() => {
@@ -96,19 +124,27 @@ export const MainPageList: React.FC = () => {
     const showTopFade = curSelected > 1;
     const showBottomFade = curSelected < menuListItems.length - 2;
 
+    let runningIndex = 0;
+
     return (
         <Box sx={{ pointerEvents: 'none' }}>
             <ListWrapper fadeTop={showTopFade} fadeBottom={showBottomFade}>
                 <StyledList sx={{ pointerEvents: 'auto' }}>
-                    {menuListItems.map((item, index) =>
-                        'isMultiAction' in item && item.isMultiAction ? (
-                            // @ts-ignore
-                            <MenuListItemMulti key={index} selected={curSelected === index} {...item} />
-                        ) : (
-                            // @ts-ignore
-                            <MenuListItem key={index} selected={curSelected === index} {...item} />
-                        ),
-                    )}
+                    {groups.map((group, groupIndex) => (
+                        <React.Fragment key={group.label}>
+                            <SectionLabel first={groupIndex === 0}>{group.label}</SectionLabel>
+                            {group.items.map((item) => {
+                                const index = runningIndex++;
+                                return 'isMultiAction' in item && item.isMultiAction ? (
+                                    // @ts-ignore
+                                    <MenuListItemMulti key={index} selected={curSelected === index} {...item} />
+                                ) : (
+                                    // @ts-ignore
+                                    <MenuListItem key={index} selected={curSelected === index} {...item} />
+                                );
+                            })}
+                        </React.Fragment>
+                    ))}
                 </StyledList>
             </ListWrapper>
             <BoxIcon display="flex" justifyContent="center">

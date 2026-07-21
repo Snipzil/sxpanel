@@ -3861,6 +3861,15 @@
             }
         }
     },
+    "nui_stats": {
+        "title": "Server Stats",
+        "refresh": "Refresh",
+        "loading": "Loading stats…",
+        "players_online": "Players Online",
+        "onesync": "OneSync",
+        "resources": "Resources",
+        "uptime": "Uptime"
+    },
     "nui_reports": {
         "back": "Back",
         "close": "Close",
