@@ -2,7 +2,7 @@
 
 Example addon: a small **shift board** for staff — server pulse (join/drop traffic), who's clocked in, a pin wall, and a live traffic feed. The UI is deliberately built like a real feature so you can copy the patterns, not just hello-world routes.
 
-Docs: [sxPanel addon development](https://github.com/sxPanel/sxPanel-Docs/tree/main/v0.4.0-Beta)
+Docs: [sxPanel addon development](https://sxpanel.org/docs/addon-api)
 
 ## What it does
 
