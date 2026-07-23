@@ -487,7 +487,7 @@ local function emitFd3PlayerDropped(serverID, reason, resource, category)
         event = 'playerDropped',
         id = id,
         reason = reason or 'player_left',
-        resource = resource or 'monitor',
+        resource = resource or TX_RESOURCE_NAME,
         category = category,
     }))
 
@@ -641,7 +641,7 @@ local function refreshPlayerList()
         elseif playerData.isHttpReported == true then
             TX_PLAYERLIST[playerID] = nil
         else
-            emitFd3PlayerDropped(playerID, 'player_left', 'monitor', nil)
+            emitFd3PlayerDropped(playerID, 'player_left', TX_RESOURCE_NAME, nil)
             TX_PLAYERLIST[playerID] = nil
         end
         ::continue_disconnect_check::
@@ -706,7 +706,7 @@ AddEventHandler('playerDropped', function(reason, resource, category)
         return
     end
 
-    if resource == 'monitor' and TX_IS_SERVER_SHUTTING_DOWN then
+    if resource == TX_RESOURCE_NAME and TX_IS_SERVER_SHUTTING_DOWN then
         reason = 'server_shutting_down'
     end
 

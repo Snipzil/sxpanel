@@ -25,7 +25,7 @@ local ServerCtxObj = {
 }
 
 local function getCustomLocaleData()
-    local fileData = LoadResourceFile('monitor', '.runtime/locale.json')
+    local fileData = LoadResourceFile(TX_RESOURCE_NAME, '.runtime/locale.json')
     if type(fileData) ~= 'string' then
         TxPrint("^1WARNING: failed to load custom 'locale.json' file.")
         return false
@@ -111,7 +111,7 @@ local function syncServerCtx()
     if txAdminLocale == 'custom' then
         ServerCtxObj.localeData = getCustomLocaleData()
         if ServerCtxObj.localeData then
-            local customFile = LoadResourceFile('monitor', '.runtime/locale.json')
+            local customFile = LoadResourceFile(TX_RESOURCE_NAME, '.runtime/locale.json')
             if type(customFile) == 'string' then
                 local customLocale = json.decode(customFile)
                 ServerCtxObj.instructionalLabels = extractInstructionalLabels(customLocale)
@@ -119,7 +119,7 @@ local function syncServerCtx()
         end
     else
         -- Load the built-in locale file and send only NUI sections
-        local localeFile = LoadResourceFile('monitor', 'locale/' .. txAdminLocale .. '.json')
+        local localeFile = LoadResourceFile(TX_RESOURCE_NAME, 'locale/' .. txAdminLocale .. '.json')
         if type(localeFile) == 'string' then
             local locale = json.decode(localeFile)
             if locale and type(locale['$meta']) == 'table' then

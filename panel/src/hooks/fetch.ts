@@ -181,127 +181,129 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
             }
             const apiCallDesc = `${method} ${path}`;
 
-        //Error handler
-        const handleError = (title: string, msg: string) => {
-            if (currentToastId.current) {
-                txToast.error({ title, msg }, { id: currentToastId.current });
-            }
-            if (opts.error) {
-                try {
-                    opts.error(msg, currentToastId.current);
-                } catch (error) {
-                    console.log('[ERROR CB ERROR]', apiCallDesc, error);
+            //Error handler
+            const handleError = (title: string, msg: string) => {
+                if (currentToastId.current) {
+                    txToast.error({ title, msg }, { id: currentToastId.current });
                 }
-            } else {
-                throw new BackendApiError(title, msg);
-            }
-        };
-
-        //Setting up new toast or clear any previous lingering toast
-        if (opts.toastId && opts.toastLoadingMessage) {
-            throw new Error(`[useBackendApi] toastId and toastLoadingMessage are mutually exclusive.`);
-        } else if (opts.toastLoadingMessage) {
-            currentToastId.current = txToast.loading(opts.toastLoadingMessage);
-        } else if (opts.toastId) {
-            currentToastId.current = opts.toastId;
-        } else if (currentToastId.current) {
-            txToast.dismiss(currentToastId.current);
-            currentToastId.current = undefined;
-        }
-
-        //Starting request timeout
-        const timeoutId = setTimeout(() => {
-            if (abortController.current?.signal.aborted) return;
-            console.log('[TIMEOUT]', apiCallDesc);
-            abortController.current?.abort('timeout');
-            handleError('Request Timeout', 'If you closed sxPanel, please restart it and try again.');
-        }, opts.timeout ?? ApiTimeout.DEFAULT);
-
-        try {
-            //Make request
-            console.log('[>>]', apiCallDesc);
-            const data = await authedFetcher(
-                fetchUrl,
-                {
-                    method: hookOpts.method,
-                    body: opts.data,
-                },
-                abortController.current,
-            );
-            clearTimeout(timeoutId);
-            if (abortController.current?.signal.aborted) return;
-
-            //If generic error
-            if (hookOpts.throwGenericErrors && 'error' in data) {
-                const apiError = data as GenericApiErrorResp;
-                throw new BackendApiError('API Error', translateApiError(t, apiError.errorCode, apiError.error));
-            }
-
-            //Auto handler for GenericApiErrorResp & GenericApiOkResp if genericHandler is set
-            if (opts.genericHandler && currentToastId.current) {
-                if ('error' in data) {
-                    const apiError = data as GenericApiErrorResp;
-                    txToast.error(
-                        {
-                            title: opts.genericHandler.errorTitle,
-                            msg: translateApiError(t, apiError.errorCode, apiError.error),
-                        },
-                        { id: currentToastId.current },
-                    );
+                if (opts.error) {
+                    try {
+                        opts.error(msg, currentToastId.current);
+                    } catch (error) {
+                        console.log('[ERROR CB ERROR]', apiCallDesc, error);
+                    }
                 } else {
-                    txToast.success(opts.genericHandler.successMsg, { id: currentToastId.current });
+                    throw new BackendApiError(title, msg);
                 }
+            };
+
+            //Setting up new toast or clear any previous lingering toast
+            if (opts.toastId && opts.toastLoadingMessage) {
+                throw new Error(`[useBackendApi] toastId and toastLoadingMessage are mutually exclusive.`);
+            } else if (opts.toastLoadingMessage) {
+                currentToastId.current = txToast.loading(opts.toastLoadingMessage);
+            } else if (opts.toastId) {
+                currentToastId.current = opts.toastId;
+            } else if (currentToastId.current) {
+                txToast.dismiss(currentToastId.current);
+                currentToastId.current = undefined;
             }
 
-            //Auto handler for ApiToastResp
-            if (
-                currentToastId.current &&
-                typeof data?.type === 'string' &&
-                typeof data?.msg === 'string' &&
-                validToastTypes.includes(data?.type) &&
-                typeof txToast[data.type as keyof typeof txToast] === 'function'
-            ) {
-                txToast(data, { id: currentToastId.current });
-            }
+            //Starting request timeout
+            const timeoutId = setTimeout(() => {
+                if (abortController.current?.signal.aborted) return;
+                console.log('[TIMEOUT]', apiCallDesc);
+                abortController.current?.abort('timeout');
+                handleError('Request Timeout', 'If you closed sxPanel, please restart it and try again.');
+            }, opts.timeout ?? ApiTimeout.DEFAULT);
 
-            //Custom success handler
-            if (opts.success) {
-                try {
-                    opts.success(data, currentToastId.current);
-                } catch (error) {
-                    console.log('[SUCCESS CB ERROR]', apiCallDesc, error);
+            try {
+                //Make request
+                console.log('[>>]', apiCallDesc);
+                const data = await authedFetcher(
+                    fetchUrl,
+                    {
+                        method,
+                        body: opts.data,
+                    },
+                    abortController.current,
+                );
+                clearTimeout(timeoutId);
+                if (abortController.current?.signal.aborted) return;
+
+                //If generic error
+                if (throwGenericErrors && 'error' in data) {
+                    const apiError = data as GenericApiErrorResp;
+                    throw new BackendApiError('API Error', translateApiError(t, apiError.errorCode, apiError.error));
+                }
+
+                //Auto handler for GenericApiErrorResp & GenericApiOkResp if genericHandler is set
+                if (opts.genericHandler && currentToastId.current) {
+                    if ('error' in data) {
+                        const apiError = data as GenericApiErrorResp;
+                        txToast.error(
+                            {
+                                title: opts.genericHandler.errorTitle,
+                                msg: translateApiError(t, apiError.errorCode, apiError.error),
+                            },
+                            { id: currentToastId.current },
+                        );
+                    } else {
+                        txToast.success(opts.genericHandler.successMsg, { id: currentToastId.current });
+                    }
+                }
+
+                //Auto handler for ApiToastResp
+                if (
+                    currentToastId.current &&
+                    typeof data?.type === 'string' &&
+                    typeof data?.msg === 'string' &&
+                    validToastTypes.includes(data?.type) &&
+                    typeof txToast[data.type as keyof typeof txToast] === 'function'
+                ) {
+                    txToast(data, { id: currentToastId.current });
+                }
+
+                //Custom success handler
+                if (opts.success) {
+                    try {
+                        opts.success(data, currentToastId.current);
+                    } catch (error) {
+                        console.log('[SUCCESS CB ERROR]', apiCallDesc, error);
+                    }
+                }
+                return data as RespType;
+            } catch (e) {
+                if (abortController.current?.signal.aborted) return;
+                clearTimeout(timeoutId);
+                let errorMessage = 'unknown error';
+                const error = e as any;
+                if (typeof error.message !== 'string') {
+                    errorMessage = JSON.stringify(error);
+                } else if (error.message.startsWith('NetworkError')) {
+                    errorMessage = 'Network error.\nIf you closed sxPanel, please restart it and try again.';
+                } else if (error.message.startsWith('JSON.parse:')) {
+                    errorMessage = 'Invalid JSON response from server.';
+                } else {
+                    errorMessage = error.message;
+                }
+
+                if (errorMessage.includes('unmount')) {
+                    console.warn('[UNMOUNTED]', apiCallDesc);
+                } else {
+                    console.error('[ERROR]', apiCallDesc, errorMessage);
+                    handleError('Request Error', errorMessage);
+                }
+            } finally {
+                if (opts.finally) {
+                    try {
+                        opts.finally();
+                    } catch (error) {
+                        console.log('[FINALLY CB ERROR]', apiCallDesc, error);
+                    }
                 }
             }
-            return data as RespType;
-        } catch (e) {
-            if (abortController.current?.signal.aborted) return;
-            clearTimeout(timeoutId);
-            let errorMessage = 'unknown error';
-            const error = e as any;
-            if (typeof error.message !== 'string') {
-                errorMessage = JSON.stringify(error);
-            } else if (error.message.startsWith('NetworkError')) {
-                errorMessage = 'Network error.\nIf you closed sxPanel, please restart it and try again.';
-            } else if (error.message.startsWith('JSON.parse:')) {
-                errorMessage = 'Invalid JSON response from server.';
-            } else {
-                errorMessage = error.message;
-            }
-
-            if (errorMessage.includes('unmount')) {
-                console.warn('[UNMOUNTED]', apiCallDesc);
-            } else {
-                console.error('[ERROR]', apiCallDesc, errorMessage);
-                handleError('Request Error', errorMessage);
-            }
-        } finally {
-            if (opts.finally) {
-                try {
-                    opts.finally();
-                } catch (error) {
-                    console.log('[FINALLY CB ERROR]', apiCallDesc, error);
-                }
-            }
-        }
-    };
+        },
+        [method, path, abortOnUnmount, throwGenericErrors, authedFetcher, t],
+    );
 };
