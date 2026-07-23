@@ -22,7 +22,7 @@ Thanks for your interest in contributing! This guide covers everything you need 
 
 ```sh
 git clone https://github.com/Snipzil/sxpanel.git
-cd sxPanel
+cd sxpanel
 ```
 
 2. Install dependencies and prepare git hooks:
@@ -71,7 +71,7 @@ npm run dev
 npm run browser
 ```
 
-For more detail on env vars and builder behavior, read `scripts/build/dev.ts` and `shared/txDevEnv.ts`. Long-form guides (same sources as the website) live in the **[sxPanel-Docs](https://github.com/Snipzil/sxPanel-Docs/tree/main)** repo — pick the folder for your version (e.g. `v0.3.1-Alpha-01/`). The rendered site is [sxpanel.org/docs](https://sxpanel.org/docs).
+For more detail on env vars and builder behavior, read `scripts/build/dev.ts` and `shared/txDevEnv.ts`. Long-form guides, configuration reference, and the Events/Addon API docs are published at [sxpanel.org/docs](https://sxpanel.org/docs).
 
 ## Coding Style
 

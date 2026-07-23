@@ -156,6 +156,9 @@ export default async function AdvancedActions(ctx: AuthedCtx) {
             return ctx.send({ type: 'danger', message: 'GC is not exposed' });
         }
     } else if (action == 'profile_monitor') {
+        if (!txCore.fxRunner.child?.isAlive) {
+            return ctx.send({ type: 'danger', message: 'The server is not running.' });
+        }
         ctx.admin.logAction('Profiling txAdmin instance.', 'advanced.profile_monitor');
 
         const profileDuration = 5;

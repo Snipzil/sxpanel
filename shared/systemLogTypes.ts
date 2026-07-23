@@ -677,4 +677,5 @@ export type SystemLogEntry = {
     category: SystemLogCategory;
     action: string;
     actionId?: SystemLogActionId;
+    ip?: string;
 };

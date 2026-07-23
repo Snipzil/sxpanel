@@ -69,8 +69,9 @@ export default async function AuthCfxreCallback(ctx: InitializedCtx) {
         }
 
         const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
-        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via cfxre`, 'login', {
+        txCore.logger.system.write(vaultAdmin.name, `logged in via cfxre`, 'login', {
             actionId: 'login.cfxre',
+            ip: ctx.ip,
         });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('citizenfx');
