@@ -1,6 +1,7 @@
 /** Popular recipes index — https://github.com/citizenfx/txAdmin-recipes */
-export const TXADMIN_RECIPES_INDEX_URL =
-    'https://raw.githubusercontent.com/citizenfx/txAdmin-recipes/main/indexv4.json';
+export const TXADMIN_RECIPES_INDEX_URL = window.txConsts.fxsIsGen9
+    ? 'https://raw.githubusercontent.com/citizenfx/txAdmin-recipes/main/indexv5.json'
+    : 'https://raw.githubusercontent.com/citizenfx/txAdmin-recipes/main/indexv4.json';
 
 export type TxAdminRecipeEntry = {
     engine: string;
