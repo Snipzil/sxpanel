@@ -137,19 +137,14 @@ try {
 }
 
 //Getting sxPanel version
-if (!nativeVars.txaResourceVersion) {
-    fatalError.GlobalData(3, [
-        'sxPanel version not set or in the wrong format.',
-        ['Detected version', nativeVars.txaResourceVersion],
-    ]);
+//NOTE: baked in at build time (TX_RELEASE_VERSION esbuild/vite define, see scripts/build/*.ts
+//      and vitest.config.ts) instead of read via GetResourceMetadata() at runtime - that native
+//      isn't reliably available across FXServer generations (see getNativeVars.ts).
+//@ts-ignore esbuild/vite replaces this identifier with a real string literal at build time
+const txaVersion = String(TX_RELEASE_VERSION);
+if (!txaVersion || txaVersion === 'undefined') {
+    fatalError.GlobalData(3, ['sxPanel version not set - this looks like a broken/dev build.', ['Detected version', txaVersion]]);
 }
-const txaVersion = nativeVars.txaResourceVersion;
-
-//Get sxPanel Resource Path
-if (!nativeVars.txaResourcePath) {
-    fatalError.GlobalData(4, ['Could not resolve sxPanel resource path.', ['Convar', nativeVars.txaResourcePath]]);
-}
-const txaPath = cleanPath(nativeVars.txaResourcePath);
 
 //Get citizen Root / FXServer install path
 //NOTE: gen9 doesn't expose a citizen_root ConVar (or ConVars at all, at this point in boot) -
@@ -163,6 +158,14 @@ if (fxsIsGen9) {
     }
     fxsPath = cleanPath(nativeVars.fxsCitizenRoot as string);
 }
+
+//sxPanel resource name & path
+//NOTE: not derived from GetCurrentResourceName()/GetResourcePath() (unreliable across FXServer
+//      generations, see getNativeVars.ts) - FXServer requires the resource to be named exactly
+//      'monitor' on gen8 or 'txadmin' on gen9, at a fixed path relative to fxsPath.
+const txaResourceName = fxsIsGen9 ? 'txadmin' : 'monitor';
+const systemResourcesRelPath = fxsIsGen9 ? 'system_resources' : 'citizen/system_resources';
+const txaPath = cleanPath(path.join(fxsPath, systemResourcesRelPath, txaResourceName));
 
 //Check if server is inside WinRar's temp folder
 if (isWindows && /Temp[\\/]+Rar\$/i.test(fxsPath)) {
@@ -357,7 +360,7 @@ export const txEnv = Object.freeze({
     fxsVersionTag,
     fxsVersion,
     fxsIsGen9,
-    txaResourceName: nativeVars.resourceName,
+    txaResourceName,
     minFxsVersion,
     txaVersion,
     txaPath,

@@ -28,7 +28,7 @@ export default async function SetupGet(ctx: AuthedCtx) {
     return ctx.send({
         skipServerName: !!storedConfig.general?.serverName,
         serverName: storedConfig.general?.serverName ?? '',
-        deployerEngineVersion: RECIPE_DEPLOYER_VERSION,
+        deployerEngineVersion: String(RECIPE_DEPLOYER_VERSION),
         forceGameName: txHostConfig.forceGameName ?? '',
         dataPath: txHostConfig.dataPath,
         hasCustomDataPath: txHostConfig.hasCustomDataPath,

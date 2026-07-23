@@ -65,3 +65,10 @@ declare function ScanResourceRoot(rootPath: string, callback: (data: object) => 
  * It is always a string literal, e.g. `'1714070400000'`.
  */
 declare const TX_PRERELEASE_EXPIRATION: string;
+
+/**
+ * Injected at build time by esbuild/vite (TX_RELEASE_VERSION define, see scripts/build/*.ts
+ * and vitest.config.ts). Used instead of GetResourceMetadata() at runtime, since that native
+ * isn't reliably available across FXServer generations (gen8 vs gen9/Enhanced).
+ */
+declare const TX_RELEASE_VERSION: string;

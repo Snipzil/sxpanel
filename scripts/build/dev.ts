@@ -123,7 +123,10 @@ const buildOptions: BuildOptions = {
     target: 'node16',
     format: 'cjs', //typescript builds to esm and esbuild converts it to cjs
     charset: 'utf8',
-    define: { TX_PRERELEASE_EXPIRATION: preReleaseExpiration },
+    define: {
+        TX_PRERELEASE_EXPIRATION: preReleaseExpiration,
+        TX_RELEASE_VERSION: JSON.stringify(txVersion),
+    },
 };
 const plugins: BuildOptions['plugins'] = [
     {

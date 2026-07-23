@@ -137,42 +137,49 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
     const currentToastId = useRef<string | undefined>(undefined);
     const authedFetcher = useAuthedFetcher();
     const { t } = useLocale();
-    hookOpts.abortOnUnmount ??= false;
+    //NOTE: destructured to stable primitives (instead of depending on `hookOpts` itself, which
+    //is a fresh object literal on every render at most call sites) so the useCallback below
+    //actually returns a stable function reference. A caller using this hook's return value as a
+    //useEffect dependency (eg. status polling loops) would otherwise have that effect re-run on
+    //every render, immediately re-firing requests in a tight loop with no polling delay - this
+    //is exactly what caused the deployer status endpoint to be hammered thousands of times/min.
+    const { method, path, abortOnUnmount = false, throwGenericErrors } = hookOpts;
     useEffect(() => {
         return () => {
-            if (!hookOpts.abortOnUnmount) return;
+            if (!abortOnUnmount) return;
             abortController.current?.abort('unmount');
             if (currentToastId.current) {
                 txToast.dismiss(currentToastId.current);
             }
         };
-    }, []);
+    }, [abortOnUnmount]);
 
-    return async (opts: ApiCallOpts<RespType, ReqType>) => {
-        //The abort controller is not aborted, just forgotten
-        abortController.current = new AbortController();
+    return useCallback(
+        async (opts: ApiCallOpts<RespType, ReqType>) => {
+            //The abort controller is not aborted, just forgotten
+            abortController.current = new AbortController();
 
-        //Processing URL
-        let fetchUrl = hookOpts.path;
-        if (opts.pathParams) {
-            for (const [key, val] of Object.entries(opts.pathParams)) {
-                const replaced = replacePathParam(fetchUrl, key, val);
-                if (replaced === fetchUrl) {
-                    throw new Error(`[useBackendApi] pathParam '${key}' not found in path '${hookOpts.path}'`);
-                }
-                fetchUrl = replaced;
-            }
-        }
-        if (opts.queryParams) {
-            const params = new URLSearchParams();
-            for (const [key, val] of Object.entries(opts.queryParams)) {
-                if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
-                    params.append(key, val.toString());
+            //Processing URL
+            let fetchUrl = path;
+            if (opts.pathParams) {
+                for (const [key, val] of Object.entries(opts.pathParams)) {
+                    const replaced = replacePathParam(fetchUrl, key, val);
+                    if (replaced === fetchUrl) {
+                        throw new Error(`[useBackendApi] pathParam '${key}' not found in path '${path}'`);
+                    }
+                    fetchUrl = replaced;
                 }
             }
-            fetchUrl += `?${params.toString()}`;
-        }
-        const apiCallDesc = `${hookOpts.method} ${hookOpts.path}`;
+            if (opts.queryParams) {
+                const params = new URLSearchParams();
+                for (const [key, val] of Object.entries(opts.queryParams)) {
+                    if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+                        params.append(key, val.toString());
+                    }
+                }
+                fetchUrl += `?${params.toString()}`;
+            }
+            const apiCallDesc = `${method} ${path}`;
 
         //Error handler
         const handleError = (title: string, msg: string) => {
