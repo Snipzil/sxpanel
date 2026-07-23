@@ -151,11 +151,18 @@ if (!nativeVars.txaResourcePath) {
 }
 const txaPath = cleanPath(nativeVars.txaResourcePath);
 
-//Get citizen Root
-if (!nativeVars.fxsCitizenRoot) {
-    fatalError.GlobalData(5, ['citizen_root convar not set', ['Convar', nativeVars.fxsCitizenRoot]]);
+//Get citizen Root / FXServer install path
+//NOTE: gen9 doesn't expose a citizen_root ConVar (or ConVars at all, at this point in boot) -
+//      derive the install path from the running cfx-server binary's own location instead.
+let fxsPath: string;
+if (fxsIsGen9) {
+    fxsPath = cleanPath(path.dirname(process.argv0));
+} else {
+    if (!nativeVars.fxsCitizenRoot) {
+        fatalError.GlobalData(5, ['citizen_root convar not set', ['Convar', nativeVars.fxsCitizenRoot]]);
+    }
+    fxsPath = cleanPath(nativeVars.fxsCitizenRoot as string);
 }
-const fxsPath = cleanPath(nativeVars.fxsCitizenRoot as string);
 
 //Check if server is inside WinRar's temp folder
 if (isWindows && /Temp[\\/]+Rar\$/i.test(fxsPath)) {

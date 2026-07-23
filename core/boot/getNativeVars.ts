@@ -3,8 +3,11 @@ import { randomBytes } from 'node:crypto';
 //Helper function to get convars WITHOUT a fallback value.
 //Sentinel must be unpredictable — if a convar can be crafted to equal the
 //sentinel, the getter will falsely report it as unset.
+//NOTE: the GetConvar native does not exist at all on FXServer gen9 (FiveM Enhanced) - guarded
+//      here instead of crashing, since ConVar-based config is gen8-only either way.
 const undefinedKey = 'UNDEFINED:CONVAR:' + randomBytes(16).toString('base64url');
 const getConvarString = (convarName: string) => {
+    if (typeof GetConvar !== 'function') return undefined;
     const cvar = GetConvar(convarName, undefinedKey);
     return cvar !== undefinedKey ? cvar.trim() : undefined;
 };
@@ -12,6 +15,17 @@ const getConvarString = (convarName: string) => {
 //Helper to clean up the resource native responses which apparently might be 'null'
 const cleanNativeResp = (resp: any) => {
     return typeof resp === 'string' && resp !== 'null' && resp.length ? resp : undefined;
+};
+
+//Helper to safely call a native that may not exist/behave differently across FXServer
+//generations, without taking down the whole boot process if it throws.
+const safeNativeCall = <T>(fn: (() => T) | undefined): T | undefined => {
+    if (typeof fn !== 'function') return undefined;
+    try {
+        return fn();
+    } catch {
+        return undefined;
+    }
 };
 
 //Deprecated ConVars and their TXHOST_* replacements
@@ -33,10 +47,15 @@ export const getNativeVars = () => {
     const fxsCitizenRoot = getConvarString('citizen_root');
 
     //Resource
-    const resourceName = cleanNativeResp(GetCurrentResourceName());
-    if (!resourceName) throw new Error('GetCurrentResourceName() failed');
-    const txaResourceVersion = cleanNativeResp(GetResourceMetadata(resourceName, 'version', 0));
-    const txaResourcePath = cleanNativeResp(GetResourcePath(resourceName));
+    //NOTE: wrapped in safeNativeCall (rather than assumed available) because gen9 has already
+    //      shown GetConvar to be unavailable/inconsistently scoped at this point in boot -
+    //      better to end up with an informative fatalError downstream than an uncaught
+    //      ReferenceError crash if these turn out to be affected too.
+    const resourceName = cleanNativeResp(safeNativeCall(() => GetCurrentResourceName()));
+    const txaResourceVersion = resourceName
+        ? cleanNativeResp(safeNativeCall(() => GetResourceMetadata(resourceName, 'version', 0)))
+        : undefined;
+    const txaResourcePath = resourceName ? cleanNativeResp(safeNativeCall(() => GetResourcePath(resourceName))) : undefined;
 
     //Profile Convar - with warning
     const txAdminProfile = getConvarString('serverProfile');
