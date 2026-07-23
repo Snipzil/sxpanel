@@ -6,7 +6,7 @@ import slash from 'slash';
 
 import consoleFactory, { setConsoleEnvData } from '@lib/console';
 import { addLocalIpAddress } from '@lib/host/isIpAddressLocal';
-import { parseFxserverVersion } from '@lib/fxserver/fxsVersionParser';
+import { parseFxserverVersion, parseGen9RuntimeArgs, isGen9Runtime } from '@lib/fxserver/fxsVersionParser';
 import { parseTxDevEnv, TxDevEnvType } from '@shared/txDevEnv';
 import { Overwrite } from 'utility-types';
 import fatalError from '@lib/fatalError';
@@ -90,8 +90,12 @@ const nativeVars = getNativeVars();
 //9423 = feat(server): add more infos to playerDropped event
 //9655 = Fixed ScanResourceRoot + latent events
 //25943 = node 22 sandboxed runtime, required by deps using the RegExp 'v' flag (got@15 -> @sindresorhus/is@8)
+//NOTE: minFxsVersion only applies to gen8 - gen9 (FiveM Enhanced/cfx-server) uses an unrelated,
+//      much smaller build-numbering scheme (see isGen9Runtime/parseGen9RuntimeArgs) that isn't
+//      comparable against it, so the floor check below is skipped entirely for gen9.
 const minFxsVersion = 25770;
-const fxsVerParsed = parseFxserverVersion(nativeVars.fxsVersion);
+const fxsIsGen9 = isGen9Runtime();
+const fxsVerParsed = fxsIsGen9 ? parseGen9RuntimeArgs() : parseFxserverVersion(nativeVars.fxsVersion);
 const fxsVersion = fxsVerParsed.valid ? fxsVerParsed.build : 99999;
 if (!fxsVerParsed.valid) {
     console.error('It looks like you are running a custom build of fxserver.');
@@ -100,6 +104,12 @@ if (!fxsVerParsed.valid) {
     console.error(`Parsed Build: ${fxsVerParsed.build}`);
     console.error(`Parsed Branch: ${fxsVerParsed.branch}`);
     console.error(`Parsed Platform: ${fxsVerParsed.platform}`);
+} else if (fxsIsGen9) {
+    console.warn('You are running sxPanel on a FiveM Enhanced (gen9) server.');
+    console.warn('Enhanced/gen9 support is early and experimental - please report any issues.');
+    if (fxsVerParsed.branch && fxsVerParsed.branch !== 'master' && fxsVerParsed.branch !== 'unknown') {
+        console.warn(`You are running a custom branch of FXServer: ${fxsVerParsed.branch}`);
+    }
 } else if (fxsVerParsed.build < minFxsVersion) {
     fatalError.GlobalData(2, [
         'This version of FXServer is too outdated and NOT compatible with sxPanel',
@@ -313,8 +323,8 @@ const defaultCfxKey = hostVars.DEFAULT_CFXKEY;
 const isPterodactyl = !isWindows && process.env?.TXADMIN_ENABLE === '1';
 
 //FXServer Display Version
-let fxsVersionTag = fxsVersion.toString();
-if (fxsVerParsed.branch && fxsVerParsed.branch !== 'master') {
+let fxsVersionTag = (fxsIsGen9 ? 'g9-' : '') + fxsVersion.toString();
+if (fxsVerParsed.branch && fxsVerParsed.branch !== 'master' && fxsVerParsed.branch !== 'unknown') {
     fxsVersionTag += '-ft';
 }
 if (isPterodactyl) {
@@ -339,6 +349,8 @@ export const txEnv = Object.freeze({
     //Natives
     fxsVersionTag,
     fxsVersion,
+    fxsIsGen9,
+    txaResourceName: nativeVars.resourceName,
     minFxsVersion,
     txaVersion,
     txaPath,

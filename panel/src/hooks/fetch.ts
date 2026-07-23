@@ -7,7 +7,8 @@ import { translateApiError } from '@/lib/translateApiError';
 import { ApiTimeout } from '@/lib/fetchWithTimeout';
 import type { ApiAccessDeniedResp, GenericApiErrorResp } from '@shared/genericApiTypes';
 import { useCallback, useEffect, useRef } from 'react';
-const WEBPIPE_PATH = 'https://monitor/WebPipe';
+import { NUI_WEBPIPE_BASE } from '@/lib/nuiGen';
+const WEBPIPE_PATH = NUI_WEBPIPE_BASE;
 const headeruserAgent = `txAdminPanel/v${window.txConsts.txaVersion} (atop FXServer/b${window.txConsts.fxsVersion})`;
 const defaultHeaders = {
     'Content-Type': 'application/json; charset=UTF-8',

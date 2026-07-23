@@ -46,14 +46,15 @@ declare function emsg(e: unknown): string;
 declare function ExecuteCommand(commandString: string): void;
 declare function GetConvar(varName: string, default_: string): string;
 declare function GetCurrentResourceName(): string;
-declare function GetPasswordHash(password: string): string;
 declare function GetResourceMetadata(resourceName: string, metadataKey: string, index: number): string;
 declare function GetResourcePath(resourceName: string): string;
 declare function IsDuplicityVersion(): boolean;
 declare function PrintStructuredTrace(payload: string): void;
 declare function RegisterCommand(commandName: string, handler: Function, restricted: boolean): void;
 declare function ScanResourceRoot(rootPath: string, callback: (data: object) => void): boolean;
-declare function VerifyPasswordHash(password: string, hash: string): boolean;
+//NOTE: GetPasswordHash/VerifyPasswordHash natives intentionally not declared/used - password
+//      hashing is fully JS-side (argon2id via hash-wasm, bcryptjs for legacy verification) so
+//      sxPanel doesn't depend on FXServer-native password hashing being available (gen8 or gen9).
 
 /**
  * MARK: Fixes
