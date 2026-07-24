@@ -1,6 +1,6 @@
 import { memo, useMemo, useRef, useState } from 'react';
 import { cn, copyToClipboard } from '@/lib/utils';
-import { CheckIcon, ClockIcon, CopyIcon, TagIcon, TextIcon, UserIcon } from 'lucide-react';
+import { CheckIcon, ClockIcon, CopyIcon, NetworkIcon, TagIcon, TextIcon, UserIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { SystemLogEntry } from '@shared/systemLogTypes';
@@ -52,7 +52,8 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
     };
 
     const handleCopy = () => {
-        const text = `[${fullTime}] [${cfg.label}] ${event.author}: ${event.action}`;
+        const actionText = event.ip ? `${event.action} from ${event.ip}` : event.action;
+        const text = `[${fullTime}] [${cfg.label}] ${event.author}: ${actionText}`;
         copyToClipboard(text, surrogateRef.current ?? (document.body as unknown as HTMLDivElement)).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
@@ -96,7 +97,10 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                     {event.author}
                 </button>
 
-                <span className="text-secondary-foreground min-w-0 wrap-break-word">{event.action}</span>
+                <span className="text-secondary-foreground min-w-0 wrap-break-word">
+                    {event.action}
+                    {event.ip ? <span className="text-muted-foreground"> from {event.ip}</span> : null}
+                </span>
             </div>
 
             <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -141,6 +145,17 @@ const ActionLogEntry = memo(function ActionLogEntry({ event, onAdminClick }: Act
                                 <p className={cfg.text}>{cfg.label}</p>
                             </div>
                         </div>
+
+                        {/* IP Address */}
+                        {event.ip && (
+                            <div className="flex items-start gap-2">
+                                <NetworkIcon className="text-muted-foreground mt-0.5 size-4 shrink-0" />
+                                <div>
+                                    <p className="text-muted-foreground text-xs font-medium">IP Address</p>
+                                    <p className="font-mono">{event.ip}</p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Action */}
                         {event.action && (

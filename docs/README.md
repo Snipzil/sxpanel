@@ -11,12 +11,13 @@
     <a href="https://github.com/Snipzil/sxpanel/releases"><img src="https://img.shields.io/github/v/release/Snipzil/sxpanel?style=flat-square&color=green" alt="Release"></a>
     <a href="https://github.com/Snipzil/sxpanel/stargazers"><img src="https://img.shields.io/github/stars/Snipzil/sxpanel?style=flat-square" alt="Stars"></a>
     <a href="https://discord.gg/hUM3pQeGFc"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
-    <img src="https://img.shields.io/badge/docs-coming%20soon-lightgrey?style=flat-square" alt="Docs">
+    <a href="https://sxpanel.org/docs"><img src="https://img.shields.io/badge/docs-sxpanel.org-blue?style=flat-square" alt="Docs"></a>
 </p>
 
 <p align="center">
+    <a href="https://sxpanel.org">Website</a> •
     <a href="https://sxpanel.org/docs">Documentation</a> •
-    <a href="https://sxpanel.org/docs/recipes">Recipes</a> •
+    <a href="https://sxpanel.org/docs/quick-start">Quick Start</a> •
     <a href="https://discord.gg/hUM3pQeGFc">Discord</a> •
     <a href="https://github.com/Snipzil/sxpanel/releases">Releases</a> •
     <a href="CONTRIBUTING.md">Contributing</a>
@@ -105,7 +106,7 @@
 </tr>
 </table>
 
-**Plus:** Recipe-based server deployer (<60s) with GitHub token support & headless CLI • Artifact management • Scheduled restarts with postponable temp schedules • Report system with Discord notifications • 30+ languages • [Full feature list →](https://sxpanel.org/docs)
+**Plus:** Recipe-based server deployer (<60s) with GitHub token support & headless CLI • Artifact management • Scheduled restarts with postponable temp schedules • Report system with Discord notifications • 30+ languages • [Full feature list →](https://sxpanel.org/docs/features)
 
 ## Quick Start
 
@@ -118,7 +119,7 @@
 **4.** Open the URL shown in the console to set up your account and server.
 
 > See the [Configuration docs](https://sxpanel.org/docs/configuration) for environment variables and advanced options.
-> Listen to sxPanel server events in your resources with the [Events API](https://sxpanel.org/docs/events).
+> Listen to sxPanel server events in your resources with the [Events API](https://sxpanel.org/docs/events-api).
 
 ## Contributing
 
@@ -126,7 +127,7 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 
 - All PRs target the `dev` branch
 - Join the [Discord](https://discord.gg/hUM3pQeGFc) before starting significant work
-- See [Development docs](https://sxpanel.org/docs/development) for build & dev setup
+- See the [Contributing Guide](CONTRIBUTING.md) for build & dev setup
 
 ## License
 

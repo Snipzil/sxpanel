@@ -141,8 +141,9 @@ export default async function AuthDiscordCallback(ctx: InitializedCtx) {
         ctx.sessTools.regenerate({ auth: sessData });
 
         const authedAdmin = await resolveEffectiveAuthedAdmin(vaultAdmin, sessData.csrfToken);
-        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via discord`, 'login', {
+        txCore.logger.system.write(vaultAdmin.name, `logged in via discord`, 'login', {
             actionId: 'login.discord',
+            ip: ctx.ip,
         });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('discord');

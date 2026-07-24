@@ -69,6 +69,12 @@ export const registeredPermissions: PermissionDefinition[] = [
         description: 'View sxPanel system and admin action logs.',
         category: 'system',
     },
+    {
+        id: 'txadmin.log.view_ips',
+        label: 'View Login IPs',
+        description: 'View the IP addresses recorded in admin login log entries.',
+        category: 'system',
+    },
 
     // ── Server ──
     {

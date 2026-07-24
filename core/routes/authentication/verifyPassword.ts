@@ -76,8 +76,9 @@ export default async function AuthVerifyPassword(ctx: InitializedCtx) {
         } satisfies PassSessAuthType;
         ctx.sessTools.regenerate({ auth: sessData });
 
-        txCore.logger.system.write(vaultAdmin.name, `logged in from ${ctx.ip} via password`, 'login', {
+        txCore.logger.system.write(vaultAdmin.name, `logged in via password`, 'login', {
             actionId: 'login.password',
+            ip: ctx.ip,
         });
         txManager.txRuntime.loginOrigins.count(ctx.txVars.hostType);
         txManager.txRuntime.loginMethods.count('password');
