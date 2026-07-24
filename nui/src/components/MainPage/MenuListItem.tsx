@@ -30,7 +30,7 @@ const classes = {
 const Root = styled('div')(({ theme }) => ({
     //Flat rows: no per-row surface/border (only the selected row is highlighted
     //via the MuiListItemButton theme override); this just adds the row spacing.
-    marginBottom: 3,
+    marginBottom: 5,
     '&:last-of-type': {
         marginBottom: 0,
     },
@@ -65,6 +65,8 @@ const Root = styled('div')(({ theme }) => ({
 
     '& .MuiListItemButton-root': {
         minWidth: 0,
+        paddingTop: 8,
+        paddingBottom: 8,
     },
 
     '& .MuiListItemText-root': {

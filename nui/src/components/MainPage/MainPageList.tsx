@@ -69,9 +69,9 @@ const SectionLabel = styled(Box, {
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
     color: theme.tokens.textMuted,
-    padding: first ? '2px 4px 6px' : '10px 4px 6px',
-    marginTop: first ? 0 : 4,
-    borderTop: first ? 'none' : `1px solid ${theme.tokens.border}`,
+    padding: first ? '2px 4px 8px' : '11px 4px 8px',
+    marginTop: first ? 0 : 6,
+    borderTop: first ? 'none' : `1px solid ${theme.tokens.borderStrong}`,
 }));
 
 export const MainPageList: React.FC = () => {

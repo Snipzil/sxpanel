@@ -3865,10 +3865,19 @@
         "title": "Server Stats",
         "refresh": "Refresh",
         "loading": "Loading stats…",
+        "group_basics": "Basics",
         "players_online": "Players Online",
         "onesync": "OneSync",
         "resources": "Resources",
-        "uptime": "Uptime"
+        "uptime": "Uptime",
+        "group_performance": "Performance",
+        "cpu": "CPU",
+        "memory": "Memory",
+        "group_admins": "Admins Online",
+        "you": "you",
+        "full_access": "Full Access",
+        "group_world": "World",
+        "time": "Time"
     },
     "nui_reports": {
         "back": "Back",

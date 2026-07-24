@@ -15,3 +15,12 @@ end)
 RegisterNetEvent('txcl:setStats', function(stats)
     SendMenuMessage('setStats', stats)
 end)
+
+--- In-game clock only exists client-side, so this answers directly
+--- instead of round-tripping through the server like getStats does.
+RegisterSecureNuiCallback('getWorldTime', function(_, cb)
+    cb({
+        hours = GetClockHours(),
+        minutes = GetClockMinutes(),
+    })
+end)

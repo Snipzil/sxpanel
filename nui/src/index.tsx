@@ -16,31 +16,52 @@ import { useNuiAddonLoader } from './hooks/useNuiAddonLoader';
 
 registerDebugFunctions();
 
-//Overwriting the notistack colors
-//Actually using the colors from the RedM theme, but could start using `theme` if needed
-const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) => ({
-    '&.notistack-MuiContent-default': {
-        color: theme.palette.text.primary,
-        backgroundColor: theme.palette.background.paper,
-        border: `1px solid ${theme.palette.divider}`,
-    },
-    '&.notistack-MuiContent-info': {
-        backgroundColor: theme.palette.info.main,
-        color: theme.palette.info.contrastText,
-    },
-    '&.notistack-MuiContent-success': {
-        backgroundColor: theme.palette.success.main,
-        color: theme.palette.success.contrastText,
-    },
-    '&.notistack-MuiContent-warning': {
-        backgroundColor: theme.palette.warning.main,
-        color: theme.palette.warning.contrastText,
-    },
-    '&.notistack-MuiContent-error': {
-        backgroundColor: theme.palette.error.main,
-        color: theme.palette.error.contrastText,
-    },
-}));
+//Redesigned toast chrome — same glass surface / hairline border / left accent
+//stripe language as the menu rows and Stats tiles, instead of notistack's
+//default flat MUI palette colors (which never got the menu's redesign pass).
+//notistack's icon is a raw <svg fill="currentColor"> with no wrapper class
+//(see MaterialDesignContent in notistack's source) — `color` on the svg
+//itself (not inline, so overridable) drives the stripe-matching tint.
+const StyledMaterialDesignContent = styled(MaterialDesignContent)(({ theme }) => {
+    const stripeByVariant: Record<string, string> = {
+        default: theme.tokens.textMuted,
+        info: theme.tokens.info,
+        success: theme.tokens.success,
+        warning: theme.tokens.warning,
+        error: theme.tokens.error,
+    };
+
+    const base = {
+        '&.notistack-MuiContent': {
+            color: theme.tokens.textPrimary,
+            backgroundColor: theme.tokens.surface,
+            border: `1px solid ${theme.tokens.border}`,
+            borderRadius: theme.tokens.radiusRow,
+            boxShadow: theme.tokens.shadowCard,
+            position: 'relative' as const,
+            overflow: 'hidden',
+            paddingLeft: 14,
+        },
+        '&.notistack-MuiContent::before': {
+            content: '""',
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 3,
+        },
+        '&.notistack-MuiContent #notistack-snackbar': {
+            gap: 10,
+        },
+    };
+
+    for (const [variant, color] of Object.entries(stripeByVariant)) {
+        (base as Record<string, unknown>)[`&.notistack-MuiContent-${variant}::before`] = { background: color };
+        (base as Record<string, unknown>)[`&.notistack-MuiContent-${variant} #notistack-snackbar > svg`] = { color };
+    }
+
+    return base;
+});
 
 const App = () => {
     const [isRedm, setIsRedm] = useIsRedm();
