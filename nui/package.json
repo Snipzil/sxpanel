@@ -15,7 +15,7 @@
         "license:report": "npx license-report > ../.reports/license/nui.html"
     },
     "keywords": [],
-    "author": "snipz",
+    "author": "snipz, crayfishfm",
     "license": "MIT",
     "dependencies": {
         "@emotion/react": "^11.14.0",

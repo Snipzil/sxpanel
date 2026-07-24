@@ -15,6 +15,7 @@ import { PlayerModalTabs, useSetPlayerModalTab, useSetPendingPlayerAction } from
 import cleanPlayerName from '@shared/cleanPlayerName';
 import { usePlayerModalContext } from '../provider/PlayerModalProvider';
 import { fetchNui } from '../utils/fetchNui';
+import { useAddPlayerModeIndicator, useRemovePlayerModeIndicator } from '../state/playerModeIndicators.state';
 
 type SnackbarAlertSeverities = 'success' | 'error' | 'warning' | 'info';
 
@@ -49,6 +50,12 @@ const AnnounceMessage: React.FC<AnnounceMessageProps> = ({ title, message }) => 
 
 const alertMap = new Map<string, SnackbarKey>();
 
+//Player-mode toggles (god mode, noclip, super jump) are long-lived states the
+//player may stay in for a whole session — a persistent snackbar camping at
+//the bottom of the screen the entire time is more annoying than useful, so
+//these keys render as small icon badges (PlayerModeIndicators) instead.
+const ICON_INDICATOR_KEYS = new Set(['godModeEnabled', 'noClipEnabled', 'superJumpEnabled']);
+
 debugData(
     [
         {
@@ -75,6 +82,8 @@ export const useHudListenersService = () => {
     const { closeMenu } = usePlayerModalContext();
     const setPlayerModalTab = useSetPlayerModalTab();
     const setPendingPlayerAction = useSetPendingPlayerAction();
+    const addPlayerModeIndicator = useAddPlayerModeIndicator();
+    const removePlayerModeIndicator = useRemovePlayerModeIndicator();
 
     const snackFormat = (m: string) => <span style={{ whiteSpace: 'pre-wrap' }}>{m}</span>;
 
@@ -102,6 +111,11 @@ export const useHudListenersService = () => {
     useNuiEvent<SnackbarPersistentAlert>(
         'setPersistentAlert',
         ({ level, message, key, isTranslationKey, tOptions }) => {
+            if (ICON_INDICATOR_KEYS.has(key)) {
+                addPlayerModeIndicator({ key, message, isTranslationKey, tOptions });
+                return;
+            }
+
             if (alertMap.has(key)) return;
             const snackbarItem = enqueueSnackbar(isTranslationKey ? t(message, tOptions) : message, {
                 variant: level,
@@ -116,6 +130,11 @@ export const useHudListenersService = () => {
     );
 
     useNuiEvent('clearPersistentAlert', ({ key }) => {
+        if (ICON_INDICATOR_KEYS.has(key)) {
+            removePlayerModeIndicator(key);
+            return;
+        }
+
         const snackbarItem = alertMap.get(key);
         if (!snackbarItem) return;
         closeSnackbar(snackbarItem);

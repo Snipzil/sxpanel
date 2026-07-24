@@ -6,6 +6,7 @@ import { usePlayerListListener } from '../hooks/usePlayerListListener';
 import { useServerCtxValue } from '../state/server.state';
 import { MenuRootContent } from '@nui/src/components/MenuRootContent';
 import { PageTabs } from '@nui/src/components/misc/PageTabs';
+import { PlayerModeIndicators } from '@nui/src/components/misc/PlayerModeIndicators';
 import { MENU_MAIN_COLUMN_WIDTH } from '@nui/src/styles/theme';
 
 const PlayersPage = lazy(() => import('./PlayersPage/PlayersPage').then((module) => ({ default: module.PlayersPage })));
@@ -30,6 +31,7 @@ const MenuRoot: React.FC = () => {
                     alignSelf: serverCtx.alignRight ? 'flex-end' : 'auto',
                 }}
             >
+                <PlayerModeIndicators />
                 <PageTabs />
                 <MenuRootContent />
             </Box>
