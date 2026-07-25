@@ -210,11 +210,10 @@ suite('diagnostics/sendReport', () => {
         expect(sentData[0]).toEqual({ reportId: 'report-123' });
 
         expect(mocks.gotPost).toHaveBeenCalledWith(
-            'https://sxpanel.org/api/diagnostics',
+            'https://www.sxpanel.org/api/diagnostics',
             expect.objectContaining({
                 headers: expect.objectContaining({
-                    'content-type': 'application/json',
-                    'content-encoding': 'gzip',
+                    'content-type': 'application/octet-stream',
                 }),
             }),
         );

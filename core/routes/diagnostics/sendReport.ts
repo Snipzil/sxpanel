@@ -273,12 +273,16 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
         jsonBody = JSON.stringify(reportData);
         gzippedBody = gzipSync(jsonBody);
     }
+    // NB: we deliberately do NOT set `content-encoding: gzip`. That header
+    // makes CDNs/proxies (e.g. Cloudflare in front of sxpanel.org) decompress
+    // or strip the request body in transit, so the API receives zero bytes and
+    // rejects it as "Empty request body". The API sniffs the gzip magic bytes
+    // itself, so it decompresses the body regardless of the header being absent.
     const requestOptions = {
         retry: { limit: 1 },
         body: gzippedBody,
         headers: {
-            'content-type': 'application/json',
-            'content-encoding': 'gzip',
+            'content-type': 'application/octet-stream',
         },
     };
 
@@ -286,7 +290,7 @@ export default async function SendDiagnosticsReport(ctx: AuthedCtx) {
     try {
         type ResponseType = { reportId: string } | { error: string; message?: string };
         const apiResp = (await got
-            .post('https://sxpanel.org/api/diagnostics', requestOptions)
+            .post('https://www.sxpanel.org/api/diagnostics', requestOptions)
             .json()) as ResponseType;
         if ('reportId' in apiResp) {
             reportIdCache.set(apiResp.reportId);

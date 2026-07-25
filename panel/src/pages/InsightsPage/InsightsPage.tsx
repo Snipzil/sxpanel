@@ -81,7 +81,7 @@ function useInsightData<T extends object>(path: string, devMockSelector: (mock: 
             const isDevMockMode = import.meta.env.DEV && isDevMockStatusOptInEnabled();
             if (isDevMockMode) return devMockSelector(getDevMockInsights());
             const result = await api({});
-            if (result === undefined) return { error: t('panel.insights.errors.request_failed') } as WithError;
+            if (result == undefined) return { error: t('panel.insights.errors.request_failed') } as WithError;
             return result;
         },
         { revalidateOnFocus: false, dedupingInterval: 60_000 },

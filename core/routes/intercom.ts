@@ -39,7 +39,7 @@ const STATS_INVENTORY_REPORT_TIMEOUT_MS = 5000;
 
 const isString = (val: unknown): val is string => typeof val === 'string' && val.length > 0;
 
-const STATS_ENDPOINT = 'https://sxpanel.org/api/stats';
+const STATS_ENDPOINT = 'https://www.sxpanel.org/api/stats';
 
 let statsInstallId: string | null = null;
 
