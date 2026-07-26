@@ -12,20 +12,58 @@ export type NativeResourceZipProcess = {
 
 /**
 
+ * Whether the system `tar` binary can write the zip container format.
+
+ * Only bsdtar (libarchive) supports `--format=zip`; GNU tar rejects it immediately
+
+ * with a non-zero exit. Probed once and cached for the process lifetime.
+
+ */
+
+let cachedZipCapability: Promise<boolean> | null = null;
+
+const probeNativeZipCapability = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+        const child = spawn('tar', ['--format=zip', '--help'], {
+            stdio: ['ignore', 'ignore', 'ignore'],
+
+            windowsHide: true,
+        });
+
+        child.once('error', () => resolve(false));
+
+        child.once('close', (code) => resolve(code === 0));
+    });
+};
+
+export const isNativeZipCapable = (): Promise<boolean> => {
+    if (!cachedZipCapability) {
+        cachedZipCapability = probeNativeZipCapability();
+    }
+
+    return cachedZipCapability;
+};
+
+/**
+
  * Streams a store-only zip via the system `tar` binary (bsdtar on Windows).
 
  * Starts emitting bytes immediately — no Node-side file queue.
 
+ * Caller must check `isNativeZipCapable()` first: without `--format=zip` support
+
+ * this silently writes a plain tar stream instead (no error, no PK signature).
+
  */
 
 export const spawnNativeResourceZip = (resourceRoot: string): NativeResourceZipProcess => {
-    const args: string[] = [];
+    const args: string[] = ['--format=zip'];
 
     for (const dirName of RESOURCE_ZIP_SKIP_DIRECTORY_NAMES) {
         args.push('--exclude', dirName);
     }
 
-    args.push('-a', '-c', '-f', '-', '-C', resourceRoot, '.');
+    args.push('-c', '-f', '-', '-C', resourceRoot, '.');
 
     const child = spawn('tar', args, {
         stdio: ['ignore', 'pipe', 'pipe'],
