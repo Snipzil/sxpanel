@@ -1,13 +1,17 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcessByStdio } from 'node:child_process';
+
+import type { Readable } from 'node:stream';
 
 import { RESOURCE_ZIP_SKIP_DIRECTORY_NAMES } from './shared';
 
+type NativeTarChildProcess = ChildProcessByStdio<null, Readable, Readable>;
+
 export type NativeResourceZipProcess = {
-    stdout: ChildProcessWithoutNullStreams['stdout'];
+    stdout: Readable;
 
     done: Promise<{ ok: true } | { ok: false; error: string }>;
 
-    child: ChildProcessWithoutNullStreams;
+    child: NativeTarChildProcess;
 };
 
 /**
