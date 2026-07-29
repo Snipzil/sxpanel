@@ -228,7 +228,6 @@ const pageConfigs = {
     autoStart: getPageConfig('server', 'autoStart', true, true),
     resourceTolerance: getPageConfig('restarter', 'resourceStartingTolerance', true),
     disableHealthCheck: getPageConfig('restarter', 'disableHealthCheck', true, false),
-    httpPlayerlistHost: getPageConfig('restarter', 'httpPlayerlistHost', true, ''),
 } as const;
 
 function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
@@ -604,20 +603,6 @@ function useConfigCardFxserver({ cardCtx, pageCtx }: SettingsCardProps) {
                     <strong>{t('panel.settings.bans.note_label')}</strong>{' '}
                     {t('panel.settings.fxserver.disable_health_check_note')}
                 </SettingItemDesc>
-            </SettingItem>
-            <SettingItem
-                label={t('panel.settings.fxserver.http_playerlist_host_label')}
-                htmlFor={cfg.httpPlayerlistHost.eid}
-                showIf={showAdvanced}
-            >
-                <Input
-                    id={cfg.httpPlayerlistHost.eid}
-                    value={states.httpPlayerlistHost}
-                    placeholder={t('panel.settings.fxserver.http_playerlist_host_placeholder')}
-                    onChange={(event) => cfg.httpPlayerlistHost.state.set(event.target.value)}
-                    disabled={pageCtx.isReadOnly}
-                />
-                <SettingItemDesc>{t('panel.settings.fxserver.http_playerlist_host_desc')}</SettingItemDesc>
             </SettingItem>
             <SettingItem
                 label={t('panel.settings.fxserver.resource_tolerance_label')}

@@ -343,9 +343,6 @@ export default () => {
     //Host routes
     router.get('/host/status', hostAuthMw, routes.host_status);
 
-    // CFXBOT push-mode player roster (localhost only, no auth — matches patched txAdmin)
-    router.post('/dev/addPlayers', wrapRoute('DevAddPlayers', routes.dev_addPlayers));
-
     // DevDebug routes — require session + master (privileged playerlist injection, etc.)
     if (txDevEnv.ENABLED) {
         router.get('/dev/:scope', apiAuthMw, wrapRoute('DevDebugGet', routes.dev_get));

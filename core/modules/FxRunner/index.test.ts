@@ -640,13 +640,6 @@ suite('FxRunner > stdin command helpers', () => {
             expect(txCoreMock.logger.fxserver.logAdminCommand).toHaveBeenCalledWith('adminUser', 'status');
         });
 
-        it('sendRawCommand does not log silent synthetic-players commands', () => {
-            const fxRunner = new FxRunner();
-            (fxRunner as any).proc = createFakeProc();
-            fxRunner.sendRawCommand('txaSendEvent "txsv:updateSyntheticPlayers" {}', SYM_SYSTEM_AUTHOR);
-            expect(txCoreMock.logger.fxserver.logSystemCommand).not.toHaveBeenCalled();
-        });
-
         it('sendRawCommand throws for an empty string author', () => {
             const fxRunner = new FxRunner();
             (fxRunner as any).proc = createFakeProc();

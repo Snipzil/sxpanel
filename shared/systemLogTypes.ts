@@ -20,7 +20,6 @@ const configChangeLogFieldDefinitions = [
     ['restarter.resourceStartingTolerance', 'Resource Starting Tolerance'],
     ['restarter.intervalHours', 'Restart Interval (Hours)'],
     ['restarter.disableHealthCheck', 'Disable HTTP Health Check'],
-    ['restarter.httpPlayerlistHost', 'HTTP Playerlist Host Override'],
     ['banlist.enabled', 'Ban Checking Enabled'],
     ['banlist.rejectionMessage', 'Ban Rejection Message'],
     ['banlist.requiredHwidMatches', 'Required Ban HWID Matches'],

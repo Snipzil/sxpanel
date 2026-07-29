@@ -1,115 +1,51 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-    gotGet: vi.fn(),
-}));
-
-vi.mock('@lib/got', () => {
-    const got = vi.fn(() => ({
-        json: vi.fn().mockResolvedValue({ Data: { players: [] } }),
-    }));
-    return {
-        default: Object.assign(got, {
-            get: mocks.gotGet,
-        }),
-    };
-});
-
-const HTTP_CLIENTS_CACHE_KEY = 'fxsRuntime:httpReportedClients';
-
-const stubRuntime = (onlineCount = 0) => {
-    const cache = new Map<string, unknown>();
+const stubRuntime = (onlineCount: number, disableHealthCheck: boolean | string = false) => {
     vi.stubGlobal('txConfig', {
-        restarter: {
-            disableHealthCheck: false,
-            httpPlayerlistHost: '',
-        },
+        restarter: { disableHealthCheck },
     });
     vi.stubGlobal('txCore', {
-        cacheStore: {
-            get: vi.fn((key: string) => cache.get(key)),
-            set: vi.fn((key: string, value: unknown) => {
-                cache.set(key, value);
-            }),
-            delete: vi.fn((key: string) => {
-                cache.delete(key);
-            }),
-        },
-        fxPlayerlist: {
-            onlineCount,
-        },
-    });
-    return cache;
-};
-
-const mockPlayersJson = (players: unknown[]) => {
-    mocks.gotGet.mockResolvedValue({
-        statusCode: 200,
-        body: JSON.stringify(players),
+        fxPlayerlist: { onlineCount },
     });
 };
 
-describe('HTTP playerlist cache', () => {
+describe('httpHealthCheck', () => {
     beforeEach(() => {
         vi.resetModules();
-        mocks.gotGet.mockReset();
     });
 
-    it('clears stale HTTP players when reported clients reaches the FD3 count', async () => {
-        const cache = stubRuntime(0);
-        const { fetchAndCachePlayersJson, getCachedHttpPlayers } = await import('./httpHealthCheck');
+    describe('isHttpHealthCheckDisabled', () => {
+        it('reflects the restarter.disableHealthCheck config value', async () => {
+            stubRuntime(0, true);
+            const { isHttpHealthCheckDisabled } = await import('./httpHealthCheck');
+            expect(isHttpHealthCheckDisabled()).toBe(true);
+        });
 
-        mockPlayersJson([{ id: 12, name: 'Leaving Player', identifiers: ['license:abc'] }]);
-        await fetchAndCachePlayersJson('127.0.0.1:30120');
-        expect(getCachedHttpPlayers()).toHaveLength(1);
+        it('treats the string "true" as enabled (legacy convar coercion)', async () => {
+            stubRuntime(0, 'true');
+            const { isHttpHealthCheckDisabled } = await import('./httpHealthCheck');
+            expect(isHttpHealthCheckDisabled()).toBe(true);
+        });
 
-        cache.set(HTTP_CLIENTS_CACHE_KEY, 0);
-        mockPlayersJson([]);
-        await fetchAndCachePlayersJson('127.0.0.1:30120');
-
-        expect(getCachedHttpPlayers()).toEqual([]);
+        it('defaults to false', async () => {
+            stubRuntime(0, false);
+            const { isHttpHealthCheckDisabled } = await import('./httpHealthCheck');
+            expect(isHttpHealthCheckDisabled()).toBe(false);
+        });
     });
 
-    it('keeps the last HTTP roster during empty polls while reported clients still exceed FD3', async () => {
-        stubRuntime(0);
-        const { fetchAndCachePlayersJson, getCachedHttpPlayers } = await import('./httpHealthCheck');
+    describe('getDisplayPlayerCount', () => {
+        it('always reflects the real FD3-backed online count', async () => {
+            stubRuntime(7);
+            const { getDisplayPlayerCount } = await import('./httpHealthCheck');
+            expect(getDisplayPlayerCount()).toBe(7);
+        });
 
-        mockPlayersJson([{ id: 12, name: 'Still Reported', identifiers: ['license:abc'] }]);
-        await fetchAndCachePlayersJson('127.0.0.1:30120');
-
-        mockPlayersJson([]);
-        await fetchAndCachePlayersJson('127.0.0.1:30120');
-
-        expect(getCachedHttpPlayers()).toEqual([{ id: 12, name: 'Still Reported', identifiers: ['license:abc'] }]);
-    });
-
-    it('removes a dropped netid from the HTTP cache immediately', async () => {
-        stubRuntime(0);
-        const { fetchAndCachePlayersJson, getCachedHttpPlayers, getCachedHttpPlayerCount, removeCachedHttpPlayer } =
-            await import('./httpHealthCheck');
-
-        mockPlayersJson([
-            { id: 12, name: 'Leaving Player', identifiers: ['license:abc'] },
-            { id: 13, name: 'Remaining Player', identifiers: ['license:def'] },
-        ]);
-        await fetchAndCachePlayersJson('127.0.0.1:30120');
-
-        expect(removeCachedHttpPlayer(12)).toBe(true);
-        expect(getCachedHttpPlayers()).toEqual([{ id: 13, name: 'Remaining Player', identifiers: ['license:def'] }]);
-        expect(getCachedHttpPlayerCount()).toBe(1);
-        expect(removeCachedHttpPlayer(99)).toBe(false);
-    });
-
-    it('uses the HTTP-reported count for display when FD3 is briefly stale', async () => {
-        stubRuntime(0);
-        const { fetchAndCachePlayersJson, getDisplayPlayerCount } = await import('./httpHealthCheck');
-
-        mockPlayersJson([
-            { id: 12, name: 'Online Player A', identifiers: ['license:abc'] },
-            { id: 13, name: 'Online Player B', identifiers: ['license:def'] },
-        ]);
-        await fetchAndCachePlayersJson('127.0.0.1:30120');
-
-        expect(getDisplayPlayerCount()).toBe(2);
+        it('returns 0 when fxPlayerlist is not yet available', async () => {
+            vi.stubGlobal('txConfig', { restarter: { disableHealthCheck: false } });
+            vi.stubGlobal('txCore', {});
+            const { getDisplayPlayerCount } = await import('./httpHealthCheck');
+            expect(getDisplayPlayerCount()).toBe(0);
+        });
     });
 });

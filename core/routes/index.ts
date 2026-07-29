@@ -124,7 +124,6 @@ export {
 } from './insights';
 
 export { get as dev_get, post as dev_post } from './devDebug.js';
-export { default as dev_addPlayers } from './dev/addPlayers';
 
 export {
     addonsList as addons_list,
