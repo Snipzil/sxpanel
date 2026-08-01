@@ -175,7 +175,7 @@
     }
 
     .tx-sidebar {
-        @apply top-contentoffset sticky z-0 shrink-0 self-start transition-[width] duration-200;
+        @apply z-0 shrink-0 transition-[width] duration-200;
     }
 
     .tx-shell-mobile-header {
