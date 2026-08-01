@@ -57,6 +57,8 @@ export { default as settings_getLocalePhrases } from './settings/getLocalePhrase
 export { default as settings_saveConfigs } from './settings/saveConfigs';
 export { default as settings_getBanTemplates } from './settings/getBanTemplates';
 export { default as settings_saveBanTemplates } from './settings/saveBanTemplates';
+export { default as settings_getCustomThemes } from './settings/getCustomThemes';
+export { default as settings_saveCustomThemes } from './settings/saveCustomThemes';
 export { default as settings_resetServerDataPath } from './settings/resetServerDataPath';
 export { default as deferral_card_asset } from './deferralCardAsset';
 export { default as deferral_card_logo } from './deferralCardLogo';

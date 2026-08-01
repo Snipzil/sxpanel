@@ -2,6 +2,7 @@ export const SystemLogCategories = ['action', 'command', 'config', 'login', 'mon
 export type SystemLogCategory = (typeof SystemLogCategories)[number];
 
 const configChangeLogFieldDefinitions = [
+    ['appearance.customThemes', 'Custom Themes'],
     ['general.serverName', 'Server Name'],
     ['general.language', 'Language'],
     ['general.hideFxsUpdateNotification', 'Hide FxServer Update Notification'],

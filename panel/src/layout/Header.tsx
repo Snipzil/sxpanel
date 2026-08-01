@@ -127,11 +127,7 @@ function ThemeSubmenu() {
                     {customThemes.length > 0 && <DropdownMenuSeparator />}
 
                     {customThemes.map((customTheme) => (
-                        <DropdownMenuRadioItem
-                            key={customTheme.name}
-                            value={customTheme.name}
-                            className="cursor-pointer"
-                        >
+                        <DropdownMenuRadioItem key={customTheme.id} value={customTheme.id} className="cursor-pointer">
                             <PaletteIcon className="mr-2 size-4" />
                             {customTheme.name}
                         </DropdownMenuRadioItem>

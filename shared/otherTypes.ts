@@ -15,6 +15,10 @@ export type ResetServerDataPathResp = any;
 export type GetBanTemplatesSuccessResp = any;
 export type SaveBanTemplatesResp = any;
 export type SaveBanTemplatesReq = any;
+export type CustomThemeDataType = any;
+export type GetCustomThemesSuccessResp = any;
+export type SaveCustomThemesResp = any;
+export type SaveCustomThemesReq = any;
 
 //Stats stuff
 export type SvRtLogFilteredType = any;
@@ -85,6 +89,7 @@ export type PanelUpdateListResp = {
 };
 
 export type ThemeType = {
+    id: string;
     name: string;
     isDark: boolean;
     style: { [key: string]: string };

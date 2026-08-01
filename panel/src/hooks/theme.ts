@@ -4,11 +4,12 @@ import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
  * Constants
  */
 const root = window.document.documentElement;
-const availableCustomThemes = window.txConsts.customThemes.map((theme) => theme.name);
-const customThemesClasses = window.txConsts.customThemes.map((theme) => `theme-${theme.name}`);
+//NOTE: custom themes are keyed by their stable id (not the renamable name)
+const availableCustomThemes = window.txConsts.customThemes.map((theme) => theme.id);
+const customThemesClasses = window.txConsts.customThemes.map((theme) => `theme-${theme.id}`);
 const defaultThemes = ['dark', 'light'];
 const initialAtomValue =
-    availableCustomThemes.find((name) => root.classList.contains(`theme-${name}`)) ??
+    availableCustomThemes.find((id) => root.classList.contains(`theme-${id}`)) ??
     defaultThemes.find((name) => root.classList.contains(name)) ??
     window.txConsts.defaultTheme;
 
@@ -31,7 +32,7 @@ const parseTheme = (themeName: string) => {
             customClass: undefined,
         };
     } else if (availableCustomThemes.includes(themeName)) {
-        const customTheme = window.txConsts.customThemes.find((theme) => theme.name === themeName);
+        const customTheme = window.txConsts.customThemes.find((theme) => theme.id === themeName);
         if (customTheme) {
             const isDarkScheme = customTheme.isDark;
             return {

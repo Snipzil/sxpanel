@@ -43,6 +43,7 @@ const ResourcesPage = lazy(() => import('@/pages/ResourcesPage/ResourcesPage'));
 const WhitelistPage = lazy(() => import('@/pages/Whitelist/WhitelistPage'));
 const EmbedEditorPage = lazy(() => import('@/pages/Settings/EmbedEditorPage'));
 const DeferralStudioPage = lazy(() => import('@/pages/Settings/DeferralStudioPage'));
+const ThemeStudioPage = lazy(() => import('@/pages/Settings/ThemeStudioPage'));
 const DiscordLogRoutesEditorPage = lazy(() => import('@/pages/Settings/DiscordLogRoutesEditorPage'));
 const SetupPage = lazy(() => import('@/pages/SetupPage'));
 const AdvancedPage = lazy(() => import('@/pages/AdvancedPage'));
@@ -271,6 +272,12 @@ const allRoutes: RouteType[] = [
         titleKey: 'panel.routes.deferral_studio',
         permission: 'settings.write',
         Page: DeferralStudioPage,
+    },
+    {
+        path: '/settings/theme-studio/:themeId',
+        titleKey: 'panel.routes.theme_studio',
+        permission: 'settings.write',
+        Page: ThemeStudioPage,
     },
     {
         path: '/settings/deferral-editor/:scenarioId',
