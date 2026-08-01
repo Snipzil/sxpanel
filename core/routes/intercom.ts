@@ -31,11 +31,15 @@ import { getDisplayPlayerCount } from '@lib/fxserver/httpHealthCheck';
 import { applyPlayerTagChange } from '@lib/player/playerTags';
 import got from '@lib/got';
 import { resolveTelemetryPanelUrl } from '@lib/panelPublicUrl';
-import { fetchFreshResourceReport, isValidResourceName } from './resources/shared';
+import { fetchFreshResourceReport, getCachedResourceReport, isValidResourceName } from './resources/shared';
 import { randomUUID } from 'node:crypto';
 const console = consoleFactory(modulename);
 
 const STATS_INVENTORY_REPORT_TIMEOUT_MS = 5000;
+/** Reuse the resource report for telemetry instead of forcing a txaReportResources
+ * round-trip (and its console print) every 5-minute stats tick - inventory composition
+ * rarely changes that often. */
+const STATS_INVENTORY_MAX_AGE_MS = 30 * 60 * 1000;
 
 const isString = (val: unknown): val is string => typeof val === 'string' && val.length > 0;
 
@@ -142,7 +146,7 @@ const sendStatsToFxApi = async () => {
     const cfxId = txCore.cacheStore.getTyped('fxsRuntime:cfxId', isString) ?? undefined;
     const dashboard = await buildDashboardTelemetry();
 
-    if (txCore.fxRunner.child?.isAlive) {
+    if (txCore.fxRunner.child?.isAlive && !getCachedResourceReport(STATS_INVENTORY_MAX_AGE_MS)) {
         const reportResult = await fetchFreshResourceReport(STATS_INVENTORY_REPORT_TIMEOUT_MS);
         if (!reportResult.ok) {
             console.verbose.warn('Stats inventory refresh skipped', { reason: reportResult.error });

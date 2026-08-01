@@ -49,6 +49,8 @@ export default class FxPlayerlist {
     #highestSeenNetid = 0;
     #rolloverCount = 0;
     #lastPlayerlistBroadcastJson: string | undefined;
+    /** Last dispatched txaInitialData signature per netId, to skip redundant identical stdin writes. */
+    #lastDispatchSignature: Map<number, string> = new Map();
     readonly #playtimeTickTimer: ReturnType<typeof setInterval>;
 
     constructor() {
@@ -114,6 +116,7 @@ export default class FxPlayerlist {
         this.#highestSeenNetid = 0;
         this.#rolloverCount = 0;
         this.#lastPlayerlistBroadcastJson = undefined;
+        this.#lastDispatchSignature.clear();
         txCore.webServer.webSocket!.buffer('playerlist', {
             mutex: oldMutex,
             type: 'fullPlayerlist',
@@ -212,9 +215,10 @@ export default class FxPlayerlist {
      */
     dispatchInitialPlayerData(playerId: number, pendingWarn?: DatabaseActionWarnType) {
         const player = this.#playerlist[playerId];
+        const tags = player ? computePlayerTags(player) : [];
         const cmdData: Record<string, any> = {
             netId: playerId,
-            tags: player ? computePlayerTags(player) : [],
+            tags,
         };
         if (pendingWarn) {
             cmdData.pendingWarn = {
@@ -226,6 +230,14 @@ export default class FxPlayerlist {
                 targetName: pendingWarn.playerName,
             };
         }
+
+        // Skip the stdin write if this exact payload (tags + pending warn) was already
+        // dispatched for this netId - avoids duplicate txaInitialData commands, which
+        // otherwise fire once on playerJoining and again once DB data finishes loading.
+        const signature = JSON.stringify([tags, pendingWarn?.id ?? null]);
+        if (this.#lastDispatchSignature.get(playerId) === signature) return;
+        this.#lastDispatchSignature.set(playerId, signature);
+
         txCore.fxRunner.sendCommand('txaInitialData', [cmdData], SYM_SYSTEM_AUTHOR);
     }
 
@@ -405,6 +417,7 @@ export default class FxPlayerlist {
                     reason: data.reason,
                 });
                 this.#playerlist[data.id] = undefined;
+                this.#lastDispatchSignature.delete(data.id);
             } catch (error) {
                 console.verbose.warn(`playerDropped event error: ${emsg(error)}`);
             }
