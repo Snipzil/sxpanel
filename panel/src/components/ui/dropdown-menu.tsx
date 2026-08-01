@@ -176,4 +176,7 @@ export {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuRadioGroup,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
 };

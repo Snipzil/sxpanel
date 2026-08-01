@@ -26,7 +26,7 @@ export interface MenuTokens {
     readonly accentTint: string;
     /** Accent-colored border for selected rows. */
     readonly accentBorder: string;
-    /** Secondary accent (kept for RedM purple highlights). */
+    /** Secondary accent, used by MUI's `secondary` palette slot. */
     readonly accentSecondary: string;
     readonly textPrimary: string;
     readonly textMuted: string;
@@ -42,49 +42,34 @@ export interface MenuTokens {
     readonly radiusPill: number;
 }
 
-export const fivemTokens: MenuTokens = {
-    surface: '#0c0e16',
-    surfaceRaised: '#161923',
-    surfaceHover: '#1c202e',
-    border: 'rgba(124, 134, 171, 0.18)',
-    borderStrong: 'rgba(124, 134, 171, 0.34)',
-    accent: '#f40552',
+// Derived from the web dashboard's dark theme HSL tokens (panel/src/globals.css)
+// so the in-game menu reads as part of the same visual family.
+const dashboardTokens: MenuTokens = {
+    surface: '#0e0e10',
+    surfaceRaised: '#161618',
+    surfaceHover: '#252528',
+    border: 'rgba(161, 161, 170, 0.14)',
+    borderStrong: 'rgba(161, 161, 170, 0.28)',
+    accent: '#3b82f6',
     accentContrast: '#ffffff',
-    accentTint: 'rgba(244, 5, 82, 0.12)',
-    accentBorder: 'rgba(244, 5, 82, 0.45)',
-    accentSecondary: '#f40552',
-    textPrimary: '#f1f1e4',
-    textMuted: '#9ea4bd',
-    success: '#01a370',
+    accentTint: 'rgba(59, 130, 246, 0.14)',
+    accentBorder: 'rgba(59, 130, 246, 0.45)',
+    accentSecondary: '#3b82f6',
+    textPrimary: '#fafafa',
+    textMuted: '#a1a1aa',
+    success: '#01a26f',
     warning: '#ffae00',
     error: '#e33131',
-    info: '#2b9bc5',
-    radiusCard: 16,
-    radiusRow: 10,
+    info: '#26b2d9',
+    radiusCard: 12,
+    radiusRow: 8,
     radiusPill: 999,
 };
 
-export const redmTokens: MenuTokens = {
-    surface: '#241f19',
-    surfaceRaised: '#332e27',
-    surfaceHover: '#4b3b2e',
-    border: 'rgba(230, 213, 201, 0.16)',
-    borderStrong: 'rgba(230, 213, 201, 0.32)',
-    accent: '#f4df88',
-    accentContrast: '#241900',
-    accentTint: 'rgba(244, 223, 136, 0.12)',
-    accentBorder: 'rgba(244, 223, 136, 0.5)',
-    accentSecondary: '#c68ed9',
-    textPrimary: '#e8e1dc',
-    textMuted: '#e6d5c9',
-    success: '#57d58d',
-    warning: '#f5b041',
-    error: '#d52c1a',
-    info: '#5bace1',
-    radiusCard: 16,
-    radiusRow: 10,
-    radiusPill: 999,
-};
+// Both game variants intentionally share the same palette now — the goal is
+// visual consistency with the web dashboard rather than a per-game identity.
+export const fivemTokens: MenuTokens = dashboardTokens;
+export const redmTokens: MenuTokens = dashboardTokens;
 
 interface MenuThemeMeta {
     readonly name: string;
@@ -101,7 +86,7 @@ const buildMenuTheme = (tokens: MenuTokens, meta: MenuThemeMeta): Theme => {
         logo: meta.logo,
         tokens,
         typography: {
-            fontFamily: "'Inter Variable', 'Inter', 'Segoe UI', sans-serif",
+            fontFamily: "'Geist Variable', 'Inter', 'Segoe UI', sans-serif",
             button: {
                 textTransform: 'none',
                 fontWeight: 600,

@@ -79,6 +79,10 @@ const streamArchiverFallback = (ctx: AuthedCtx, resourceRoot: string, name: stri
  */
 
 export default async function ResourcesDownload(ctx: AuthedCtx) {
+    if (!txConfig.general.resourceDownloadEnabled) {
+        return ctx.send({ error: 'Resource downloading is disabled.' });
+    }
+
     if (!ctx.admin.hasPermission('commands.resources.download')) {
         return ctx.send({ error: "You don't have permission to download resources." });
     }

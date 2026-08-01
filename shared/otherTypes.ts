@@ -118,6 +118,7 @@ export type InjectedTxConsts = {
     hideFxsUpdateNotification: boolean;
     allowSelfIdentifierEdit: boolean;
     requireAdminTwoFactor: boolean;
+    resourceDownloadEnabled: boolean;
     discordOAuthEnabled: boolean;
     reportsEnabled: boolean;
     /** Hide Reports + Report Analytics sidebar items (NUI always; web when reports are disabled). */

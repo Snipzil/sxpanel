@@ -71,7 +71,7 @@ const DialogInfoView: React.FC = () => {
     }, [playerDetails]);
     const playerTags = useMemo(() => {
         return [...(player.tags ?? [])]
-            .map((tagId) => tagLookup[tagId] ?? { id: tagId, label: tagId, color: '#9ea4bd', priority: 999 })
+            .map((tagId) => tagLookup[tagId] ?? { id: tagId, label: tagId, color: '#a1a1aa', priority: 999 })
             .sort((a, b) => a.priority - b.priority)
             .map((tag) => ({
                 ...tag,

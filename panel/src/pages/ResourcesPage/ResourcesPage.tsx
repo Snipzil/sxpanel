@@ -106,7 +106,7 @@ export default function ResourcesPage() {
     const { searchQuery, statusFilter, collapsedFolders, selectedFolder } = viewState;
     const { hasPerm } = useAdminPerms();
     const canControl = hasPerm('commands.resources');
-    const canDownload = hasPerm('commands.resources.download');
+    const canDownload = hasPerm('commands.resources.download') && window.txConsts.resourceDownloadEnabled;
 
     const setViewField = <K extends keyof ResourcesViewState>(key: K, value: ResourcesViewState[K]) => {
         setViewState((prev) => ({ ...prev, [key]: value }));

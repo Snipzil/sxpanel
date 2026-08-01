@@ -729,7 +729,7 @@ const TicketSidebarItem: React.FC<{
                             height: 18,
                             fontSize: '0.65rem',
                             bgcolor: tokens.info,
-                            color: '#fff',
+                            color: tokens.accentContrast,
                             maxWidth: '100%',
                             '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
                         }}

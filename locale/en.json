@@ -1753,6 +1753,10 @@
                     "label": "Require Two-Factor Authentication",
                     "desc": "When required, every admin — including the master account — must enable 2FA before using the web panel or in-game menu.",
                     "desc_master": "You must enable 2FA on your own account before turning this on. Only the master admin can change this setting."
+                },
+                "resource_download": {
+                    "label": "Resource Download",
+                    "desc": "When disabled, admins can no longer download resource folders from the Resources page, regardless of their individual permissions."
                 }
             },
             "bans": {
@@ -3180,6 +3184,9 @@
                 "account": "Account",
                 "signed_in": "Signed in",
                 "your_account": "Your Account",
+                "appearance": "Appearance",
+                "theme_light": "Light",
+                "theme_dark": "Dark",
                 "support": "Support",
                 "logout": "Logout",
                 "open_menu": "Open menu",

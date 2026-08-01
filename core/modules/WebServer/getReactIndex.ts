@@ -445,6 +445,7 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         hideFxsUpdateNotification: txConfig.general.hideFxsUpdateNotification,
         allowSelfIdentifierEdit: txConfig.general.allowSelfIdentifierEdit,
         requireAdminTwoFactor: txConfig.general.requireAdminTwoFactor,
+        resourceDownloadEnabled: txConfig.general.resourceDownloadEnabled,
         discordOAuthEnabled: !!(txConfig.discordBot.oauthClientId && txConfig.discordBot.oauthClientSecret),
         reportsEnabled: txConfig.gameFeatures.reportsEnabled,
         hideReportsNav: !ctx.txVars.isWebInterface || !txConfig.gameFeatures.reportsEnabled,

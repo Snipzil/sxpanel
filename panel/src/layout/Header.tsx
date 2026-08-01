@@ -2,7 +2,12 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -10,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 import { openExternalLink } from '@/lib/navigation';
 
-import { KeyRoundIcon, LogOutIcon, MenuIcon, UsersIcon } from 'lucide-react';
+import { KeyRoundIcon, LogOutIcon, MenuIcon, MoonIcon, PaletteIcon, SunIcon, UsersIcon } from 'lucide-react';
 
 import Avatar from '@/components/Avatar';
 
@@ -31,6 +36,8 @@ import { useAccountModal } from '@/hooks/dialogs';
 import { useAddonWidgets } from '@/hooks/addons';
 
 import { useLocale } from '@/hooks/locale';
+
+import { useTheme } from '@/hooks/theme';
 
 export const headerIconButtonClassName =
     'text-muted-foreground hover:text-foreground hover:bg-secondary/60 border-border/50 bg-secondary/30 focus-visible:ring-ring ring-offset-background relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg border transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden [&>svg]:size-4';
@@ -93,6 +100,48 @@ export function IconButton({ label, icon, badge, onClick }: IconButtonProps) {
     );
 }
 
+function ThemeSubmenu() {
+    const { t } = useLocale();
+    const { theme, setTheme } = useTheme();
+    const customThemes = window.txConsts.customThemes;
+
+    return (
+        <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="cursor-pointer">
+                <PaletteIcon className="mr-2 size-4" />
+                {t('panel.shell.header.appearance')}
+            </DropdownMenuSubTrigger>
+
+            <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+                    <DropdownMenuRadioItem value="light" className="cursor-pointer">
+                        <SunIcon className="mr-2 size-4" />
+                        {t('panel.shell.header.theme_light')}
+                    </DropdownMenuRadioItem>
+
+                    <DropdownMenuRadioItem value="dark" className="cursor-pointer">
+                        <MoonIcon className="mr-2 size-4" />
+                        {t('panel.shell.header.theme_dark')}
+                    </DropdownMenuRadioItem>
+
+                    {customThemes.length > 0 && <DropdownMenuSeparator />}
+
+                    {customThemes.map((customTheme) => (
+                        <DropdownMenuRadioItem
+                            key={customTheme.name}
+                            value={customTheme.name}
+                            className="cursor-pointer"
+                        >
+                            <PaletteIcon className="mr-2 size-4" />
+                            {customTheme.name}
+                        </DropdownMenuRadioItem>
+                    ))}
+                </DropdownMenuRadioGroup>
+            </DropdownMenuSubContent>
+        </DropdownMenuSub>
+    );
+}
+
 export function AuthedHeaderFragment() {
     const { t } = useLocale();
 
@@ -130,6 +179,8 @@ export function AuthedHeaderFragment() {
 
                     {t('panel.shell.header.your_account')}
                 </DropdownMenuItem>
+
+                <ThemeSubmenu />
 
                 <DropdownMenuItem
                     className="cursor-pointer"

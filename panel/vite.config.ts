@@ -13,7 +13,7 @@ if (fs.existsSync(path.resolve(__dirname, '../.env'))) {
 
 const txDevEnv = parseTxDevEnv();
 
-const FONT_PACKAGES = ['inter', 'jetbrains-mono'] as const;
+const FONT_PACKAGES = ['geist', 'jetbrains-mono'] as const;
 
 /**
  * Vite leaves @fontsource URLs as `./files/*.woff2` in the emitted CSS but does

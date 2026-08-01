@@ -37,6 +37,7 @@ export const pageConfigs = {
     language: getPageConfig('general', 'language'),
     allowSelfIdentifierEdit: getPageConfig('general', 'allowSelfIdentifierEdit', undefined, false),
     requireAdminTwoFactor: getPageConfig('general', 'requireAdminTwoFactor', undefined, false),
+    resourceDownloadEnabled: getPageConfig('general', 'resourceDownloadEnabled', undefined, true),
 } as const;
 
 export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProps) {
@@ -189,6 +190,20 @@ export default function ConfigCardGeneral({ cardCtx, pageCtx }: SettingsCardProp
                             {t('panel.settings.general.require_admin_two_factor.desc')} <br />
                             {t('panel.settings.general.require_admin_two_factor.desc_master')}
                         </SettingItemDesc>
+                    </SettingItem>
+                    <SettingItem
+                        label={t('panel.settings.general.resource_download.label')}
+                        htmlFor={cfg.resourceDownloadEnabled.eid}
+                    >
+                        <SwitchText
+                            id={cfg.resourceDownloadEnabled.eid}
+                            checked={states.resourceDownloadEnabled}
+                            onCheckedChange={cfg.resourceDownloadEnabled.state.set}
+                            disabled={pageCtx.isReadOnly}
+                            checkedLabel={t('panel.settings.switch.enabled')}
+                            uncheckedLabel={t('panel.settings.switch.disabled')}
+                        />
+                        <SettingItemDesc>{t('panel.settings.general.resource_download.desc')}</SettingItemDesc>
                     </SettingItem>
                 </>
             )}

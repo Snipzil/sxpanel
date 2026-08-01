@@ -59,7 +59,7 @@ const buildPlayerTagDisplay = (tags: PlayerTag[], definitions: TagDefinition[]) 
     const primaryId = getPrimaryPlayerTag(tags, lookup);
     if (!primaryId) return [];
 
-    const tag = lookup[primaryId] ?? { id: primaryId, label: primaryId, color: '#9ea4bd', priority: 999 };
+    const tag = lookup[primaryId] ?? { id: primaryId, label: primaryId, color: '#a1a1aa', priority: 999 };
     return [{ ...tag, styles: deriveTagColors(tag.color) }];
 };
 
