@@ -173,6 +173,11 @@ export default () => {
     );
     router.post('/fxserver/artifacts/apply', apiAuthMw, wrapRoute('FxUpdateApply', routes.fxserver_updateApply));
 
+    //sxPanel self-updater
+    router.get('/panel/update', apiAuthMw, wrapRoute('SelfUpdateStatus', routes.selfUpdater_status));
+    router.post('/panel/update/download', apiAuthMw, wrapRoute('SelfUpdateDownload', routes.selfUpdater_download));
+    router.post('/panel/update/apply', apiAuthMw, wrapRoute('SelfUpdateApply', routes.selfUpdater_apply));
+
     //CFG Editor
     router.get('/cfgEditor/data', apiAuthMw, routes.cfgEditor_page);
     router.get('/cfgEditor/files', apiAuthMw, routes.cfgEditor_listFiles);

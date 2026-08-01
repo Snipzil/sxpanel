@@ -69,6 +69,21 @@ export type ArtifactListResp = {
     customDownloadEnabled: boolean;
 };
 
+export type PanelReleaseInfo = {
+    version: string;
+    isPrerelease: boolean;
+    isOutdated: boolean;
+    releaseUrl: string;
+    zipUrl: string;
+    shaUrl: string;
+};
+
+export type PanelUpdateListResp = {
+    currentVersion: string;
+    latestRelease?: PanelReleaseInfo;
+    updateStatus: FxUpdateStatus;
+};
+
 export type ThemeType = {
     name: string;
     isDark: boolean;

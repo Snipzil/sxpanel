@@ -23,6 +23,7 @@ const PlayerDropsPage = lazy(() => import('@/pages/PlayerDropsPage/PlayerDropsPa
 const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'));
 const AddonsManagerPage = lazy(() => import('@/pages/AddonsManagerPage'));
 const FxUpdaterPage = lazy(() => import('@/pages/FxUpdater/FxUpdaterPage'));
+const SelfUpdaterPage = lazy(() => import('@/pages/SelfUpdater/SelfUpdaterPage'));
 const DeployerPage = lazy(() => import('@/pages/Deployer/DeployerPage'));
 const DiagnosticsPage = lazy(() => import('@/pages/Diagnostics/DiagnosticsPage'));
 const CfgEditorPage = lazy(() => import('@/pages/CfgEditorPage'));
@@ -178,6 +179,12 @@ const allRoutes: RouteType[] = [
         titleKey: 'panel.routes.artifacts',
         permission: 'all_permissions',
         Page: FxUpdaterPage,
+    },
+    {
+        path: '/system/panel-update',
+        titleKey: 'panel.routes.panel_update',
+        permission: 'all_permissions',
+        Page: SelfUpdaterPage,
     },
     {
         path: '/system/console-log',

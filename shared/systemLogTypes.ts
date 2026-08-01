@@ -577,6 +577,18 @@ export const systemLogActionDefinitions = [
         description: 'Download a new FXServer artifact build.',
     },
     {
+        id: 'selfUpdate.apply',
+        category: 'command',
+        label: 'Apply sxPanel Update',
+        description: 'Apply a downloaded sxPanel (monitor resource) update.',
+    },
+    {
+        id: 'selfUpdate.download',
+        category: 'command',
+        label: 'Download sxPanel Update',
+        description: 'Download a new sxPanel (monitor resource) release.',
+    },
+    {
         id: 'console.command',
         category: 'command',
         label: 'Live Console Command',

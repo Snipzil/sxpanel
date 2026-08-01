@@ -76,6 +76,9 @@ export { default as fxserver_schedule } from './fxserver/schedule';
 export { default as fxserver_updateStatus } from './fxserver/updateStatus';
 export { default as fxserver_updateDownload } from './fxserver/updateDownload';
 export { default as fxserver_updateApply } from './fxserver/updateApply';
+export { default as selfUpdater_status } from './selfUpdater/updateStatus';
+export { default as selfUpdater_download } from './selfUpdater/updateDownload';
+export { default as selfUpdater_apply } from './selfUpdater/updateApply';
 
 export { default as history_stats } from './history/stats';
 export { default as history_search } from './history/search';

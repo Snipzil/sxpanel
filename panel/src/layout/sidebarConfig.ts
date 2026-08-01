@@ -19,6 +19,7 @@ import {
     PackageIcon,
     ScrollTextIcon,
     BlocksIcon,
+    SparklesIcon,
 } from 'lucide-react';
 
 export type SidebarNavItemConfig = {
@@ -126,6 +127,12 @@ export const SIDEBAR_SECTIONS: SidebarSectionConfig[] = [
                 href: '/system/artifacts',
                 icon: PackageIcon,
                 labelKey: 'panel.sidebar.item.artifacts',
+                permission: 'all_permissions',
+            },
+            {
+                href: '/system/panel-update',
+                icon: SparklesIcon,
+                labelKey: 'panel.sidebar.item.panel_update',
                 permission: 'all_permissions',
             },
             {
