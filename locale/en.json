@@ -1698,6 +1698,7 @@
             "addon_error": "Addon error: %{title}",
             "addon_tab_error": "Addon tab error: %{title}",
             "tabs": {
+                "appearance": "Appearance",
                 "general": "General",
                 "fxserver": "FXServer",
                 "deferral_cards": "Deferral Cards",
@@ -1726,6 +1727,16 @@
                 "optional": "Optional",
                 "hidden": "Hidden",
                 "visible": "Visible"
+            },
+            "appearance": {
+                "theme": {
+                    "label": "Theme",
+                    "desc": "Choose how sxPanel looks for you. This is a personal preference stored in your browser and does not affect other admins.",
+                    "light_desc": "Bright interface, easier to read in daylight.",
+                    "dark_desc": "Dark interface, easier on the eyes at night.",
+                    "custom_dark_desc": "Custom dark theme provided by your host.",
+                    "custom_light_desc": "Custom light theme provided by your host."
+                }
             },
             "general": {
                 "server_name": {
