@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import esbuild from 'esbuild';
 import { copyBotRuntimeDependencies, copyStaticFiles, getPublishVersion, licenseBanner } from './utils';
 
@@ -27,7 +28,8 @@ try {
         format: 'cjs', //typescript builds to esm and esbuild converts it to cjs
         minifyWhitespace: true,
         charset: 'utf8',
-        define: { TX_PRERELEASE_EXPIRATION: preReleaseExpiration },
+        inject: [path.join('scripts', 'build', 'importMetaUrlShim.js')],
+        define: { TX_PRERELEASE_EXPIRATION: preReleaseExpiration, 'import.meta.url': 'import_meta_url' },
         banner: { js: licenseBanner(undefined, true) },
         //To satisfy the license's "full text" requirement, it will be generated
         //by another npm script and it is referenced in the banner.

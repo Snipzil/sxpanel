@@ -331,17 +331,17 @@ export default () => {
     router.post('/addons/reload-all', apiAuthMw, mutationLimiter, routes.addons_reloadAll);
     router.get('/addons/:addonId/logs', apiAuthMw, readLimiter, routes.addons_logs);
     router.all('/addons/:addonId/api', apiAuthMw, readLimiter, routes.addons_proxy);
-    router.all('/addons/:addonId/api/*addonPath', apiAuthMw, readLimiter, routes.addons_proxy);
+    router.all('/addons/:addonId/api/:addonPath(.*)', apiAuthMw, readLimiter, routes.addons_proxy);
     //Addon static file serving (panel bundles, NUI bundles & static assets)
     //SECURITY: panel & NUI bundles are same-origin, executable assets. They must
     //          only be served to authenticated admins to avoid exposing addon
     //          JS/CSS to unauthenticated visitors who could use them as part of
     //          an XSS / reconnaissance chain.
     router.get('/addons/:addonId/panel', webAuthMw, routes.addons_servePanelFile);
-    router.get('/addons/:addonId/panel/*addonPath', webAuthMw, routes.addons_servePanelFile);
+    router.get('/addons/:addonId/panel/:addonPath(.*)', webAuthMw, routes.addons_servePanelFile);
     router.get('/nui/addons/:addonId', assetAuthMw, routes.addons_serveNuiFile);
-    router.get('/nui/addons/:addonId/*addonPath', assetAuthMw, routes.addons_serveNuiFile);
-    router.get('/addons/:addonId/static/*addonPath', assetAuthMw, routes.addons_serveStaticFile);
+    router.get('/nui/addons/:addonId/:addonPath(.*)', assetAuthMw, routes.addons_serveNuiFile);
+    router.get('/addons/:addonId/static/:addonPath(.*)', assetAuthMw, routes.addons_serveStaticFile);
     //Addon public routes are intentionally NOT registered on the primary panel
     //origin. Public traffic for addons with publicRoutes enabled is served by
     //AddonPublicServer on a dedicated port so that addon-controlled HTML/JS
