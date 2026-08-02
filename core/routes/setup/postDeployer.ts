@@ -5,6 +5,7 @@ import consoleFactory from '@lib/console';
 import got from '@lib/got';
 import recipeParser from '@core/deployer/recipeParser';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
+import { assertSafeRemoteRecipeUrl } from '@lib/remoteRecipeDownloadUrl';
 const console = consoleFactory(modulename);
 
 /**
@@ -31,8 +32,9 @@ export async function handleSaveDeployerImport(ctx: AuthedCtx) {
     //Get recipe
     let recipeText;
     try {
+        const safeUrl = assertSafeRemoteRecipeUrl(recipeURL);
         recipeText = await got
-            .get(recipeURL, {
+            .get(safeUrl, {
                 timeout: { request: 4500 },
             })
             .text();

@@ -350,8 +350,7 @@ export const fetchInfoJson = async (netEndpoint: string) => {
     let info: any;
     try {
         info = await got
-            .get({
-                url: `http://${netEndpoint}/info.json`,
+            .get(`http://${netEndpoint}/info.json`, {
                 maxRedirects: 0,
                 timeout: { request: 15_000 },
                 retry: { limit: 6 },

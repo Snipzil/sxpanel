@@ -10,6 +10,7 @@ import recipeParser from '@core/deployer/recipeParser';
 import { validateTargetPath } from '@core/deployer/utils';
 import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 import cleanFullPath from '@shared/cleanFullPath';
+import { assertSafeRemoteRecipeUrl } from '@lib/remoteRecipeDownloadUrl';
 const console = consoleFactory(modulename);
 
 /**
@@ -22,9 +23,9 @@ export async function handleValidateRecipeURL(ctx: AuthedCtx) {
     const recipeURL = ctx.request.body.recipeURL.trim();
 
     try {
+        const safeUrl = assertSafeRemoteRecipeUrl(recipeURL);
         const recipeText = await got
-            .get({
-                url: recipeURL,
+            .get(safeUrl, {
                 timeout: { request: 4500 },
             })
             .text();
