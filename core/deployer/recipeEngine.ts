@@ -8,7 +8,7 @@ import { pipeline } from 'node:stream/promises';
 import StreamZip from 'node-stream-zip';
 import { escapeRegExp } from 'lodash-es';
 import mysql from 'mysql2/promise';
-import got from 'got';
+import got from '@lib/got';
 import consoleFactory from '@lib/console';
 import { outputFile, movePath } from '@lib/fs';
 import type { RecipeTask, DeployerContext, RecipeEngineMap } from './recipeTypes';

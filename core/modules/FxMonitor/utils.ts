@@ -1,7 +1,6 @@
-import got from '@lib/got';
+import got, { TimeoutError, type GotResponseLike } from '@lib/got';
 import { secsToShortestDuration } from '@lib/misc';
 import bytes from 'bytes';
-import { RequestError, TimeoutError, type Response as GotResponse } from 'got';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import type { MonitorIssuesArray } from './index';
@@ -199,7 +198,7 @@ export class MonitorIssue {
 /**
  * Helper to get debug data from a Got error
  */
-const getRespDebugData = (resp?: GotResponse<string>) => {
+const getRespDebugData = (resp?: GotResponseLike) => {
     if (!resp) return { error: 'Response object is undefined.' };
     try {
         let truncatedBody = '[resp.body is not a string]';
@@ -231,7 +230,7 @@ export const fetchDynamicJson = async (
     netEndpoint: string,
     timeout: number,
 ): Promise<FetchDynamicJsonError | FetchDynamicJsonSuccess> => {
-    let resp: GotResponse<string> | undefined;
+    let resp: GotResponseLike | undefined;
     try {
         resp = await got.get(`http://${netEndpoint}/dynamic.json`, {
             maxRedirects: 0,
@@ -241,10 +240,7 @@ export const fetchDynamicJson = async (
         });
     } catch (error) {
         let msg, code;
-        if (error instanceof RequestError) {
-            msg = error.message;
-            code = error.code;
-        } else if (error instanceof TimeoutError) {
+        if (error instanceof TimeoutError) {
             msg = error.message;
             code = error.code;
         } else {

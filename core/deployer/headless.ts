@@ -18,7 +18,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { Deployer } from './index';
 import { nanoid } from 'nanoid';
-import got from 'got';
+import got from '@lib/got';
 import { assertSafeRemoteRecipeUrl } from '../lib/remoteRecipeDownloadUrl.js';
 
 const parseArgs = (argv: string[]) => {
