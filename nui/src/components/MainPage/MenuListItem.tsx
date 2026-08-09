@@ -31,7 +31,9 @@ const classes = {
 const Root = styled('div')(({ theme }) => ({
     //Rows are individual raised panels (surface/border/selection styling comes
     //from the MuiListItemButton theme override); this adds the row spacing.
-    marginBottom: 3,
+    //Kept tighter than the theme default so the main page's full item list
+    //fits within the list viewport without scrolling.
+    marginBottom: 2,
     '&:last-of-type': {
         marginBottom: 0,
     },
@@ -137,6 +139,7 @@ export const MenuListItem: React.FC<MenuListItemProps> = memo(
                     className={isUserAllowed ? classes.root : classes.rootDisabled}
                     dense
                     selected={selected}
+                    sx={{ minHeight: 28, paddingTop: '3px', paddingBottom: '3px' }}
                 >
                     <ListItemIcon className={classes.icon}>{icon}</ListItemIcon>
                     <ListItemText
@@ -278,6 +281,7 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
                     className={isRowAllowed ? classes.root : classes.rootDisabled}
                     dense
                     selected={selected}
+                    sx={{ minHeight: 28, paddingTop: '3px', paddingBottom: '3px' }}
                 >
                     <ListItemIcon className={classes.icon}>{actions[curState]?.icon ?? icon}</ListItemIcon>
                     <ListItemText
