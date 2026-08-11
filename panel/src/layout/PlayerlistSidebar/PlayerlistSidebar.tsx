@@ -43,7 +43,7 @@ export function PlayerlistSidebar({ isSheet }: PlayerSidebarProps) {
                               'bg-background border-border/80 rounded-xl border',
                               isCollapsed
                                   ? 'h-auto w-(--tx-playerlist-collapsed-width)'
-                                  : 'h-contentvh w-(--tx-playerlist-width)',
+                                  : 'min-h-contentvh w-(--tx-playerlist-width)',
                           ),
                 )}
             >

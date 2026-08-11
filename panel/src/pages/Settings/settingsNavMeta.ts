@@ -3,6 +3,7 @@ import {
     Gamepad2Icon,
     GavelIcon,
     MessageSquareIcon,
+    PaletteIcon,
     ServerIcon,
     Settings2Icon,
     ShieldAlertIcon,
@@ -10,18 +11,26 @@ import {
     UsersIcon,
 } from 'lucide-react';
 
-export type SettingsNavGroupId = 'server' | 'moderation' | 'integrations' | 'gameplay';
+export type SettingsNavGroupId = 'personal' | 'server' | 'moderation' | 'integrations' | 'gameplay';
 
 export const SETTINGS_NAV_GROUP_LABELS: Record<SettingsNavGroupId, string> = {
+    personal: 'Personal',
     server: 'Server',
     moderation: 'Moderation',
     integrations: 'Integrations',
     gameplay: 'Gameplay',
 };
 
-export const SETTINGS_NAV_GROUP_ORDER: SettingsNavGroupId[] = ['server', 'moderation', 'integrations', 'gameplay'];
+export const SETTINGS_NAV_GROUP_ORDER: SettingsNavGroupId[] = [
+    'personal',
+    'server',
+    'moderation',
+    'integrations',
+    'gameplay',
+];
 
 export const SETTINGS_TAB_NAV_META: Record<string, { group: SettingsNavGroupId; icon: LucideIcon }> = {
+    'panel.settings.tabs.appearance': { group: 'personal', icon: PaletteIcon },
     'panel.settings.tabs.general': { group: 'server', icon: Settings2Icon },
     'panel.settings.tabs.fxserver': { group: 'server', icon: ServerIcon },
     'panel.settings.tabs.queue': { group: 'server', icon: UsersIcon },
@@ -34,6 +43,7 @@ export const SETTINGS_TAB_NAV_META: Record<string, { group: SettingsNavGroupId; 
 };
 
 export const settingsTabsBaseNameKeys = [
+    'panel.settings.tabs.appearance',
     'panel.settings.tabs.general',
     'panel.settings.tabs.fxserver',
     'panel.settings.tabs.bans',

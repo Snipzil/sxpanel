@@ -42,7 +42,7 @@ export interface MenuTokens {
     readonly accentTint: string;
     /** Accent-colored border for selected rows. */
     readonly accentBorder: string;
-    /** Secondary accent (kept for RedM purple highlights). */
+    /** Secondary accent, used by MUI's `secondary` palette slot. */
     readonly accentSecondary: string;
     readonly textPrimary: string;
     readonly textMuted: string;
@@ -129,7 +129,7 @@ const buildMenuTheme = (tokens: MenuTokens, meta: MenuThemeMeta): Theme => {
         logo: meta.logo,
         tokens,
         typography: {
-            fontFamily: "'Inter Variable', 'Inter', 'Segoe UI', sans-serif",
+            fontFamily: "'Geist Variable', 'Inter', 'Segoe UI', sans-serif",
             button: {
                 textTransform: 'none',
                 fontWeight: 600,

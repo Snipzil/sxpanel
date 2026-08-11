@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/auth';
 import { useLocation } from 'wouter';
 import { fetchWithTimeout } from '@/hooks/fetch';
 import { processFetchError } from './errors';
-import { ServerGlowIcon } from '@/components/serverIcon';
 import { DiscordIcon } from '@/components/icons/discord-icon';
 import { useLocale } from '@/hooks/locale';
 import { LogoutReasonHash } from '@/lib/logoutReasonHash';
@@ -50,26 +49,6 @@ function readHashErrorMessage(t: ReturnType<typeof useLocale>['t']) {
         return t('panel.auth.login.shutdown');
     }
     return undefined;
-}
-
-function MobileServerHeader() {
-    const { t } = useLocale();
-    const server = window.txConsts.server;
-    if (!server?.name) return null;
-    return (
-        <div className="mb-6 flex items-center gap-3 xl:hidden">
-            <ServerGlowIcon
-                iconFilename={server.icon}
-                iconDataUrl={server.iconDataUrl}
-                serverName={server.name}
-                gameName={server.game}
-            />
-            <div>
-                <div className="text-base leading-tight font-semibold">{server.name}</div>
-                <div className="text-muted-foreground text-xs">{t('panel.auth.login.continue_hint')}</div>
-            </div>
-        </div>
-    );
 }
 
 export default function Login() {
@@ -178,9 +157,7 @@ export default function Login() {
     }, []);
 
     return (
-        <form action={handleLogin} className="flex flex-col gap-5">
-            <MobileServerHeader />
-
+        <form action={handleLogin} className="flex flex-col gap-5 p-8">
             {/* Heading */}
             <div className="mb-1">
                 <h1 className="text-foreground text-xl font-semibold">{t('panel.auth.login.title')}</h1>

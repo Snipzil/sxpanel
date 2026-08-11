@@ -153,6 +153,8 @@ export default () => {
     router.post('/settings/configs/:card', apiAuthMw, mutationLimiter, routes.settings_saveConfigs);
     router.get('/settings/banTemplates', apiAuthMw, routes.settings_getBanTemplates);
     router.post('/settings/banTemplates', apiAuthMw, mutationLimiter, routes.settings_saveBanTemplates);
+    router.get('/settings/customThemes', apiAuthMw, routes.settings_getCustomThemes);
+    router.post('/settings/customThemes', apiAuthMw, mutationLimiter, routes.settings_saveCustomThemes);
     router.post('/settings/resetServerDataPath', apiAuthMw, mutationLimiter, routes.settings_resetServerDataPath);
     router.get('/discord/guild-roles', apiAuthMw, wrapRoute('DiscordGuildRoles', routes.discord_guildRoles));
 
@@ -172,6 +174,11 @@ export default () => {
         wrapRoute('FxUpdateDownload', routes.fxserver_updateDownload),
     );
     router.post('/fxserver/artifacts/apply', apiAuthMw, wrapRoute('FxUpdateApply', routes.fxserver_updateApply));
+
+    //sxPanel self-updater
+    router.get('/panel/update', apiAuthMw, wrapRoute('SelfUpdateStatus', routes.selfUpdater_status));
+    router.post('/panel/update/download', apiAuthMw, wrapRoute('SelfUpdateDownload', routes.selfUpdater_download));
+    router.post('/panel/update/apply', apiAuthMw, wrapRoute('SelfUpdateApply', routes.selfUpdater_apply));
 
     //CFG Editor
     router.get('/cfgEditor/data', apiAuthMw, routes.cfgEditor_page);
@@ -324,17 +331,17 @@ export default () => {
     router.post('/addons/reload-all', apiAuthMw, mutationLimiter, routes.addons_reloadAll);
     router.get('/addons/:addonId/logs', apiAuthMw, readLimiter, routes.addons_logs);
     router.all('/addons/:addonId/api', apiAuthMw, readLimiter, routes.addons_proxy);
-    router.all('/addons/:addonId/api/*addonPath', apiAuthMw, readLimiter, routes.addons_proxy);
+    router.all('/addons/:addonId/api/:addonPath(.*)', apiAuthMw, readLimiter, routes.addons_proxy);
     //Addon static file serving (panel bundles, NUI bundles & static assets)
     //SECURITY: panel & NUI bundles are same-origin, executable assets. They must
     //          only be served to authenticated admins to avoid exposing addon
     //          JS/CSS to unauthenticated visitors who could use them as part of
     //          an XSS / reconnaissance chain.
     router.get('/addons/:addonId/panel', webAuthMw, routes.addons_servePanelFile);
-    router.get('/addons/:addonId/panel/*addonPath', webAuthMw, routes.addons_servePanelFile);
+    router.get('/addons/:addonId/panel/:addonPath(.*)', webAuthMw, routes.addons_servePanelFile);
     router.get('/nui/addons/:addonId', assetAuthMw, routes.addons_serveNuiFile);
-    router.get('/nui/addons/:addonId/*addonPath', assetAuthMw, routes.addons_serveNuiFile);
-    router.get('/addons/:addonId/static/*addonPath', assetAuthMw, routes.addons_serveStaticFile);
+    router.get('/nui/addons/:addonId/:addonPath(.*)', assetAuthMw, routes.addons_serveNuiFile);
+    router.get('/addons/:addonId/static/:addonPath(.*)', assetAuthMw, routes.addons_serveStaticFile);
     //Addon public routes are intentionally NOT registered on the primary panel
     //origin. Public traffic for addons with publicRoutes enabled is served by
     //AddonPublicServer on a dedicated port so that addon-controlled HTML/JS
@@ -342,9 +349,6 @@ export default () => {
 
     //Host routes
     router.get('/host/status', hostAuthMw, routes.host_status);
-
-    // CFXBOT push-mode player roster (localhost only, no auth — matches patched txAdmin)
-    router.post('/dev/addPlayers', wrapRoute('DevAddPlayers', routes.dev_addPlayers));
 
     // DevDebug routes — require session + master (privileged playerlist injection, etc.)
     if (txDevEnv.ENABLED) {

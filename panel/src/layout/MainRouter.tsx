@@ -24,6 +24,7 @@ const PlayerDropsPage = lazy(() => import('@/pages/PlayerDropsPage/PlayerDropsPa
 const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'));
 const AddonsManagerPage = lazy(() => import('@/pages/AddonsManagerPage'));
 const FxUpdaterPage = lazy(() => import('@/pages/FxUpdater/FxUpdaterPage'));
+const SelfUpdaterPage = lazy(() => import('@/pages/SelfUpdater/SelfUpdaterPage'));
 const DeployerPage = lazy(() => import('@/pages/Deployer/DeployerPage'));
 const DiagnosticsPage = lazy(() => import('@/pages/Diagnostics/DiagnosticsPage'));
 const CfgEditorPage = lazy(() => import('@/pages/CfgEditorPage'));
@@ -43,6 +44,7 @@ const ResourcesPage = lazy(() => import('@/pages/ResourcesPage/ResourcesPage'));
 const WhitelistPage = lazy(() => import('@/pages/Whitelist/WhitelistPage'));
 const EmbedEditorPage = lazy(() => import('@/pages/Settings/EmbedEditorPage'));
 const DeferralStudioPage = lazy(() => import('@/pages/Settings/DeferralStudioPage'));
+const ThemeStudioPage = lazy(() => import('@/pages/Settings/ThemeStudioPage'));
 const DiscordLogRoutesEditorPage = lazy(() => import('@/pages/Settings/DiscordLogRoutesEditorPage'));
 const SetupPage = lazy(() => import('@/pages/SetupPage'));
 const AdvancedPage = lazy(() => import('@/pages/AdvancedPage'));
@@ -181,6 +183,12 @@ const allRoutes: RouteType[] = [
         Page: FxUpdaterPage,
     },
     {
+        path: '/system/panel-update',
+        titleKey: 'panel.routes.panel_update',
+        permission: 'all_permissions',
+        Page: SelfUpdaterPage,
+    },
+    {
         path: '/system/console-log',
         titleKey: 'panel.routes.console_log',
         permission: 'txadmin.log.view',
@@ -265,6 +273,12 @@ const allRoutes: RouteType[] = [
         titleKey: 'panel.routes.deferral_studio',
         permission: 'settings.write',
         Page: DeferralStudioPage,
+    },
+    {
+        path: '/settings/theme-studio/:themeId',
+        titleKey: 'panel.routes.theme_studio',
+        permission: 'settings.write',
+        Page: ThemeStudioPage,
     },
     {
         path: '/settings/deferral-editor/:scenarioId',

@@ -20,17 +20,7 @@ import { secsToShortestDuration } from '@lib/misc';
 import { setRuntimeFile } from '@lib/fxserver/runtimeFiles';
 import { FxMonitorHealth } from '@shared/enums';
 import cleanPlayerName from '@shared/cleanPlayerName';
-import {
-    getEffectiveFxMonitorHealth,
-    isHttpHealthCheckDisabled,
-    syncHttpRuntimeMetadata,
-    clearHttpRuntimePlayerCache,
-    syncHttpPlayersToResource,
-    fetchAndCachePlayersJson,
-    refreshHttpPlayerlistViews,
-    isHttpPlayerlistBypassEnabled,
-    getCachedHttpPlayerCount,
-} from '@lib/fxserver/httpHealthCheck';
+import { getEffectiveFxMonitorHealth, isHttpHealthCheckDisabled } from '@lib/fxserver/httpHealthCheck';
 import type { UpdateConfigKeySet } from '@modules/ConfigStore/utils';
 const console = consoleFactory(modulename);
 
@@ -107,7 +97,7 @@ class LimitedArray<T> extends Array<T> {
  * Module responsible for monitoring the FXServer health and status, restarting it if necessary.
  */
 export default class FxMonitor {
-    static readonly configKeysWatched = ['restarter.disableHealthCheck', 'restarter.httpPlayerlistHost'];
+    static readonly configKeysWatched = ['restarter.disableHealthCheck'];
 
     public readonly timers: ReturnType<typeof setInterval>[] = [];
 
@@ -154,21 +144,8 @@ export default class FxMonitor {
         this.lastHealthCheckError = null;
         if (isHttpHealthCheckDisabled()) {
             this.healthCheckMonitor.markHealthy();
-            clearHttpRuntimePlayerCache();
-            txCore.fxPlayerlist?.broadcastPlayerlistState();
-        } else {
-            txCore.fxPlayerlist?.clearManualPlayers();
-            clearHttpRuntimePlayerCache();
-            syncHttpPlayersToResource();
-            const netEndpoint = txCore.fxRunner.child?.netEndpoint;
-            if (netEndpoint) {
-                syncHttpRuntimeMetadata(netEndpoint, HC_CONFIG.requestTimeout)
-                    .then(() => txCore.fxPlayerlist?.broadcastPlayerlistState())
-                    .catch(() => {});
-            } else {
-                txCore.fxPlayerlist?.broadcastPlayerlistState();
-            }
         }
+        txCore.fxPlayerlist?.broadcastPlayerlistState();
         txCore.discordBot?.updateBotStatus().catch(() => {});
         txCore.webServer?.webSocket?.pushRefresh('status');
     }
@@ -205,7 +182,6 @@ export default class FxMonitor {
         this.swLastFD3.reset();
         this.swLastHTTP.reset();
         this.swLastPlayerlistResync.reset();
-        clearHttpRuntimePlayerCache();
     }
 
     /**
@@ -581,10 +557,6 @@ export default class FxMonitor {
                 );
             }
         }
-
-        txCore.cacheStore.set('fxsRuntime:httpReportedClients', dynamicJson.clients);
-        await fetchAndCachePlayersJson(childState.netEndpoint, HC_CONFIG.requestTimeout);
-        refreshHttpPlayerlistViews();
     }
 
     /**
@@ -661,10 +633,6 @@ export default class FxMonitor {
             txCore.cacheStore.upsert('fxsRuntime:tags', infoJson.tags);
         }
 
-        const netEndpoint = childState.netEndpoint;
-        if (netEndpoint) {
-            await syncHttpRuntimeMetadata(netEndpoint, HC_CONFIG.requestTimeout).catch(() => {});
-        }
         txCore.fxPlayerlist.broadcastPlayerlistState();
         txCore.discordBot.updateBotStatus().catch(() => {});
     }

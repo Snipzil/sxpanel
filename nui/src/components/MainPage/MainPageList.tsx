@@ -12,7 +12,11 @@ import { useHealActions } from './actions/useHealActions';
 import { useMiscActions } from './actions/useMiscActions';
 
 const fadeHeight = 16;
-const listHeight = 300;
+// Sized to comfortably fit all default main-page rows (Player Mode, Teleport,
+// Vehicle, Heal, Announcement, Reset World Area, Toggles) without scrolling.
+// This is a ceiling, not a fixed height, so it only kicks in (with scroll +
+// fades) if more rows are added later or labels wrap to extra lines.
+const listHeight = 280;
 
 interface ListWrapperProps {
     fadeTop: boolean;
@@ -50,6 +54,11 @@ const BoxIcon = styled(Box)(({ theme }) => ({
 const StyledList = styled(List)({
     maxHeight: listHeight,
     overflow: 'auto',
+    // MUI's List defaults to 8px top/bottom padding, which was silently
+    // eating into the row-height savings below and keeping the list just
+    // tall enough to still need a scroll. Strip it so the cap above is the
+    // only thing governing height.
+    padding: 0,
     '&::-webkit-scrollbar': {
         display: 'none',
     },

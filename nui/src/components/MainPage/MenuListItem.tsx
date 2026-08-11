@@ -176,6 +176,7 @@ export const MenuListItem: React.FC<MenuListItemProps> = memo(
                     className={isUserAllowed ? classes.root : classes.rootDisabled}
                     dense
                     selected={selected}
+                    sx={{ minHeight: 28, paddingTop: '3px', paddingBottom: '3px' }}
                 >
                     <ListItemIcon>
                         <IconBadge selected={selected}>{icon}</IconBadge>
@@ -319,7 +320,7 @@ export const MenuListItemMulti: React.FC<MenuListItemMultiProps> = memo(
                     className={isRowAllowed ? classes.root : classes.rootDisabled}
                     dense
                     selected={selected}
-                    sx={{ paddingRight: '138px' }}
+                    sx={{ minHeight: 28, paddingTop: '3px', paddingBottom: '3px', paddingRight: '138px' }}
                 >
                     <ListItemIcon>
                         <IconBadge selected={selected}>{actions[curState]?.icon ?? icon}</IconBadge>

@@ -1,4 +1,4 @@
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/geist';
 
 html {
     /* Match the web panel's 12px rem base so typography feels consistent. */
@@ -10,7 +10,7 @@ html {
 
 body {
     margin: 0;
-    font-family: 'Inter Variable', 'Inter', 'Segoe UI', sans-serif;
+    font-family: 'Geist Variable', 'Inter', 'Segoe UI', sans-serif;
     /* matches txAdmin's NUI placement (20px top/bottom, 40px sides) */
     padding: 20px 40px;
     /* border-box so the padding doesn't push the page past 100vh and

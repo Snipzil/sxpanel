@@ -1,13 +1,51 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcessByStdio } from 'node:child_process';
+
+import type { Readable } from 'node:stream';
 
 import { RESOURCE_ZIP_SKIP_DIRECTORY_NAMES } from './shared';
 
+type NativeTarChildProcess = ChildProcessByStdio<null, Readable, Readable>;
+
 export type NativeResourceZipProcess = {
-    stdout: ChildProcessWithoutNullStreams['stdout'];
+    stdout: Readable;
 
     done: Promise<{ ok: true } | { ok: false; error: string }>;
 
-    child: ChildProcessWithoutNullStreams;
+    child: NativeTarChildProcess;
+};
+
+/**
+
+ * Whether the system `tar` binary can write the zip container format.
+
+ * Only bsdtar (libarchive) supports `--format=zip`; GNU tar rejects it immediately
+
+ * with a non-zero exit. Probed once and cached for the process lifetime.
+
+ */
+
+let cachedZipCapability: Promise<boolean> | null = null;
+
+const probeNativeZipCapability = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+        const child = spawn('tar', ['--format=zip', '--help'], {
+            stdio: ['ignore', 'ignore', 'ignore'],
+
+            windowsHide: true,
+        });
+
+        child.once('error', () => resolve(false));
+
+        child.once('close', (code) => resolve(code === 0));
+    });
+};
+
+export const isNativeZipCapable = (): Promise<boolean> => {
+    if (!cachedZipCapability) {
+        cachedZipCapability = probeNativeZipCapability();
+    }
+
+    return cachedZipCapability;
 };
 
 /**
@@ -16,16 +54,20 @@ export type NativeResourceZipProcess = {
 
  * Starts emitting bytes immediately — no Node-side file queue.
 
+ * Caller must check `isNativeZipCapable()` first: without `--format=zip` support
+
+ * this silently writes a plain tar stream instead (no error, no PK signature).
+
  */
 
 export const spawnNativeResourceZip = (resourceRoot: string): NativeResourceZipProcess => {
-    const args: string[] = [];
+    const args: string[] = ['--format=zip'];
 
     for (const dirName of RESOURCE_ZIP_SKIP_DIRECTORY_NAMES) {
         args.push('--exclude', dirName);
     }
 
-    args.push('-a', '-c', '-f', '-', '-C', resourceRoot, '.');
+    args.push('-c', '-f', '-', '-C', resourceRoot, '.');
 
     const child = spawn('tar', args, {
         stdio: ['ignore', 'pipe', 'pipe'],

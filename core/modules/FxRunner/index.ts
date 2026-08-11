@@ -470,15 +470,10 @@ export default class FxRunner {
         }
         try {
             const success = this.proc.stdin?.write(command + '\n');
-            const isSilentSystemCommand =
-                command.startsWith('txaSendEvent "txsv:updateSyntheticPlayers"') ||
-                command.startsWith('txaSyncHttpPlayers ');
-            if (!isSilentSystemCommand) {
-                if (author === SYM_SYSTEM_AUTHOR) {
-                    txCore.logger.fxserver.logSystemCommand(command);
-                } else {
-                    txCore.logger.fxserver.logAdminCommand(author, command);
-                }
+            if (author === SYM_SYSTEM_AUTHOR) {
+                txCore.logger.fxserver.logSystemCommand(command);
+            } else {
+                txCore.logger.fxserver.logAdminCommand(author, command);
             }
             return success;
         } catch (error) {

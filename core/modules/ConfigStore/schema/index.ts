@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ConfigScope, ListOf } from './utils';
+import appearance from './appearance';
 import general from './general';
 import server from './server';
 import restarter from './restarter';
@@ -27,6 +28,7 @@ type InferConfigValuesToSave<S extends ConfigScope> = WritableValues<{
 
 //Exporting the schemas
 export const ConfigSchemas_v2 = {
+    appearance,
     general,
     server,
     restarter,

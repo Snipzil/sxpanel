@@ -34,13 +34,6 @@ vi.mock('@core/globalData', () => ({
 vi.mock('@lib/fxserver/httpHealthCheck', () => ({
     getEffectiveFxMonitorHealth: vi.fn((reported: FxMonitorHealth) => reported),
     isHttpHealthCheckDisabled: vi.fn(() => false),
-    syncHttpRuntimeMetadata: vi.fn(async () => {}),
-    clearHttpRuntimePlayerCache: vi.fn(),
-    syncHttpPlayersToResource: vi.fn(),
-    fetchAndCachePlayersJson: vi.fn(async () => {}),
-    refreshHttpPlayerlistViews: vi.fn(),
-    isHttpPlayerlistBypassEnabled: vi.fn(() => false),
-    getCachedHttpPlayerCount: vi.fn(() => 0),
 }));
 
 //fetchDynamicJson/fetchInfoJson do real HTTP requests - stub only those two, keep everything
@@ -75,7 +68,6 @@ const txCoreMock = {
     },
     fxPlayerlist: {
         broadcastPlayerlistState: vi.fn(),
-        clearManualPlayers: vi.fn(),
     },
     discordBot: {
         updateBotStatus: vi.fn(async () => {}),
@@ -173,11 +165,6 @@ suite('FxMonitor', () => {
             monitor.resetState();
             expect(txCoreMock.discordBot.updateBotStatus).not.toHaveBeenCalled();
             expect(txCoreMock.webServer.webSocket.pushRefresh).not.toHaveBeenCalled();
-        });
-
-        it('should clear the HTTP runtime player cache', () => {
-            monitor.resetState();
-            expect(httpHealthCheck.clearHttpRuntimePlayerCache).toHaveBeenCalledTimes(1);
         });
 
         it('should bring status back to OFFLINE and reset monitors after going healthy', () => {
@@ -283,7 +270,6 @@ suite('FxMonitor', () => {
             vi.advanceTimersByTime(1000);
 
             expect(txCoreMock.fxRunner.restartServer).not.toHaveBeenCalled();
-            expect(httpHealthCheck.clearHttpRuntimePlayerCache).toHaveBeenCalled(); //via resetState
         });
 
         it('should not restart while still within the boot grace period', () => {
@@ -418,45 +404,21 @@ suite('FxMonitor', () => {
 
     //MARK: handleConfigUpdate
     suite('handleConfigUpdate', () => {
-        it('when HTTP health check becomes disabled: marks HC healthy, clears cache, broadcasts playerlist', () => {
+        it('when HTTP health check becomes disabled: marks HC healthy, broadcasts playerlist', () => {
             vi.mocked(httpHealthCheck.isHttpHealthCheckDisabled).mockReturnValue(true);
 
             monitor.handleConfigUpdate({} as any);
 
             expect((monitor as any).healthCheckMonitor.status.state).toBe(MonitorState.HEALTHY);
-            expect(httpHealthCheck.clearHttpRuntimePlayerCache).toHaveBeenCalledTimes(1);
-            expect(txCoreMock.fxPlayerlist.broadcastPlayerlistState).toHaveBeenCalledTimes(1);
-            expect(httpHealthCheck.syncHttpPlayersToResource).not.toHaveBeenCalled();
-            expect(txCoreMock.fxPlayerlist.clearManualPlayers).not.toHaveBeenCalled();
-        });
-
-        it('when HTTP health check becomes enabled with no netEndpoint: syncs directly, broadcasts immediately', () => {
-            vi.mocked(httpHealthCheck.isHttpHealthCheckDisabled).mockReturnValue(false);
-            txCoreMock.fxRunner.child = null;
-
-            monitor.handleConfigUpdate({} as any);
-
-            expect(txCoreMock.fxPlayerlist.clearManualPlayers).toHaveBeenCalledTimes(1);
-            expect(httpHealthCheck.clearHttpRuntimePlayerCache).toHaveBeenCalledTimes(1);
-            expect(httpHealthCheck.syncHttpPlayersToResource).toHaveBeenCalledTimes(1);
-            expect(httpHealthCheck.syncHttpRuntimeMetadata).not.toHaveBeenCalled();
             expect(txCoreMock.fxPlayerlist.broadcastPlayerlistState).toHaveBeenCalledTimes(1);
         });
 
-        it('when HTTP health check becomes enabled with a netEndpoint: syncs metadata then broadcasts', async () => {
+        it('when HTTP health check stays enabled: broadcasts playerlist without touching the HC monitor', () => {
             vi.mocked(httpHealthCheck.isHttpHealthCheckDisabled).mockReturnValue(false);
-            txCoreMock.fxRunner.child = { netEndpoint: '127.0.0.1:30120' };
 
             monitor.handleConfigUpdate({} as any);
 
-            expect(httpHealthCheck.syncHttpRuntimeMetadata).toHaveBeenCalledWith('127.0.0.1:30120', 1500);
-            //broadcastPlayerlistState is chained via .then(), not called synchronously
-            expect(txCoreMock.fxPlayerlist.broadcastPlayerlistState).not.toHaveBeenCalled();
-
-            await Promise.resolve();
-            await Promise.resolve();
-            await Promise.resolve();
-
+            expect((monitor as any).healthCheckMonitor.status.state).toBe(MonitorState.PENDING);
             expect(txCoreMock.fxPlayerlist.broadcastPlayerlistState).toHaveBeenCalledTimes(1);
         });
 

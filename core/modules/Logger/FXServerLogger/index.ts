@@ -159,8 +159,6 @@ export default class FXServerLogger extends LoggerBase {
      */
     public logSystemCommand(cmd: string) {
         if (cmd.startsWith('txaEvent "consoleCommand"')) return;
-        if (cmd.startsWith('txaSendEvent "txsv:updateSyntheticPlayers"')) return;
-        if (cmd.startsWith('txaSyncHttpPlayers ')) return;
         // if (/^txaEvent \w+ /.test(cmd)) {
         //     const [event, payload] = cmd.substring(9).split(' ', 2);
         //     cmd = chalk.italic(`<broadcasting txAdmin:events:${event}>`);

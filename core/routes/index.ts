@@ -57,6 +57,8 @@ export { default as settings_getLocalePhrases } from './settings/getLocalePhrase
 export { default as settings_saveConfigs } from './settings/saveConfigs';
 export { default as settings_getBanTemplates } from './settings/getBanTemplates';
 export { default as settings_saveBanTemplates } from './settings/saveBanTemplates';
+export { default as settings_getCustomThemes } from './settings/getCustomThemes';
+export { default as settings_saveCustomThemes } from './settings/saveCustomThemes';
 export { default as settings_resetServerDataPath } from './settings/resetServerDataPath';
 export { default as deferral_card_asset } from './deferralCardAsset';
 export { default as deferral_card_logo } from './deferralCardLogo';
@@ -76,6 +78,9 @@ export { default as fxserver_schedule } from './fxserver/schedule';
 export { default as fxserver_updateStatus } from './fxserver/updateStatus';
 export { default as fxserver_updateDownload } from './fxserver/updateDownload';
 export { default as fxserver_updateApply } from './fxserver/updateApply';
+export { default as selfUpdater_status } from './selfUpdater/updateStatus';
+export { default as selfUpdater_download } from './selfUpdater/updateDownload';
+export { default as selfUpdater_apply } from './selfUpdater/updateApply';
 
 export { default as history_stats } from './history/stats';
 export { default as history_search } from './history/search';
@@ -124,7 +129,6 @@ export {
 } from './insights';
 
 export { get as dev_get, post as dev_post } from './devDebug.js';
-export { default as dev_addPlayers } from './dev/addPlayers';
 
 export {
     addonsList as addons_list,

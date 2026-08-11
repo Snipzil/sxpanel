@@ -44,6 +44,12 @@ export default {
         validator: z.boolean(),
         fixer: SYM_FIXER_DEFAULT,
     }),
+    resourceDownloadEnabled: typeDefinedConfig({
+        name: 'Resource Download Enabled',
+        default: true,
+        validator: z.boolean(),
+        fixer: SYM_FIXER_DEFAULT,
+    }),
     enableTelemetry: typeDefinedConfig({
         name: 'Enable Anonymous Telemetry',
         default: true,

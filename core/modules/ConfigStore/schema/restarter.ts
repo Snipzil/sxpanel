@@ -45,18 +45,10 @@ const disableHealthCheck = typeDefinedConfig({
     fixer: SYM_FIXER_DEFAULT,
 });
 
-const httpPlayerlistHost = typeDefinedConfig({
-    name: 'HTTP Playerlist Host Override',
-    default: '',
-    validator: z.string().max(128),
-    fixer: SYM_FIXER_DEFAULT,
-});
-
 export default {
     schedule,
     bootGracePeriod,
     resourceStartingTolerance,
     intervalHours,
     disableHealthCheck,
-    httpPlayerlistHost,
 } as const;

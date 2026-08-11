@@ -73,36 +73,9 @@ const devModulesScript = `<script type="module">
     <script type="module" src="${viteOrigin}/@vite/client"></script>
     <script type="module" src="${viteOrigin}/src/main.tsx"></script>`;
 
-//Custom themes placeholder
+//Built-in themes - always available, not admin-editable
 export const tmpDefaultTheme = 'dark';
 export const tmpDefaultThemes = ['dark', 'light'];
-export const tmpCustomThemes: ThemeType[] = [
-    // {
-    //     name: 'deep-purple',
-    //     isDark: true,
-    //     style: {
-    //         "background": "274 93% 39%",
-    //         "foreground": "269 9% 100%",
-    //         "card": "274 79% 53%",
-    //         "card-foreground": "270 48% 99%",
-    //         "popover": "240 10% 3.9%",
-    //         "popover-foreground": "270 48% 99%",
-    //         "primary": "270 48% 99%",
-    //         "primary-foreground": "240 5.9% 10%",
-    //         "secondary": "240 3.7% 15.9%",
-    //         "secondary-foreground": "270 48% 99%",
-    //         "muted": "240 3.7% 15.9%",
-    //         "muted-foreground": "240 5% 64.9%",
-    //         "accent": "240 3.7% 15.9%",
-    //         "accent-foreground": "270 48% 99%",
-    //         "destructive": "0 62.8% 30.6%",
-    //         "destructive-foreground": "270 48% 99%",
-    //         "border": "273 79%, 53%",
-    //         "input": "240 3.7% 15.9%",
-    //         "ring": "240 4.9% 83.9%",
-    //     }
-    // }
-];
 
 /**
  * Addon theme compatibility layer.
@@ -355,24 +328,18 @@ const buildFaviconLinkTag = (iconDataUrl: string | undefined, iconFilename: stri
     return `<link rel="icon" type="image/svg+xml" href="./favicon_default.svg" id="favicon" />`;
 };
 
-let cachedCustomThemesCss: string | null | undefined;
-
-const getCustomThemesCss = (): string | null => {
-    if (cachedCustomThemesCss !== undefined) return cachedCustomThemesCss;
-    if (!tmpCustomThemes.length) {
-        cachedCustomThemesCss = null;
-        return cachedCustomThemesCss;
-    }
+//NOTE: not cached - customThemes can change at runtime via the settings API
+const getCustomThemesCss = (customThemes: ThemeType[]): string | null => {
+    if (!customThemes.length) return null;
     const cssThemes = [];
-    for (const theme of tmpCustomThemes) {
+    for (const theme of customThemes) {
         const cssVars = [];
         for (const [name, value] of Object.entries(theme.style)) {
             cssVars.push(`--${name}: ${value};`);
         }
-        cssThemes.push(`.theme-${theme.name} { ${cssVars.join(' ')} }`);
+        cssThemes.push(`.theme-${theme.id} { ${cssVars.join(' ')} }`);
     }
-    cachedCustomThemesCss = cssThemes.join('\n');
-    return cachedCustomThemesCss;
+    return cssThemes.join('\n');
 };
 
 /**
@@ -430,7 +397,7 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         showAdvanced: txDevEnv.ENABLED || console.isVerbose,
         hasMasterAccount: txCore.adminStore.hasAdmins(true),
         defaultTheme: tmpDefaultTheme,
-        customThemes: tmpCustomThemes.map(({ name, isDark }) => ({ name, isDark })),
+        customThemes: txConfig.appearance.customThemes.map(({ id, name, isDark }) => ({ id, name, isDark })),
         providerLogo: txHostConfig.providerLogo,
         providerName: txHostConfig.providerName,
         hostConfigSource: txHostConfig.sourceName,
@@ -446,6 +413,7 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
         hideFxsUpdateNotification: txConfig.general.hideFxsUpdateNotification,
         allowSelfIdentifierEdit: txConfig.general.allowSelfIdentifierEdit,
         requireAdminTwoFactor: txConfig.general.requireAdminTwoFactor,
+        resourceDownloadEnabled: txConfig.general.resourceDownloadEnabled,
         discordOAuthEnabled: !!(txConfig.discordBot.oauthClientId && txConfig.discordBot.oauthClientSecret),
         reportsEnabled: txConfig.gameFeatures.reportsEnabled,
         hideReportsNav: !ctx.txVars.isWebInterface || !txConfig.gameFeatures.reportsEnabled,
@@ -498,24 +466,25 @@ export default async function getReactIndex(ctx: CtxWithVars | AuthedCtx) {
     }
     replacers.addonHeadTags = addonTags.join('\n        ');
 
-    const customThemesCss = getCustomThemesCss();
+    const customThemesCss = getCustomThemesCss(txConfig.appearance.customThemes);
     replacers.customThemesStyle = customThemesCss ? `<style${nonce}>${customThemesCss}</style>` : '';
 
     //Setting data attributes for addon theming (e.g. data-addon-themer-enabled)
     replacers.htmlExtraAttrs = addonThemeResult.htmlAttrs;
 
     //Setting the theme class from the cookie
+    //NOTE: the cookie stores the custom theme's stable id, not its (renamable) name
     const themeCookie = ctx.cookies.get('fxpAdmin-theme') ?? ctx.cookies.get('txAdmin-theme');
     if (themeCookie) {
         if (tmpDefaultThemes.includes(themeCookie)) {
             replacers.htmlClasses = themeCookie;
         } else {
-            const selectedCustomTheme = tmpCustomThemes.find((theme) => theme.name === themeCookie);
+            const selectedCustomTheme = txConfig.appearance.customThemes.find((theme) => theme.id === themeCookie);
             if (!selectedCustomTheme) {
                 replacers.htmlClasses = tmpDefaultTheme;
             } else {
                 const lightDarkSelector = selectedCustomTheme.isDark ? 'dark' : 'light';
-                replacers.htmlClasses = `${lightDarkSelector} theme-${selectedCustomTheme.name}`;
+                replacers.htmlClasses = `${lightDarkSelector} theme-${selectedCustomTheme.id}`;
             }
         }
     } else {

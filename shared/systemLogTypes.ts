@@ -2,6 +2,7 @@ export const SystemLogCategories = ['action', 'command', 'config', 'login', 'mon
 export type SystemLogCategory = (typeof SystemLogCategories)[number];
 
 const configChangeLogFieldDefinitions = [
+    ['appearance.customThemes', 'Custom Themes'],
     ['general.serverName', 'Server Name'],
     ['general.language', 'Language'],
     ['general.hideFxsUpdateNotification', 'Hide FxServer Update Notification'],
@@ -20,7 +21,6 @@ const configChangeLogFieldDefinitions = [
     ['restarter.resourceStartingTolerance', 'Resource Starting Tolerance'],
     ['restarter.intervalHours', 'Restart Interval (Hours)'],
     ['restarter.disableHealthCheck', 'Disable HTTP Health Check'],
-    ['restarter.httpPlayerlistHost', 'HTTP Playerlist Host Override'],
     ['banlist.enabled', 'Ban Checking Enabled'],
     ['banlist.rejectionMessage', 'Ban Rejection Message'],
     ['banlist.requiredHwidMatches', 'Required Ban HWID Matches'],
@@ -576,6 +576,18 @@ export const systemLogActionDefinitions = [
         category: 'command',
         label: 'Download FXServer Artifact',
         description: 'Download a new FXServer artifact build.',
+    },
+    {
+        id: 'selfUpdate.apply',
+        category: 'command',
+        label: 'Apply sxPanel Update',
+        description: 'Apply a downloaded sxPanel (monitor resource) update.',
+    },
+    {
+        id: 'selfUpdate.download',
+        category: 'command',
+        label: 'Download sxPanel Update',
+        description: 'Download a new sxPanel (monitor resource) release.',
     },
     {
         id: 'console.command',

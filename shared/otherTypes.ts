@@ -15,6 +15,10 @@ export type ResetServerDataPathResp = any;
 export type GetBanTemplatesSuccessResp = any;
 export type SaveBanTemplatesResp = any;
 export type SaveBanTemplatesReq = any;
+export type CustomThemeDataType = any;
+export type GetCustomThemesSuccessResp = any;
+export type SaveCustomThemesResp = any;
+export type SaveCustomThemesReq = any;
 
 //Stats stuff
 export type SvRtLogFilteredType = any;
@@ -69,7 +73,23 @@ export type ArtifactListResp = {
     customDownloadEnabled: boolean;
 };
 
+export type PanelReleaseInfo = {
+    version: string;
+    isPrerelease: boolean;
+    isOutdated: boolean;
+    releaseUrl: string;
+    zipUrl: string;
+    shaUrl: string;
+};
+
+export type PanelUpdateListResp = {
+    currentVersion: string;
+    latestRelease?: PanelReleaseInfo;
+    updateStatus: FxUpdateStatus;
+};
+
 export type ThemeType = {
+    id: string;
     name: string;
     isDark: boolean;
     style: { [key: string]: string };
@@ -104,6 +124,7 @@ export type InjectedTxConsts = {
     hideFxsUpdateNotification: boolean;
     allowSelfIdentifierEdit: boolean;
     requireAdminTwoFactor: boolean;
+    resourceDownloadEnabled: boolean;
     discordOAuthEnabled: boolean;
     reportsEnabled: boolean;
     /** Hide Reports + Report Analytics sidebar items (NUI always; web when reports are disabled). */

@@ -455,7 +455,7 @@ const ListView: React.FC<{
                                         height: 16,
                                         fontSize: '0.65rem',
                                         bgcolor: tokens.info,
-                                        color: '#fff',
+                                        color: tokens.accentContrast,
                                         maxWidth: '100%',
                                         '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' },
                                     }}

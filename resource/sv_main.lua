@@ -22,7 +22,7 @@ if TX_RESOURCE_NAME ~= 'monitor' and TX_RESOURCE_NAME ~= 'txadmin' then
 end
 
 -- =============================================
--- Command to trigger events from sxPanel (CFXBOT-compatible)
+-- Command to trigger events from sxPanel core
 -- =============================================
 RegisterCommand('txaSendEvent', function(source, args)
     if source ~= 0 then return end

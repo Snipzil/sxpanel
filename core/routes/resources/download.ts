@@ -6,7 +6,7 @@ import { AuthedCtx } from '@modules/WebServer/ctxTypes';
 
 import fsp from 'node:fs/promises';
 
-import { spawnNativeResourceZip } from './nativeResourceZip';
+import { isNativeZipCapable, spawnNativeResourceZip } from './nativeResourceZip';
 
 import { createResourceZipArchive, pumpResourceZipStream } from './resourceDownloadCore';
 
@@ -24,20 +24,6 @@ const getRequestParam = (ctx: AuthedCtx, key: string) => {
     }
 
     return ctx.query[key];
-};
-
-const isNativeZipAvailable = (resourceRoot: string) => {
-    const nativeZip = spawnNativeResourceZip(resourceRoot);
-
-    return Promise.race([
-        new Promise<false>((resolve) => {
-            nativeZip.child.once('error', () => resolve(false));
-        }),
-
-        new Promise<true>((resolve) => {
-            setImmediate(() => resolve(true));
-        }),
-    ]).then((available) => ({ available, nativeZip }));
 };
 
 const streamArchiverFallback = (ctx: AuthedCtx, resourceRoot: string, name: string): void => {
@@ -93,6 +79,10 @@ const streamArchiverFallback = (ctx: AuthedCtx, resourceRoot: string, name: stri
  */
 
 export default async function ResourcesDownload(ctx: AuthedCtx) {
+    if (!txConfig.general.resourceDownloadEnabled) {
+        return ctx.send({ error: 'Resource downloading is disabled.' });
+    }
+
     if (!ctx.admin.hasPermission('commands.resources.download')) {
         return ctx.send({ error: "You don't have permission to download resources." });
     }
@@ -129,15 +119,17 @@ export default async function ResourcesDownload(ctx: AuthedCtx) {
 
     const name = resourceName;
 
-    const { available, nativeZip } = await isNativeZipAvailable(resolved.resourceRoot);
+    const nativeCapable = await isNativeZipCapable();
 
-    if (!available) {
+    if (!nativeCapable) {
         console.warn(`Native zip unavailable for "${name}", using archiver fallback.`);
 
         streamArchiverFallback(ctx, resolved.resourceRoot, name);
 
         return;
     }
+
+    const nativeZip = spawnNativeResourceZip(resolved.resourceRoot);
 
     ctx.attachment(`${name}.zip`);
 

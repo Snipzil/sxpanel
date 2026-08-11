@@ -17,6 +17,10 @@ function isSettingsTabMulti(
 }
 
 export const settingsTabsBase: SettingsTabDef[] = [
+    {
+        nameKey: 'panel.settings.tabs.appearance',
+        Component: lazySettingsCard(() => import('./tabCards/appearance')),
+    },
     { nameKey: 'panel.settings.tabs.general', Component: lazySettingsCard(() => import('./tabCards/general')) },
     { nameKey: 'panel.settings.tabs.fxserver', Component: lazySettingsCard(() => import('./tabCards/fxserver')) },
     { nameKey: 'panel.settings.tabs.bans', Component: lazySettingsCard(() => import('./tabCards/bans')) },

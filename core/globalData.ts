@@ -89,11 +89,10 @@ const nativeVars = getNativeVars();
 //8495 = changed prometheus::Histogram::BucketBoundaries
 //9423 = feat(server): add more infos to playerDropped event
 //9655 = Fixed ScanResourceRoot + latent events
-//25943 = node 22 sandboxed runtime, required by deps using the RegExp 'v' flag (got@15 -> @sindresorhus/is@8)
 //NOTE: minFxsVersion only applies to gen8 - gen9 (FiveM Enhanced/cfx-server) uses an unrelated,
 //      much smaller build-numbering scheme (see isGen9Runtime/parseGen9RuntimeArgs) that isn't
 //      comparable against it, so the floor check below is skipped entirely for gen9.
-const minFxsVersion = 25770;
+const minFxsVersion = 5894;
 const fxsIsGen9 = isGen9Runtime();
 const fxsVerParsed = fxsIsGen9 ? parseGen9RuntimeArgs() : parseFxserverVersion(nativeVars.fxsVersion);
 const fxsVersion = fxsVerParsed.valid ? fxsVerParsed.build : 99999;
@@ -121,17 +120,17 @@ if (!fxsVerParsed.valid) {
     console.warn(`You are running a custom branch of FXServer: ${fxsVerParsed.branch}`);
 }
 
-//Custom/unparseable builds bypass the check above, so also verify the actual runtime capability
-//that our dependencies require (RegExp 'v' flag, V8 11+/node 20+), otherwise the boot dies with
-//a raw SyntaxError the moment anything transitively imports got/@sindresorhus/is.
-try {
-    new RegExp('', 'v');
-} catch (error) {
+//The build-number check above is about game-native availability, and custom/unparseable
+//builds bypass it entirely. JS runtime capability is a separate, orthogonal concern - checked
+//directly via process.versions.node (the actual embedded Node) rather than a guessed build
+//number, so this stays correct regardless of which FXServer build ships which Node version.
+const nodeMajor = Number(process.versions.node.split('.')[0]);
+if (Number.isNaN(nodeMajor) || nodeMajor < 18) {
     fatalError.GlobalData(9, [
         'This FXServer build ships a JS runtime too old to run sxPanel.',
         ['Current FXServer version', String(fxsVerParsed.build ?? nativeVars.fxsVersion)],
         ['Node version', process.versions.node],
-        ['Minimum required build', minFxsVersion.toString()],
+        ['Minimum required Node version', '18'],
         'Please update your FXServer to a newer version.',
     ]);
 }

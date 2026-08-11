@@ -4,7 +4,7 @@ import fsp from 'node:fs/promises';
 import ejs from 'ejs';
 import { txDevEnv, txEnv, txHostConfig } from '@core/globalData';
 import consoleFactory from '@lib/console';
-import getReactIndex, { tmpCustomThemes } from '../getReactIndex';
+import getReactIndex from '../getReactIndex';
 import { CtxTxVars } from './ctxVarsMw';
 import { Next } from 'koa';
 import { CtxWithVars } from '../ctxTypes';
@@ -177,7 +177,7 @@ export default async function ctxUtilsMw(ctx: CtxWithVars, next: Next) {
         if (!themeCookie || themeCookie === 'dark' || !isWebInterface) {
             legacyTheme = 'theme--dark';
         } else {
-            const selectorTheme = tmpCustomThemes.find((theme) => theme.name === themeCookie);
+            const selectorTheme = txConfig.appearance.customThemes.find((theme) => theme.id === themeCookie);
             if (selectorTheme?.isDark) {
                 legacyTheme = 'theme--dark';
             }

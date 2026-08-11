@@ -19,6 +19,7 @@ import Database from '@modules/Database';
 import CacheStore from '@modules/CacheStore';
 import UpdateChecker from '@modules/UpdateChecker';
 import FxUpdater from '@modules/FxUpdater';
+import SelfUpdater from '@modules/SelfUpdater';
 import AddonManager from '@modules/AddonManager';
 const console = consoleFactory();
 
@@ -42,6 +43,7 @@ export type TxCoreType = {
     addonManager: AddonManager;
     discordBot: DiscordBot;
     fxUpdater: FxUpdater;
+    selfUpdater: SelfUpdater;
     translator: Translator;
     updateChecker: UpdateChecker;
     webServer: WebServer;
@@ -115,6 +117,7 @@ export default function bootTxAdmin() {
     //Very Low Priority
     _txCore.updateChecker = startModule(UpdateChecker);
     _txCore.fxUpdater = new FxUpdater();
+    _txCore.selfUpdater = new SelfUpdater();
 
     /**
      * MARK: Finalizing Boot

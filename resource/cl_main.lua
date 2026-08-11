@@ -160,7 +160,6 @@ CreateThread(function()
         '/txaReportResources',
         '/txaSetDebugMode',
         '/txaInitialData',
-        '/txaSyncHttpPlayers',
         '/txaSendEvent',
 
         --Keybinds

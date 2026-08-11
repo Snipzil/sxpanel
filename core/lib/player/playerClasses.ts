@@ -361,45 +361,6 @@ export class ServerPlayer extends BasePlayer {
 }
 
 /**
- * HTTP-reported roster row without a live FXServer slot (poll bypass only).
- */
-export class ReportedPlayer extends BasePlayer {
-    readonly netid: number;
-    readonly hasLiveSlot = false;
-
-    constructor(netid: number, name: string, identifiers: string[]) {
-        super(Symbol(`reported${netid}`));
-        this.netid = netid;
-        this.isConnected = true;
-
-        const { validIdsArray, validIdsObject } = parsePlayerIds(identifiers);
-        this.ids = validIdsArray.map((id) => id.toLowerCase());
-        this.license = validIdsObject.license;
-        this.hwids = [];
-
-        const { displayName, pureName } = cleanPlayerName(name);
-        this.displayName = displayName;
-        this.pureName = pureName;
-
-        if (this.license) {
-            const foundData = txCore.database.players.findOne(this.license);
-            if (foundData) {
-                this.dbData = foundData;
-                this.isRegistered = true;
-            } else {
-                this.isRegistered = false;
-            }
-        } else {
-            this.isRegistered = false;
-        }
-    }
-
-    getDbData() {
-        return this.dbData ? structuredClone(this.dbData) : false;
-    }
-}
-
-/**
  * Class to represent players stored in the database.
  */
 export class DatabasePlayer extends BasePlayer {
@@ -439,4 +400,4 @@ export class DatabasePlayer extends BasePlayer {
     }
 }
 
-export type PlayerClass = ServerPlayer | DatabasePlayer | ReportedPlayer;
+export type PlayerClass = ServerPlayer | DatabasePlayer;
