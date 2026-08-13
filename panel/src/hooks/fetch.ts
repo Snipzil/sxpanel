@@ -132,32 +132,33 @@ type ApiCallOpts<RespType, ReqType> = {
 };
 
 export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hookOpts: HookOpts) => {
+    const { method, path, abortOnUnmount = false, throwGenericErrors = false } = hookOpts;
     const abortController = useRef<AbortController | undefined>(undefined);
     const currentToastId = useRef<string | undefined>(undefined);
     const authedFetcher = useAuthedFetcher();
     const { t } = useLocale();
-    hookOpts.abortOnUnmount ??= false;
+
     useEffect(() => {
         return () => {
-            if (!hookOpts.abortOnUnmount) return;
+            if (!abortOnUnmount) return;
             abortController.current?.abort('unmount');
             if (currentToastId.current) {
                 txToast.dismiss(currentToastId.current);
             }
         };
-    }, []);
+    }, [abortOnUnmount]);
 
-    return async (opts: ApiCallOpts<RespType, ReqType>) => {
+    return useCallback(async (opts: ApiCallOpts<RespType, ReqType>) => {
         //The abort controller is not aborted, just forgotten
         abortController.current = new AbortController();
 
         //Processing URL
-        let fetchUrl = hookOpts.path;
+        let fetchUrl = path;
         if (opts.pathParams) {
             for (const [key, val] of Object.entries(opts.pathParams)) {
                 const replaced = replacePathParam(fetchUrl, key, val);
                 if (replaced === fetchUrl) {
-                    throw new Error(`[useBackendApi] pathParam '${key}' not found in path '${hookOpts.path}'`);
+                    throw new Error(`[useBackendApi] pathParam '${key}' not found in path '${path}'`);
                 }
                 fetchUrl = replaced;
             }
@@ -171,7 +172,7 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
             }
             fetchUrl += `?${params.toString()}`;
         }
-        const apiCallDesc = `${hookOpts.method} ${hookOpts.path}`;
+        const apiCallDesc = `${method} ${path}`;
 
         //Error handler
         const handleError = (title: string, msg: string) => {
@@ -215,7 +216,7 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
             const data = await authedFetcher(
                 fetchUrl,
                 {
-                    method: hookOpts.method,
+                    method,
                     body: opts.data,
                 },
                 abortController.current,
@@ -224,7 +225,7 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
             if (abortController.current?.signal.aborted) return;
 
             //If generic error
-            if (hookOpts.throwGenericErrors && 'error' in data) {
+            if (throwGenericErrors && 'error' in data) {
                 const apiError = data as GenericApiErrorResp;
                 throw new BackendApiError('API Error', translateApiError(t, apiError.errorCode, apiError.error));
             }
@@ -295,5 +296,5 @@ export const useBackendApi = <RespType = any, ReqType = NonNullable<Object>>(hoo
                 }
             }
         }
-    };
+    }, [authedFetcher, method, path, t, throwGenericErrors]);
 };
