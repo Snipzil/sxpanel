@@ -10,6 +10,7 @@ import { useTeleportActions } from './actions/useTeleportActions';
 import { useVehicleActions } from './actions/useVehicleActions';
 import { useHealActions } from './actions/useHealActions';
 import { useMiscActions } from './actions/useMiscActions';
+import { useServerActions } from './actions/useServerActions';
 
 const fadeHeight = 16;
 // Sized to comfortably fit all default main-page rows (Player Mode, Teleport,
@@ -78,14 +79,15 @@ export const MainPageList: React.FC = () => {
     const { vehicleMode, serverCtx, isRedm, menuItem: vehicleItem } = useVehicleActions();
     const { healMode, menuItem: healItem } = useHealActions();
     const { menuItems: miscItems } = useMiscActions();
+    const { menuItems: serverItems } = useServerActions();
 
     useEffect(() => {
         if (!menuVisible) setCurSelected(0);
     }, [menuVisible]);
 
     const menuListItems = useMemo(
-        () => [playerModeItem, teleportItem, vehicleItem, healItem, ...miscItems],
-        [playerModeItem, teleportItem, vehicleItem, healItem, miscItems],
+        () => [playerModeItem, teleportItem, vehicleItem, healItem, ...miscItems, ...serverItems],
+        [playerModeItem, teleportItem, vehicleItem, healItem, miscItems, serverItems],
     );
 
     //=============================================
