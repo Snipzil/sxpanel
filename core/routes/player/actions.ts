@@ -170,6 +170,9 @@ export async function handleBan(ctx: AuthedCtx, player: PlayerClass): Promise<Ge
     if (!ctx.admin.testPermission('players.ban', modulename)) {
         return apiError('player_action.no_permission', "You don't have permission to execute this action.");
     }
+    if (expiration === false && !ctx.admin.testPermission('players.ban.permanent', modulename)) {
+        return apiError('player_action.no_permission', "You don't have permission to apply permanent bans.");
+    }
 
     //Validating player - hwids.length can be zero
     const allIds = player.getAllIdentifiers();

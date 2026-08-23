@@ -77,6 +77,9 @@ async function handleBandIds(ctx: AuthedCtx): Promise<GenericApiOkResp> {
     if (!ctx.admin.testPermission('players.ban', modulename)) {
         return { error: "You don't have permission to execute this action." };
     }
+    if (expiration === false && !ctx.admin.testPermission('players.ban.permanent', modulename)) {
+        return { error: "You don't have permission to apply permanent bans." };
+    }
 
     //Register action
     let actionId;
@@ -199,6 +202,9 @@ async function handleChangeBanDuration(ctx: AuthedCtx): Promise<GenericApiOkResp
         newExpiration = calcResults.expiration;
     } catch (error) {
         return { error: emsg(error) };
+    }
+    if (newExpiration === false && !ctx.admin.testPermission('players.ban.permanent', modulename)) {
+        return { error: "You don't have permission to apply permanent bans." };
     }
 
     //Update the ban
