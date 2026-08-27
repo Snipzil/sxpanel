@@ -76,6 +76,16 @@ export default function drawFullPerfChart({
 
     //closed by the end of file
 
+    //Grafana-style stacked left axes: the player-count axis and a memory axis both dock
+    //at `margins.left`, so showing both at once made their tick labels overlap/interleave
+    //illegibly (and look like the chart itself was broken). FXS and Node memory also share
+    //the same unit (MB), so they're combined onto a single shared axis/scale instead of two.
+    const maxFxsMemory = max(lifespans, (lspn) => max(lspn.log, (log) => log.fxsMemory)) ?? 0;
+    const maxNodeMemory = max(lifespans, (lspn) => max(lspn.log, (log) => log.nodeMemory)) ?? 0;
+    const hasMemoryAxis = Boolean((showFxsMemory && maxFxsMemory) || (showNodeMemory && maxNodeMemory));
+    const memoryAxisExtraWidth = hasMemoryAxis && showPlayerCount ? 34 : 0;
+    margins = { ...margins, left: margins.left + memoryAxisExtraWidth };
+
     //Setup
     const drawableAreaHeight = height - margins.top - margins.bottom;
     const drawableAreaWidth = width - margins.left - margins.right;
@@ -197,13 +207,10 @@ export default function drawFullPerfChart({
 
     //Line Scales
     const maxPlayers = max(lifespans, (lspn) => max(lspn.log, (log) => log.players))!;
-    const maxFxsMemory = max(lifespans, (lspn) => max(lspn.log, (log) => log.fxsMemory)) ?? 0;
-    const maxNodeMemory = max(lifespans, (lspn) => max(lspn.log, (log) => log.nodeMemory)) ?? 0;
     const maxPlayersDomain = Math.ceil((maxPlayers + 1) / 5) * 5;
     const lineScalesRange = [height - margins.bottom, margins.top];
     const playersScale = scaleLinear([0, maxPlayersDomain], lineScalesRange);
-    const fxsMemoryScale = scaleLinear([0, maxFxsMemory || 1], lineScalesRange);
-    const nodeMemoryScale = scaleLinear([0, maxNodeMemory || 1], lineScalesRange);
+    const memoryScale = scaleLinear([0, Math.max(maxFxsMemory, maxNodeMemory) || 1], lineScalesRange);
 
     //Axis
     const timeAxisTicksScale = scaleLinear([382, 1350], [7, 16]);
@@ -237,21 +244,14 @@ export default function drawFullPerfChart({
             .call(styleAxis);
     }
 
-    if (showFxsMemory && maxFxsMemory) {
-        const fxsMemoryAxis = axisLeft(fxsMemoryScale).tickFormat((t) => t.toString() + ' MB');
+    if (hasMemoryAxis) {
+        //Docked to the left of the players axis (if shown) instead of stacking on top of it
+        const memoryAxisX = margins.left - margins.axis - memoryAxisExtraWidth;
+        const memoryAxis = axisLeft(memoryScale).tickFormat((t) => t.toString() + ' MB');
         svg.append('g')
-            .attr('class', 'fxsmem-axis')
-            .attr('transform', translate(margins.left - margins.axis, 0))
-            .call(fxsMemoryAxis)
-            .call(styleAxis);
-    }
-
-    if (showNodeMemory && maxNodeMemory) {
-        const nodeMemoryAxis = axisLeft(nodeMemoryScale).tickFormat((t) => t.toString() + ' MB');
-        svg.append('g')
-            .attr('class', 'nodemem-axis')
-            .attr('transform', translate(margins.left - margins.axis, 0))
-            .call(nodeMemoryAxis)
+            .attr('class', 'memory-axis')
+            .attr('transform', translate(memoryAxisX, 0))
+            .call(memoryAxis)
             .call(styleAxis);
     }
 
@@ -366,7 +366,7 @@ export default function drawFullPerfChart({
             const fxsMemoryLineGenerator = line<PerfSnapType>()
                 .defined((d) => d.fxsMemory !== null)
                 .x((d) => timeScale(d.end))
-                .y((d) => fxsMemoryScale(d.fxsMemory as number))
+                .y((d) => memoryScale(d.fxsMemory as number))
                 .curve(curveNatural);
             lifespanGSel
                 .selectAll('path.fxsmem-line')
@@ -391,7 +391,7 @@ export default function drawFullPerfChart({
             const nodeMemoryLineGenerator = line<PerfSnapType>()
                 .defined((d) => d.nodeMemory !== null)
                 .x((d) => timeScale(d.end))
-                .y((d) => nodeMemoryScale(d.nodeMemory as number))
+                .y((d) => memoryScale(d.nodeMemory as number))
                 .curve(curveNatural);
             lifespanGSel
                 .selectAll('path.nodemem-line')
