@@ -177,34 +177,6 @@ export default function drawFullPerfChart({
     const yMax = Math.min(Math.max(maxSeriesVal * 1.15, 0.02), 1);
     const pctScale = scaleLinear([0, yMax], [height - margins.bottom, margins.top]);
 
-    //Grafana-style faint solid gridlines in both directions
-    const gridColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
-    chartGroup
-        .append('g')
-        .attr('class', 'h-grid')
-        .selectAll('line')
-        .data(pctScale.ticks(4))
-        .join('line')
-        .attr('x1', 0)
-        .attr('x2', drawableAreaWidth)
-        .attr('y1', (d) => pctScale(d))
-        .attr('y2', (d) => pctScale(d))
-        .attr('stroke', gridColor);
-
-    //Vertical gridlines follow the time axis ticks; redrawn on zoom/pan
-    const vGridGroup = chartGroup.append('g').attr('class', 'v-grid');
-    const drawVerticalGrid = (visibleScale: typeof timeScale) => {
-        vGridGroup
-            .selectAll('line')
-            .data(visibleScale.ticks(8).map((t) => visibleScale(t)))
-            .join('line')
-            .attr('x1', (x) => x)
-            .attr('x2', (x) => x)
-            .attr('y1', margins.top)
-            .attr('y2', height - margins.bottom)
-            .attr('stroke', gridColor);
-    };
-
     //Line Scales
     const maxPlayers = max(lifespans, (lspn) => max(lspn.log, (log) => log.players))!;
     const maxPlayersDomain = Math.ceil((maxPlayers + 1) / 5) * 5;
@@ -221,7 +193,6 @@ export default function drawFullPerfChart({
         .attr('class', 'time-axis')
         .call(timeAxis)
         .call(styleAxis);
-    drawVerticalGrid(timeScale);
 
     const pctAxis = axisRight(pctScale)
         .tickFormat((t) => `${parseFloat((Number(t) * 100).toFixed(1))}%`)
@@ -670,7 +641,6 @@ export default function drawFullPerfChart({
         const visibleTimeScale = transform.rescaleX(timeScale).range([0, drawableAreaWidth]);
         timeAxis.scale(visibleTimeScale);
         timeAxisGroup.call(timeAxis).call(styleAxis);
-        drawVerticalGrid(visibleTimeScale);
 
         drawPerfSeries();
         //@ts-ignore
