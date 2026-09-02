@@ -1809,6 +1809,7 @@
                 "game_menu": "Game Menu",
                 "game_notifications": "Game Notifications",
                 "game_reports": "Game Reports",
+                "panel_features": "Panel Features",
                 "danger_zone": "Danger Zone"
             },
             "cards": {
@@ -1825,6 +1826,19 @@
                 "optional": "Optional",
                 "hidden": "Hidden",
                 "visible": "Visible"
+            },
+            "panel_features": {
+                "blurb": "Turn optional sxPanel pages on or off. A disabled page is hidden from every menu and its link redirects to the dashboard. Changes take effect after the panel reloads.",
+                "item_desc": "When hidden, the %{page} page is removed from all navigation and its URL redirects to the dashboard.",
+                "item_desc_reports": "When hidden, the Reports page is removed from all navigation, the in-game /report command is disabled, the report APIs stop responding, and the Discord report commands are removed.",
+                "group_players": "Players & Moderation",
+                "group_analytics": "Analytics",
+                "group_server": "Server",
+                "group_system": "System",
+                "reload_prompt_title": "Reload to apply?",
+                "reload_prompt_msg": "Navigation and page changes only take effect after the panel reloads.",
+                "reload_now": "Reload now",
+                "reload_later": "Later"
             },
             "appearance": {
                 "theme": {
@@ -3287,6 +3301,14 @@
             "players_delete": {
                 "label": "Remove Player Data",
                 "description": "Delete bans/warns, players, and player identifiers."
+            },
+            "txadmin_log_view_ips": {
+                "label": "View Login IPs",
+                "description": "View the IP addresses recorded in admin login log entries."
+            },
+            "commands_resources_download": {
+                "label": "Download Resources",
+                "description": "Zip and download a resource folder from the server host."
             }
         },
         "shell": {
@@ -3916,6 +3938,51 @@
             },
             "system_max_clients_corrected": {
                 "label": "Correct Max Clients"
+            },
+            "resource_download": {
+                "label": "Download Resource"
+            },
+            "selfUpdate_apply": {
+                "label": "Apply sxPanel Update"
+            },
+            "selfUpdate_download": {
+                "label": "Download sxPanel Update"
+            },
+            "config_appearance_customThemes": {
+                "label": "Custom Themes"
+            },
+            "config_panelFeatures_whitelistPage": {
+                "label": "Whitelist Page Enabled"
+            },
+            "config_panelFeatures_historyPage": {
+                "label": "History Page Enabled"
+            },
+            "config_panelFeatures_insightsPage": {
+                "label": "Insights Page Enabled"
+            },
+            "config_panelFeatures_playerDropsPage": {
+                "label": "Player Drops Page Enabled"
+            },
+            "config_panelFeatures_reportAnalyticsPage": {
+                "label": "Report Analytics Page Enabled"
+            },
+            "config_panelFeatures_resourcesPage": {
+                "label": "Resources Page Enabled"
+            },
+            "config_panelFeatures_cfgEditorPage": {
+                "label": "CFG Editor Page Enabled"
+            },
+            "config_panelFeatures_serverLogPage": {
+                "label": "Server Log Page Enabled"
+            },
+            "config_panelFeatures_actionLogPage": {
+                "label": "Action Log Page Enabled"
+            },
+            "config_panelFeatures_consoleLogPage": {
+                "label": "Console Log Page Enabled"
+            },
+            "config_panelFeatures_addonsPage": {
+                "label": "Addons Page Enabled"
             }
         },
         "deferral": {

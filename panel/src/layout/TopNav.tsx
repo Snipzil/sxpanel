@@ -6,6 +6,7 @@ import { NavLink } from '@/components/MainPageLink';
 import { LogoFullSquareGreen } from '@/components/Logos';
 import type { LucideIcon } from 'lucide-react';
 import { SIDEBAR_SECTIONS } from './sidebarConfig';
+import { isPanelFeatureEnabled } from '@/lib/panelFeatures';
 import { useServerControls } from './LeftSidebar';
 import { useAdminPerms } from '@/hooks/auth';
 import { useAddonLoader } from '@/hooks/addons';
@@ -206,6 +207,7 @@ export default function TopNav() {
     const visibleSections = SIDEBAR_SECTIONS.map((section) => {
         const staticItems: TopNavItem[] = section.items
             .filter((item) => !(window.txConsts.hideReportsNav && item.href.startsWith('/reports')))
+            .filter((item) => !item.featureFlag || isPanelFeatureEnabled(item.featureFlag))
             .filter((item) => !item.permission || hasPerm(item.permission))
             .map((item) => ({ href: item.href, icon: item.icon, label: t(item.labelKey) }));
         const items =
