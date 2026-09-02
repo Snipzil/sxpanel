@@ -1108,9 +1108,22 @@
                 "next": "Next",
                 "close": "Close"
             },
+            "filter": {
+                "title": "Filter",
+                "placeholder": "e.g. player command",
+                "hint": "space = match all · -word excludes · \"quoted phrase\"",
+                "empty_hint": "Type terms or pick a category to filter the console.",
+                "no_matches": "No lines match this filter.",
+                "match_count": "%{count} lines",
+                "bad_regex": "Invalid regex",
+                "refresh": "Rescan console",
+                "follow": "Follow new matches",
+                "jump_newest": "Newest"
+            },
             "footer": {
                 "saved": "Saved",
                 "search": "Search",
+                "filter": "Filter",
                 "clear": "Clear",
                 "download": "Download",
                 "options": "Options",
